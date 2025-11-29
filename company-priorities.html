@@ -143,17 +143,15 @@
         }
 
         .sections-grid {
-            display: grid;
-            grid-template-columns: 1.2fr 1fr 1fr 1.2fr;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
+            display: block;
         }
 
         .section-box {
             background: #f8fafc;
-            padding: 1rem;
+            padding: 1.25rem;
             border-radius: 8px;
             border-left: 3px solid;
+            margin-bottom: 1.5rem;
         }
 
         .q1 .section-box { border-left-color: #dc004e; }
@@ -249,19 +247,8 @@
             border-left: 3px solid #f59e0b;
         }
 
-        @media (max-width: 1400px) {
-            .sections-grid {
-                grid-template-columns: 1fr 1fr;
-                gap: 0.75rem;
-            }
-        }
-
         @media (max-width: 1200px) {
             .quarters {
-                grid-template-columns: 1fr;
-            }
-
-            .sections-grid {
                 grid-template-columns: 1fr;
             }
 
