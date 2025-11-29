@@ -15,7 +15,7 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background: #f8f9fa;
+            background: #fafafa;
             min-height: 100vh;
             padding: 3rem 2rem;
         }
@@ -24,9 +24,9 @@
             max-width: 1600px;
             margin: 0 auto;
             background: white;
-            border-radius: 2px;
+            border-radius: 12px;
             padding: 4rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
         }
 
         .header {
@@ -51,10 +51,10 @@
         }
 
         .focus-tag {
-            background: #1e293b;
-            color: #f1f5f9;
+            background: linear-gradient(135deg, #dc004e 0%, #8c65d4 100%);
+            color: white;
             padding: 0.6rem 1.75rem;
-            border-radius: 2px;
+            border-radius: 25px;
             font-size: 0.75rem;
             font-weight: 500;
             text-transform: uppercase;
@@ -70,14 +70,14 @@
         .quarter {
             background: #ffffff;
             border: 1px solid #e5e7eb;
-            border-radius: 2px;
+            border-radius: 12px;
             padding: 2.5rem;
-            border-left: 3px solid;
+            border-top: 4px solid;
         }
 
-        .quarter.q1 { border-left-color: #1e40af; }
-        .quarter.q2 { border-left-color: #065f46; }
-        .quarter.q3 { border-left-color: #92400e; }
+        .quarter.q1 { border-top-color: #dc004e; }
+        .quarter.q2 { border-top-color: #8c65d4; }
+        .quarter.q3 { border-top-color: #4182e3; }
 
         .quarter-header {
             display: flex;
@@ -92,7 +92,7 @@
             font-size: 0.9rem;
             font-weight: 600;
             padding: 0.5rem 1rem;
-            border-radius: 2px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -100,9 +100,9 @@
             letter-spacing: 0.5px;
         }
 
-        .q1 .quarter-badge { background: #1e40af; }
-        .q2 .quarter-badge { background: #065f46; }
-        .q3 .quarter-badge { background: #92400e; }
+        .q1 .quarter-badge { background: #dc004e; }
+        .q2 .quarter-badge { background: #8c65d4; }
+        .q3 .quarter-badge { background: #4182e3; }
 
         .quarter-title {
             flex: 1;
@@ -136,6 +136,26 @@
 
         .section {
             margin-bottom: 1.75rem;
+        }
+
+        .section.impact-section {
+            min-height: 120px;
+        }
+
+        .section.outputs-section {
+            min-height: 160px;
+        }
+
+        .section.costs-section {
+            min-height: 100px;
+        }
+
+        .section.kpi-section {
+            min-height: 100px;
+        }
+
+        .section.effect-section {
+            min-height: 80px;
         }
 
         .section-title {
@@ -181,25 +201,48 @@
         .kpi-item {
             background: #f8fafc;
             padding: 1rem;
-            border-radius: 2px;
+            border-radius: 8px;
             font-size: 0.85rem;
             color: #334155;
             font-weight: 500;
-            border-left: 2px solid;
+            border-left: 3px solid;
         }
 
-        .q1 .kpi-item { border-left-color: #1e40af; }
-        .q2 .kpi-item { border-left-color: #065f46; }
-        .q3 .kpi-item { border-left-color: #92400e; }
+        .q1 .kpi-item { border-left-color: #dc004e; }
+        .q2 .kpi-item { border-left-color: #8c65d4; }
+        .q3 .kpi-item { border-left-color: #4182e3; }
 
         .impact-box {
-            background: #f8fafc;
+            background: #fef2f7;
             padding: 1.25rem;
-            border-radius: 2px;
+            border-radius: 8px;
             font-size: 0.9rem;
             line-height: 1.7;
             color: #475569;
-            border-left: 2px solid #1e293b;
+            border-left: 3px solid;
+        }
+
+        .q1 .impact-box {
+            border-left-color: #dc004e;
+            background: #fef2f7;
+        }
+        .q2 .impact-box {
+            border-left-color: #8c65d4;
+            background: #f5f3ff;
+        }
+        .q3 .impact-box {
+            border-left-color: #4182e3;
+            background: #eff6ff;
+        }
+
+        .cost-box {
+            background: #fffbeb;
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: #475569;
+            border-left: 3px solid #f59e0b;
         }
 
         @media (max-width: 1200px) {
@@ -258,16 +301,16 @@
                     </div>
                 </div>
 
-                <div class="project-name">Brand Manuál & Korporátní Šablony</div>
+                <div class="project-name">Brand Manuál & Jednotné Šablony</div>
 
-                <div class="section">
+                <div class="section impact-section">
                     <div class="section-title">Klíčový Dopad</div>
                     <div class="impact-box">
                         Konzistentní a profesionální základ pro všechny komunikace. Budování důvěry zákazníků a snížení provozních nákladů.
                     </div>
                 </div>
 
-                <div class="section">
+                <div class="section outputs-section">
                     <div class="section-title">Výstupy</div>
                     <div class="section-content">
                         <ul>
@@ -278,7 +321,14 @@
                     </div>
                 </div>
 
-                <div class="section">
+                <div class="section costs-section">
+                    <div class="section-title">Náklady</div>
+                    <div class="cost-box">
+                        Interní časová investice týmu MKT + COPY (HPP). Externí konzultační náklady (Karel Novotný).
+                    </div>
+                </div>
+
+                <div class="section kpi-section">
                     <div class="section-title">KPI</div>
                     <div class="kpi-grid">
                         <div class="kpi-item">Zrychlení o 15–25%</div>
@@ -286,7 +336,7 @@
                     </div>
                 </div>
 
-                <div class="section">
+                <div class="section effect-section">
                     <div class="section-title">Dlouhodobý Efekt</div>
                     <div class="section-content">
                         Jednotné vystupování zvyšuje důvěryhodnost. Předpřipravené šablony uvolňují kapacitu pro strategické projekty.
@@ -306,14 +356,14 @@
 
                 <div class="project-name">Redesign PDP & Reklamní Prostor</div>
 
-                <div class="section">
+                <div class="section impact-section">
                     <div class="section-title">Klíčový Dopad</div>
                     <div class="impact-box">
                         Přímý nárůst tržeb. Nový reklamní příjmový tok a zvýšení vyjednávací síly s Vendory.
                     </div>
                 </div>
 
-                <div class="section">
+                <div class="section outputs-section">
                     <div class="section-title">Výstupy</div>
                     <div class="section-content">
                         <ul>
@@ -325,7 +375,14 @@
                     </div>
                 </div>
 
-                <div class="section">
+                <div class="section costs-section">
+                    <div class="section-title">Náklady</div>
+                    <div class="cost-box">
+                        Interní IT kapacita.
+                    </div>
+                </div>
+
+                <div class="section kpi-section">
                     <div class="section-title">KPI</div>
                     <div class="kpi-grid">
                         <div class="kpi-item">CR +2–5%</div>
@@ -335,7 +392,7 @@
                     </div>
                 </div>
 
-                <div class="section">
+                <div class="section effect-section">
                     <div class="section-title">Dlouhodobý Efekt</div>
                     <div class="section-content">
                         Web jako mediální platforma s vyšší marží. Silnější vyjednávací pozice a posílení Privátní Značky.
@@ -355,14 +412,14 @@
 
                 <div class="project-name">Technické SEO & LLMO</div>
 
-                <div class="section">
+                <div class="section impact-section">
                     <div class="section-title">Klíčový Dopad</div>
                     <div class="impact-box">
                         Dlouhodobý, nízkonákladový traffic. Visibility v éře AI vyhledávání a snížení nákladů na akvizici.
                     </div>
                 </div>
 
-                <div class="section">
+                <div class="section outputs-section">
                     <div class="section-title">Výstupy</div>
                     <div class="section-content">
                         <ul>
@@ -374,7 +431,14 @@
                     </div>
                 </div>
 
-                <div class="section">
+                <div class="section costs-section">
+                    <div class="section-title">Náklady</div>
+                    <div class="cost-box">
+                        Externí SEO konzultanti (Jakub Rejnuš, Radek Hudák). Interní IT zásahy dle kapacity.
+                    </div>
+                </div>
+
+                <div class="section kpi-section">
                     <div class="section-title">KPI</div>
                     <div class="kpi-grid">
                         <div class="kpi-item">Organický traffic ↑</div>
@@ -383,7 +447,7 @@
                     </div>
                 </div>
 
-                <div class="section">
+                <div class="section effect-section">
                     <div class="section-title">Dlouhodobý Efekt</div>
                     <div class="section-content">
                         Traffic zdarma pro budoucí roky. Levnější zákazník a viditelnost v AI vyhledávání (Google AI).
