@@ -135,28 +135,30 @@
         }
 
         .section {
-            margin-bottom: 1.75rem;
+            margin-bottom: 1.5rem;
         }
 
         .section.impact-section {
-            min-height: 120px;
+            margin-bottom: 2rem;
         }
 
-        .section.outputs-section {
-            min-height: 160px;
+        .sections-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr 1fr 1.2fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
         }
 
-        .section.costs-section {
-            min-height: 100px;
+        .section-box {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 3px solid;
         }
 
-        .section.kpi-section {
-            min-height: 100px;
-        }
-
-        .section.effect-section {
-            min-height: 80px;
-        }
+        .q1 .section-box { border-left-color: #dc004e; }
+        .q2 .section-box { border-left-color: #8c65d4; }
+        .q3 .section-box { border-left-color: #4182e3; }
 
         .section-title {
             font-size: 0.65rem;
@@ -168,9 +170,18 @@
         }
 
         .section-content {
-            font-size: 0.9rem;
-            line-height: 1.7;
+            font-size: 0.85rem;
+            line-height: 1.6;
             color: #475569;
+        }
+
+        .section-box .section-title {
+            margin-bottom: 0.5rem;
+        }
+
+        .section-box .section-content {
+            font-size: 0.8rem;
+            line-height: 1.5;
         }
 
         .section-content ul {
@@ -179,38 +190,31 @@
         }
 
         .section-content li {
-            padding-left: 1.5rem;
+            padding-left: 1.2rem;
             position: relative;
-            margin-bottom: 0.6rem;
+            margin-bottom: 0.4rem;
         }
 
         .section-content li:before {
             content: "•";
             position: absolute;
-            left: 0.5rem;
+            left: 0.3rem;
             color: #94a3b8;
             font-weight: 400;
         }
 
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.75rem;
+        .highlight-stat {
+            font-weight: 600;
+            color: #dc004e;
         }
 
-        .kpi-item {
-            background: #f8fafc;
-            padding: 1rem;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            color: #334155;
-            font-weight: 500;
-            border-left: 3px solid;
+        .q2 .highlight-stat {
+            color: #8c65d4;
         }
 
-        .q1 .kpi-item { border-left-color: #dc004e; }
-        .q2 .kpi-item { border-left-color: #8c65d4; }
-        .q3 .kpi-item { border-left-color: #4182e3; }
+        .q3 .highlight-stat {
+            color: #4182e3;
+        }
 
         .impact-box {
             background: #fef2f7;
@@ -245,8 +249,19 @@
             border-left: 3px solid #f59e0b;
         }
 
+        @media (max-width: 1400px) {
+            .sections-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 0.75rem;
+            }
+        }
+
         @media (max-width: 1200px) {
             .quarters {
+                grid-template-columns: 1fr;
+            }
+
+            .sections-grid {
                 grid-template-columns: 1fr;
             }
 
@@ -306,40 +321,44 @@
                 <div class="section impact-section">
                     <div class="section-title">Klíčový Dopad</div>
                     <div class="impact-box">
-                        Konzistentní a profesionální základ pro všechny komunikace. Budování důvěry zákazníků a snížení provozních nákladů.
+                        Konzistentní profesionální základ pro všechny komunikace napříč <span class="highlight-stat">5 značkami</span> (Růžový Slon, Kondomshop, SE, Eazi Oh!, Adore). Snížení provozních nákladů v Q2-Q4 o odhadovaných <span class="highlight-stat">20-30%</span> díky zrychlení tvorby kampaní.
                     </div>
                 </div>
 
-                <div class="section outputs-section">
-                    <div class="section-title">Výstupy</div>
-                    <div class="section-content">
-                        <ul>
-                            <li>Brand Manual (barvy, typografie, ToV)</li>
-                            <li>Šablony pro kampaně & sociální média</li>
-                            <li>Jednotný systém pro všechny značky</li>
-                        </ul>
+                <div class="sections-grid">
+                    <div class="section-box">
+                        <div class="section-title">Výstupy</div>
+                        <div class="section-content">
+                            <ul>
+                                <li>Brand Manual (barvy, typografie, ToV)</li>
+                                <li>Šablony pro kampaně & sociální média</li>
+                                <li>Jednotný systém pro všechny značky</li>
+                            </ul>
+                        </div>
                     </div>
-                </div>
 
-                <div class="section costs-section">
-                    <div class="section-title">Náklady</div>
-                    <div class="cost-box">
-                        Interní časová investice týmu MKT + COPY (HPP). Externí konzultační náklady (Karel Novotný).
+                    <div class="section-box">
+                        <div class="section-title">Náklady</div>
+                        <div class="section-content">
+                            Interní: MKT + COPY (HPP). Externí: Karel Novotný (odhad po schůzce 8.12.2025).
+                        </div>
                     </div>
-                </div>
 
-                <div class="section kpi-section">
-                    <div class="section-title">KPI</div>
-                    <div class="kpi-grid">
-                        <div class="kpi-item">Zrychlení o 15–25%</div>
-                        <div class="kpi-item">Vyšší produktivita</div>
+                    <div class="section-box">
+                        <div class="section-title">KPI</div>
+                        <div class="section-content">
+                            <ul>
+                                <li>Zrychlení tvorby <span class="highlight-stat">15-25%</span></li>
+                                <li>Produktivita týmů ↑</li>
+                            </ul>
+                        </div>
                     </div>
-                </div>
 
-                <div class="section effect-section">
-                    <div class="section-title">Dlouhodobý Efekt</div>
-                    <div class="section-content">
-                        Jednotné vystupování zvyšuje důvěryhodnost. Předpřipravené šablony uvolňují kapacitu pro strategické projekty.
+                    <div class="section-box">
+                        <div class="section-title">Dlouhodobý Efekt</div>
+                        <div class="section-content">
+                            Jednotný vizuál zvyšuje důvěryhodnost značky. Uvolněná kapacita pro strategické projekty a inovace.
+                        </div>
                     </div>
                 </div>
             </div>
@@ -359,43 +378,47 @@
                 <div class="section impact-section">
                     <div class="section-title">Klíčový Dopad</div>
                     <div class="impact-box">
-                        Přímý nárůst tržeb. Nový reklamní příjmový tok a zvýšení vyjednávací síly s Vendory.
+                        Přímý nárůst tržeb na <span class="highlight-stat">81% mobilního trafficu</span>. Nový reklamní příjmový tok zvyšující GM1 o <span class="highlight-stat">2-5%</span> a posílení vyjednávací pozice s Vendory. Potenciální nárůst konverze o <span class="highlight-stat">2-5%</span> = +10M Kč ročně.
                     </div>
                 </div>
 
-                <div class="section outputs-section">
-                    <div class="section-title">Výstupy</div>
-                    <div class="section-content">
-                        <ul>
-                            <li>Optimalizovaný PDP (foto/video, recenze)</li>
-                            <li>Mobile-First design (81% traffic)</li>
-                            <li>Cross-sell/Up-sell doporučení</li>
-                            <li>Reklamní prostor pro Vendory</li>
-                        </ul>
+                <div class="sections-grid">
+                    <div class="section-box">
+                        <div class="section-title">Výstupy</div>
+                        <div class="section-content">
+                            <ul>
+                                <li>Optimalizace kvality contentu (grafický, textový, informační, brand manual)</li>
+                                <li>Mobile-First PDP (foto/video, recenze)</li>
+                                <li>Cross-sell/Up-sell engine</li>
+                                <li>Reklamní prostor pro Vendory</li>
+                            </ul>
+                        </div>
                     </div>
-                </div>
 
-                <div class="section costs-section">
-                    <div class="section-title">Náklady</div>
-                    <div class="cost-box">
-                        Interní IT kapacita.
+                    <div class="section-box">
+                        <div class="section-title">Náklady</div>
+                        <div class="section-content">
+                            Interní IT kapacita (cca <span class="highlight-stat">3-4 týdny</span> vývoje).
+                        </div>
                     </div>
-                </div>
 
-                <div class="section kpi-section">
-                    <div class="section-title">KPI</div>
-                    <div class="kpi-grid">
-                        <div class="kpi-item">CR +2–5%</div>
-                        <div class="kpi-item">AOV +2–5%</div>
-                        <div class="kpi-item">GM1 +2–5%</div>
-                        <div class="kpi-item">Nový Revenue Stream</div>
+                    <div class="section-box">
+                        <div class="section-title">KPI</div>
+                        <div class="section-content">
+                            <ul>
+                                <li>CR <span class="highlight-stat">+2-5%</span></li>
+                                <li>AOV <span class="highlight-stat">+2-5%</span></li>
+                                <li>GM1 <span class="highlight-stat">+2-5%</span></li>
+                                <li>Nový Revenue Stream</li>
+                            </ul>
+                        </div>
                     </div>
-                </div>
 
-                <div class="section effect-section">
-                    <div class="section-title">Dlouhodobý Efekt</div>
-                    <div class="section-content">
-                        Web jako mediální platforma s vyšší marží. Silnější vyjednávací pozice a posílení Privátní Značky.
+                    <div class="section-box">
+                        <div class="section-title">Dlouhodobý Efekt</div>
+                        <div class="section-content">
+                            Web jako mediální platforma s vyšší marží. Silnější pozice při vyjednávání. Prémiové vnímání PL značek.
+                        </div>
                     </div>
                 </div>
             </div>
@@ -415,42 +438,47 @@
                 <div class="section impact-section">
                     <div class="section-title">Klíčový Dopad</div>
                     <div class="impact-box">
-                        Dlouhodobý, nízkonákladový traffic. Visibility v éře AI vyhledávání a snížení nákladů na akvizici.
+                        Dlouhodobý nízkonákladový traffic engine. <span class="highlight-stat">68% uživatelů</span> začína vyhledáváním - zajištění visibility v éře AI. Snížení CAC o <span class="highlight-stat">15-30%</span> díky organickému růstu. Potenciální nárůst trafficu o <span class="highlight-stat">25-40%</span> = +8M Kč ročně.
                     </div>
                 </div>
 
-                <div class="section outputs-section">
-                    <div class="section-title">Výstupy</div>
-                    <div class="section-content">
-                        <ul>
-                            <li>Technické SEO (rychlost, struktura)</li>
-                            <li>Content optimalizace & klíčová slova</li>
-                            <li>LLMO pro AI Overviews</li>
-                            <li>Optimalizace pro Perplexity & ChatGPT</li>
-                        </ul>
+                <div class="sections-grid">
+                    <div class="section-box">
+                        <div class="section-title">Výstupy</div>
+                        <div class="section-content">
+                            <ul>
+                                <li>Technické SEO (rychlost, struktura, Core Web Vitals)</li>
+                                <li>Content optimalizace & klíčová slova</li>
+                                <li>LLMO pro Google AI Overviews</li>
+                                <li>Optimalizace pro Perplexity & ChatGPT Search</li>
+                            </ul>
+                        </div>
                     </div>
-                </div>
 
-                <div class="section costs-section">
-                    <div class="section-title">Náklady</div>
-                    <div class="cost-box">
-                        Externí SEO konzultanti (Jakub Rejnuš, Radek Hudák). Interní IT zásahy dle kapacity.
+                    <div class="section-box">
+                        <div class="section-title">Náklady</div>
+                        <div class="section-content">
+                            Externí: SEO konzultanti (Jakub Rejnuš, Radek Hudák). Interní: IT zásahy dle kapacity.
+                        </div>
                     </div>
-                </div>
 
-                <div class="section kpi-section">
-                    <div class="section-title">KPI</div>
-                    <div class="kpi-grid">
-                        <div class="kpi-item">Organický traffic ↑</div>
-                        <div class="kpi-item">CAC ↓</div>
-                        <div class="kpi-item">GM1 ↑</div>
+                    <div class="section-box">
+                        <div class="section-title">KPI</div>
+                        <div class="section-content">
+                            <ul>
+                                <li>Organický traffic <span class="highlight-stat">+25-40%</span></li>
+                                <li>CAC <span class="highlight-stat">↓15-30%</span></li>
+                                <li>GM1 nárůst</li>
+                                <li>Top 3 pozice klíčová slova</li>
+                            </ul>
+                        </div>
                     </div>
-                </div>
 
-                <div class="section effect-section">
-                    <div class="section-title">Dlouhodobý Efekt</div>
-                    <div class="section-content">
-                        Traffic zdarma pro budoucí roky. Levnější zákazník a viditelnost v AI vyhledávání (Google AI).
+                    <div class="section-box">
+                        <div class="section-title">Dlouhodobý Efekt</div>
+                        <div class="section-content">
+                            Trvalý traffic "zdarma" pro roky. Dominance v AI vyhledávání. Levnější akvizice = vyšší ziskovost.
+                        </div>
                     </div>
                 </div>
             </div>
