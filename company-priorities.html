@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Celofiremní Priority 2025</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 1400px;
+            background: white;
+            border-radius: 24px;
+            padding: 3rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            padding-bottom: 2rem;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 1rem;
+        }
+
+        .focus-areas {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 0.5rem;
+        }
+
+        .focus-tag {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .quarters {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+
+        .quarter {
+            background: #fafafa;
+            border-radius: 16px;
+            padding: 2rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-top: 4px solid;
+        }
+
+        .quarter:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .quarter.q1 { border-top-color: #3b82f6; }
+        .quarter.q2 { border-top-color: #10b981; }
+        .quarter.q3 { border-top-color: #f59e0b; }
+
+        .quarter-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .quarter-badge {
+            font-size: 1.5rem;
+            font-weight: 700;
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .q1 .quarter-badge { background: #3b82f6; }
+        .q2 .quarter-badge { background: #10b981; }
+        .q3 .quarter-badge { background: #f59e0b; }
+
+        .quarter-title {
+            flex: 1;
+        }
+
+        .quarter-title h2 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: #666;
+            font-weight: 600;
+            letter-spacing: 1px;
+            margin-bottom: 0.25rem;
+        }
+
+        .quarter-title h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            line-height: 1.3;
+        }
+
+        .project-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .section {
+            margin-bottom: 1.25rem;
+        }
+
+        .section-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #888;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .section-content {
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .section-content ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .section-content li {
+            padding-left: 1.25rem;
+            position: relative;
+            margin-bottom: 0.4rem;
+        }
+
+        .section-content li:before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+
+        .kpi-item {
+            background: white;
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            color: #333;
+            border-left: 3px solid;
+        }
+
+        .q1 .kpi-item { border-left-color: #3b82f6; }
+        .q2 .kpi-item { border-left-color: #10b981; }
+        .q3 .kpi-item { border-left-color: #f59e0b; }
+
+        .impact-box {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: #333;
+            border-left: 3px solid #667eea;
+        }
+
+        @media (max-width: 1200px) {
+            .quarters {
+                grid-template-columns: 1fr;
+            }
+
+            .container {
+                padding: 2rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .container {
+                box-shadow: none;
+                max-width: 100%;
+            }
+
+            .quarter {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Celofiremní Priority 2025</h1>
+            <div class="focus-areas">
+                <span class="focus-tag">Organic / SEO / AIO / LLMO</span>
+                <span class="focus-tag">AI / Automatizace / Digitalizace</span>
+            </div>
+        </div>
+
+        <div class="quarters">
+            <!-- Q1 -->
+            <div class="quarter q1">
+                <div class="quarter-header">
+                    <div class="quarter-badge">Q1</div>
+                    <div class="quarter-title">
+                        <h2>Základní Pilíře</h2>
+                        <h3>Konzistence & Efektivita</h3>
+                    </div>
+                </div>
+
+                <div class="project-name">Brand Manuál & Korporátní Šablony</div>
+
+                <div class="section">
+                    <div class="section-title">Klíčový Dopad</div>
+                    <div class="impact-box">
+                        Konzistentní a profesionální základ pro všechny komunikace. Budování důvěry zákazníků a snížení provozních nákladů.
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Výstupy</div>
+                    <div class="section-content">
+                        <ul>
+                            <li>Brand Manual (barvy, typografie, ToV)</li>
+                            <li>Šablony pro kampaně & sociální média</li>
+                            <li>Jednotný systém pro všechny značky</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">KPI</div>
+                    <div class="kpi-grid">
+                        <div class="kpi-item">⚡ Zrychlení o 15–25%</div>
+                        <div class="kpi-item">📈 Vyšší produktivita</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Dlouhodobý Efekt</div>
+                    <div class="section-content">
+                        Jednotné vystupování zvyšuje důvěryhodnost. Předpřipravené šablony uvolňují kapacitu pro strategické projekty.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Q2 -->
+            <div class="quarter q2">
+                <div class="quarter-header">
+                    <div class="quarter-badge">Q2</div>
+                    <div class="quarter-title">
+                        <h2>Monetizace</h2>
+                        <h3>Optimalizace Trychtýře</h3>
+                    </div>
+                </div>
+
+                <div class="project-name">Redesign PDP & Reklamní Prostor</div>
+
+                <div class="section">
+                    <div class="section-title">Klíčový Dopad</div>
+                    <div class="impact-box">
+                        Přímý nárůst tržeb. Nový reklamní příjmový tok a zvýšení vyjednávací síly s Vendory.
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Výstupy</div>
+                    <div class="section-content">
+                        <ul>
+                            <li>Optimalizovaný PDP (foto/video, recenze)</li>
+                            <li>Mobile-First design (81% traffic)</li>
+                            <li>Cross-sell/Up-sell doporučení</li>
+                            <li>Reklamní prostor pro Vendory</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">KPI</div>
+                    <div class="kpi-grid">
+                        <div class="kpi-item">📊 CR +2–5%</div>
+                        <div class="kpi-item">💰 AOV +2–5%</div>
+                        <div class="kpi-item">📈 GM1 +2–5%</div>
+                        <div class="kpi-item">✨ Nový Revenue</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Dlouhodobý Efekt</div>
+                    <div class="section-content">
+                        Web jako mediální platforma s vyšší marží. Silnější vyjednávací pozice a posílení Privátní Značky.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Q3 -->
+            <div class="quarter q3">
+                <div class="quarter-header">
+                    <div class="quarter-badge">Q3</div>
+                    <div class="quarter-title">
+                        <h2>Strategický Růst</h2>
+                        <h3>Traffic Engine</h3>
+                    </div>
+                </div>
+
+                <div class="project-name">Technické SEO & LLMO</div>
+
+                <div class="section">
+                    <div class="section-title">Klíčový Dopad</div>
+                    <div class="impact-box">
+                        Dlouhodobý, nízkonákladový traffic. Visibility v éře AI vyhledávání a snížení nákladů na akvizici.
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Výstupy</div>
+                    <div class="section-content">
+                        <ul>
+                            <li>Technické SEO (rychlost, struktura)</li>
+                            <li>Content optimalizace & klíčová slova</li>
+                            <li>LLMO pro AI Overviews</li>
+                            <li>Optimalizace pro Perplexity & ChatGPT</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">KPI</div>
+                    <div class="kpi-grid">
+                        <div class="kpi-item">🚀 Organický traffic ↑</div>
+                        <div class="kpi-item">💵 CAC ↓</div>
+                        <div class="kpi-item">📈 GM1 ↑</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Dlouhodobý Efekt</div>
+                    <div class="section-content">
+                        Traffic zdarma pro budoucí roky. Levnější zákazník a viditelnost v AI vyhledávání (Google AI).
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
