@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MoveIn - Fitness Studio</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <img src="logo.svg" alt="MoveIn Logo" class="logo-img">
+                <h1>MoveIn</h1>
+            </div>
+            <nav class="nav">
+                <a href="#home">Domů</a>
+                <a href="#lekce">Lekce</a>
+                <a href="#rezervace">Rezervace</a>
+                <a href="#aktuality">Aktuality</a>
+                <a href="#kontakt">Kontakt</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero-content">
+            <h2 class="hero-title">Pohyb je život</h2>
+            <p class="hero-subtitle">Profesionální fitness lekce pro každého</p>
+            <a href="#rezervace" class="btn btn-primary">Rezervovat lekci</a>
+        </div>
+    </section>
+
+    <!-- Lekce Section -->
+    <section id="lekce" class="section">
+        <div class="container">
+            <h2 class="section-title">Naše Lekce</h2>
+            <div class="lessons-grid">
+                <!-- Lekce 1: Yoga -->
+                <div class="lesson-card">
+                    <div class="lesson-icon">
+                        <i class="fas fa-spa"></i>
+                    </div>
+                    <h3>Yoga</h3>
+                    <p class="lesson-time">Pondělí, Středa, Pátek | 7:00 - 8:00</p>
+                    <p class="lesson-description">Relaxační cvičení pro tělo i mysl. Zaměřeno na flexibilitu a duševní klid.</p>
+                    <div class="lesson-details">
+                        <span class="difficulty"><i class="fas fa-signal"></i> Začátečníci</span>
+                        <span class="duration"><i class="fas fa-clock"></i> 60 min</span>
+                    </div>
+                    <button class="btn btn-secondary" onclick="openReservation('Yoga')">Rezervovat</button>
+                </div>
+
+                <!-- Lekce 2: Spinning -->
+                <div class="lesson-card">
+                    <div class="lesson-icon">
+                        <i class="fas fa-bicycle"></i>
+                    </div>
+                    <h3>Spinning</h3>
+                    <p class="lesson-time">Úterý, Čtvrtek | 18:00 - 19:00</p>
+                    <p class="lesson-description">Intenzivní kardio trénink na stacionárních kolech pro spalování tuků.</p>
+                    <div class="lesson-details">
+                        <span class="difficulty"><i class="fas fa-signal"></i> Pokročilí</span>
+                        <span class="duration"><i class="fas fa-clock"></i> 60 min</span>
+                    </div>
+                    <button class="btn btn-secondary" onclick="openReservation('Spinning')">Rezervovat</button>
+                </div>
+
+                <!-- Lekce 3: Pilates -->
+                <div class="lesson-card">
+                    <div class="lesson-icon">
+                        <i class="fas fa-heart"></i>
+                    </div>
+                    <h3>Pilates</h3>
+                    <p class="lesson-time">Pondělí, Středa | 17:00 - 18:00</p>
+                    <p class="lesson-description">Posílení hlubokého svalstva a zlepšení držení těla.</p>
+                    <div class="lesson-details">
+                        <span class="difficulty"><i class="fas fa-signal"></i> Všechny úrovně</span>
+                        <span class="duration"><i class="fas fa-clock"></i> 60 min</span>
+                    </div>
+                    <button class="btn btn-secondary" onclick="openReservation('Pilates')">Rezervovat</button>
+                </div>
+
+                <!-- Lekce 4: HIIT -->
+                <div class="lesson-card">
+                    <div class="lesson-icon">
+                        <i class="fas fa-dumbbell"></i>
+                    </div>
+                    <h3>HIIT</h3>
+                    <p class="lesson-time">Úterý, Čtvrtek, Sobota | 16:00 - 17:00</p>
+                    <p class="lesson-description">Vysokointenzivní intervalový trénink pro maximální efekt.</p>
+                    <div class="lesson-details">
+                        <span class="difficulty"><i class="fas fa-signal"></i> Pokročilí</span>
+                        <span class="duration"><i class="fas fa-clock"></i> 45 min</span>
+                    </div>
+                    <button class="btn btn-secondary" onclick="openReservation('HIIT')">Rezervovat</button>
+                </div>
+
+                <!-- Lekce 5: Zumba -->
+                <div class="lesson-card">
+                    <div class="lesson-icon">
+                        <i class="fas fa-music"></i>
+                    </div>
+                    <h3>Zumba</h3>
+                    <p class="lesson-time">Pátek | 18:00 - 19:00</p>
+                    <p class="lesson-description">Tanec a fitness v jednom - zábava zaručena!</p>
+                    <div class="lesson-details">
+                        <span class="difficulty"><i class="fas fa-signal"></i> Všechny úrovně</span>
+                        <span class="duration"><i class="fas fa-clock"></i> 60 min</span>
+                    </div>
+                    <button class="btn btn-secondary" onclick="openReservation('Zumba')">Rezervovat</button>
+                </div>
+
+                <!-- Lekce 6: Stretching -->
+                <div class="lesson-card">
+                    <div class="lesson-icon">
+                        <i class="fas fa-running"></i>
+                    </div>
+                    <h3>Stretching</h3>
+                    <p class="lesson-time">Neděle | 10:00 - 11:00</p>
+                    <p class="lesson-description">Protažení celého těla a uvolnění napětí.</p>
+                    <div class="lesson-details">
+                        <span class="difficulty"><i class="fas fa-signal"></i> Začátečníci</span>
+                        <span class="duration"><i class="fas fa-clock"></i> 60 min</span>
+                    </div>
+                    <button class="btn btn-secondary" onclick="openReservation('Stretching')">Rezervovat</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Rezervace Section -->
+    <section id="rezervace" class="section section-dark">
+        <div class="container">
+            <h2 class="section-title">Rezervace Lekce</h2>
+            <div class="reservation-container">
+                <form id="reservationForm" class="reservation-form">
+                    <div class="form-group">
+                        <label for="name">
+                            <i class="fas fa-user"></i> Jméno a příjmení *
+                        </label>
+                        <input type="text" id="name" name="name" required placeholder="Jan Novák">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">
+                            <i class="fas fa-envelope"></i> Email *
+                        </label>
+                        <input type="email" id="email" name="email" required placeholder="jan@email.cz">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">
+                            <i class="fas fa-phone"></i> Telefon *
+                        </label>
+                        <input type="tel" id="phone" name="phone" required placeholder="+420 123 456 789">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="lesson">
+                            <i class="fas fa-calendar-check"></i> Vyberte lekci *
+                        </label>
+                        <select id="lesson" name="lesson" required>
+                            <option value="">-- Vyberte lekci --</option>
+                            <option value="Yoga">Yoga</option>
+                            <option value="Spinning">Spinning</option>
+                            <option value="Pilates">Pilates</option>
+                            <option value="HIIT">HIIT</option>
+                            <option value="Zumba">Zumba</option>
+                            <option value="Stretching">Stretching</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="date">
+                            <i class="fas fa-calendar"></i> Datum *
+                        </label>
+                        <input type="date" id="date" name="date" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="time">
+                            <i class="fas fa-clock"></i> Čas *
+                        </label>
+                        <select id="time" name="time" required>
+                            <option value="">-- Vyberte čas --</option>
+                            <option value="07:00">07:00</option>
+                            <option value="16:00">16:00</option>
+                            <option value="17:00">17:00</option>
+                            <option value="18:00">18:00</option>
+                            <option value="10:00">10:00 (Neděle)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="message">
+                            <i class="fas fa-comment"></i> Zpráva (volitelné)
+                        </label>
+                        <textarea id="message" name="message" rows="4" placeholder="Zde můžete napsat vaše dotazy nebo požadavky..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-large">
+                        <i class="fas fa-check"></i> Odeslat rezervaci
+                    </button>
+                </form>
+
+                <div id="reservationMessage" class="message" style="display: none;"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Aktuality Section -->
+    <section id="aktuality" class="section">
+        <div class="container">
+            <h2 class="section-title">Aktuality & Novinky</h2>
+
+            <div class="news-container">
+                <div class="news-item">
+                    <div class="news-date">
+                        <span class="day">15</span>
+                        <span class="month">PRO</span>
+                    </div>
+                    <div class="news-content">
+                        <h3>Nové lekce Zumba!</h3>
+                        <p>Od příštího týdne spouštíme nové lekce Zumba každý pátek v 18:00. Přijďte si zatancovat a zhubnout zábavnou formou!</p>
+                        <div class="news-footer">
+                            <span class="news-author"><i class="fas fa-user"></i> Admin</span>
+                            <button class="btn-comments" onclick="toggleComments(1)">
+                                <i class="fas fa-comments"></i> Komentáře (<span id="comment-count-1">2</span>)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="comments-1" class="comments-section" style="display: none;">
+                    <div class="comments-list">
+                        <div class="comment">
+                            <div class="comment-header">
+                                <strong>Jana Nováková</strong>
+                                <span class="comment-date">14. Prosince 2025</span>
+                            </div>
+                            <p>Super! Už se těším, vždycky jsem chtěla zkusit Zumbu!</p>
+                        </div>
+                        <div class="comment">
+                            <div class="comment-header">
+                                <strong>Petr Svoboda</strong>
+                                <span class="comment-date">15. Prosince 2025</span>
+                            </div>
+                            <p>Konečně! Můžu si i já jako kluk přijít zatančit? 😄</p>
+                        </div>
+                    </div>
+                    <form class="comment-form" onsubmit="addComment(event, 1)">
+                        <input type="text" name="comment-name" placeholder="Vaše jméno" required>
+                        <textarea name="comment-text" placeholder="Váš komentář..." rows="3" required></textarea>
+                        <button type="submit" class="btn btn-secondary">Přidat komentář</button>
+                    </form>
+                </div>
+
+                <div class="news-item">
+                    <div class="news-date">
+                        <span class="day">10</span>
+                        <span class="month">PRO</span>
+                    </div>
+                    <div class="news-content">
+                        <h3>Vánoční akce - 20% sleva!</h3>
+                        <p>Celý prosinec máme speciální vánoční nabídku. Při zakoupení permanentky získáte 20% slevu. Platí pouze do konce roku!</p>
+                        <div class="news-footer">
+                            <span class="news-author"><i class="fas fa-user"></i> Admin</span>
+                            <button class="btn-comments" onclick="toggleComments(2)">
+                                <i class="fas fa-comments"></i> Komentáře (<span id="comment-count-2">1</span>)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="comments-2" class="comments-section" style="display: none;">
+                    <div class="comments-list">
+                        <div class="comment">
+                            <div class="comment-header">
+                                <strong>Marie Veselá</strong>
+                                <span class="comment-date">11. Prosince 2025</span>
+                            </div>
+                            <p>Skvělá nabídka! Právě jsem si koupila permanentku, děkuji!</p>
+                        </div>
+                    </div>
+                    <form class="comment-form" onsubmit="addComment(event, 2)">
+                        <input type="text" name="comment-name" placeholder="Vaše jméno" required>
+                        <textarea name="comment-text" placeholder="Váš komentář..." rows="3" required></textarea>
+                        <button type="submit" class="btn btn-secondary">Přidat komentář</button>
+                    </form>
+                </div>
+
+                <div class="news-item">
+                    <div class="news-date">
+                        <span class="day">05</span>
+                        <span class="month">PRO</span>
+                    </div>
+                    <div class="news-content">
+                        <h3>Rozšíření otevírací doby</h3>
+                        <p>Od nového roku rozšiřujeme otevírací dobu. Studio bude otevřeno i o víkendech od 8:00 do 20:00!</p>
+                        <div class="news-footer">
+                            <span class="news-author"><i class="fas fa-user"></i> Admin</span>
+                            <button class="btn-comments" onclick="toggleComments(3)">
+                                <i class="fas fa-comments"></i> Komentáře (<span id="comment-count-3">0</span>)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="comments-3" class="comments-section" style="display: none;">
+                    <div class="comments-list">
+                        <!-- Zatím žádné komentáře -->
+                    </div>
+                    <form class="comment-form" onsubmit="addComment(event, 3)">
+                        <input type="text" name="comment-name" placeholder="Vaše jméno" required>
+                        <textarea name="comment-text" placeholder="Váš komentář..." rows="3" required></textarea>
+                        <button type="submit" class="btn btn-secondary">Přidat komentář</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Kontakt Section -->
+    <section id="kontakt" class="section section-dark">
+        <div class="container">
+            <h2 class="section-title">Kontakt</h2>
+            <div class="contact-grid">
+                <div class="contact-info">
+                    <div class="contact-item">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <div>
+                            <h3>Adresa</h3>
+                            <p>Fitness MoveIn<br>Sportovní 123<br>120 00 Praha 2</p>
+                        </div>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-phone"></i>
+                        <div>
+                            <h3>Telefon</h3>
+                            <p>+420 123 456 789</p>
+                        </div>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-envelope"></i>
+                        <div>
+                            <h3>Email</h3>
+                            <p>info@movein.cz</p>
+                        </div>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-clock"></i>
+                        <div>
+                            <h3>Otevírací doba</h3>
+                            <p>Po - Pá: 6:00 - 22:00<br>So - Ne: 8:00 - 20:00</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="contact-social">
+                    <h3>Sledujte nás</h3>
+                    <div class="social-links">
+                        <a href="#" class="social-link"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-youtube"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 MoveIn Fitness Studio. Všechna práva vyhrazena.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
