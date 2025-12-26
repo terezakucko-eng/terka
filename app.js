@@ -1290,6 +1290,16 @@ window.closeDataManagementModal = function() {
 window.showIframeModal = function(url) {
     if (!url) return;
 
+    // Detekce známých screenshot služeb - otevři rovnou v nové záložce
+    const screenshotServices = ['prnt.sc', 'lightshot', 'imgur.com/a/', 'gyazo.com'];
+    const isScreenshotService = screenshotServices.some(service => url.includes(service));
+
+    if (isScreenshotService) {
+        // Pro screenshot služby otevři rovnou v nové záložce
+        window.open(url, '_blank');
+        return;
+    }
+
     const iframeModal = document.getElementById('iframeModal');
     const modalHeaderTitle = document.getElementById('modalHeaderTitle');
     const modalBody = document.getElementById('modalBody');
@@ -1297,32 +1307,41 @@ window.showIframeModal = function(url) {
     modalBody.innerHTML = '';
     modalHeaderTitle.textContent = `Náhled: ${url}`;
 
-    const iframe = document.createElement('iframe');
-    iframe.src = url;
-    iframe.className = 'modal-iframe';
+    // Zkus načíst jako obrázek
+    const img = new Image();
+    let imageLoaded = false;
 
-    modalBody.appendChild(iframe);
-    iframeModal.style.display = "flex";
+    img.onload = function() {
+        imageLoaded = true;
+        modalBody.innerHTML = '';
+        const imgElement = document.createElement('img');
+        imgElement.src = url;
+        imgElement.className = 'max-w-full max-h-full object-contain';
+        imgElement.style.cssText = 'width: auto; height: auto; max-width: 100%; max-height: 80vh;';
+        modalBody.appendChild(imgElement);
+        iframeModal.style.display = "flex";
+    };
 
-    setTimeout(() => {
-        if (modalBody.children.length > 0 && modalBody.children[0] === iframe) {
-            modalBody.innerHTML = `
-                <div class="text-center py-8">
-                    <p class="text-lg font-semibold text-red-600 mb-4">
-                        Vizuální náhled se nepodařilo zobrazit v aplikaci.
-                    </p>
-                    <p class="mb-4">
-                        Důvodem je blokování obsahu z externích stránek (CSP/X-Frame-Options) ze strany dané URL.
-                    </p>
-                    <p>
-                        <a href="${url}" target="_blank" class="text-blue-600 hover:text-blue-800 underline font-medium">
-                            Kliknutím otevřete odkaz v nové záložce pro zobrazení.
-                        </a>
-                    </p>
-                </div>
-            `;
-        }
-    }, 3000);
+    img.onerror = function() {
+        // Není obrázek, zkus iframe
+        const iframe = document.createElement('iframe');
+        iframe.src = url;
+        iframe.className = 'modal-iframe';
+        modalBody.appendChild(iframe);
+        iframeModal.style.display = "flex";
+
+        // Rychlejší timeout - 1 sekunda místo 3
+        setTimeout(() => {
+            if (modalBody.children.length > 0 && modalBody.children[0] === iframe) {
+                // Iframe se nenačetl, otevři v nové záložce
+                window.open(url, '_blank');
+                iframeModal.style.display = "none";
+                modalBody.innerHTML = '';
+            }
+        }, 1000);
+    };
+
+    img.src = url;
 };
 
 // =====================================================
