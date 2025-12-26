@@ -89,6 +89,11 @@ async function initializeApp() {
     calculateDeltas();
     renderTrackingTable();
 
+    // Aktualizovat metriky po načtení dat
+    if (typeof updateMetricsDisplay === 'function') {
+        updateMetricsDisplay();
+    }
+
     // Načtení dat z databáze (kampaně)
     await loadDataFromStorage();
 

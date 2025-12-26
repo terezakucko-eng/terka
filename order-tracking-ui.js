@@ -245,12 +245,14 @@ function calculateGrowth(sortedData, daysDiff) {
         return null;
     }
 
-    const latestDelta = latest.deltas['ruzovyslon.cz'] || 0;
-    const oldDelta = closestRecord.deltas['ruzovyslon.cz'] || 0;
+    // Použít absolutní čísla objednávek, ne delty!
+    const latestOrders = latest.competitors['ruzovyslon.cz'] || 0;
+    const oldOrders = closestRecord.competitors['ruzovyslon.cz'] || 0;
 
-    if (oldDelta === 0) return null;
+    if (oldOrders === 0) return null;
 
-    return ((latestDelta - oldDelta) / oldDelta) * 100;
+    // Růst = ((nové - staré) / staré) * 100
+    return ((latestOrders - oldOrders) / oldOrders) * 100;
 }
 
 // =====================================================
