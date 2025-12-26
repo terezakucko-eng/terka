@@ -67,7 +67,7 @@ if (!window.window.mktCampaignData) {
 }
 let charts = {
     trend: null,
-    comparison: null,
+    delta: null,
     marketShare: null,
     mktActivity: null
 };
@@ -429,13 +429,9 @@ function setupOrderTab() {
     document.getElementById('market-share-start-date').addEventListener('change', updateMarketShareChart);
     document.getElementById('market-share-end-date').addEventListener('change', updateMarketShareChart);
 
-    document.getElementById('trend-competitors-filter').addEventListener('change', updateTrendChart);
-    document.getElementById('comparison-market-filter').addEventListener('change', updateComparisonChart);
-    document.getElementById('comparison-period-filter').addEventListener('change', updateComparisonChart);
-
     // Inicializace grafů
     initTrendChart();
-    initComparisonChart();
+    initDeltaChart();
     initMarketShareChart();
 
     // Načtení dat
@@ -737,15 +733,25 @@ function initTrendChart() {
 }
 
 function updateTrendChart() {
-    const selectElement = document.getElementById('trend-competitors-filter');
+    const periodFilter = document.getElementById('trend-period-filter');
+    const eshopsFilter = document.getElementById('trend-eshops-filter');
+    const typeFilter = document.getElementById('trend-type-filter');
+
+    if (!periodFilter || !eshopsFilter || !typeFilter) {
+        console.error('❌ Trend chart filtry nenalezeny');
+        return;
+    }
 
     // Získání vybraných e-shopů z multi-select
-    const selectedCompetitors = Array.from(selectElement.selectedOptions).map(opt => opt.value);
+    const selectedEshops = Array.from(eshopsFilter.selectedOptions).map(opt => opt.value);
 
     // Pokud není nic vybráno, použij defaultní výběr (Růžový Slon)
-    if (selectedCompetitors.length === 0) {
-        selectedCompetitors.push('ruzovyslon.cz');
+    if (selectedEshops.length === 0) {
+        selectedEshops.push('ruzovyslon.cz');
     }
+
+    const period = parseInt(periodFilter.value);
+    const chartType = typeFilter.value;
 
     // Použít trackingData místo orderData
     if (!window.trackingData || window.trackingData.length === 0) {
@@ -756,36 +762,73 @@ function updateTrendChart() {
     }
 
     // Seřadit podle data
-    const sortedData = [...window.trackingData].sort((a, b) => new Date(a.date) - new Date(b.date));
+    let sortedData = [...window.trackingData].sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    // Získání unikátních dat
+    // Filtrovat podle období
+    if (period !== 'all' && !isNaN(period)) {
+        const today = new Date();
+        const cutoffDate = new Date(today);
+        cutoffDate.setDate(cutoffDate.getDate() - period);
+
+        sortedData = sortedData.filter(r => new Date(r.date) >= cutoffDate);
+    }
+
+    if (sortedData.length === 0) {
+        charts.trend.data.labels = [];
+        charts.trend.data.datasets = [];
+        charts.trend.update();
+        return;
+    }
+
+    // Získání dat
     const dates = sortedData.map(r => r.date);
 
     // Příprava datasetů pro vybrané e-shopy
-    const datasets = selectedCompetitors.map((comp, index) => {
+    const datasets = selectedEshops.map((eshop, index) => {
         const data = sortedData.map(record => {
-            // Použít číslo objednávky z competitors
-            return record.competitors[comp] || null;
+            // Číslo objednávky z competitors nebo deltas (pro vlastní e-shopy)
+            const isOwnEshop = window.OWN_ESHOPS && window.OWN_ESHOPS.includes(eshop);
+            if (isOwnEshop) {
+                return record.deltas && record.deltas[eshop] ? record.deltas[eshop] : null;
+            }
+            return record.competitors && record.competitors[eshop] ? record.competitors[eshop] : null;
         });
 
-        return {
-            label: comp,
+        const color = CHART_COLORS[index % CHART_COLORS.length];
+
+        const dataset = {
+            label: eshop,
             data: data,
-            borderColor: CHART_COLORS[index % CHART_COLORS.length],
-            backgroundColor: CHART_COLORS[index % CHART_COLORS.length] + '20',
-            tension: 0.1,
-            spanGaps: true
+            borderColor: color,
+            backgroundColor: chartType === 'area' ? color + '40' : color + '20',
+            tension: 0.3,
+            spanGaps: true,
+            fill: chartType === 'area'
         };
+
+        return dataset;
     });
+
+    // Změnit typ grafu
+    if (charts.trend.config.type !== chartType && chartType !== 'area') {
+        charts.trend.config.type = chartType;
+    } else if (chartType === 'area') {
+        charts.trend.config.type = 'line';
+    }
 
     charts.trend.data.labels = dates.map(d => formatDate(d));
     charts.trend.data.datasets = datasets;
     charts.trend.update();
 }
 
-function initComparisonChart() {
-    const ctx = document.getElementById('comparisonChart').getContext('2d');
-    charts.comparison = new Chart(ctx, {
+function initDeltaChart() {
+    const ctx = document.getElementById('deltaChart');
+    if (!ctx) {
+        console.warn('⚠️ Delta chart canvas nenalezen');
+        return;
+    }
+
+    charts.delta = new Chart(ctx.getContext('2d'), {
         type: 'bar',
         data: {
             labels: [],
@@ -794,7 +837,7 @@ function initComparisonChart() {
                 data: [],
                 backgroundColor: [],
                 borderColor: [],
-                borderWidth: 1
+                borderWidth: 2
             }]
         },
         options: {
@@ -818,10 +861,14 @@ function initComparisonChart() {
                             return value + '%';
                         }
                     },
-                    grid: { color: '#f3f4f6' }
+                    grid: { color: '#e5e7eb' }
                 },
                 x: {
-                    ticks: { color: '#4b5563' },
+                    ticks: {
+                        color: '#4b5563',
+                        maxRotation: 45,
+                        minRotation: 45
+                    },
                     grid: { display: false }
                 }
             }
@@ -829,16 +876,29 @@ function initComparisonChart() {
     });
 }
 
-function updateComparisonChart() {
-    const market = document.getElementById('comparison-market-filter').value;
-    const period = document.getElementById('comparison-period-filter').value;
+function updateDeltaChart() {
+    const marketFilter = document.getElementById('delta-market-filter');
+    const compareFilter = document.getElementById('delta-compare-filter');
+    const topFilter = document.getElementById('delta-top-filter');
 
-    const daysDiff = period === 'wow' ? 7 : (period === 'mom' ? 30 : 365);
+    if (!marketFilter || !compareFilter || !topFilter) {
+        console.error('❌ Delta chart filtry nenalezeny');
+        return;
+    }
+
+    if (!charts.delta) {
+        console.warn('⚠️ Delta chart není inicializován');
+        return;
+    }
+
+    const market = marketFilter.value;
+    const compareMode = compareFilter.value; // last, avg3, avg6
+    const topN = topFilter.value; // 5, 10, 15, all
 
     if (!window.trackingData || window.trackingData.length === 0) {
-        charts.comparison.data.labels = [];
-        charts.comparison.data.datasets[0].data = [];
-        charts.comparison.update();
+        charts.delta.data.labels = [];
+        charts.delta.data.datasets[0].data = [];
+        charts.delta.update();
         return;
     }
 
@@ -847,30 +907,127 @@ function updateComparisonChart() {
     const skEshops = ["isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk", "ruzovyslon.sk", "kondomshop.sk"];
     const foreignEshops = ["sexyelephant.ro", "sexyelephant.hu", "sexyelephant.si", "sexyelephant.bg", "sexyelephant.hr", "superlove.ro", "superlove.pl", "superlove.eu", "superlove.at", "superlove.hr", "superlove.it", "superlove.si", "superlove.bg", "superlove.lt", "superlove.es", "superlove.hu", "goldengate.hu", "padlizsan.hu", "sexshopcenter.hu", "erotikashow.hu", "szexaruhaz.hu", "szexshop.hu", "vagyaim.hu"];
 
-    let competitors;
-    if (market === 'CZ') competitors = czEshops;
-    else if (market === 'SK') competitors = skEshops;
-    else if (market === 'Foreign') competitors = foreignEshops;
-    else competitors = window.COMPETITORS || [];
+    let eshops;
+    if (market === 'CZ') eshops = czEshops;
+    else if (market === 'SK') eshops = skEshops;
+    else if (market === 'Foreign') eshops = foreignEshops;
+    else eshops = window.COMPETITORS || [];
 
     const sorted = [...window.trackingData].sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    const growthData = competitors.map(comp => {
-        const growth = calculateCompetitorGrowth(sorted, comp, daysDiff);
-        return { competitor: comp, growth: growth };
-    }).filter(item => item.growth !== null);
+    // Výpočet delta pro každý e-shop
+    const deltaData = eshops.map(eshop => {
+        let delta;
 
-    growthData.sort((a, b) => b.growth - a.growth);
+        if (compareMode === 'last') {
+            // Porovnání posledního záznamu s předchozím
+            delta = calculateEshopDelta(sorted, eshop, 1);
+        } else if (compareMode === 'avg3') {
+            // Průměr posledních 3 vs průměr 3 předchozích
+            delta = calculateEshopDeltaAverage(sorted, eshop, 3);
+        } else if (compareMode === 'avg6') {
+            // Průměr posledních 6 vs průměr 6 předchozích
+            delta = calculateEshopDeltaAverage(sorted, eshop, 6);
+        }
 
-    const labels = growthData.map(item => item.competitor);
-    const data = growthData.map(item => item.growth);
+        return { eshop: eshop, delta: delta };
+    }).filter(item => item.delta !== null && !isNaN(item.delta));
+
+    // Seřadit sestupně podle delta
+    deltaData.sort((a, b) => b.delta - a.delta);
+
+    // Omezit na top N
+    let limitedData = deltaData;
+    if (topN !== 'all') {
+        const limit = parseInt(topN);
+        limitedData = deltaData.slice(0, limit);
+    }
+
+    const labels = limitedData.map(item => item.eshop);
+    const data = limitedData.map(item => item.delta);
     const colors = data.map(val => val >= 0 ? '#10b981' : '#ef4444');
 
-    charts.comparison.data.labels = labels;
-    charts.comparison.data.datasets[0].data = data;
-    charts.comparison.data.datasets[0].backgroundColor = colors.map(c => c + 'CC');
-    charts.comparison.data.datasets[0].borderColor = colors;
-    charts.comparison.update();
+    charts.delta.data.labels = labels;
+    charts.delta.data.datasets[0].data = data;
+    charts.delta.data.datasets[0].backgroundColor = colors.map(c => c + 'CC');
+    charts.delta.data.datasets[0].borderColor = colors;
+    charts.delta.update();
+}
+
+function calculateEshopDelta(sortedData, eshop, recordsBack) {
+    if (sortedData.length < recordsBack + 1) return null;
+
+    const latest = sortedData[0];
+    const previous = sortedData[recordsBack];
+
+    const isOwnEshop = window.OWN_ESHOPS && window.OWN_ESHOPS.includes(eshop);
+
+    let latestValue, previousValue;
+
+    if (isOwnEshop) {
+        latestValue = latest.deltas && latest.deltas[eshop] ? latest.deltas[eshop] : 0;
+        previousValue = previous.deltas && previous.deltas[eshop] ? previous.deltas[eshop] : 0;
+    } else {
+        latestValue = latest.competitors && latest.competitors[eshop] ? latest.competitors[eshop] : 0;
+        previousValue = previous.competitors && previous.competitors[eshop] ? previous.competitors[eshop] : 0;
+    }
+
+    if (previousValue === 0) return null;
+
+    return ((latestValue - previousValue) / previousValue) * 100;
+}
+
+function calculateEshopDeltaAverage(sortedData, eshop, n) {
+    if (sortedData.length < n * 2) return null;
+
+    const isOwnEshop = window.OWN_ESHOPS && window.OWN_ESHOPS.includes(eshop);
+
+    // Průměr posledních N záznamů
+    let recentSum = 0;
+    let recentCount = 0;
+    for (let i = 0; i < n && i < sortedData.length; i++) {
+        const record = sortedData[i];
+        let value;
+
+        if (isOwnEshop) {
+            value = record.deltas && record.deltas[eshop] ? record.deltas[eshop] : 0;
+        } else {
+            value = record.competitors && record.competitors[eshop] ? record.competitors[eshop] : 0;
+        }
+
+        if (value > 0) {
+            recentSum += value;
+            recentCount++;
+        }
+    }
+
+    // Průměr N předchozích záznamů
+    let oldSum = 0;
+    let oldCount = 0;
+    for (let i = n; i < n * 2 && i < sortedData.length; i++) {
+        const record = sortedData[i];
+        let value;
+
+        if (isOwnEshop) {
+            value = record.deltas && record.deltas[eshop] ? record.deltas[eshop] : 0;
+        } else {
+            value = record.competitors && record.competitors[eshop] ? record.competitors[eshop] : 0;
+        }
+
+        if (value > 0) {
+            oldSum += value;
+            oldCount++;
+        }
+    }
+
+    if (recentCount === 0 || oldCount === 0) return null;
+
+    const recentAvg = recentSum / recentCount;
+    const oldAvg = oldSum / oldCount;
+
+    if (oldAvg === 0) return null;
+
+    return ((recentAvg - oldAvg) / oldAvg) * 100;
 }
 
 function calculateCompetitorGrowth(sortedData, competitor, daysDiff) {
@@ -1007,7 +1164,7 @@ function updateMarketShareChart() {
 
 function updateAllCharts() {
     updateTrendChart();
-    updateComparisonChart();
+    updateDeltaChart();
     updateMarketShareChart();
 }
 
