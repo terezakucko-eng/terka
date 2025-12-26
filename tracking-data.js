@@ -47,6 +47,7 @@ const COMPETITORS = [
     "eroticcity.cz",
     "e-kondomy.cz",
     "ruzovyslon.cz",
+    "sexyelephant.cz",
     "kondomshop.cz"
 ];
 
@@ -124,18 +125,29 @@ function calculateDeltas() {
 
     // Pro každý záznam vypočítat delty
     trackingData.forEach((record, index) => {
+        // Zachovat existující delty (z importu vlastních e-shopů)
+        const existingDeltas = record.deltas || {};
+
         if (index === 0) {
-            // První záznam nemá delty
-            record.deltas = {};
+            // První záznam nemá delty (kromě importovaných)
+            record.deltas = existingDeltas;
             COMPETITORS.forEach(comp => {
-                record.deltas[comp] = 0;
+                // Pokud delta není už nastavená, dej 0
+                if (record.deltas[comp] === undefined) {
+                    record.deltas[comp] = 0;
+                }
             });
         } else {
             // Vypočítat delta oproti předchozímu záznamu
             const prevRecord = trackingData[index - 1];
-            record.deltas = {};
 
             COMPETITORS.forEach(comp => {
+                // Pokud je delta už nastavená (z importu "Objednáno kusů"), nech ji být
+                if (existingDeltas[comp] !== undefined && existingDeltas[comp] !== 0) {
+                    // Delta už je importovaná, přeskočit výpočet
+                    return;
+                }
+
                 const current = record.competitors[comp] || 0;
                 const previous = prevRecord.competitors[comp] || 0;
 
@@ -207,10 +219,13 @@ async function importFromGoogleSheetsCustomFormat() {
     }
 
     const spreadsheetId = match[1];
-    const sheetName = "Zkušeb.obj. CZ"; // Název listu
+
+    // Získat vybraný list
+    const sheetSelector = document.getElementById('sheet-selector');
+    const sheetName = sheetSelector ? sheetSelector.value : "Zkušeb.obj.CZ-týden";
 
     try {
-        showStatus('⏳ Načítám data z Google Sheets...', 'info');
+        showStatus(`⏳ Načítám data z listu "${sheetName}"...`, 'info');
 
         const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
 
@@ -242,7 +257,16 @@ async function importFromGoogleSheetsCustomFormat() {
             updateAllCharts();
         }
 
-        showStatus(`✅ Úspěšně importováno <strong>${trackingData.length} záznamů</strong>!<br><small>Růžový Slon a Sexy Elephant můžeš upravit pomocí ✏️</small>`, 'success');
+        // Spočítat importované konkurenty a vlastní e-shopy
+        const sampleRecord = trackingData[0] || { competitors: {}, deltas: {} };
+        const importedCompetitors = Object.keys(sampleRecord.competitors).filter(k => sampleRecord.competitors[k] > 0).length;
+        const importedOwnShops = Object.keys(sampleRecord.deltas).filter(k =>
+            ['ruzovyslon.cz', 'sexyelephant.cz', 'e-kondomy.cz'].includes(k) && sampleRecord.deltas[k] !== undefined
+        ).length;
+
+        showStatus(`✅ Úspěšně importováno <strong>${trackingData.length} záznamů</strong>!<br>` +
+            `<small>📊 Konkurenti: ${importedCompetitors} e-shopů (absolutní čísla)</small><br>` +
+            `<small>🏪 Vlastní e-shopy: ${importedOwnShops} e-shopů (delty z "Objednáno kusů")</small>`, 'success');
 
         setTimeout(() => {
             if (typeof closeDataManagementModal === 'function') {
@@ -268,32 +292,75 @@ function parseCustomCSV(csvText) {
     console.log('📋 Načtených sloupců:', header.length);
     console.log('📋 První sloupce:', header.slice(0, 5).join(' | '));
 
-    // Najít indexy sloupců pro jednotlivé konkurenty
+    // Najít indexy sloupců
+    // columnMap = čísla objednávek (absolutní) pro konkurenty
+    // deltaMap = "Objednáno kusů" (delty) pro vlastní e-shopy
     const columnMap = {};
+    const deltaMap = {};
 
     header.forEach((col, index) => {
         const colLower = col.toLowerCase().trim();
+        // Normalizovat diakritiku pro lepší detekci
+        const colNormalized = colLower
+            .replace(/á/g, 'a')
+            .replace(/í/g, 'i')
+            .replace(/é/g, 'e')
+            .replace(/ů/g, 'u')
+            .replace(/ú/g, 'u')
+            .replace(/č/g, 'c')
+            .replace(/š/g, 's')
+            .replace(/ž/g, 'z')
+            .replace(/ý/g, 'y')
+            .replace(/ň/g, 'n');
 
+        const isOrderedPiecesColumn = colLower.includes('objednáno kusů') ||
+                                       colNormalized.includes('objednano kusu') ||
+                                       colLower.includes('obj. kusů') ||
+                                       colNormalized.includes('obj. kusu');
+
+        // Detekce vlastních e-shopů v "Objednáno kusů" sloupcích
+        if (isOrderedPiecesColumn) {
+            if (colNormalized.includes('ruzovy slon') ||
+                colNormalized.includes('r.slon') ||
+                colNormalized.includes('rslon')) {
+                deltaMap['ruzovyslon.cz'] = index;
+                console.log(`✅ Detekován delta sloupec: Růžový Slon (${col}, index ${index})`);
+            }
+            else if (colLower.includes('sexy elephant') ||
+                     colNormalized.includes('sexyelephant') ||
+                     colNormalized.includes('s.elephant')) {
+                deltaMap['sexyelephant.cz'] = index;
+                console.log(`✅ Detekován delta sloupec: Sexy Elephant (${col}, index ${index})`);
+            }
+            else if (colLower.includes('e-kondomy') ||
+                     colNormalized.includes('ekondomy') ||
+                     colNormalized.includes('e-kond')) {
+                deltaMap['e-kondomy.cz'] = index;
+                console.log(`✅ Detekován delta sloupec: e-kondomy.cz (${col}, index ${index})`);
+            }
+        }
         // Mapování sloupců konkurentů (číslo objednávky, ne delta)
-        if (colLower === 'hopnato.cz' || colLower.includes('hopnato')) columnMap['Hopnato.cz'] = index;
-        else if (colLower === 'erosstar.cz' || colLower.includes('erosstar')) columnMap['erosstar.cz'] = index;
-        else if (colLower === 'deeplove.cz' || colLower.includes('deeplove')) columnMap['deeplove.cz'] = index;
-        else if (colLower === 'yoo.cz' || colLower.includes('yoo')) columnMap['yoo.cz'] = index;
-        else if (colLower === 'sexicekshop.cz' || colLower.includes('sexicek')) columnMap['sexicekshop.cz'] = index;
-        else if (colLower === 'honitka.cz' || colLower.includes('honitka')) columnMap['honitka.cz'] = index;
-        else if (colLower === 'sexshop.cz' || colLower.includes('sexshop')) columnMap['sexshop.cz'] = index;
-        else if (colLower === 'eroticke-pomucky.cz' || colLower.includes('eroticke')) columnMap['eroticke-pomucky.cz'] = index;
-        else if (colLower === 'flagranti.cz' || colLower.includes('flagranti')) columnMap['flagranti.cz'] = index;
-        else if (colLower === 'sexshopik.cz' || colLower.includes('sexshopik')) columnMap['sexshopik.cz'] = index;
-        else if (colLower === 'sex-shop69.cz' || colLower.includes('sex-shop69')) columnMap['sex-shop69.cz'] = index;
-        else if (colLower === 'eroticcity.cz' || colLower.includes('eroticcity')) columnMap['eroticcity.cz'] = index;
-        else if (colLower === 'e-kondomy.cz' || colLower.includes('e-kondomy') || colLower.includes('ekondomy')) columnMap['e-kondomy.cz'] = index;
-        else if (colLower === 'ruzovyslon.cz' || colLower.includes('r') && colLower.includes('slon') || colLower.includes('ruzovy')) columnMap['ruzovyslon.cz'] = index;
-        else if (colLower === 'kondomshop.cz' || colLower.includes('kondomshop')) columnMap['kondomshop.cz'] = index;
+        else {
+            if (colLower.includes('hopnato')) columnMap['Hopnato.cz'] = index;
+            else if (colLower.includes('erosstar')) columnMap['erosstar.cz'] = index;
+            else if (colLower.includes('deeplove')) columnMap['deeplove.cz'] = index;
+            else if (colLower.includes('yoo.cz') || colLower === 'yoo') columnMap['yoo.cz'] = index;
+            else if (colLower.includes('sexicek')) columnMap['sexicekshop.cz'] = index;
+            else if (colLower.includes('honitka')) columnMap['honitka.cz'] = index;
+            else if (colLower.includes('sexshop.cz')) columnMap['sexshop.cz'] = index;
+            else if (colLower.includes('eroticke')) columnMap['eroticke-pomucky.cz'] = index;
+            else if (colLower.includes('flagranti')) columnMap['flagranti.cz'] = index;
+            else if (colLower.includes('sexshopik')) columnMap['sexshopik.cz'] = index;
+            else if (colLower.includes('sex-shop69')) columnMap['sex-shop69.cz'] = index;
+            else if (colLower.includes('eroticcity')) columnMap['eroticcity.cz'] = index;
+            else if (colLower.includes('kondomshop')) columnMap['kondomshop.cz'] = index;
+        }
     });
 
-    console.log('🎯 Nalezené sloupce:', Object.keys(columnMap).length);
-    console.log('🎯 Mapované e-shopy:', Object.keys(columnMap));
+    console.log('🎯 Nalezené sloupce (absolutní čísla):', Object.keys(columnMap).length);
+    console.log('🎯 Mapované konkurenty:', Object.keys(columnMap));
+    console.log('🎯 Nalezené sloupce (delty):', Object.keys(deltaMap).length);
+    console.log('🎯 Mapované vlastní e-shopy:', Object.keys(deltaMap));
 
     // Parsovat data
     trackingData = [];
@@ -321,11 +388,24 @@ function parseCustomCSV(csvText) {
             notes: ''
         };
 
-        // Načtení čísel objednávek pro všechny konkurenty
+        // Načtení čísel objednávek pro konkurenty (absolutní čísla)
         Object.keys(columnMap).forEach(competitor => {
             const colIndex = columnMap[competitor];
             const value = columns[colIndex];
             record.competitors[competitor] = value ? parseInt(value) || 0 : 0;
+        });
+
+        // Načtení delt pro vlastní e-shopy (přímo z "Objednáno kusů")
+        Object.keys(deltaMap).forEach(eshop => {
+            const colIndex = deltaMap[eshop];
+            const value = columns[colIndex];
+            const deltaValue = value ? parseInt(value) || 0 : 0;
+
+            // Pro vlastní e-shopy uložíme deltu přímo
+            record.deltas[eshop] = deltaValue;
+
+            // A také nastavíme competitors na 0 (nebudeme počítat deltu znovu)
+            record.competitors[eshop] = 0;
         });
 
         trackingData.push(record);
