@@ -53,23 +53,23 @@ const COMPETITORS_BY_MARKET = [
     { name: "sexiveci.sk", domain: "sexiveci.sk", market: "SK" },
 ];
 
-// Modernější barevná paleta s živějšími odstíny
+// Barevná paleta podle Růžového Slona (ruzovyslon.cz)
 const CHART_COLORS = [
-    '#8b5cf6', // živá fialová
-    '#06b6d4', // tyrkysová
-    '#f59e0b', // oranžová
-    '#10b981', // zelená
-    '#ec4899', // růžová
-    '#3b82f6', // modrá
-    '#f43f5e', // červená
-    '#a855f7', // purpurová
-    '#14b8a6', // teal
-    '#eab308', // žlutá
-    '#f97316', // tmavě oranžová
-    '#6366f1', // indigo
-    '#84cc16', // limetková
-    '#d946ef', // fuchsie
-    '#0ea5e9'  // sky blue
+    '#dc004e', // hlavní růžová Růžový Slon
+    '#4182e3', // modrá
+    '#8c65d4', // fialová
+    '#378625', // zelená
+    '#ffcd35', // zlatá/žlutá
+    '#e91e63', // světlejší růžová
+    '#9c27b0', // purpurová
+    '#ff6b9d', // pastelově růžová
+    '#4e5a65', // tmavě šedá
+    '#f06292', // světle růžová
+    '#ba68c8', // levandulová
+    '#7986cb', // indigo
+    '#64b5f6', // světle modrá
+    '#81c784', // světle zelená
+    '#ffd54f'  // světle zlatá
 ];
 
 // ----- GLOBÁLNÍ PROMĚNNÉ -----
@@ -1588,7 +1588,7 @@ window.showTab = function(tabId) {
         tab.style.display = 'none';
     });
     document.querySelectorAll('nav button').forEach(button => {
-        button.classList.remove('border-blue-600', 'text-blue-600');
+        button.classList.remove('border-[#dc004e]', 'text-[#dc004e]');
         button.classList.add('text-gray-500', 'hover:text-gray-700');
     });
 
@@ -1601,7 +1601,7 @@ window.showTab = function(tabId) {
     }
 
     if (tabButton) {
-        tabButton.classList.add('border-blue-600', 'text-blue-600');
+        tabButton.classList.add('border-[#dc004e]', 'text-[#dc004e]');
         tabButton.classList.remove('text-gray-500', 'hover:text-gray-700');
     }
 
