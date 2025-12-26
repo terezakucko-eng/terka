@@ -13,7 +13,8 @@ const MARKETS = ["CZ", "SK", "HU", "RO", "SI", "HR", "BG", "PL", "AT", "IT"];
 const MKT_COMPETITORS = [
     "Růžový Slon", "Sexshop.cz", "e-kondomy.cz", "Flagranti.cz", "YOO.cz",
     "Erosstar.cz", "Deeplove.cz", "Hopnato.cz", "sexshopik.cz", "honitka.cz",
-    "eroticke-pomucky.cz"
+    "eroticke-pomucky.cz", "sexicekshop.cz", "sex-shop69.cz", "eroticcity.cz",
+    "kondomshop.cz"
 ].sort();
 
 const MKT_CHANNELS = [
@@ -1094,6 +1095,16 @@ function handleMktFormSubmit(e) {
     saveCampaignsToStorage();
     renderMktTable();
     updateMktChart();
+
+    // Pokud je zadaná URL screenshotu, otevři ji automaticky
+    if (data.screenshotUrl && data.screenshotUrl.trim()) {
+        setTimeout(() => {
+            if (typeof showIframeModal === 'function') {
+                showIframeModal(data.screenshotUrl);
+            }
+        }, 300); // Malé zpoždění pro lepší UX
+    }
+
     resetMktForm();
 }
 
