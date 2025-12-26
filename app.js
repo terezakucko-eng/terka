@@ -72,8 +72,22 @@ let charts = {
 // INICIALIZACE APLIKACE
 // =====================================================
 
-function initializeApp() {
-    loadDataFromStorage();
+async function initializeApp() {
+    // Zobrazení loading stavu
+    console.log('🚀 Inicializace aplikace...');
+
+    // Inicializace Firebase databáze
+    const dbInitialized = await initDatabase();
+    if (dbInitialized) {
+        console.log('✅ Firestore připojen - data budou sdílená');
+    } else {
+        console.log('⚠️ Používám LocalStorage - data pouze v tomto prohlížeči');
+    }
+
+    // Načtení dat z databáze
+    await loadDataFromStorage();
+
+    // Nastavení UI
     setupOrderTab();
     setupMktTab();
     setupModals();
@@ -83,50 +97,51 @@ function initializeApp() {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('discoveryDate-order').value = today;
     document.getElementById('discoveryDate-mkt').value = today;
+
+    console.log('✅ Aplikace připravena k použití');
 }
 
 // =====================================================
-// SPRÁVA DAT (LocalStorage)
+// SPRÁVA DAT (Firestore + LocalStorage fallback)
 // =====================================================
 
-function loadDataFromStorage() {
-    const savedOrders = localStorage.getItem(STORAGE_KEY_ORDERS);
-    const savedCampaigns = localStorage.getItem(STORAGE_KEY_CAMPAIGNS);
-
-    if (savedOrders) {
-        try {
-            orderData = JSON.parse(savedOrders);
-        } catch (e) {
-            console.error('Chyba při načítání objednávek:', e);
-            orderData = [];
-        }
-    }
-
-    if (savedCampaigns) {
-        try {
-            mktCampaignData = JSON.parse(savedCampaigns);
-        } catch (e) {
-            console.error('Chyba při načítání kampaní:', e);
-            mktCampaignData = [];
-        }
-    }
-}
-
-function saveOrdersToStorage() {
+async function loadDataFromStorage() {
     try {
-        localStorage.setItem(STORAGE_KEY_ORDERS, JSON.stringify(orderData));
+        // Načtení objednávek z Firestore
+        const orders = await loadOrdersFromFirestore();
+        if (orders && orders.length > 0) {
+            orderData = orders;
+        }
+
+        // Načtení kampaní z Firestore
+        const campaigns = await loadCampaignsFromFirestore();
+        if (campaigns && campaigns.length > 0) {
+            mktCampaignData = campaigns;
+        }
+
+        console.log(`✅ Načteno ${orderData.length} objednávek a ${mktCampaignData.length} kampaní`);
+    } catch (e) {
+        console.error('Chyba při načítání dat:', e);
+        orderData = [];
+        mktCampaignData = [];
+    }
+}
+
+async function saveOrdersToStorage() {
+    try {
+        await saveOrdersToFirestore(orderData);
     } catch (e) {
         console.error('Chyba při ukládání objednávek:', e);
-        alert('Nepodařilo se uložit data. Možná je úložiště prohlížeče plné.');
+        alert('Nepodařilo se uložit data. Zkontrolujte připojení k databázi.');
     }
 }
 
-function saveCampaignsToStorage() {
+async function saveCampaignsToStorage() {
     try {
-        localStorage.setItem(STORAGE_KEY_CAMPAIGNS, JSON.stringify(mktCampaignData));
+        await saveCampaignsToFirestore(mktCampaignData);
     } catch (e) {
         console.error('Chyba při ukládání kampaní:', e);
-        alert('Nepodařilo se uložit data. Možná je úložiště prohlížeče plné.');
+        alert('Nepodařilo se uložit data. Zkontrolujte připojení k databázi.');
     }
 }
 
