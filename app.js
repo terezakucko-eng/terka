@@ -53,10 +53,23 @@ const COMPETITORS_BY_MARKET = [
     { name: "sexiveci.sk", domain: "sexiveci.sk", market: "SK" },
 ];
 
+// Modernější barevná paleta s živějšími odstíny
 const CHART_COLORS = [
-    '#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#6366f1',
-    '#eab308', '#06b6d4', '#f97316', '#a855f7', '#84cc16',
-    '#ec4899', '#f43f5e', '#34d399', '#fbbf24', '#c084fc'
+    '#8b5cf6', // živá fialová
+    '#06b6d4', // tyrkysová
+    '#f59e0b', // oranžová
+    '#10b981', // zelená
+    '#ec4899', // růžová
+    '#3b82f6', // modrá
+    '#f43f5e', // červená
+    '#a855f7', // purpurová
+    '#14b8a6', // teal
+    '#eab308', // žlutá
+    '#f97316', // tmavě oranžová
+    '#6366f1', // indigo
+    '#84cc16', // limetková
+    '#d946ef', // fuchsie
+    '#0ea5e9'  // sky blue
 ];
 
 // ----- GLOBÁLNÍ PROMĚNNÉ -----
@@ -112,6 +125,31 @@ async function initializeApp() {
     // Nastavení UI
     setupMktTab();
     setupModals();
+
+    // Inicializace grafů pro sledování objednávek
+    console.log('📊 Inicializace grafů...');
+    initTrendChart();
+    initDeltaChart();
+    initMarketShareChart();
+
+    // Přidat event listenery pro filtry grafů
+    const trendPeriodFilter = document.getElementById('trend-period-filter');
+    const trendEshopsFilter = document.getElementById('trend-eshops-filter');
+    const trendTypeFilter = document.getElementById('trend-type-filter');
+    const deltaMarketFilter = document.getElementById('delta-market-filter');
+    const deltaCompareFilter = document.getElementById('delta-compare-filter');
+    const deltaTopFilter = document.getElementById('delta-top-filter');
+
+    if (trendPeriodFilter) trendPeriodFilter.addEventListener('change', updateTrendChart);
+    if (trendEshopsFilter) trendEshopsFilter.addEventListener('change', updateTrendChart);
+    if (trendTypeFilter) trendTypeFilter.addEventListener('change', updateTrendChart);
+    if (deltaMarketFilter) deltaMarketFilter.addEventListener('change', updateDeltaChart);
+    if (deltaCompareFilter) deltaCompareFilter.addEventListener('change', updateDeltaChart);
+    if (deltaTopFilter) deltaTopFilter.addEventListener('change', updateDeltaChart);
+
+    // Aktualizovat všechny grafy s načtenými daty
+    updateAllCharts();
+
     showTab('order-tracking');
 
     // Nastavení aktuálního data jako výchozí v formulářích
@@ -750,7 +788,7 @@ function updateTrendChart() {
         selectedEshops.push('ruzovyslon.cz');
     }
 
-    const period = parseInt(periodFilter.value);
+    const periodValue = periodFilter.value;
     const chartType = typeFilter.value;
 
     // Použít trackingData místo orderData
@@ -765,12 +803,15 @@ function updateTrendChart() {
     let sortedData = [...window.trackingData].sort((a, b) => new Date(a.date) - new Date(b.date));
 
     // Filtrovat podle období
-    if (period !== 'all' && !isNaN(period)) {
-        const today = new Date();
-        const cutoffDate = new Date(today);
-        cutoffDate.setDate(cutoffDate.getDate() - period);
+    if (periodValue !== 'all') {
+        const period = parseInt(periodValue);
+        if (!isNaN(period)) {
+            const today = new Date();
+            const cutoffDate = new Date(today);
+            cutoffDate.setDate(cutoffDate.getDate() - period);
 
-        sortedData = sortedData.filter(r => new Date(r.date) >= cutoffDate);
+            sortedData = sortedData.filter(r => new Date(r.date) >= cutoffDate);
+        }
     }
 
     if (sortedData.length === 0) {
