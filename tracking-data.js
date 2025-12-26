@@ -57,6 +57,46 @@ let trackingData = []; // Pole záznamů sledování
 // VÝPOČET DELT A METRIK
 // =====================================================
 
+// Konkurenti s měsíčním resetem číselné řady
+const MONTHLY_RESET_COMPETITORS = ["erosstar.cz", "deeplove.cz"];
+
+/**
+ * Vypočítá deltu pro konkurenty s měsíčním resetem číselné řady
+ * Formát: YYMSSSSS kde YY=rok, M=měsíc, SSSSS=pořadové číslo v měsíci
+ * Např.: 225082567 = rok 22, měsíc 5 (květen), objednávka 82567
+ */
+function calculateDeltaWithMonthlyReset(current, previous, competitorName) {
+    if (current === 0 || previous === 0) {
+        return current - previous; // Pokud je některé číslo 0, použij normální výpočet
+    }
+
+    // Převést čísla na stringy pro snazší práci
+    const currentStr = String(current);
+    const previousStr = String(previous);
+
+    // Extrahovat prefix (první 3 číslice = rok + měsíc) a suffix (zbytek = pořadové číslo)
+    const currentPrefix = currentStr.substring(0, 3);
+    const previousPrefix = previousStr.substring(0, 3);
+
+    const currentSuffix = parseInt(currentStr.substring(3)) || 0;
+    const previousSuffix = parseInt(previousStr.substring(3)) || 0;
+
+    // Pokud je prefix stejný (stejný měsíc), počítej normálně
+    if (currentPrefix === previousPrefix) {
+        return currentSuffix - previousSuffix;
+    }
+
+    // Pokud je prefix jiný (změna měsíce), vrať pouze aktuální suffix
+    // To představuje objednávky v novém měsíci od začátku sledování
+    // POZOR: Toto nezahrnuje objednávky z konce předchozího měsíce!
+    // Pro přesný výpočet by uživatel musel zadat startovní číslo měsíce
+    console.warn(`⚠️ Detekována změna měsíční řady u ${competitorName}: ${previous} → ${current}`);
+    console.warn(`   Prefix změna: ${previousPrefix} → ${currentPrefix}`);
+    console.warn(`   Delta počítána pouze z aktuálního měsíce: ${currentSuffix} objednávek`);
+
+    return currentSuffix;
+}
+
 function calculateDeltas() {
     // Seřadit data podle data
     trackingData.sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -77,7 +117,13 @@ function calculateDeltas() {
             COMPETITORS.forEach(comp => {
                 const current = record.competitors[comp] || 0;
                 const previous = prevRecord.competitors[comp] || 0;
-                record.deltas[comp] = current - previous;
+
+                // Speciální logika pro konkurenty s měsíčním resetem
+                if (MONTHLY_RESET_COMPETITORS.includes(comp)) {
+                    record.deltas[comp] = calculateDeltaWithMonthlyReset(current, previous, comp);
+                } else {
+                    record.deltas[comp] = current - previous;
+                }
             });
         }
     });
