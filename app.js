@@ -1013,37 +1013,56 @@ function updateAllCharts() {
 // =====================================================
 
 function setupMktTab() {
-    const form = document.getElementById('campaign-form');
-    const cancelEditButton = document.getElementById('cancel-edit-mkt-button');
+    try {
+        const form = document.getElementById('campaign-form');
+        const cancelEditButton = document.getElementById('cancel-edit-mkt-button');
 
-    const competitorSelect = document.getElementById('competitor-mkt');
-    const channelSelect = document.getElementById('channel-mkt');
-    const filterCompetitorTable = document.getElementById('filter-competitor-mkt');
-    const filterChannelTable = document.getElementById('filter-channel-mkt');
-    const filterCompetitorChart = document.getElementById('chart-filter-competitor-mkt');
-    const filterChannelChart = document.getElementById('chart-filter-channel-mkt');
+        const competitorSelect = document.getElementById('competitor-mkt');
+        const channelSelect = document.getElementById('channel-mkt');
+        const filterCompetitorTable = document.getElementById('filter-competitor-mkt');
+        const filterChannelTable = document.getElementById('filter-channel-mkt');
+        const filterCompetitorChart = document.getElementById('chart-filter-competitor-mkt');
+        const filterChannelChart = document.getElementById('chart-filter-channel-mkt');
 
-    MKT_COMPETITORS.forEach(c => {
-        competitorSelect.add(new Option(c, c));
-        filterCompetitorTable.add(new Option(c, c));
-        filterCompetitorChart.add(new Option(c, c));
-    });
+        if (!competitorSelect || !channelSelect) {
+            console.error('❌ MKT elementy nenalezeny!');
+            return;
+        }
 
-    MKT_CHANNELS.forEach(c => {
-        channelSelect.add(new Option(c, c));
-        filterChannelTable.add(new Option(c, c));
-        filterChannelChart.add(new Option(c, c));
-    });
+        // Vyčistit existující options (kromě první)
+        competitorSelect.innerHTML = '<option value="">Vyberte konkurenta</option>';
+        channelSelect.innerHTML = '<option value="">Vyberte kanál</option>';
+        filterCompetitorTable.innerHTML = '<option value="all">Všichni konkurenti</option>';
+        filterChannelTable.innerHTML = '<option value="all">Všechny kanály</option>';
+        filterCompetitorChart.innerHTML = '<option value="all">Všichni konkurenti</option>';
+        filterChannelChart.innerHTML = '<option value="all">Všechny kanály</option>';
 
-    form.addEventListener('submit', handleMktFormSubmit);
-    filterCompetitorTable.addEventListener('change', renderMktTable);
-    filterChannelTable.addEventListener('change', renderMktTable);
-    filterCompetitorChart.addEventListener('change', updateMktChart);
-    filterChannelChart.addEventListener('change', updateMktChart);
-    cancelEditButton.addEventListener('click', resetMktForm);
+        MKT_COMPETITORS.forEach(c => {
+            competitorSelect.add(new Option(c, c));
+            filterCompetitorTable.add(new Option(c, c));
+            filterCompetitorChart.add(new Option(c, c));
+        });
 
-    initMktChart();
-    renderMktTable();
+        MKT_CHANNELS.forEach(c => {
+            channelSelect.add(new Option(c, c));
+            filterChannelTable.add(new Option(c, c));
+            filterChannelChart.add(new Option(c, c));
+        });
+
+        form.addEventListener('submit', handleMktFormSubmit);
+        filterCompetitorTable.addEventListener('change', renderMktTable);
+        filterChannelTable.addEventListener('change', renderMktTable);
+        filterCompetitorChart.addEventListener('change', updateMktChart);
+        filterChannelChart.addEventListener('change', updateMktChart);
+        cancelEditButton.addEventListener('click', resetMktForm);
+
+        initMktChart();
+        renderMktTable();
+
+        console.log('✅ MKT tab nastaven:', MKT_COMPETITORS.length, 'konkurentů,', MKT_CHANNELS.length, 'kanálů');
+    } catch (error) {
+        console.error('❌ Chyba při nastavení MKT tabu:', error);
+    }
 }
 
 function handleMktFormSubmit(e) {
