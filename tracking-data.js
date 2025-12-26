@@ -176,16 +176,33 @@ function calculateDeltas() {
 
 async function importFromGoogleSheetsCustomFormat() {
     const url = document.getElementById('google-sheets-url').value.trim();
+    const statusDiv = document.getElementById('import-status');
+
+    function showStatus(message, type = 'info') {
+        if (!statusDiv) return;
+        statusDiv.classList.remove('hidden', 'bg-blue-50', 'bg-green-50', 'bg-red-50', 'text-blue-800', 'text-green-800', 'text-red-800');
+
+        if (type === 'success') {
+            statusDiv.classList.add('bg-green-50', 'text-green-800');
+        } else if (type === 'error') {
+            statusDiv.classList.add('bg-red-50', 'text-red-800');
+        } else {
+            statusDiv.classList.add('bg-blue-50', 'text-blue-800');
+        }
+
+        statusDiv.classList.add('p-3', 'rounded-lg', 'text-sm');
+        statusDiv.innerHTML = message;
+    }
 
     if (!url) {
-        alert('Zadejte URL Google Sheets tabulky');
+        showStatus('⚠️ Zadejte URL Google Sheets tabulky', 'error');
         return;
     }
 
     // Extrahování Spreadsheet ID
     const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
     if (!match) {
-        alert('Neplatná URL Google Sheets');
+        showStatus('⚠️ Neplatná URL Google Sheets', 'error');
         return;
     }
 
@@ -193,36 +210,63 @@ async function importFromGoogleSheetsCustomFormat() {
     const sheetName = "Zkušeb.obj. CZ"; // Název listu
 
     try {
+        showStatus('⏳ Načítám data z Google Sheets...', 'info');
+
         const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
 
         const response = await fetch(csvUrl);
         if (!response.ok) {
-            throw new Error('Nepodařilo se načíst data z Google Sheets');
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
         const csvText = await response.text();
+
+        showStatus('⏳ Parsování dat...', 'info');
         parseCustomCSV(csvText);
 
-        calculateDeltas();
-        await saveTrackingData();
-        renderTrackingTable();
-        updateAllCharts();
+        if (trackingData.length === 0) {
+            throw new Error('Nebyly načteny žádné záznamy. Zkontroluj strukturu tabulky.');
+        }
 
-        alert(`Úspěšně importováno ${trackingData.length} záznamů!`);
-        closeDataManagementModal();
+        showStatus('⏳ Výpočet delt...', 'info');
+        calculateDeltas();
+
+        showStatus('⏳ Ukládám data...', 'info');
+        await saveTrackingData();
+
+        renderTrackingTable();
+        if (typeof updateMetricsDisplay === 'function') {
+            updateMetricsDisplay();
+        }
+        if (typeof updateAllCharts === 'function') {
+            updateAllCharts();
+        }
+
+        showStatus(`✅ Úspěšně importováno <strong>${trackingData.length} záznamů</strong>!<br><small>Růžový Slon a Sexy Elephant můžeš upravit pomocí ✏️</small>`, 'success');
+
+        setTimeout(() => {
+            if (typeof closeDataManagementModal === 'function') {
+                closeDataManagementModal();
+            }
+        }, 2000);
 
     } catch (error) {
         console.error('Chyba při importu:', error);
-        alert('Nepodařilo se importovat data: ' + error.message);
+        showStatus(`❌ Chyba při importu: ${error.message}<br><small>Zkontroluj, že tabulka je veřejně přístupná a má list "Zkušeb.obj. CZ"</small>`, 'error');
     }
 }
 
 function parseCustomCSV(csvText) {
     const lines = csvText.split('\n');
-    if (lines.length < 2) return;
+    if (lines.length < 2) {
+        console.error('CSV nemá dostatek řádků');
+        return;
+    }
 
     // Parsovat záhlaví
     const header = parseCSVLine(lines[0]);
+    console.log('📋 Načtených sloupců:', header.length);
+    console.log('📋 První sloupce:', header.slice(0, 5).join(' | '));
 
     // Najít indexy sloupců pro jednotlivé konkurenty
     const columnMap = {};
@@ -231,22 +275,25 @@ function parseCustomCSV(csvText) {
         const colLower = col.toLowerCase().trim();
 
         // Mapování sloupců konkurentů (číslo objednávky, ne delta)
-        if (colLower === 'hopnato.cz') columnMap['Hopnato.cz'] = index;
-        else if (colLower === 'erosstar.cz') columnMap['erosstar.cz'] = index;
-        else if (colLower === 'deeplove.cz') columnMap['deeplove.cz'] = index;
-        else if (colLower === 'yoo.cz') columnMap['yoo.cz'] = index;
-        else if (colLower === 'sexicekshop.cz') columnMap['sexicekshop.cz'] = index;
-        else if (colLower === 'honitka.cz') columnMap['honitka.cz'] = index;
-        else if (colLower === 'sexshop.cz') columnMap['sexshop.cz'] = index;
-        else if (colLower === 'eroticke-pomucky.cz') columnMap['eroticke-pomucky.cz'] = index;
-        else if (colLower === 'flagranti.cz') columnMap['flagranti.cz'] = index;
-        else if (colLower === 'sexshopik.cz') columnMap['sexshopik.cz'] = index;
-        else if (colLower === 'sex-shop69.cz') columnMap['sex-shop69.cz'] = index;
-        else if (colLower === 'eroticcity.cz') columnMap['eroticcity.cz'] = index;
-        else if (colLower === 'e-kondomy.cz') columnMap['e-kondomy.cz'] = index;
-        else if (colLower === 'ruzovyslon.cz') columnMap['ruzovyslon.cz'] = index;
-        else if (colLower === 'kondomshop.cz') columnMap['kondomshop.cz'] = index;
+        if (colLower === 'hopnato.cz' || colLower.includes('hopnato')) columnMap['Hopnato.cz'] = index;
+        else if (colLower === 'erosstar.cz' || colLower.includes('erosstar')) columnMap['erosstar.cz'] = index;
+        else if (colLower === 'deeplove.cz' || colLower.includes('deeplove')) columnMap['deeplove.cz'] = index;
+        else if (colLower === 'yoo.cz' || colLower.includes('yoo')) columnMap['yoo.cz'] = index;
+        else if (colLower === 'sexicekshop.cz' || colLower.includes('sexicek')) columnMap['sexicekshop.cz'] = index;
+        else if (colLower === 'honitka.cz' || colLower.includes('honitka')) columnMap['honitka.cz'] = index;
+        else if (colLower === 'sexshop.cz' || colLower.includes('sexshop')) columnMap['sexshop.cz'] = index;
+        else if (colLower === 'eroticke-pomucky.cz' || colLower.includes('eroticke')) columnMap['eroticke-pomucky.cz'] = index;
+        else if (colLower === 'flagranti.cz' || colLower.includes('flagranti')) columnMap['flagranti.cz'] = index;
+        else if (colLower === 'sexshopik.cz' || colLower.includes('sexshopik')) columnMap['sexshopik.cz'] = index;
+        else if (colLower === 'sex-shop69.cz' || colLower.includes('sex-shop69')) columnMap['sex-shop69.cz'] = index;
+        else if (colLower === 'eroticcity.cz' || colLower.includes('eroticcity')) columnMap['eroticcity.cz'] = index;
+        else if (colLower === 'e-kondomy.cz' || colLower.includes('e-kondomy') || colLower.includes('ekondomy')) columnMap['e-kondomy.cz'] = index;
+        else if (colLower === 'ruzovyslon.cz' || colLower.includes('r') && colLower.includes('slon') || colLower.includes('ruzovy')) columnMap['ruzovyslon.cz'] = index;
+        else if (colLower === 'kondomshop.cz' || colLower.includes('kondomshop')) columnMap['kondomshop.cz'] = index;
     });
+
+    console.log('🎯 Nalezené sloupce:', Object.keys(columnMap).length);
+    console.log('🎯 Mapované e-shopy:', Object.keys(columnMap));
 
     // Parsovat data
     trackingData = [];
@@ -282,6 +329,12 @@ function parseCustomCSV(csvText) {
         });
 
         trackingData.push(record);
+    }
+
+    console.log(`✅ Načteno ${trackingData.length} záznamů z CSV`);
+    if (trackingData.length > 0) {
+        console.log('📅 První záznam:', trackingData[0].date);
+        console.log('📅 Poslední záznam:', trackingData[trackingData.length - 1].date);
     }
 }
 
