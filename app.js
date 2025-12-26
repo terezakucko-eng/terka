@@ -744,27 +744,25 @@ function updateTrendChart() {
         selectedCompetitors.push('ruzovyslon.cz');
     }
 
-    // Filtrování dat pouze pro vybrané e-shopy
-    const filteredData = orderData
-        .filter(o => selectedCompetitors.includes(o.competitor))
-        .sort((a, b) => new Date(a.discoveryDate) - new Date(b.discoveryDate));
-
-    if (filteredData.length === 0) {
+    // Použít trackingData místo orderData
+    if (!window.trackingData || window.trackingData.length === 0) {
         charts.trend.data.labels = [];
         charts.trend.data.datasets = [];
         charts.trend.update();
         return;
     }
 
+    // Seřadit podle data
+    const sortedData = [...window.trackingData].sort((a, b) => new Date(a.date) - new Date(b.date));
+
     // Získání unikátních dat
-    const dates = [...new Set(filteredData.map(o => o.discoveryDate))].sort();
+    const dates = sortedData.map(r => r.date);
 
     // Příprava datasetů pro vybrané e-shopy
     const datasets = selectedCompetitors.map((comp, index) => {
-        const compData = filteredData.filter(o => o.competitor === comp);
-        const data = dates.map(date => {
-            const record = compData.find(o => o.discoveryDate === date);
-            return record ? record.orderNumber : null;
+        const data = sortedData.map(record => {
+            // Použít číslo objednávky z competitors
+            return record.competitors[comp] || null;
         });
 
         return {
@@ -834,15 +832,28 @@ function updateComparisonChart() {
 
     const daysDiff = period === 'wow' ? 7 : (period === 'mom' ? 30 : 365);
 
-    const marketData = orderData.filter(o => o.market === market);
-    const competitors = [...new Set(marketData.map(o => o.competitor))];
+    if (!window.trackingData || window.trackingData.length === 0) {
+        charts.comparison.data.labels = [];
+        charts.comparison.data.datasets[0].data = [];
+        charts.comparison.update();
+        return;
+    }
+
+    // Mapování e-shopů na trhy
+    const czEshops = ["Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz", "sexicekshop.cz", "honitka.cz", "sexshop.cz", "eroticke-pomucky.cz", "flagranti.cz", "sexshopik.cz", "sex-shop69.cz", "eroticcity.cz", "e-kondomy.cz", "ruzovyslon.cz", "kondomshop.cz"];
+    const skEshops = ["isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk", "ruzovyslon.sk", "kondomshop.sk"];
+    const foreignEshops = ["sexyelephant.ro", "sexyelephant.hu", "sexyelephant.si", "sexyelephant.bg", "sexyelephant.hr", "superlove.ro", "superlove.pl", "superlove.eu", "superlove.at", "superlove.hr", "superlove.it", "superlove.si", "superlove.bg", "superlove.lt", "superlove.es", "superlove.hu", "goldengate.hu", "padlizsan.hu", "sexshopcenter.hu", "erotikashow.hu", "szexaruhaz.hu", "szexshop.hu", "vagyaim.hu"];
+
+    let competitors;
+    if (market === 'CZ') competitors = czEshops;
+    else if (market === 'SK') competitors = skEshops;
+    else if (market === 'Foreign') competitors = foreignEshops;
+    else competitors = window.COMPETITORS || [];
+
+    const sorted = [...window.trackingData].sort((a, b) => new Date(b.date) - new Date(a.date));
 
     const growthData = competitors.map(comp => {
-        const compData = marketData
-            .filter(o => o.competitor === comp)
-            .sort((a, b) => new Date(b.discoveryDate) - new Date(a.discoveryDate));
-
-        const growth = calculateGrowthRate(compData, daysDiff);
+        const growth = calculateCompetitorGrowth(sorted, comp, daysDiff);
         return { competitor: comp, growth: growth };
     }).filter(item => item.growth !== null);
 
@@ -857,6 +868,42 @@ function updateComparisonChart() {
     charts.comparison.data.datasets[0].backgroundColor = colors.map(c => c + 'CC');
     charts.comparison.data.datasets[0].borderColor = colors;
     charts.comparison.update();
+}
+
+function calculateCompetitorGrowth(sortedData, competitor, daysDiff) {
+    if (sortedData.length < 2) return null;
+
+    const latest = sortedData[0];
+    const latestDate = new Date(latest.date);
+    const targetDate = new Date(latestDate);
+    targetDate.setDate(targetDate.getDate() - daysDiff);
+
+    // Najít nejbližší starší záznam
+    let closestRecord = null;
+    let smallestDiff = Infinity;
+
+    for (let i = 1; i < sortedData.length; i++) {
+        const recordDate = new Date(sortedData[i].date);
+        const diff = Math.abs((targetDate - recordDate) / (1000 * 60 * 60 * 24));
+
+        if (diff < smallestDiff && recordDate < latestDate) {
+            smallestDiff = diff;
+            closestRecord = sortedData[i];
+        }
+    }
+
+    if (!closestRecord || smallestDiff > daysDiff * 0.5) {
+        return null;
+    }
+
+    // Použít čísla objednávek z competitors
+    const latestOrders = latest.competitors[competitor] || 0;
+    const oldOrders = closestRecord.competitors[competitor] || 0;
+
+    if (oldOrders === 0) return null;
+
+    // Růst = ((nové - staré) / staré) * 100
+    return ((latestOrders - oldOrders) / oldOrders) * 100;
 }
 
 function initMarketShareChart() {
