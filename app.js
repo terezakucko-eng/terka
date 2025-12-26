@@ -53,23 +53,23 @@ const COMPETITORS_BY_MARKET = [
     { name: "sexiveci.sk", domain: "sexiveci.sk", market: "SK" },
 ];
 
-// Barevná paleta podle Růžového Slona (ruzovyslon.cz)
+// Pastelová barevná paleta - světlé a jemné odstíny
 const CHART_COLORS = [
-    '#dc004e', // hlavní růžová Růžový Slon
-    '#4182e3', // modrá
-    '#8c65d4', // fialová
-    '#378625', // zelená
-    '#ffcd35', // zlatá/žlutá
-    '#e91e63', // světlejší růžová
-    '#9c27b0', // purpurová
-    '#ff6b9d', // pastelově růžová
-    '#4e5a65', // tmavě šedá
-    '#f06292', // světle růžová
-    '#ba68c8', // levandulová
-    '#7986cb', // indigo
-    '#64b5f6', // světle modrá
-    '#81c784', // světle zelená
-    '#ffd54f'  // světle zlatá
+    '#ffb3d9', // pastelově růžová
+    '#b3d9ff', // pastelově modrá
+    '#d4b3f0', // pastelově fialová
+    '#b8e6a8', // pastelově zelená
+    '#fff0b3', // pastelově žlutá
+    '#ffc9e0', // světle růžová
+    '#d9b3ff', // světle purpurová
+    '#ffcce0', // světle coral
+    '#b3d4d4', // světle teal
+    '#ffd9e6', // světle pink
+    '#e0c9ff', // pastelově levandulová
+    '#c9d9ff', // pastelově indigo
+    '#b3e5ff', // pastelově sky blue
+    '#d4f0c9', // pastelově limetková
+    '#fff5cc'  // pastelově cream
 ];
 
 // ----- GLOBÁLNÍ PROMĚNNÉ -----
@@ -986,7 +986,7 @@ function updateDeltaChart() {
 
     const labels = limitedData.map(item => item.eshop);
     const data = limitedData.map(item => item.delta);
-    const colors = data.map(val => val >= 0 ? '#10b981' : '#ef4444');
+    const colors = data.map(val => val >= 0 ? '#b8e6a8' : '#ffb3b3'); // pastelově zelená a pastelově červená
 
     charts.delta.data.labels = labels;
     charts.delta.data.datasets[0].data = data;
@@ -1588,7 +1588,7 @@ window.showTab = function(tabId) {
         tab.style.display = 'none';
     });
     document.querySelectorAll('nav button').forEach(button => {
-        button.classList.remove('border-[#dc004e]', 'text-[#dc004e]');
+        button.classList.remove('border-[#ffb3d9]', 'text-[#ff6b9d]');
         button.classList.add('text-gray-500', 'hover:text-gray-700');
     });
 
@@ -1601,7 +1601,7 @@ window.showTab = function(tabId) {
     }
 
     if (tabButton) {
-        tabButton.classList.add('border-[#dc004e]', 'text-[#dc004e]');
+        tabButton.classList.add('border-[#ffb3d9]', 'text-[#ff6b9d]');
         tabButton.classList.remove('text-gray-500', 'hover:text-gray-700');
     }
 
