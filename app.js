@@ -87,6 +87,12 @@ async function initializeApp() {
     // Načtení tracking dat (nová struktura)
     await loadTrackingData();
     calculateDeltas();
+
+    // Vygenerovat formulářová pole pro e-shopy
+    if (typeof renderFormFields === 'function') {
+        renderFormFields();
+    }
+
     renderTrackingTable();
 
     // Aktualizovat metriky po načtení dat

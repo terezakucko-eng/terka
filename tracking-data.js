@@ -31,8 +31,9 @@
 }
 */
 
-// Seznam všech konkurentů (v pořadí jako v tabulce)
+// Seznam všech konkurentů (organizováno podle trhů)
 const COMPETITORS = [
+    // === CZ trh - Konkurence ===
     "Hopnato.cz",
     "erosstar.cz",
     "deeplove.cz",
@@ -46,9 +47,62 @@ const COMPETITORS = [
     "sex-shop69.cz",
     "eroticcity.cz",
     "e-kondomy.cz",
+
+    // === CZ trh - Vlastní e-shopy ===
     "ruzovyslon.cz",
-    "sexyelephant.cz",
-    "kondomshop.cz"
+    "kondomshop.cz",
+
+    // === SK trh - Konkurence ===
+    "isexshop.sk",
+    "flagranti.sk",
+    "superlove.sk",
+    "eros.sk",
+
+    // === SK trh - Vlastní e-shopy ===
+    "ruzovyslon.sk",
+    "kondomshop.sk",
+
+    // === Ostatní trhy - Vlastní e-shopy (Sexy Elephant) ===
+    "sexyelephant.ro",
+    "sexyelephant.hu",
+    "sexyelephant.si",
+    "sexyelephant.bg",
+    "sexyelephant.hr",
+
+    // === Ostatní trhy - Konkurence (Superlove) ===
+    "superlove.ro",
+    "superlove.pl",
+    "superlove.eu",
+    "superlove.at",
+    "superlove.hr",
+    "superlove.it",
+    "superlove.si",
+    "superlove.bg",
+    "superlove.lt",
+    "superlove.es",
+    "superlove.hu",
+
+    // === Maďarsko - Konkurence ===
+    "goldengate.hu",
+    "padlizsan.hu",
+    "sexshopcenter.hu",
+    "erotikashow.hu",
+    "szexaruhaz.hu",
+    "szexshop.hu",
+    "vagyaim.hu"
+];
+
+// Vlastní e-shopy - zadává se počet objednávek (delty) přímo, ne číslo objednávky
+const OWN_ESHOPS = [
+    "ruzovyslon.cz",
+    "ruzovyslon.sk",
+    "kondomshop.cz",
+    "kondomshop.sk",
+    "sexyelephant.ro",
+    "sexyelephant.hu",
+    "sexyelephant.si",
+    "sexyelephant.bg",
+    "sexyelephant.hr"
 ];
 
 // Globální data
@@ -543,3 +597,4 @@ window.saveTrackingData = saveTrackingData;
 window.loadTrackingData = loadTrackingData;
 window.trackingData = trackingData;
 window.COMPETITORS = COMPETITORS;
+window.OWN_ESHOPS = OWN_ESHOPS;

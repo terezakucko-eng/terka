@@ -1,4 +1,144 @@
 // =====================================================
+// UI PRO SLEDOVÁNÍ OBJEDNÁVEK - FORMULÁŘ
+// =====================================================
+
+/**
+ * Vygeneruje formulářová pole pro všechny e-shopy
+ * Rozlišuje vlastní e-shopy (počet objednávek) a konkurenty (číslo objednávky)
+ */
+function renderFormFields() {
+    const container = document.getElementById('competitor-fields-container');
+    if (!container) return;
+
+    let html = '';
+
+    // Sekce: CZ Konkurence
+    html += '<div class="mb-6">';
+    html += '<h4 class="text-lg font-semibold text-gray-900 mb-2 pb-2 border-b-2 border-blue-500">🇨🇿 České e-shopy - Konkurence</h4>';
+    html += '<p class="text-sm text-gray-600 mb-4">Zadej číslo poslední objednávky</p>';
+    html += '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">';
+
+    const czCompetitors = ["Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz", "sexicekshop.cz", "honitka.cz", "sexshop.cz", "eroticke-pomucky.cz", "flagranti.cz", "sexshopik.cz", "sex-shop69.cz", "eroticcity.cz", "e-kondomy.cz"];
+    czCompetitors.forEach(comp => {
+        html += `
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">${comp}</label>
+                <input type="number" id="comp-${sanitizeId(comp)}"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    placeholder="Číslo objednávky">
+            </div>`;
+    });
+    html += '</div></div>';
+
+    // Sekce: CZ Vlastní e-shopy
+    html += '<div class="mb-6">';
+    html += '<h4 class="text-lg font-semibold text-green-900 mb-2 pb-2 border-b-2 border-green-500">🏪 České e-shopy - Vlastní</h4>';
+    html += '<p class="text-sm text-green-700 mb-4">✅ Zadej počet objednávek (delta)</p>';
+    html += '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">';
+
+    ["ruzovyslon.cz", "kondomshop.cz"].forEach(comp => {
+        html += `
+            <div class="bg-green-50 p-3 rounded-lg border-2 border-green-300">
+                <label class="block text-sm font-bold text-green-900 mb-1">🌸 ${comp}</label>
+                <input type="number" id="comp-${sanitizeId(comp)}"
+                    class="w-full px-3 py-2 border-2 border-green-400 rounded-lg font-bold"
+                    placeholder="Počet objednávek">
+            </div>`;
+    });
+    html += '</div></div>';
+
+    // Sekce: SK Konkurence
+    html += '<div class="mb-6">';
+    html += '<h4 class="text-lg font-semibold text-gray-900 mb-2 pb-2 border-b-2 border-blue-500">🇸🇰 Slovenské e-shopy - Konkurence</h4>';
+    html += '<p class="text-sm text-gray-600 mb-4">Zadej číslo poslední objednávky</p>';
+    html += '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">';
+
+    ["isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk"].forEach(comp => {
+        html += `
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">${comp}</label>
+                <input type="number" id="comp-${sanitizeId(comp)}"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    placeholder="Číslo objednávky">
+            </div>`;
+    });
+    html += '</div></div>';
+
+    // Sekce: SK Vlastní e-shopy
+    html += '<div class="mb-6">';
+    html += '<h4 class="text-lg font-semibold text-green-900 mb-2 pb-2 border-b-2 border-green-500">🏪 Slovenské e-shopy - Vlastní</h4>';
+    html += '<p class="text-sm text-green-700 mb-4">✅ Zadej počet objednávek (delta)</p>';
+    html += '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">';
+
+    ["ruzovyslon.sk", "kondomshop.sk"].forEach(comp => {
+        html += `
+            <div class="bg-green-50 p-3 rounded-lg border-2 border-green-300">
+                <label class="block text-sm font-bold text-green-900 mb-1">🌸 ${comp}</label>
+                <input type="number" id="comp-${sanitizeId(comp)}"
+                    class="w-full px-3 py-2 border-2 border-green-400 rounded-lg font-bold"
+                    placeholder="Počet objednávek">
+            </div>`;
+    });
+    html += '</div></div>';
+
+    // Sekce: Sexy Elephant (vlastní zahraniční)
+    html += '<div class="mb-6">';
+    html += '<h4 class="text-lg font-semibold text-green-900 mb-2 pb-2 border-b-2 border-green-500">🏪 Sexy Elephant - Vlastní (Zahraniční)</h4>';
+    html += '<p class="text-sm text-green-700 mb-4">✅ Zadej počet objednávek (delta)</p>';
+    html += '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">';
+
+    ["sexyelephant.ro", "sexyelephant.hu", "sexyelephant.si", "sexyelephant.bg", "sexyelephant.hr"].forEach(comp => {
+        html += `
+            <div class="bg-green-50 p-3 rounded-lg border-2 border-green-300">
+                <label class="block text-sm font-bold text-green-900 mb-1">🐘 ${comp}</label>
+                <input type="number" id="comp-${sanitizeId(comp)}"
+                    class="w-full px-3 py-2 border-2 border-green-400 rounded-lg font-bold"
+                    placeholder="Počet objednávek">
+            </div>`;
+    });
+    html += '</div></div>';
+
+    // Sekce: Superlove (konkurence zahraniční)
+    html += '<div class="mb-6">';
+    html += '<h4 class="text-lg font-semibold text-gray-900 mb-2 pb-2 border-b-2 border-blue-500">🌍 Superlove - Konkurence (Evropa)</h4>';
+    html += '<p class="text-sm text-gray-600 mb-4">Zadej číslo poslední objednávky</p>';
+    html += '<div class="grid grid-cols-1 md:grid-cols-4 gap-3">';
+
+    ["superlove.ro", "superlove.pl", "superlove.eu", "superlove.at", "superlove.hr", "superlove.it", "superlove.si", "superlove.bg", "superlove.lt", "superlove.es", "superlove.hu"].forEach(comp => {
+        html += `
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">${comp}</label>
+                <input type="number" id="comp-${sanitizeId(comp)}"
+                    class="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm"
+                    placeholder="Č. obj.">
+            </div>`;
+    });
+    html += '</div></div>';
+
+    // Sekce: Maďarsko (konkurence)
+    html += '<div class="mb-6">';
+    html += '<h4 class="text-lg font-semibold text-gray-900 mb-2 pb-2 border-b-2 border-blue-500">🇭🇺 Maďarské e-shopy - Konkurence</h4>';
+    html += '<p class="text-sm text-gray-600 mb-4">Zadej číslo poslední objednávky</p>';
+    html += '<div class="grid grid-cols-1 md:grid-cols-4 gap-3">';
+
+    ["goldengate.hu", "padlizsan.hu", "sexshopcenter.hu", "erotikashow.hu", "szexaruhaz.hu", "szexshop.hu", "vagyaim.hu"].forEach(comp => {
+        html += `
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">${comp}</label>
+                <input type="number" id="comp-${sanitizeId(comp)}"
+                    class="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm"
+                    placeholder="Č. obj.">
+            </div>`;
+    });
+    html += '</div></div>';
+
+    container.innerHTML = html;
+}
+
+// Exportovat funkci pro použití jinde
+window.renderFormFields = renderFormFields;
+
+// =====================================================
 // UI PRO SLEDOVÁNÍ OBJEDNÁVEK - TABULKA
 // =====================================================
 
@@ -36,16 +176,24 @@ function renderTrackingTable() {
             </td>
         `;
 
-        // Pro každého konkurenta: Číslo objednávky a Delta
+        // Pro každého e-shopu: Číslo objednávky a Delta
         window.COMPETITORS.forEach((comp, index) => {
             const orderNum = record.competitors[comp] || 0;
             const delta = record.deltas[comp] || 0;
             const deltaClass = delta > 0 ? 'text-green-600' : (delta < 0 ? 'text-red-600' : 'text-gray-400');
-            const isRuzovySlon = comp === 'ruzovyslon.cz';
+
+            // Zjistit, jestli je to vlastní e-shop
+            const isOwnEshop = window.OWN_ESHOPS && window.OWN_ESHOPS.includes(comp);
+
+            // Pro vlastní e-shopy zelené pozadí, jinak normální
+            const bgClass = isOwnEshop ? 'bg-green-50 font-bold' : '';
+
+            // Pro vlastní e-shopy zobrazit "-" místo čísla objednávky
+            const orderNumDisplay = isOwnEshop ? '-' : orderNum.toLocaleString('cs-CZ');
 
             row.innerHTML += `
-                <td class="px-3 py-3 text-sm text-center ${isRuzovySlon ? 'bg-blue-50 font-bold' : ''}">
-                    <div class="font-medium text-gray-900">${orderNum.toLocaleString('cs-CZ')}</div>
+                <td class="px-3 py-3 text-sm text-center ${bgClass}">
+                    <div class="font-medium text-gray-500 text-xs">${orderNumDisplay}</div>
                     <div class="${deltaClass} text-xs font-semibold">
                         ${delta > 0 ? '+' : ''}${delta.toLocaleString('cs-CZ')}
                     </div>
@@ -128,13 +276,23 @@ function handleRecordFormSubmit(e) {
         notes: document.getElementById('record-notes').value || ''
     };
 
-    // Načíst čísla objednávek pro všechny konkurenty
+    // Načíst data pro všechny e-shopy
+    // Rozlišujeme vlastní e-shopy (ukládáme delty přímo) a konkurenty (ukládáme čísla objednávek)
     window.COMPETITORS.forEach(comp => {
         const input = document.getElementById(`comp-${sanitizeId(comp)}`);
-        if (input && input.value) {
-            record.competitors[comp] = parseInt(input.value) || 0;
+        const value = input && input.value ? parseInt(input.value) || 0 : 0;
+
+        // Zjistit, jestli je to vlastní e-shop
+        const isOwnEshop = window.OWN_ESHOPS && window.OWN_ESHOPS.includes(comp);
+
+        if (isOwnEshop) {
+            // Vlastní e-shop: uložit deltu přímo (zadává se počet objednávek)
+            record.deltas[comp] = value;
+            record.competitors[comp] = 0;  // Číslo objednávky nepoužíváme
         } else {
-            record.competitors[comp] = 0;
+            // Konkurent: uložit číslo objednávky (delta se vypočítá později)
+            record.competitors[comp] = value;
+            record.deltas[comp] = 0; // Delta se přepočítá v calculateDeltas()
         }
     });
 
