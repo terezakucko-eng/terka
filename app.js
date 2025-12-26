@@ -61,7 +61,10 @@ const CHART_COLORS = [
 
 // ----- GLOBÁLNÍ PROMĚNNÉ -----
 let orderData = [];
-let mktCampaignData = [];
+// Použít window.window.mktCampaignData pro sdílení s Firestore realtime listener
+if (!window.window.mktCampaignData) {
+    window.window.mktCampaignData = [];
+}
 let charts = {
     trend: null,
     comparison: null,
@@ -138,14 +141,14 @@ async function loadDataFromStorage() {
         // Načtení kampaní z Firestore
         const campaigns = await loadCampaignsFromFirestore();
         if (campaigns && campaigns.length > 0) {
-            mktCampaignData = campaigns;
+            window.mktCampaignData = campaigns;
         }
 
-        console.log(`✅ Načteno ${orderData.length} objednávek a ${mktCampaignData.length} kampaní`);
+        console.log(`✅ Načteno ${orderData.length} objednávek a ${window.mktCampaignData.length} kampaní`);
     } catch (e) {
         console.error('Chyba při načítání dat:', e);
         orderData = [];
-        mktCampaignData = [];
+        window.mktCampaignData = [];
     }
 }
 
@@ -161,7 +164,7 @@ async function saveOrdersToStorage() {
 async function saveCampaignsToStorage() {
     try {
         // Uložit do LocalStorage jako fallback
-        localStorage.setItem('competitorCampaigns', JSON.stringify(mktCampaignData));
+        localStorage.setItem('competitorCampaigns', JSON.stringify(window.mktCampaignData));
     } catch (e) {
         console.error('Chyba při ukládání kampaní:', e);
     }
@@ -333,7 +336,7 @@ function importFromJSON() {
             }
 
             if (data.campaigns) {
-                mktCampaignData = data.campaigns;
+                window.mktCampaignData = data.campaigns;
                 saveCampaignsToStorage();
                 renderMktTable();
                 updateMktChart();
@@ -353,7 +356,7 @@ function importFromJSON() {
 function exportToJSON() {
     const data = {
         orders: orderData,
-        campaigns: mktCampaignData,
+        campaigns: window.mktCampaignData,
         exportDate: new Date().toISOString()
     };
 
@@ -387,7 +390,7 @@ function clearAllData() {
     if (confirm('Opravdu chcete vymazat VŠECHNA data? Tato akce je nevratná!\n\nDoporučujeme nejprve exportovat data jako zálohu.')) {
         if (confirm('Jste si jisti? Toto je poslední varování!')) {
             orderData = [];
-            mktCampaignData = [];
+            window.mktCampaignData = [];
             localStorage.removeItem(STORAGE_KEY_ORDERS);
             localStorage.removeItem(STORAGE_KEY_CAMPAIGNS);
             localStorage.removeItem(STORAGE_KEY_SETTINGS);
@@ -1091,17 +1094,17 @@ function handleMktFormSubmit(e) {
     }
 
     if (formData.get('id')) {
-        const index = mktCampaignData.findIndex(c => c.id === data.id);
+        const index = window.mktCampaignData.findIndex(c => c.id === data.id);
         if (index !== -1) {
             // Zachovat firestoreId pokud existuje
-            data.firestoreId = mktCampaignData[index].firestoreId;
-            mktCampaignData[index] = data;
+            data.firestoreId = window.mktCampaignData[index].firestoreId;
+            window.mktCampaignData[index] = data;
         }
     } else {
-        mktCampaignData.push(data);
+        window.mktCampaignData.push(data);
     }
 
-    mktCampaignData.sort((a, b) => new Date(b.discoveryDate) - new Date(a.discoveryDate));
+    window.mktCampaignData.sort((a, b) => new Date(b.discoveryDate) - new Date(a.discoveryDate));
 
     // Uložit do Firestore (pokud je aktivní)
     if (typeof saveCampaignToFirestore === 'function') {
@@ -1136,7 +1139,7 @@ function resetMktForm() {
 }
 
 window.editMktCampaign = function(id) {
-    const campaign = mktCampaignData.find(c => c.id === id);
+    const campaign = window.mktCampaignData.find(c => c.id === id);
     if (!campaign) return;
 
     document.getElementById('campaign-id').value = campaign.id;
@@ -1157,14 +1160,14 @@ window.editMktCampaign = function(id) {
 
 window.deleteMktCampaign = async function(id) {
     if (confirm('Opravdu chcete smazat tuto kampaň? Tato akce je nevratná.')) {
-        const index = mktCampaignData.findIndex(c => c.id === id);
+        const index = window.mktCampaignData.findIndex(c => c.id === id);
         if (index !== -1) {
             // Smazat z Firestore (pokud je aktivní)
             if (typeof deleteCampaignFromFirestore === 'function') {
                 await deleteCampaignFromFirestore(id);
             }
 
-            mktCampaignData.splice(index, 1);
+            window.mktCampaignData.splice(index, 1);
             saveCampaignsToStorage();
             renderMktTable();
             updateMktChart();
@@ -1177,7 +1180,7 @@ function renderMktTable() {
     const filterChan = document.getElementById('filter-channel-mkt').value;
     const tableBody = document.getElementById('campaign-table-body');
 
-    const filteredData = mktCampaignData.filter(d => {
+    const filteredData = window.mktCampaignData.filter(d => {
         const compMatch = filterComp === 'all' || d.competitor === filterComp;
         const chanMatch = filterChan === 'all' || d.channel === filterChan;
         return compMatch && chanMatch;
@@ -1257,7 +1260,7 @@ function updateMktChart() {
     const filterComp = document.getElementById('chart-filter-competitor-mkt').value;
     const filterChan = document.getElementById('chart-filter-channel-mkt').value;
 
-    let dataForChart = mktCampaignData;
+    let dataForChart = window.mktCampaignData;
 
     if (filterChan !== 'all') {
         dataForChart = dataForChart.filter(d => d.channel === filterChan);
