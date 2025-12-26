@@ -556,9 +556,10 @@ function formatDateForStorage(dateStr) {
 
 async function saveTrackingData() {
     try {
-        if (typeof saveOrdersToFirestore === 'function') {
-            // Použít Firestore pokud je k dispozici
-            await saveOrdersToFirestore(trackingData);
+        if (typeof window.useFirestore === 'function' && window.useFirestore()) {
+            // Firestore je aktivní - realtime sync se postará o synchronizaci
+            // Neukládáme celé pole, jen notifikujeme o změně
+            localStorage.setItem('trackingData', JSON.stringify(trackingData));
         } else {
             // Fallback na LocalStorage
             localStorage.setItem('trackingData', JSON.stringify(trackingData));
@@ -571,10 +572,11 @@ async function saveTrackingData() {
 
 async function loadTrackingData() {
     try {
-        if (typeof loadOrdersFromFirestore === 'function') {
-            const data = await loadOrdersFromFirestore();
+        if (typeof loadTrackingDataFromFirestore === 'function') {
+            const data = await loadTrackingDataFromFirestore();
             if (data && data.length > 0) {
                 trackingData = data;
+                window.trackingData = trackingData;
                 return;
             }
         }
@@ -583,10 +585,12 @@ async function loadTrackingData() {
         const saved = localStorage.getItem('trackingData');
         if (saved) {
             trackingData = JSON.parse(saved);
+            window.trackingData = trackingData;
         }
     } catch (e) {
         console.error('Chyba při načítání:', e);
         trackingData = [];
+        window.trackingData = trackingData;
     }
 }
 

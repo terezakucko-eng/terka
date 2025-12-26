@@ -77,12 +77,14 @@ async function initializeApp() {
     // Zobrazení loading stavu
     console.log('🚀 Inicializace aplikace...');
 
-    // Inicializace Firebase databáze
-    const dbInitialized = await initDatabase();
-    if (dbInitialized) {
-        console.log('✅ Firestore připojen - data budou sdílená');
-    } else {
-        console.log('⚠️ Používám LocalStorage - data pouze v tomto prohlížeči');
+    // Inicializace Firebase databáze s realtime sync
+    if (typeof initFirestoreTracking === 'function') {
+        const dbInitialized = await initFirestoreTracking();
+        if (dbInitialized) {
+            console.log('✅ Firestore připojen - data budou sdílená v reálném čase');
+        } else {
+            console.log('⚠️ Používám LocalStorage - data pouze v tomto prohlížeči');
+        }
     }
 
     // Načtení tracking dat (nová struktura)
@@ -158,10 +160,10 @@ async function saveOrdersToStorage() {
 
 async function saveCampaignsToStorage() {
     try {
-        await saveCampaignsToFirestore(mktCampaignData);
+        // Uložit do LocalStorage jako fallback
+        localStorage.setItem('competitorCampaigns', JSON.stringify(mktCampaignData));
     } catch (e) {
         console.error('Chyba při ukládání kampaní:', e);
-        alert('Nepodařilo se uložit data. Zkontrolujte připojení k databázi.');
     }
 }
 
@@ -1092,12 +1094,22 @@ function handleMktFormSubmit(e) {
 
     if (formData.get('id')) {
         const index = mktCampaignData.findIndex(c => c.id === data.id);
-        if (index !== -1) mktCampaignData[index] = data;
+        if (index !== -1) {
+            // Zachovat firestoreId pokud existuje
+            data.firestoreId = mktCampaignData[index].firestoreId;
+            mktCampaignData[index] = data;
+        }
     } else {
         mktCampaignData.push(data);
     }
 
     mktCampaignData.sort((a, b) => new Date(b.discoveryDate) - new Date(a.discoveryDate));
+
+    // Uložit do Firestore (pokud je aktivní)
+    if (typeof saveCampaignToFirestore === 'function') {
+        saveCampaignToFirestore(data);
+    }
+
     saveCampaignsToStorage();
     renderMktTable();
     updateMktChart();
@@ -1145,10 +1157,15 @@ window.editMktCampaign = function(id) {
     document.getElementById('campaign-form').scrollIntoView({ behavior: 'smooth' });
 };
 
-window.deleteMktCampaign = function(id) {
+window.deleteMktCampaign = async function(id) {
     if (confirm('Opravdu chcete smazat tuto kampaň? Tato akce je nevratná.')) {
         const index = mktCampaignData.findIndex(c => c.id === id);
         if (index !== -1) {
+            // Smazat z Firestore (pokud je aktivní)
+            if (typeof deleteCampaignFromFirestore === 'function') {
+                await deleteCampaignFromFirestore(id);
+            }
+
             mktCampaignData.splice(index, 1);
             saveCampaignsToStorage();
             renderMktTable();

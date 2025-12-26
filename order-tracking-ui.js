@@ -411,6 +411,8 @@ function handleRecordFormSubmit(e) {
     if (recordId) {
         const index = window.trackingData.findIndex(r => r.id === parseInt(recordId));
         if (index !== -1) {
+            // Zachovat firestoreId pokud existuje
+            record.firestoreId = window.trackingData[index].firestoreId;
             window.trackingData[index] = record;
         }
     } else {
@@ -419,6 +421,11 @@ function handleRecordFormSubmit(e) {
 
     // Přepočítat delty
     calculateDeltas();
+
+    // Uložit do Firestore (pokud je aktivní)
+    if (typeof saveTrackingRecordToFirestore === 'function') {
+        saveTrackingRecordToFirestore(record);
+    }
 
     // Uložit a aktualizovat UI
     saveTrackingData();
@@ -458,13 +465,18 @@ window.editTrackingRecord = function(id) {
     document.getElementById('record-form-modal').classList.remove('hidden');
 };
 
-window.deleteTrackingRecord = function(id) {
+window.deleteTrackingRecord = async function(id) {
     if (!confirm('Opravdu chcete smazat tento záznam? Tato akce je nevratná.')) {
         return;
     }
 
     const index = window.trackingData.findIndex(r => r.id === id);
     if (index !== -1) {
+        // Smazat z Firestore (pokud je aktivní)
+        if (typeof deleteTrackingRecordFromFirestore === 'function') {
+            await deleteTrackingRecordFromFirestore(id);
+        }
+
         window.trackingData.splice(index, 1);
         calculateDeltas();
         saveTrackingData();
