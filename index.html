@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sledování konkurence - Růžový Slon</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@3.0.0/index.min.js"></script>
+    <style>
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+
+        .large-chart-container {
+            position: relative;
+            width: 100%;
+            height: 450px;
+        }
+
+        #campaign-table-body td:nth-child(1) { min-width: 130px; }
+        #campaign-table-body td:nth-child(2) { min-width: 100px; }
+        #campaign-table-body td:nth-child(3) { min-width: 120px; }
+        #campaign-table-body td:nth-child(4) { min-width: 200px; max-width: 350px; white-space: normal;}
+        #campaign-table-body td:nth-child(5) { min-width: 100px; }
+        #campaign-table-body td:nth-child(6) { min-width: 80px; }
+        #campaign-table-body td:nth-child(7) { min-width: 150px; max-width: 250px; white-space: normal;}
+        #campaign-table-body td:nth-child(8) { min-width: 160px; }
+
+        #order-table-body td:nth-child(5) { min-width: 100px; }
+        #order-table-body td:nth-child(6) { min-width: 120px; }
+        #order-table-body td:nth-child(7) {
+            min-width: 200px;
+            max-width: 300px;
+            white-space: normal;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            border-radius: 8px;
+            width: 90%;
+            height: 90%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .modal-header {
+            padding: 10px 16px;
+            background-color: #f1f1f1;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-body {
+            flex-grow: 1;
+            padding: 20px;
+            overflow: auto;
+        }
+        .modal-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .close-button {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 20px;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .metric-card.green {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .metric-card.red {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .metric-card.blue {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        }
+
+        .metric-card.orange {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans text-gray-800 antialiased">
+
+    <div class="bg-white shadow-md">
+        <div class="container mx-auto px-4 sm:px-8">
+            <div class="flex justify-between items-center py-4">
+                <h1 class="text-2xl font-bold text-gray-900">Sledování konkurence - Růžový Slon</h1>
+                <button onclick="showDataManagementModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                    ⚙️ Správa dat
+                </button>
+            </div>
+            <nav class="flex space-x-4">
+                <button id="tab-orders" class="py-4 px-6 font-medium text-blue-600 border-b-2 border-blue-600" onclick="showTab('order-tracking')">
+                    📊 Sledování objednávek
+                </button>
+                <button id="tab-mkt" class="py-4 px-6 font-medium text-gray-500 hover:text-gray-700" onclick="showTab('mkt-tracking')">
+                    📢 Sledování MKT kampaní
+                </button>
+            </nav>
+        </div>
+    </div>
+
+    <div class="container mx-auto p-4 md:p-8">
+
+        <!-- ZÁLOŽKA: Sledování objednávek -->
+        <div id="order-tracking" class="tab-content" style="display: block;">
+
+            <!-- Přehledové metriky -->
+            <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="metric-card blue">
+                    <h3 class="text-sm font-medium opacity-90 mb-1">Celkem objednávek (Růžový Slon)</h3>
+                    <p class="text-3xl font-bold" id="metric-total-orders">-</p>
+                    <p class="text-xs mt-2 opacity-75" id="metric-total-period">Poslední záznam</p>
+                </div>
+                <div class="metric-card green">
+                    <h3 class="text-sm font-medium opacity-90 mb-1">Růst týden/týden (WoW)</h3>
+                    <p class="text-3xl font-bold" id="metric-wow">-</p>
+                    <p class="text-xs mt-2 opacity-75">Růžový Slon</p>
+                </div>
+                <div class="metric-card orange">
+                    <h3 class="text-sm font-medium opacity-90 mb-1">Růst měsíc/měsíc (MoM)</h3>
+                    <p class="text-3xl font-bold" id="metric-mom">-</p>
+                    <p class="text-xs mt-2 opacity-75">Růžový Slon</p>
+                </div>
+                <div class="metric-card">
+                    <h3 class="text-sm font-medium opacity-90 mb-1">Růst rok/rok (YoY)</h3>
+                    <p class="text-3xl font-bold" id="metric-yoy">-</p>
+                    <p class="text-xs mt-2 opacity-75">Růžový Slon</p>
+                </div>
+            </section>
+
+            <!-- Grafy -->
+            <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <div class="bg-white p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-900">Vývoj objednávek v čase</h2>
+                    <div class="mb-4">
+                        <label for="trend-market-filter" class="block text-sm font-medium text-gray-700 mb-1">Trh</label>
+                        <select id="trend-market-filter" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                            <option value="CZ">CZ</option>
+                        </select>
+                    </div>
+                    <div class="large-chart-container">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-900">Porovnání konkurence</h2>
+                    <div class="mb-4 grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="comparison-market-filter" class="block text-sm font-medium text-gray-700 mb-1">Trh</label>
+                            <select id="comparison-market-filter" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                <option value="CZ">CZ</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="comparison-period-filter" class="block text-sm font-medium text-gray-700 mb-1">Období</label>
+                            <select id="comparison-period-filter" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                <option value="wow">Týden/Týden</option>
+                                <option value="mom">Měsíc/Měsíc</option>
+                                <option value="yoy">Rok/Rok</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="large-chart-container">
+                        <canvas id="comparisonChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Formulář a podíl na trhu -->
+            <main class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                <aside class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-lg h-fit">
+                    <h2 id="form-title-order" class="text-2xl font-semibold mb-4 text-gray-900">Přidat záznam objednávky</h2>
+                    <form id="order-form" class="space-y-4">
+                        <input type="hidden" id="order-id" name="id" value="">
+
+                        <div>
+                            <label for="market-order" class="block text-sm font-medium text-gray-700 mb-1">Trh (Povinné)</label>
+                            <select id="market-order" name="market" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" required>
+                                <option value="">Vyberte trh</option>
+                                <option value="CZ">CZ</option>
+                                <option value="SK">SK</option>
+                                <option value="HU">HU</option>
+                                <option value="RO">RO</option>
+                                <option value="SI">SI</option>
+                                <option value="HR">HR</option>
+                                <option value="BG">BG</option>
+                                <option value="PL">PL</option>
+                                <option value="AT">AT</option>
+                                <option value="IT">IT</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="competitor-order" class="block text-sm font-medium text-gray-700 mb-1">Konkurent/Web (Povinné)</label>
+                            <select id="competitor-order" name="competitor" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" required>
+                                <option value="">Vyberte konkurenta</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="discoveryDate-order" class="block text-sm font-medium text-gray-700 mb-1">Datum sledování (Povinné)</label>
+                            <input type="date" id="discoveryDate-order" name="discoveryDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" required>
+                        </div>
+
+                        <div>
+                            <label for="orderNumber-order" class="block text-sm font-medium text-gray-700 mb-1">Číslo objednávky (Povinné)</label>
+                            <input type="number" id="orderNumber-order" name="orderNumber" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Např. 12345" required>
+                        </div>
+
+                        <div>
+                            <label for="notes-order" class="block text-sm font-medium text-gray-700 mb-1">Poznámky</label>
+                            <textarea id="notes-order" name="notes" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Detaily o konkurenčním e-shopu..."></textarea>
+                        </div>
+
+                        <button type="submit" id="submit-button-order" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-700 focus:ring-offset-2">
+                            Přidat záznam objednávky
+                        </button>
+                        <button type="button" id="cancel-edit-order-button" class="w-full bg-gray-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-700 focus:ring-offset-2 hidden">
+                            Zrušit úpravu
+                        </button>
+                        <p id="form-error-order" class="text-red-600 text-sm mt-2 hidden"></p>
+                    </form>
+                </aside>
+
+                <section class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-2 text-gray-900">Podíl Růžového Slona na trhu (Market Share)</h2>
+                    <div class="flex flex-col md:flex-row gap-4 mb-6 items-end">
+                        <div class="w-full md:w-1/3">
+                            <label for="market-share-filter" class="block text-sm font-medium text-gray-700 mb-1">Vyberte trh</label>
+                            <select id="market-share-filter" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                <option value="CZ">CZ</option>
+                            </select>
+                        </div>
+                        <div class="w-full md:w-1/3">
+                            <label for="market-share-start-date" class="block text-sm font-medium text-gray-700 mb-1">Období OD</label>
+                            <input type="date" id="market-share-start-date" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                        </div>
+                        <div class="w-full md:w-1/3">
+                            <label for="market-share-end-date" class="block text-sm font-medium text-gray-700 mb-1">Období DO</label>
+                            <input type="date" id="market-share-end-date" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                        </div>
+                    </div>
+                    <div class="chart-container flex items-center justify-center">
+                        <div class="w-full max-w-sm">
+                            <canvas id="marketShareChart"></canvas>
+                        </div>
+                    </div>
+                    <p id="chart-info" class="text-center text-sm text-gray-500 mt-4">
+                        Zobrazuje podíl konkurentů na objednávkách na základě posledních zaznamenaných dat pro zvolený trh a období.
+                    </p>
+                </section>
+            </main>
+
+            <!-- Tabulka objednávek -->
+            <section class="space-y-8">
+                <div class="bg-white p-6 rounded-2xl shadow-lg">
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-4">
+                        <h2 class="text-2xl font-semibold text-gray-900 mb-2 sm:mb-0">Zaznamenané objednávky</h2>
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <div>
+                                <label for="filter-market-order" class="block text-sm font-medium text-gray-700 mb-1">Filtrovat dle trhu</label>
+                                <select id="filter-market-order" class="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                    <option value="all">Všechny trhy</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="filter-competitor-order" class="block text-sm font-medium text-gray-700 mb-1">Filtrovat dle konkurenta</label>
+                                <select id="filter-competitor-order" class="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                    <option value="all">Všichni konkurenti</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="rounded-lg border border-gray-200 overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Trh</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Konkurent</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Datum sledování</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Číslo objednávky</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Objednávek (Delta)</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Podíl R. Slona (%)</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Poznámky</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Akce</th>
+                                </tr>
+                            </thead>
+                            <tbody id="order-table-body" class="bg-white divide-y divide-gray-200">
+                                <tr><td colspan="8" class="text-center p-4 text-gray-500">Zatím nebyly přidány žádné záznamy o objednávkách.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ZÁLOŽKA: Sledování MKT kampaní -->
+        <div id="mkt-tracking" class="tab-content" style="display: none;">
+            <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <aside class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-lg h-fit">
+                    <h2 id="form-title-mkt" class="text-2xl font-semibold mb-4 text-gray-900">Přidat MKT kampaň</h2>
+                    <form id="campaign-form" class="space-y-4">
+                        <input type="hidden" id="campaign-id" name="id" value="">
+                        <div>
+                            <label for="competitor-mkt" class="block text-sm font-medium text-gray-700 mb-1">Konkurent/Web</label>
+                            <select id="competitor-mkt" name="competitor" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                <option value="">Vyberte konkurenta</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="discoveryDate-mkt" class="block text-sm font-medium text-gray-700 mb-1">Datum zjištění (Povinné)</label>
+                            <input type="date" id="discoveryDate-mkt" name="discoveryDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" required>
+                        </div>
+                        <div class="space-y-2 border border-gray-200 p-3 rounded-lg">
+                            <p class="text-sm font-medium text-gray-700">Rozsah trvání kampaně (Volitelné)</p>
+                            <div class="space-y-3">
+                                <div>
+                                    <label for="startDate-mkt" class="block text-xs text-gray-600 mb-1">Od (Začátek)</label>
+                                    <input type="date" id="startDate-mkt" name="startDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                </div>
+                                <div>
+                                    <label for="endDate-mkt" class="block text-xs text-gray-600 mb-1">Do (Konec)</label>
+                                    <input type="date" id="endDate-mkt" name="endDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="description-mkt" class="block text-sm font-medium text-gray-700 mb-1">Popis kampaně / Zjištění (Povinné)</label>
+                            <input type="text" id="description-mkt" name="description" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Např. 'Valentýnská sleva 20 %'" required>
+                        </div>
+                        <div>
+                            <label for="channel-mkt" class="block text-sm font-medium text-gray-700 mb-1">Kanál (Povinné)</label>
+                            <select id="channel-mkt" name="channel" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" required>
+                                <option value="">Vyberte kanál</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="screenshotUrl-mkt" class="block text-sm font-medium text-gray-700 mb-1">Screenshot (URL)</label>
+                            <input type="url" id="screenshotUrl-mkt" name="screenshotUrl" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="https://prnt.sc/...">
+                        </div>
+                        <div>
+                            <label for="notes-mkt" class="block text-sm font-medium text-gray-700 mb-1">Poznámky</label>
+                            <textarea id="notes-mkt" name="notes" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Např. 'Cíleno na nové zákazníky', 'Kód: VALENTYN20'"></textarea>
+                        </div>
+                        <button type="submit" id="submit-button-mkt" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-700 focus:ring-offset-2">
+                            Přidat kampaň
+                        </button>
+                        <button type="button" id="cancel-edit-mkt-button" class="w-full bg-gray-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-700 focus:ring-offset-2 hidden">
+                            Zrušit úpravu
+                        </button>
+                        <p id="form-error-mkt" class="text-red-600 text-sm mt-2 hidden"></p>
+                    </form>
+                </aside>
+
+                <section class="lg:col-span-2 space-y-8">
+                    <div class="bg-white p-6 rounded-2xl shadow-lg">
+                        <h2 class="text-2xl font-semibold mb-2 text-gray-900">Přehled aktivity kampaní</h2>
+                        <div class="flex flex-col sm:flex-row gap-4 mb-6">
+                            <div class="flex-1">
+                                <label for="chart-filter-competitor-mkt" class="block text-sm font-medium text-gray-700 mb-1">Filtrovat graf dle konkurenta</label>
+                                <select id="chart-filter-competitor-mkt" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                    <option value="all">Všichni konkurenti</option>
+                                </select>
+                            </div>
+                            <div class="flex-1">
+                                <label for="chart-filter-channel-mkt" class="block text-sm font-medium text-gray-700 mb-1">Filtrovat graf dle kanálu</label>
+                                <select id="chart-filter-channel-mkt" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                    <option value="all">Všechny kanály</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="competitorChart"></canvas>
+                        </div>
+                    </div>
+                </section>
+            </main>
+
+            <section class="space-y-8 mt-8">
+                <div class="bg-white p-6 rounded-2xl shadow-lg">
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-4">
+                        <h2 class="text-2xl font-semibold text-gray-900 mb-2 sm:mb-0">Zaznamenané kampaně</h2>
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <div>
+                                <label for="filter-competitor-mkt" class="block text-sm font-medium text-gray-700 mb-1">Filtrovat tabulku dle konkurenta</label>
+                                <select id="filter-competitor-mkt" class="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                    <option value="all">Všichni konkurenti</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="filter-channel-mkt" class="block text-sm font-medium text-gray-700 mb-1">Filtrovat tabulku dle kanálu</label>
+                                <select id="filter-channel-mkt" class="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                    <option value="all">Všechny kanály</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="rounded-lg border border-gray-200 overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Konkurent</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Datum zjištění</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Trvání (Od-Do)</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Popis</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Kanál</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Screenshot</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Poznámky</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Akce</th>
+                                </tr>
+                            </thead>
+                            <tbody id="campaign-table-body" class="bg-white divide-y divide-gray-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Modal pro správu dat -->
+    <div id="dataManagementModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="text-lg font-semibold text-gray-900">Správa dat</h3>
+                <span class="close-button" onclick="closeDataManagementModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="space-y-6">
+                    <div class="border-b pb-4">
+                        <h4 class="text-md font-semibold mb-3">📥 Import dat</h4>
+                        <div class="space-y-3">
+                            <div>
+                                <label for="google-sheets-url" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Google Sheets URL (musí být veřejně přístupný)
+                                </label>
+                                <input type="text" id="google-sheets-url"
+                                    placeholder="https://docs.google.com/spreadsheets/d/..."
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                <p class="text-xs text-gray-500 mt-1">
+                                    Aplikace hledá listy s názvem "Zkušeb.obj." a importuje z nich data
+                                </p>
+                            </div>
+                            <button onclick="importFromGoogleSheets()"
+                                class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
+                                Importovat z Google Sheets
+                            </button>
+                        </div>
+
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Nebo nahrajte JSON soubor
+                            </label>
+                            <input type="file" id="json-file-input" accept=".json"
+                                class="block w-full text-sm text-gray-500
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-lg file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-blue-50 file:text-blue-700
+                                hover:file:bg-blue-100">
+                            <button onclick="importFromJSON()"
+                                class="mt-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                                Importovat JSON
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="border-b pb-4">
+                        <h4 class="text-md font-semibold mb-3">📤 Export dat</h4>
+                        <div class="space-y-3">
+                            <button onclick="exportToJSON()"
+                                class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                                Stáhnout jako JSON
+                            </button>
+                            <button onclick="exportToCSV()"
+                                class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition ml-2">
+                                Stáhnout jako CSV
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="text-md font-semibold mb-3 text-red-600">🗑️ Vymazat data</h4>
+                        <p class="text-sm text-gray-600 mb-3">
+                            Tato akce vymaže všechna uložená data z prohlížeče. Tato akce je nevratná!
+                        </p>
+                        <button onclick="clearAllData()"
+                            class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">
+                            Vymazat všechna data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal pro zobrazení screenshotů -->
+    <div id="iframeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalHeaderTitle" class="text-lg font-semibold text-gray-900"></h3>
+                <span id="closeModalButton" class="close-button">&times;</span>
+            </div>
+            <div id="modalBody" class="modal-body"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
