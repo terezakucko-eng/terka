@@ -1,0 +1,25 @@
+{
+  "orders": [
+    {
+      "id": 1,
+      "market": "CZ",
+      "competitor": "Růžový Slon",
+      "discoveryDate": "2024-01-15",
+      "orderNumber": 2004565,
+      "notes": "Leden 2024",
+      "orderDelta": 0,
+      "marketShare": 0
+    },
+    {
+      "id": 2,
+      "market": "CZ",
+      "competitor": "Sexshop.cz",
+      "discoveryDate": "2024-01-15",
+      "orderNumber": 1385248,
+      "notes": "Leden 2024",
+      "orderDelta": 0,
+      "marketShare": 0
+    }
+  ],
+  "campaigns": []
+}
