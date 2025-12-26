@@ -187,44 +187,59 @@ function calculateDeltas() {
 // =====================================================
 
 async function importFromGoogleSheetsCustomFormat() {
-    const url = document.getElementById('google-sheets-url').value.trim();
-    const statusDiv = document.getElementById('import-status');
+    try {
+        const urlInput = document.getElementById('google-sheets-url');
+        const statusDiv = document.getElementById('import-status');
 
-    function showStatus(message, type = 'info') {
-        if (!statusDiv) return;
-        statusDiv.classList.remove('hidden', 'bg-blue-50', 'bg-green-50', 'bg-red-50', 'text-blue-800', 'text-green-800', 'text-red-800');
-
-        if (type === 'success') {
-            statusDiv.classList.add('bg-green-50', 'text-green-800');
-        } else if (type === 'error') {
-            statusDiv.classList.add('bg-red-50', 'text-red-800');
-        } else {
-            statusDiv.classList.add('bg-blue-50', 'text-blue-800');
+        // Ošetření případu, kdy element neexistuje
+        if (!urlInput) {
+            console.error('❌ Element google-sheets-url nebyl nalezen v DOM');
+            console.error('Zkontrolujte, že modal "dataManagementModal" je správně načten');
+            alert('Chyba: Formulář pro import nebyl správně načten. Zkuste obnovit stránku (Ctrl+F5).');
+            return;
         }
 
-        statusDiv.classList.add('p-3', 'rounded-lg', 'text-sm');
-        statusDiv.innerHTML = message;
-    }
+        const url = urlInput.value.trim();
 
-    if (!url) {
-        showStatus('⚠️ Zadejte URL Google Sheets tabulky', 'error');
-        return;
-    }
+        function showStatus(message, type = 'info') {
+            if (!statusDiv) {
+                console.warn('Status div nebyl nalezen, vypíšu do console:', message);
+                return;
+            }
+            statusDiv.classList.remove('hidden', 'bg-blue-50', 'bg-green-50', 'bg-red-50', 'text-blue-800', 'text-green-800', 'text-red-800');
 
-    // Extrahování Spreadsheet ID
-    const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-    if (!match) {
-        showStatus('⚠️ Neplatná URL Google Sheets', 'error');
-        return;
-    }
+            if (type === 'success') {
+                statusDiv.classList.add('bg-green-50', 'text-green-800');
+            } else if (type === 'error') {
+                statusDiv.classList.add('bg-red-50', 'text-red-800');
+            } else {
+                statusDiv.classList.add('bg-blue-50', 'text-blue-800');
+            }
 
-    const spreadsheetId = match[1];
+            statusDiv.classList.add('p-3', 'rounded-lg', 'text-sm');
+            statusDiv.innerHTML = message;
+        }
 
-    // Získat vybraný list
-    const sheetSelector = document.getElementById('sheet-selector');
-    const sheetName = sheetSelector ? sheetSelector.value : "Zkušeb.obj.CZ-týden";
+        if (!url) {
+            showStatus('⚠️ Zadejte URL Google Sheets tabulky', 'error');
+            return;
+        }
 
-    try {
+        // Extrahování Spreadsheet ID
+        const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+        if (!match) {
+            showStatus('⚠️ Neplatná URL Google Sheets', 'error');
+            return;
+        }
+
+        const spreadsheetId = match[1];
+
+        // Získat vybraný list
+        const sheetSelector = document.getElementById('sheet-selector');
+        const sheetName = sheetSelector ? sheetSelector.value : "Zkušeb.obj.CZ-týden";
+
+        console.log(`📊 Import začíná: ${sheetName} z ${spreadsheetId}`);
+
         showStatus(`⏳ Načítám data z listu "${sheetName}"...`, 'info');
 
         const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
@@ -275,8 +290,17 @@ async function importFromGoogleSheetsCustomFormat() {
         }, 2000);
 
     } catch (error) {
-        console.error('Chyba při importu:', error);
-        showStatus(`❌ Chyba při importu: ${error.message}<br><small>Zkontroluj, že tabulka je veřejně přístupná a má list "Zkušeb.obj. CZ"</small>`, 'error');
+        console.error('❌ Chyba při importu:', error);
+        console.error('Stack trace:', error.stack);
+
+        const statusDiv = document.getElementById('import-status');
+        if (statusDiv) {
+            statusDiv.classList.remove('hidden', 'bg-blue-50', 'bg-green-50', 'bg-red-50', 'text-blue-800', 'text-green-800', 'text-red-800');
+            statusDiv.classList.add('bg-red-50', 'text-red-800', 'p-3', 'rounded-lg', 'text-sm');
+            statusDiv.innerHTML = `❌ Chyba při importu: ${error.message}<br><small>Zkontroluj konzoli (F12) pro více informací</small>`;
+        } else {
+            alert(`Chyba při importu: ${error.message}\n\nOtevři konzoli (F12) pro více informací.`);
+        }
     }
 }
 
