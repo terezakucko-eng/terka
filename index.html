@@ -159,28 +159,99 @@
         <!-- ZÁLOŽKA: Sledování objednávek -->
         <div id="order-tracking" class="tab-content" style="display: block;">
 
-            <!-- Přehledové metriky -->
-            <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div class="metric-card blue">
-                    <h3 class="text-sm font-medium opacity-90 mb-1">Celkem objednávek (Růžový Slon)</h3>
-                    <p class="text-3xl font-bold" id="metric-total-orders">-</p>
-                    <p class="text-xs mt-2 opacity-75" id="metric-total-period">Poslední záznam</p>
+            <!-- Přehledové metriky podle trhů -->
+            <section class="space-y-8 mb-8">
+
+                <!-- CZ TRH -->
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                        🇨🇿 Český trh
+                        <span class="ml-2 text-sm font-normal text-gray-500" id="metric-cz-period">-</span>
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="metric-card blue">
+                            <h3 class="text-sm font-medium opacity-90 mb-1">Celkem objednávek</h3>
+                            <p class="text-3xl font-bold" id="metric-cz-total">-</p>
+                            <p class="text-xs mt-2 opacity-75">Všechny CZ e-shopy</p>
+                        </div>
+                        <div class="metric-card green">
+                            <h3 class="text-sm font-medium opacity-90 mb-1">Růžový Slon CZ</h3>
+                            <p class="text-3xl font-bold" id="metric-cz-slon">-</p>
+                            <p class="text-xs mt-2 opacity-75" id="metric-cz-slon-share">Podíl: -</p>
+                        </div>
+                        <div class="metric-card orange">
+                            <h3 class="text-sm font-medium opacity-90 mb-1">Top konkurent</h3>
+                            <p class="text-lg font-bold" id="metric-cz-top-name">-</p>
+                            <p class="text-2xl font-bold" id="metric-cz-top-orders">-</p>
+                        </div>
+                        <div class="metric-card">
+                            <h3 class="text-sm font-medium opacity-90 mb-1">Růst měsíc/měsíc</h3>
+                            <p class="text-3xl font-bold" id="metric-cz-mom">-</p>
+                            <p class="text-xs mt-2 opacity-75">Celý CZ trh</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="metric-card green">
-                    <h3 class="text-sm font-medium opacity-90 mb-1">Růst týden/týden (WoW)</h3>
-                    <p class="text-3xl font-bold" id="metric-wow">-</p>
-                    <p class="text-xs mt-2 opacity-75">Růžový Slon</p>
+
+                <!-- SK TRH -->
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                        🇸🇰 Slovenský trh
+                        <span class="ml-2 text-sm font-normal text-gray-500" id="metric-sk-period">-</span>
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="metric-card blue">
+                            <h3 class="text-sm font-medium opacity-90 mb-1">Celkem objednávek</h3>
+                            <p class="text-3xl font-bold" id="metric-sk-total">-</p>
+                            <p class="text-xs mt-2 opacity-75">Všechny SK e-shopy</p>
+                        </div>
+                        <div class="metric-card green">
+                            <h3 class="text-sm font-medium opacity-90 mb-1">Růžový Slon SK</h3>
+                            <p class="text-3xl font-bold" id="metric-sk-slon">-</p>
+                            <p class="text-xs mt-2 opacity-75" id="metric-sk-slon-share">Podíl: -</p>
+                        </div>
+                        <div class="metric-card orange">
+                            <h3 class="text-sm font-medium opacity-90 mb-1">Top konkurent</h3>
+                            <p class="text-lg font-bold" id="metric-sk-top-name">-</p>
+                            <p class="text-2xl font-bold" id="metric-sk-top-orders">-</p>
+                        </div>
+                        <div class="metric-card">
+                            <h3 class="text-sm font-medium opacity-90 mb-1">Růst měsíc/měsíc</h3>
+                            <p class="text-3xl font-bold" id="metric-sk-mom">-</p>
+                            <p class="text-xs mt-2 opacity-75">Celý SK trh</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="metric-card orange">
-                    <h3 class="text-sm font-medium opacity-90 mb-1">Růst měsíc/měsíc (MoM)</h3>
-                    <p class="text-3xl font-bold" id="metric-mom">-</p>
-                    <p class="text-xs mt-2 opacity-75">Růžový Slon</p>
+
+                <!-- ZAHRANIČNÍ TRHY -->
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                        🌍 Zahraniční trhy
+                        <span class="ml-2 text-sm font-normal text-gray-500" id="metric-foreign-period">-</span>
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="metric-card blue">
+                            <h3 class="text-sm font-medium opacity-90 mb-1">Celkem objednávek</h3>
+                            <p class="text-3xl font-bold" id="metric-foreign-total">-</p>
+                            <p class="text-xs mt-2 opacity-75">Všechny zahraniční</p>
+                        </div>
+                        <div class="metric-card green">
+                            <h3 class="text-sm font-medium opacity-90 mb-1">Sexy Elephant celkem</h3>
+                            <p class="text-3xl font-bold" id="metric-foreign-elephant">-</p>
+                            <p class="text-xs mt-2 opacity-75" id="metric-foreign-elephant-share">Podíl: -</p>
+                        </div>
+                        <div class="metric-card orange">
+                            <h3 class="text-sm font-medium opacity-90 mb-1">Top konkurent</h3>
+                            <p class="text-lg font-bold" id="metric-foreign-top-name">-</p>
+                            <p class="text-2xl font-bold" id="metric-foreign-top-orders">-</p>
+                        </div>
+                        <div class="metric-card">
+                            <h3 class="text-sm font-medium opacity-90 mb-1">Růst měsíc/měsíc</h3>
+                            <p class="text-3xl font-bold" id="metric-foreign-mom">-</p>
+                            <p class="text-xs mt-2 opacity-75">Celý zahraniční trh</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="metric-card">
-                    <h3 class="text-sm font-medium opacity-90 mb-1">Růst rok/rok (YoY)</h3>
-                    <p class="text-3xl font-bold" id="metric-yoy">-</p>
-                    <p class="text-xs mt-2 opacity-75">Růžový Slon</p>
-                </div>
+
             </section>
 
             <!-- Přehledná tabulka sledování objednávek -->

@@ -491,31 +491,154 @@ window.deleteTrackingRecord = async function(id) {
 
 function updateMetricsDisplay() {
     if (!window.trackingData || window.trackingData.length === 0) {
-        document.getElementById('metric-total-orders').textContent = '-';
-        document.getElementById('metric-wow').textContent = '-';
-        document.getElementById('metric-mom').textContent = '-';
-        document.getElementById('metric-yoy').textContent = '-';
+        resetAllMetrics();
         return;
     }
 
     // Seřadit data podle data
     const sorted = [...window.trackingData].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    // Poslední záznam
     const latest = sorted[0];
-    const slonOrders = latest.competitors['ruzovyslon.cz'] || 0;
+    const dateStr = formatDate(latest.date);
 
-    document.getElementById('metric-total-orders').textContent = slonOrders.toLocaleString('cs-CZ');
-    document.getElementById('metric-total-period').textContent = `K ${formatDate(latest.date)}`;
+    // CZ e-shopy
+    const czEshops = [
+        "Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz", "sexicekshop.cz",
+        "honitka.cz", "sexshop.cz", "eroticke-pomucky.cz", "flagranti.cz",
+        "sexshopik.cz", "sex-shop69.cz", "eroticcity.cz", "e-kondomy.cz",
+        "ruzovyslon.cz", "kondomshop.cz"
+    ];
 
-    // Růsty
-    const wow = calculateGrowth(sorted, 7);
-    const mom = calculateGrowth(sorted, 30);
-    const yoy = calculateGrowth(sorted, 365);
+    // SK e-shopy
+    const skEshops = [
+        "isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk",
+        "ruzovyslon.sk", "kondomshop.sk"
+    ];
 
-    document.getElementById('metric-wow').textContent = wow !== null ? `${wow > 0 ? '+' : ''}${wow.toFixed(2)}%` : 'N/A';
-    document.getElementById('metric-mom').textContent = mom !== null ? `${mom > 0 ? '+' : ''}${mom.toFixed(2)}%` : 'N/A';
-    document.getElementById('metric-yoy').textContent = yoy !== null ? `${yoy > 0 ? '+' : ''}${yoy.toFixed(2)}%` : 'N/A';
+    // Foreign e-shopy
+    const foreignEshops = [
+        "sexyelephant.ro", "sexyelephant.hu", "sexyelephant.si",
+        "sexyelephant.bg", "sexyelephant.hr",
+        "superlove.ro", "superlove.pl", "superlove.eu", "superlove.at",
+        "superlove.hr", "superlove.it", "superlove.si", "superlove.bg",
+        "superlove.lt", "superlove.es", "superlove.hu",
+        "goldengate.hu", "padlizsan.hu", "sexshopcenter.hu",
+        "erotikashow.hu", "szexaruhaz.hu", "szexshop.hu", "vagyaim.hu"
+    ];
+
+    // Aktualizovat CZ metriky
+    updateMarketMetrics('cz', czEshops, latest, sorted, dateStr, ['ruzovyslon.cz', 'kondomshop.cz']);
+
+    // Aktualizovat SK metriky
+    updateMarketMetrics('sk', skEshops, latest, sorted, dateStr, ['ruzovyslon.sk', 'kondomshop.sk']);
+
+    // Aktualizovat Foreign metriky
+    updateMarketMetrics('foreign', foreignEshops, latest, sorted, dateStr, [
+        'sexyelephant.ro', 'sexyelephant.hu', 'sexyelephant.si', 'sexyelephant.bg', 'sexyelephant.hr'
+    ]);
+}
+
+function updateMarketMetrics(market, eshops, latest, sorted, dateStr, ownEshops) {
+    // Celkový počet objednávek na trhu (DELTY, ne absolutní čísla!)
+    let totalOrders = 0;
+    let ownOrders = 0;
+    let topCompetitor = { name: '-', orders: 0 };
+
+    eshops.forEach(eshop => {
+        const delta = latest.deltas[eshop] || 0;
+        totalOrders += delta;
+
+        if (ownEshops.includes(eshop)) {
+            ownOrders += delta;
+        } else {
+            // Hledat top konkurenta (ne vlastní e-shop)
+            if (delta > topCompetitor.orders) {
+                topCompetitor = { name: eshop, orders: delta };
+            }
+        }
+    });
+
+    // Aktualizovat DOM
+    document.getElementById(`metric-${market}-period`).textContent = `K ${dateStr}`;
+    document.getElementById(`metric-${market}-total`).textContent = totalOrders.toLocaleString('cs-CZ');
+
+    // Vlastní e-shopy
+    if (market === 'cz' || market === 'sk') {
+        document.getElementById(`metric-${market}-slon`).textContent = ownOrders.toLocaleString('cs-CZ');
+        const share = totalOrders > 0 ? (ownOrders / totalOrders * 100).toFixed(1) : '0.0';
+        document.getElementById(`metric-${market}-slon-share`).textContent = `Podíl: ${share}%`;
+    } else if (market === 'foreign') {
+        document.getElementById(`metric-${market}-elephant`).textContent = ownOrders.toLocaleString('cs-CZ');
+        const share = totalOrders > 0 ? (ownOrders / totalOrders * 100).toFixed(1) : '0.0';
+        document.getElementById(`metric-${market}-elephant-share`).textContent = `Podíl: ${share}%`;
+    }
+
+    // Top konkurent
+    document.getElementById(`metric-${market}-top-name`).textContent = topCompetitor.name;
+    document.getElementById(`metric-${market}-top-orders`).textContent = topCompetitor.orders.toLocaleString('cs-CZ');
+
+    // Růst měsíc/měsíc (celého trhu)
+    const mom = calculateMarketGrowth(sorted, eshops, 30);
+    document.getElementById(`metric-${market}-mom`).textContent =
+        mom !== null ? `${mom > 0 ? '+' : ''}${mom.toFixed(1)}%` : 'N/A';
+}
+
+function calculateMarketGrowth(sortedData, eshops, daysDiff) {
+    if (sortedData.length < 2) return null;
+
+    const latest = sortedData[0];
+    const latestDate = new Date(latest.date);
+    const targetDate = new Date(latestDate);
+    targetDate.setDate(targetDate.getDate() - daysDiff);
+
+    // Najít nejbližší starší záznam
+    let closestRecord = null;
+    let smallestDiff = Infinity;
+
+    for (let i = 1; i < sortedData.length; i++) {
+        const recordDate = new Date(sortedData[i].date);
+        const diff = Math.abs((targetDate - recordDate) / (1000 * 60 * 60 * 24));
+
+        if (diff < smallestDiff && recordDate < latestDate) {
+            smallestDiff = diff;
+            closestRecord = sortedData[i];
+        }
+    }
+
+    if (!closestRecord || smallestDiff > daysDiff * 0.5) {
+        return null;
+    }
+
+    // Sečíst DELTY pro tento trh
+    let latestTotal = 0;
+    let oldTotal = 0;
+
+    eshops.forEach(eshop => {
+        latestTotal += latest.deltas[eshop] || 0;
+        oldTotal += closestRecord.deltas[eshop] || 0;
+    });
+
+    if (oldTotal === 0) return null;
+
+    // Růst = ((nové - staré) / staré) * 100
+    return ((latestTotal - oldTotal) / oldTotal) * 100;
+}
+
+function resetAllMetrics() {
+    ['cz', 'sk', 'foreign'].forEach(market => {
+        document.getElementById(`metric-${market}-period`).textContent = '-';
+        document.getElementById(`metric-${market}-total`).textContent = '-';
+        document.getElementById(`metric-${market}-mom`).textContent = '-';
+        document.getElementById(`metric-${market}-top-name`).textContent = '-';
+        document.getElementById(`metric-${market}-top-orders`).textContent = '-';
+
+        if (market === 'cz' || market === 'sk') {
+            document.getElementById(`metric-${market}-slon`).textContent = '-';
+            document.getElementById(`metric-${market}-slon-share`).textContent = 'Podíl: -';
+        } else {
+            document.getElementById(`metric-${market}-elephant`).textContent = '-';
+            document.getElementById(`metric-${market}-elephant-share`).textContent = 'Podíl: -';
+        }
+    });
 }
 
 function calculateGrowth(sortedData, daysDiff) {
