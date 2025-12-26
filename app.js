@@ -424,7 +424,7 @@ function setupOrderTab() {
     document.getElementById('market-share-start-date').addEventListener('change', updateMarketShareChart);
     document.getElementById('market-share-end-date').addEventListener('change', updateMarketShareChart);
 
-    document.getElementById('trend-market-filter').addEventListener('change', updateTrendChart);
+    document.getElementById('trend-competitors-filter').addEventListener('change', updateTrendChart);
     document.getElementById('comparison-market-filter').addEventListener('change', updateComparisonChart);
     document.getElementById('comparison-period-filter').addEventListener('change', updateComparisonChart);
 
@@ -443,7 +443,6 @@ function setupOrderTab() {
 function fillMarketSelects() {
     const selects = [
         'market-share-filter',
-        'trend-market-filter',
         'comparison-market-filter',
         'filter-market-order'
     ];
@@ -801,12 +800,22 @@ function initTrendChart() {
 }
 
 function updateTrendChart() {
-    const market = document.getElementById('trend-market-filter').value;
-    const marketData = orderData
-        .filter(o => o.market === market)
+    const selectElement = document.getElementById('trend-competitors-filter');
+
+    // Získání vybraných e-shopů z multi-select
+    const selectedCompetitors = Array.from(selectElement.selectedOptions).map(opt => opt.value);
+
+    // Pokud není nic vybráno, použij defaultní výběr (Růžový Slon)
+    if (selectedCompetitors.length === 0) {
+        selectedCompetitors.push('ruzovyslon.cz');
+    }
+
+    // Filtrování dat pouze pro vybrané e-shopy
+    const filteredData = orderData
+        .filter(o => selectedCompetitors.includes(o.competitor))
         .sort((a, b) => new Date(a.discoveryDate) - new Date(b.discoveryDate));
 
-    if (marketData.length === 0) {
+    if (filteredData.length === 0) {
         charts.trend.data.labels = [];
         charts.trend.data.datasets = [];
         charts.trend.update();
@@ -814,14 +823,11 @@ function updateTrendChart() {
     }
 
     // Získání unikátních dat
-    const dates = [...new Set(marketData.map(o => o.discoveryDate))].sort();
+    const dates = [...new Set(filteredData.map(o => o.discoveryDate))].sort();
 
-    // Získání unikátních konkurentů
-    const competitors = [...new Set(marketData.map(o => o.competitor))];
-
-    // Příprava datasetů
-    const datasets = competitors.map((comp, index) => {
-        const compData = marketData.filter(o => o.competitor === comp);
+    // Příprava datasetů pro vybrané e-shopy
+    const datasets = selectedCompetitors.map((comp, index) => {
+        const compData = filteredData.filter(o => o.competitor === comp);
         const data = dates.map(date => {
             const record = compData.find(o => o.discoveryDate === date);
             return record ? record.orderNumber : null;
