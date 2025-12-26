@@ -4,12 +4,12 @@
 
 // TODO: Nahraď těmito hodnotami z Firebase Console
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyArmmq7vN1kHLESLQnQgeveBF27VhSgCb4",
+  authDomain: "rs-sledovani-konkurence.firebaseapp.com",
+  projectId: "rs-sledovani-konkurence",
+  storageBucket: "rs-sledovani-konkurence.firebasestorage.app",
+  messagingSenderId: "365593630854",
+  appId: "1:365593630854:web:9a6e9f21ca8fade9e95907"
 };
 
 // Inicializace Firebase
