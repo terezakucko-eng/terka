@@ -430,6 +430,12 @@ function handleRecordFormSubmit(e) {
     // Uložit a aktualizovat UI
     saveTrackingData();
     renderTrackingTable();
+
+    // Aktualizovat metriky
+    if (typeof updateMetricsDisplay === 'function') {
+        updateMetricsDisplay();
+    }
+
     updateAllCharts();
     hideRecordForm();
 }
@@ -442,11 +448,20 @@ window.editTrackingRecord = function(id) {
     document.getElementById('record-date').value = record.date;
     document.getElementById('record-notes').value = record.notes || '';
 
-    // Naplnit pole pro konkurenty
+    // Naplnit pole pro všechny e-shopy
     window.COMPETITORS.forEach(comp => {
         const input = document.getElementById(`comp-${sanitizeId(comp)}`);
         if (input) {
-            input.value = record.competitors[comp] || '';
+            // Pro vlastní e-shopy použít DELTY, pro konkurenty čísla objednávek
+            const isOwnEshop = window.OWN_ESHOPS && window.OWN_ESHOPS.includes(comp);
+
+            if (isOwnEshop) {
+                // Vlastní e-shop - zobrazit deltu (počet objednávek)
+                input.value = record.deltas[comp] || '';
+            } else {
+                // Konkurent - zobrazit číslo objednávky
+                input.value = record.competitors[comp] || '';
+            }
         }
     });
 
