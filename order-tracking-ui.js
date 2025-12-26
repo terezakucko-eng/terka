@@ -234,6 +234,11 @@ function showAddRecordForm() {
     const modal = document.getElementById('record-form-modal');
     if (!modal) return;
 
+    // Vygenerovat formulářová pole pro e-shopy (pokud ještě nejsou)
+    if (typeof renderFormFields === 'function') {
+        renderFormFields();
+    }
+
     // Reset formuláře
     document.getElementById('record-date').value = new Date().toISOString().split('T')[0];
     document.getElementById('record-id').value = '';
