@@ -62,39 +62,60 @@ const MONTHLY_RESET_COMPETITORS = ["erosstar.cz", "deeplove.cz"];
 
 /**
  * Vypočítá deltu pro konkurenty s měsíčním resetem číselné řady
- * Formát: YYMSSSSS kde YY=rok, M=měsíc, SSSSS=pořadové číslo v měsíci
- * Např.: 225082567 = rok 22, měsíc 5 (květen), objednávka 82567
+ * Formát: 1YYMMSSSS kde 1=prefix, YY=rok, MM=měsíc, SSSS=pořadové číslo v měsíci
+ * Např.: 124074452 = 1-24-07-4452 (rok 2024, červenec, 4452. objednávka)
+ *
+ * Při změně měsíce: Delta = (konec_měsíce - předchozí_měření) + nový_měsíc
+ * Např.: (4452 - 4122) + 632 = 330 + 632 = 962
  */
-function calculateDeltaWithMonthlyReset(current, previous, competitorName) {
+function calculateDeltaWithMonthlyReset(current, previous, competitorName, record, prevRecord) {
     if (current === 0 || previous === 0) {
-        return current - previous; // Pokud je některé číslo 0, použij normální výpočet
+        return current - previous;
     }
 
-    // Převést čísla na stringy pro snazší práci
-    const currentStr = String(current);
-    const previousStr = String(previous);
+    // Převést na stringy
+    const currentStr = String(current).padStart(10, '0');
+    const previousStr = String(previous).padStart(10, '0');
 
-    // Extrahovat prefix (první 3 číslice = rok + měsíc) a suffix (zbytek = pořadové číslo)
-    const currentPrefix = currentStr.substring(0, 3);
-    const previousPrefix = previousStr.substring(0, 3);
+    // Extrahovat části: 1YYMMSSSS
+    // Index:           0123456789
+    const currentYear = currentStr.substring(1, 3);   // YY
+    const currentMonth = currentStr.substring(3, 5);  // MM
+    const currentOrder = parseInt(currentStr.substring(5)) || 0; // SSSS
 
-    const currentSuffix = parseInt(currentStr.substring(3)) || 0;
-    const previousSuffix = parseInt(previousStr.substring(3)) || 0;
+    const previousYear = previousStr.substring(1, 3);
+    const previousMonth = previousStr.substring(3, 5);
+    const previousOrder = parseInt(previousStr.substring(5)) || 0;
 
-    // Pokud je prefix stejný (stejný měsíc), počítej normálně
-    if (currentPrefix === previousPrefix) {
-        return currentSuffix - previousSuffix;
+    // Stejný měsíc = normální výpočet
+    if (currentYear === previousYear && currentMonth === previousMonth) {
+        return currentOrder - previousOrder;
     }
 
-    // Pokud je prefix jiný (změna měsíce), vrať pouze aktuální suffix
-    // To představuje objednávky v novém měsíci od začátku sledování
-    // POZOR: Toto nezahrnuje objednávky z konce předchozího měsíce!
-    // Pro přesný výpočet by uživatel musel zadat startovní číslo měsíce
-    console.warn(`⚠️ Detekována změna měsíční řady u ${competitorName}: ${previous} → ${current}`);
-    console.warn(`   Prefix změna: ${previousPrefix} → ${currentPrefix}`);
-    console.warn(`   Delta počítána pouze z aktuálního měsíce: ${currentSuffix} objednávek`);
+    // ZMĚNA MĚSÍCE - potřebujeme koncové číslo předchozího měsíce
+    // Zkontroluj, jestli uživatel zadal monthEndValue
+    const monthEndValue = record.monthEndValues && record.monthEndValues[competitorName];
 
-    return currentSuffix;
+    if (monthEndValue) {
+        // Máme koncové číslo měsíce - použij správný vzorec
+        const monthEndStr = String(monthEndValue).padStart(10, '0');
+        const monthEndOrder = parseInt(monthEndStr.substring(5)) || 0;
+
+        const delta = (monthEndOrder - previousOrder) + currentOrder;
+
+        console.log(`✅ ${competitorName}: Změna měsíce ${previousMonth}→${currentMonth}`);
+        console.log(`   Výpočet: (${monthEndOrder} - ${previousOrder}) + ${currentOrder} = ${delta}`);
+
+        return delta;
+    }
+
+    // Nemáme koncové číslo - použij zjednodušený výpočet (jen nový měsíc)
+    console.warn(`⚠️ ${competitorName}: Změna měsíce bez koncového čísla!`);
+    console.warn(`   Měsíc: ${previousYear}-${previousMonth} → ${currentYear}-${currentMonth}`);
+    console.warn(`   Použit zjednodušený výpočet (jen nový měsíc): ${currentOrder}`);
+    console.warn(`   💡 Pro přesný výpočet zadej "Konec měsíce" hodnotu!`);
+
+    return currentOrder;
 }
 
 function calculateDeltas() {
@@ -120,7 +141,7 @@ function calculateDeltas() {
 
                 // Speciální logika pro konkurenty s měsíčním resetem
                 if (MONTHLY_RESET_COMPETITORS.includes(comp)) {
-                    record.deltas[comp] = calculateDeltaWithMonthlyReset(current, previous, comp);
+                    record.deltas[comp] = calculateDeltaWithMonthlyReset(current, previous, comp, record, prevRecord);
                 } else {
                     record.deltas[comp] = current - previous;
                 }

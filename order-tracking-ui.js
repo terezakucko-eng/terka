@@ -97,6 +97,12 @@ function showAddRecordForm() {
         if (input) input.value = '';
     });
 
+    // Vyčistit pole pro koncové hodnoty měsíce
+    const erosstarMonthEnd = document.getElementById('monthend-erosstar-cz');
+    const deeploveMonthEnd = document.getElementById('monthend-deeplove-cz');
+    if (erosstarMonthEnd) erosstarMonthEnd.value = '';
+    if (deeploveMonthEnd) deeploveMonthEnd.value = '';
+
     modal.classList.remove('hidden');
 }
 
@@ -118,6 +124,7 @@ function handleRecordFormSubmit(e) {
         date: date,
         competitors: {},
         deltas: {},
+        monthEndValues: {},
         notes: document.getElementById('record-notes').value || ''
     };
 
@@ -130,6 +137,17 @@ function handleRecordFormSubmit(e) {
             record.competitors[comp] = 0;
         }
     });
+
+    // Načíst koncové hodnoty měsíce (erosstar.cz, deeplove.cz)
+    const erosstarMonthEnd = document.getElementById('monthend-erosstar-cz');
+    const deeploveMonthEnd = document.getElementById('monthend-deeplove-cz');
+
+    if (erosstarMonthEnd && erosstarMonthEnd.value) {
+        record.monthEndValues['erosstar.cz'] = parseInt(erosstarMonthEnd.value) || 0;
+    }
+    if (deeploveMonthEnd && deeploveMonthEnd.value) {
+        record.monthEndValues['deeplove.cz'] = parseInt(deeploveMonthEnd.value) || 0;
+    }
 
     // Aktualizovat nebo přidat záznam
     if (recordId) {
@@ -166,6 +184,17 @@ window.editTrackingRecord = function(id) {
             input.value = record.competitors[comp] || '';
         }
     });
+
+    // Naplnit koncové hodnoty měsíce
+    const erosstarMonthEnd = document.getElementById('monthend-erosstar-cz');
+    const deeploveMonthEnd = document.getElementById('monthend-deeplove-cz');
+
+    if (erosstarMonthEnd) {
+        erosstarMonthEnd.value = (record.monthEndValues && record.monthEndValues['erosstar.cz']) || '';
+    }
+    if (deeploveMonthEnd) {
+        deeploveMonthEnd.value = (record.monthEndValues && record.monthEndValues['deeplove.cz']) || '';
+    }
 
     document.getElementById('form-title-record').textContent = 'Upravit záznam';
     document.getElementById('record-form-modal').classList.remove('hidden');
