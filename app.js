@@ -84,19 +84,27 @@ async function initializeApp() {
         console.log('⚠️ Používám LocalStorage - data pouze v tomto prohlížeči');
     }
 
-    // Načtení dat z databáze
+    // Načtení tracking dat (nová struktura)
+    await loadTrackingData();
+    calculateDeltas();
+    renderTrackingTable();
+
+    // Načtení dat z databáze (kampaně)
     await loadDataFromStorage();
 
     // Nastavení UI
-    setupOrderTab();
     setupMktTab();
     setupModals();
     showTab('order-tracking');
 
     // Nastavení aktuálního data jako výchozí v formulářích
     const today = new Date().toISOString().split('T')[0];
-    document.getElementById('discoveryDate-order').value = today;
-    document.getElementById('discoveryDate-mkt').value = today;
+    if (document.getElementById('record-date')) {
+        document.getElementById('record-date').value = today;
+    }
+    if (document.getElementById('discoveryDate-mkt')) {
+        document.getElementById('discoveryDate-mkt').value = today;
+    }
 
     console.log('✅ Aplikace připravena k použití');
 }
@@ -1294,6 +1302,19 @@ window.showIframeModal = function(url) {
         }
     }, 3000);
 };
+
+// =====================================================
+// AKTUALIZACE GRAFŮ
+// =====================================================
+
+function updateAllCharts() {
+    // Placeholder pro aktualizaci grafů
+    // V budoucnu lze přidat grafy založené na tracking datech
+    console.log('📊 Grafy budou aktualizovány v další verzi');
+}
+
+// Exportovat pro použití z order-tracking-ui.js
+window.updateAllCharts = updateAllCharts;
 
 // =====================================================
 // PŘEPÍNÁNÍ ZÁLOŽEK
