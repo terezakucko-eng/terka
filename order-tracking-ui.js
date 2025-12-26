@@ -142,16 +142,111 @@ window.renderFormFields = renderFormFields;
 // UI PRO SLEDOVÁNÍ OBJEDNÁVEK - TABULKA
 // =====================================================
 
+/**
+ * Získá seznam e-shopů podle vybraných trhů ve filtru
+ */
+function getFilteredCompetitors() {
+    const czChecked = document.getElementById('filter-market-cz')?.checked || false;
+    const skChecked = document.getElementById('filter-market-sk')?.checked || false;
+    const foreignChecked = document.getElementById('filter-market-foreign')?.checked || false;
+
+    // Definice e-shopů podle trhů
+    const czEshops = [
+        "Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz", "sexicekshop.cz",
+        "honitka.cz", "sexshop.cz", "eroticke-pomucky.cz", "flagranti.cz",
+        "sexshopik.cz", "sex-shop69.cz", "eroticcity.cz", "e-kondomy.cz",
+        "ruzovyslon.cz", "kondomshop.cz"
+    ];
+
+    const skEshops = [
+        "isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk",
+        "ruzovyslon.sk", "kondomshop.sk"
+    ];
+
+    const foreignEshops = [
+        "sexyelephant.ro", "sexyelephant.hu", "sexyelephant.si",
+        "sexyelephant.bg", "sexyelephant.hr",
+        "superlove.ro", "superlove.pl", "superlove.eu", "superlove.at",
+        "superlove.hr", "superlove.it", "superlove.si", "superlove.bg",
+        "superlove.lt", "superlove.es", "superlove.hu",
+        "goldengate.hu", "padlizsan.hu", "sexshopcenter.hu",
+        "erotikashow.hu", "szexaruhaz.hu", "szexshop.hu", "vagyaim.hu"
+    ];
+
+    let filtered = [];
+    if (czChecked) filtered = filtered.concat(czEshops);
+    if (skChecked) filtered = filtered.concat(skEshops);
+    if (foreignChecked) filtered = filtered.concat(foreignEshops);
+
+    // Pokud není nic vybráno, zobraz CZ trh defaultně
+    if (filtered.length === 0) {
+        filtered = czEshops;
+    }
+
+    return filtered;
+}
+
+/**
+ * Vygeneruje hlavičku tabulky podle vybraných e-shopů
+ */
+function renderTrackingTableHead(competitors) {
+    const thead = document.getElementById('tracking-table-head');
+    if (!thead) return;
+
+    let html = `
+        <th scope="col" class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-center bg-gray-900 sticky left-0 border-r-2 border-gray-600 z-20">
+            Datum
+        </th>
+    `;
+
+    competitors.forEach(comp => {
+        const isOwnEshop = window.OWN_ESHOPS && window.OWN_ESHOPS.includes(comp);
+        const bgClass = isOwnEshop ? 'bg-green-600' : '';
+        const icon = isOwnEshop ? '🌸 ' : '';
+
+        html += `
+            <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center ${bgClass}">
+                ${icon}${comp}
+            </th>
+        `;
+    });
+
+    html += `
+        <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center bg-yellow-600 border-l-2 border-yellow-400">Celkem Δ</th>
+        <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center bg-green-600">Slon %</th>
+        <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center bg-gray-700 sticky right-0 border-l-2 border-gray-600 z-20">Akce</th>
+    `;
+
+    thead.innerHTML = html;
+}
+
+/**
+ * Toggle všechny checkboxy trhů
+ */
+window.toggleAllMarkets = function() {
+    const checkboxes = document.querySelectorAll('.market-filter-checkbox');
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+
+    checkboxes.forEach(cb => cb.checked = !allChecked);
+    renderTrackingTable();
+};
+
 function renderTrackingTable() {
     const tbody = document.getElementById('tracking-table-body');
     if (!tbody) return;
+
+    // Získat filtrované e-shopy podle výběru trhů
+    const filteredCompetitors = getFilteredCompetitors();
+
+    // Vygenerovat hlavičku tabulky
+    renderTrackingTableHead(filteredCompetitors);
 
     tbody.innerHTML = '';
 
     if (!window.trackingData || window.trackingData.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="20" class="text-center p-8 text-gray-500">
+                <td colspan="${filteredCompetitors.length + 4}" class="text-center p-8 text-gray-500">
                     <div class="space-y-2">
                         <p class="text-lg font-medium">Zatím nebyly přidány žádné záznamy.</p>
                         <p class="text-sm">Klikněte na "Přidat záznam" nebo importujte data z Google Sheets.</p>
@@ -176,8 +271,8 @@ function renderTrackingTable() {
             </td>
         `;
 
-        // Pro každého e-shopu: Číslo objednávky a Delta
-        window.COMPETITORS.forEach((comp, index) => {
+        // Pro každého FILTROVANÉHO e-shopu: Číslo objednávky a Delta
+        filteredCompetitors.forEach((comp, index) => {
             const orderNum = record.competitors[comp] || 0;
             const delta = record.deltas[comp] || 0;
             const deltaClass = delta > 0 ? 'text-green-600' : (delta < 0 ? 'text-red-600' : 'text-gray-400');

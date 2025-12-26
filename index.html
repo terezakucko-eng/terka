@@ -193,10 +193,32 @@
                         </button>
                     </div>
 
+                    <!-- Filtr trhů -->
+                    <div class="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">🌍 Zobrazit trhy:</label>
+                        <div class="flex flex-wrap gap-3">
+                            <label class="inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="filter-market-cz" class="market-filter-checkbox" checked onchange="renderTrackingTable()">
+                                <span class="ml-2 text-sm font-medium text-gray-700">🇨🇿 CZ trh (15 e-shopů)</span>
+                            </label>
+                            <label class="inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="filter-market-sk" class="market-filter-checkbox" onchange="renderTrackingTable()">
+                                <span class="ml-2 text-sm font-medium text-gray-700">🇸🇰 SK trh (6 e-shopů)</span>
+                            </label>
+                            <label class="inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="filter-market-foreign" class="market-filter-checkbox" onchange="renderTrackingTable()">
+                                <span class="ml-2 text-sm font-medium text-gray-700">🌍 Zahraniční (29 e-shopů)</span>
+                            </label>
+                            <button onclick="toggleAllMarkets()" class="ml-4 text-sm text-blue-600 hover:text-blue-800 font-medium">
+                                Vybrat/Zrušit vše
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="rounded-lg border-2 border-gray-300 overflow-x-auto" style="max-height: 600px; overflow-y: auto;">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-800 text-white sticky top-0 z-10">
-                                <tr>
+                                <tr id="tracking-table-head">
                                     <th scope="col" class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-center bg-gray-900 sticky left-0 border-r-2 border-gray-600 z-20">
                                         Datum
                                     </th>
