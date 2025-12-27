@@ -1266,12 +1266,8 @@ function updateTrendChart() {
     // Příprava datasetů pro vybrané e-shopy
     const datasets = selectedEshops.map((eshop, index) => {
         const data = sortedData.map(record => {
-            // Číslo objednávky z competitors nebo deltas (pro vlastní e-shopy)
-            const isOwnEshop = window.OWN_ESHOPS && window.OWN_ESHOPS.includes(eshop);
-            if (isOwnEshop) {
-                return record.deltas && record.deltas[eshop] ? record.deltas[eshop] : null;
-            }
-            return record.competitors && record.competitors[eshop] ? record.competitors[eshop] : null;
+            // Počet objednávek (deltas) pro všechny e-shopy
+            return record.deltas && record.deltas[eshop] ? record.deltas[eshop] : null;
         });
 
         const color = CHART_COLORS[index % CHART_COLORS.length];
