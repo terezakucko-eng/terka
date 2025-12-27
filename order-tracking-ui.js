@@ -18,7 +18,7 @@ function renderFormFields() {
     html += '<p class="text-sm text-gray-600 mb-4">Zadej číslo poslední objednávky</p>';
     html += '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">';
 
-    const czCompetitors = ["Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz", "sexicekshop.cz", "honitka.cz", "sexshop.cz", "eroticke-pomucky.cz", "flagranti.cz", "sexshopik.cz", "sex-shop69.cz", "eroticcity.cz", "e-kondomy.cz"];
+    const czCompetitors = ["Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz", "honitka.cz", "eroticke-pomucky.cz", "flagranti.cz", "sexshopik.cz", "e-kondomy.cz"];
     czCompetitors.forEach(comp => {
         html += `
             <div>
@@ -189,7 +189,7 @@ function renderTrackingTableHead(market, competitors) {
  */
 function renderTrackingTable() {
     // Definice e-shopů podle trhů
-    const czEshops = ["Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz", "sexicekshop.cz", "honitka.cz", "sexshop.cz", "eroticke-pomucky.cz", "flagranti.cz", "sexshopik.cz", "sex-shop69.cz", "eroticcity.cz", "e-kondomy.cz", "ruzovyslon.cz", "kondomshop.cz"];
+    const czEshops = ["Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz", "honitka.cz", "eroticke-pomucky.cz", "flagranti.cz", "sexshopik.cz", "e-kondomy.cz", "ruzovyslon.cz", "kondomshop.cz"];
     const skEshops = ["isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk", "ruzovyslon.sk", "kondomshop.sk"];
     const foreignEshops = ["sexyelephant.ro", "sexyelephant.hu", "sexyelephant.si", "sexyelephant.bg", "sexyelephant.hr", "superlove.ro", "superlove.pl", "superlove.eu", "superlove.at", "superlove.hr", "superlove.it", "superlove.si", "superlove.bg", "superlove.lt", "superlove.es", "superlove.hu", "goldengate.hu", "padlizsan.hu", "sexshopcenter.hu", "erotikashow.hu", "szexaruhaz.hu", "szexshop.hu", "vagyaim.hu"];
 
@@ -548,9 +548,9 @@ function updateMetricsDisplay() {
 
     // CZ e-shopy
     const czEshops = [
-        "Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz", "sexicekshop.cz",
-        "honitka.cz", "sexshop.cz", "eroticke-pomucky.cz", "flagranti.cz",
-        "sexshopik.cz", "sex-shop69.cz", "eroticcity.cz", "e-kondomy.cz",
+        "Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz",
+        "honitka.cz", "eroticke-pomucky.cz", "flagranti.cz",
+        "sexshopik.cz", "e-kondomy.cz",
         "ruzovyslon.cz", "kondomshop.cz"
     ];
 

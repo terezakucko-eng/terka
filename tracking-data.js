@@ -38,14 +38,10 @@ const COMPETITORS = [
     "erosstar.cz",
     "deeplove.cz",
     "yoo.cz",
-    "sexicekshop.cz",
     "honitka.cz",
-    "sexshop.cz",
     "eroticke-pomucky.cz",
     "flagranti.cz",
     "sexshopik.cz",
-    "sex-shop69.cz",
-    "eroticcity.cz",
     "e-kondomy.cz",
 
     // === CZ trh - Vlastní e-shopy ===

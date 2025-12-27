@@ -343,18 +343,25 @@
                     </div>
 
                     <!-- Filtry -->
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-white rounded-2xl border border-gray-200">
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6 p-4 bg-white rounded-2xl border border-gray-200">
                         <div>
                             <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Období</label>
                             <select id="trend-period-filter" class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
                                 <option value="7">Poslední týden</option>
                                 <option value="30" selected>Poslední měsíc</option>
                                 <option value="90">Poslední 3 měsíce</option>
-                                <option value="180">Posl
-
-ední půlrok</option>
+                                <option value="180">Poslední půlrok</option>
                                 <option value="365">Poslední rok</option>
                                 <option value="all">Vše</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Zobrazit podle</label>
+                            <select id="trend-aggregation-filter" class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                <option value="days" selected>Dny</option>
+                                <option value="weeks">Týdny</option>
+                                <option value="months">Měsíce</option>
                             </select>
                         </div>
 
@@ -370,14 +377,10 @@ ední půlrok</option>
                                     <option value="erosstar.cz">erosstar.cz</option>
                                     <option value="deeplove.cz">deeplove.cz</option>
                                     <option value="yoo.cz">yoo.cz</option>
-                                    <option value="sexicekshop.cz">sexicekshop.cz</option>
                                     <option value="honitka.cz">honitka.cz</option>
-                                    <option value="sexshop.cz">sexshop.cz</option>
                                     <option value="eroticke-pomucky.cz">eroticke-pomucky.cz</option>
                                     <option value="flagranti.cz">flagranti.cz</option>
                                     <option value="sexshopik.cz">sexshopik.cz</option>
-                                    <option value="sex-shop69.cz">sex-shop69.cz</option>
-                                    <option value="eroticcity.cz">eroticcity.cz</option>
                                     <option value="e-kondomy.cz">e-kondomy.cz</option>
                                 </optgroup>
                                 <optgroup label="SK - Vlastní">
@@ -418,7 +421,7 @@ ední půlrok</option>
                                     <option value="vagyaim.hu">vagyaim.hu</option>
                                 </optgroup>
                             </select>
-                            <p class="text-xs text-gray-500 mt-1">Ctrl/Cmd + klik pro vícenásobný výběr • <strong>Celkem 50 e-shopů</strong></p>
+                            <p class="text-xs text-gray-500 mt-1">Ctrl/Cmd + klik pro vícenásobný výběr • <strong>Celkem 46 e-shopů</strong></p>
                         </div>
 
                         <div>
@@ -438,95 +441,52 @@ ední půlrok</option>
                         </div>
                     </div>
 
+                    <!-- Meziroční srovnání -->
+                    <div class="mb-6 p-4 bg-white rounded-2xl border border-gray-200">
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" id="trend-yoy-comparison" class="w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 transition">
+                            <span class="text-sm font-semibold text-gray-700">
+                                Zobrazit meziroční srovnání (Year-over-Year)
+                                <span class="block text-xs text-gray-500 font-normal mt-0.5">Porovná data s předchozím rokem ve stejném období</span>
+                            </span>
+                        </label>
+                    </div>
+
                     <div class="bg-white rounded-2xl p-4 border border-gray-100" style="height: 400px;">
                         <canvas id="trendChart"></canvas>
                     </div>
                 </div>
 
-                <!-- Graf porovnání růstu (Delta) -->
+                <!-- Mezitýdenní srovnání -->
                 <div class="bg-gradient-to-br from-white to-gray-50 p-8 rounded-3xl shadow-xl border border-gray-100">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                         <div>
                             <h2 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                                Porovnání růstu (Delta)
+                                Mezitýdenní srovnání CZ a SK
                             </h2>
-                            <p class="text-sm text-gray-500 mt-1">Přírůstky objednávek mezi měřeními</p>
+                            <p class="text-sm text-gray-500 mt-1">Porovnání výkonnosti e-shopů za poslední dva týdny</p>
                         </div>
+                        <button onclick="updateWeeklyComparison()" class="px-6 py-2.5 bg-gradient-to-r from-[#d4b3f0] to-[#e0c9ff] text-gray-700 rounded-xl hover:from-[#e0c9ff] hover:to-[#d9b3ff] transition font-semibold shadow-lg shadow-purple-200">
+                            Obnovit data
+                        </button>
                     </div>
 
-                    <!-- Filtry -->
-                    <div class="space-y-4 mb-6">
-                        <!-- První řádek: Trh a E-shopy -->
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-white rounded-2xl border border-gray-200">
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Trh</label>
-                                <select id="delta-market-filter" onchange="updateDeltaEshopsFilter()" class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition">
-                                    <option value="CZ">Česko</option>
-                                    <option value="SK">Slovensko</option>
-                                    <option value="Foreign">Zahraniční</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">E-shopy (vícenásobný výběr)</label>
-                                <select id="delta-eshops-filter" multiple size="10" class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition">
-                                    <!-- Naplní se dynamicky podle vybraného trhu -->
-                                </select>
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Typ grafu</label>
-                                <select id="delta-chart-type" class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition mb-3">
-                                    <option value="comparison">Porovnání období (sloupcový)</option>
-                                    <option value="growth">Procentuální růst</option>
-                                    <option value="line">Čárový graf</option>
-                                </select>
-                                <button onclick="updateDeltaChart()" class="w-full px-4 py-2.5 bg-gradient-to-r from-[#d4b3f0] to-[#e0c9ff] text-gray-700 rounded-xl hover:from-[#e0c9ff] hover:to-[#d9b3ff] transition font-semibold shadow-lg shadow-purple-200">
-                                    Porovnat období
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Druhý řádek: Období 1 a Období 2 -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <!-- Období 1 -->
-                            <div class="p-4 bg-green-50 rounded-2xl border-2 border-green-200">
-                                <h4 class="text-sm font-bold text-green-900 mb-3 flex items-center gap-2">
-                                    Období 1 (novější)
-                                </h4>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label class="block text-xs font-medium text-green-700 mb-1">Od</label>
-                                        <input type="date" id="delta-period1-start" class="w-full px-3 py-2 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-medium text-green-700 mb-1">Do</label>
-                                        <input type="date" id="delta-period1-end" class="w-full px-3 py-2 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Období 2 -->
-                            <div class="p-4 bg-blue-50 rounded-2xl border-2 border-blue-200">
-                                <h4 class="text-sm font-bold text-blue-900 mb-3 flex items-center gap-2">
-                                    Období 2 (starší)
-                                </h4>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label class="block text-xs font-medium text-blue-700 mb-1">Od</label>
-                                        <input type="date" id="delta-period2-start" class="w-full px-3 py-2 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-medium text-blue-700 mb-1">Do</label>
-                                        <input type="date" id="delta-period2-end" class="w-full px-3 py-2 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-2xl p-4 border border-gray-100" style="height: 400px;">
-                        <canvas id="deltaChart"></canvas>
+                    <!-- Tabulka mezitýdenního srovnání -->
+                    <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-800 text-white">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider">E-shop</th>
+                                    <th class="px-6 py-3 text-right text-xs font-bold uppercase tracking-wider">Minulý týden</th>
+                                    <th class="px-6 py-3 text-right text-xs font-bold uppercase tracking-wider">Tento týden</th>
+                                    <th class="px-6 py-3 text-center text-xs font-bold uppercase tracking-wider">Změna</th>
+                                    <th class="px-6 py-3 text-center text-xs font-bold uppercase tracking-wider">Trend</th>
+                                </tr>
+                            </thead>
+                            <tbody id="weekly-comparison-tbody" class="bg-white divide-y divide-gray-200">
+                                <!-- Naplní se dynamicky -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </section>

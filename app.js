@@ -1215,12 +1215,79 @@ function initTrendChart() {
     });
 }
 
+// Pomocná funkce pro agregaci dat podle týdnů
+function aggregateByWeeks(data, eshops) {
+    const weeklyData = {};
+
+    data.forEach(record => {
+        const recordDate = new Date(record.date);
+        // Získat ISO week number
+        const weekNumber = getWeekNumber(recordDate);
+        const weekKey = `${recordDate.getFullYear()}-W${String(weekNumber).padStart(2, '0')}`;
+
+        if (!weeklyData[weekKey]) {
+            weeklyData[weekKey] = {
+                date: weekKey,
+                year: recordDate.getFullYear(),
+                week: weekNumber,
+                totals: {}
+            };
+            eshops.forEach(eshop => weeklyData[weekKey].totals[eshop] = 0);
+        }
+
+        eshops.forEach(eshop => {
+            const delta = (record.deltas && record.deltas[eshop]) ? record.deltas[eshop] : 0;
+            weeklyData[weekKey].totals[eshop] += delta;
+        });
+    });
+
+    return Object.values(weeklyData).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// Pomocná funkce pro agregaci dat podle měsíců
+function aggregateByMonths(data, eshops) {
+    const monthlyData = {};
+
+    data.forEach(record => {
+        const recordDate = new Date(record.date);
+        const monthKey = `${recordDate.getFullYear()}-${String(recordDate.getMonth() + 1).padStart(2, '0')}`;
+
+        if (!monthlyData[monthKey]) {
+            monthlyData[monthKey] = {
+                date: monthKey,
+                year: recordDate.getFullYear(),
+                month: recordDate.getMonth() + 1,
+                totals: {}
+            };
+            eshops.forEach(eshop => monthlyData[monthKey].totals[eshop] = 0);
+        }
+
+        eshops.forEach(eshop => {
+            const delta = (record.deltas && record.deltas[eshop]) ? record.deltas[eshop] : 0;
+            monthlyData[monthKey].totals[eshop] += delta;
+        });
+    });
+
+    return Object.values(monthlyData).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// Pomocná funkce pro získání čísla týdne
+function getWeekNumber(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
 function updateTrendChart() {
     const periodFilter = document.getElementById('trend-period-filter');
     const eshopsFilter = document.getElementById('trend-eshops-filter');
     const typeFilter = document.getElementById('trend-type-filter');
+    const aggregationFilter = document.getElementById('trend-aggregation-filter');
+    const yoyCheckbox = document.getElementById('trend-yoy-comparison');
 
-    if (!periodFilter || !eshopsFilter || !typeFilter) {
+    if (!periodFilter || !eshopsFilter || !typeFilter || !aggregationFilter || !yoyCheckbox) {
         console.error('❌ Trend chart filtry nenalezeny');
         return;
     }
@@ -1235,6 +1302,8 @@ function updateTrendChart() {
 
     const periodValue = periodFilter.value;
     const chartType = typeFilter.value;
+    const aggregation = aggregationFilter.value;
+    const showYoY = yoyCheckbox.checked;
 
     // Použít trackingData místo orderData
     if (!window.trackingData || window.trackingData.length === 0) {
@@ -1266,21 +1335,45 @@ function updateTrendChart() {
         return;
     }
 
-    // Získání dat
-    const dates = sortedData.map(r => r.date);
+    // Agregace dat podle vybraného zobrazení
+    let processedData, labels;
+
+    if (aggregation === 'weeks') {
+        const aggregatedData = aggregateByWeeks(sortedData, selectedEshops);
+        processedData = aggregatedData;
+        labels = aggregatedData.map(d => d.date);
+    } else if (aggregation === 'months') {
+        const aggregatedData = aggregateByMonths(sortedData, selectedEshops);
+        processedData = aggregatedData;
+        labels = aggregatedData.map(d => {
+            const [year, month] = d.date.split('-');
+            const monthNames = ['Led', 'Úno', 'Bře', 'Dub', 'Kvě', 'Čvn', 'Čvc', 'Srp', 'Zář', 'Říj', 'Lis', 'Pro'];
+            return `${monthNames[parseInt(month) - 1]} ${year}`;
+        });
+    } else {
+        // Dny - původní denní zobrazení
+        processedData = sortedData;
+        labels = sortedData.map(r => formatDate(r.date));
+    }
 
     // Příprava datasetů pro vybrané e-shopy
-    const datasets = selectedEshops.map((eshop, index) => {
-        const data = sortedData.map(record => {
-            // Počet objednávek (deltas) pro všechny e-shopy
-            return record.deltas && record.deltas[eshop] ? record.deltas[eshop] : null;
-        });
+    const datasets = [];
 
+    selectedEshops.forEach((eshop, index) => {
         const color = CHART_COLORS[index % CHART_COLORS.length];
 
-        const dataset = {
+        // Dataset pro aktuální období
+        const currentData = processedData.map(record => {
+            if (aggregation === 'days') {
+                return record.deltas && record.deltas[eshop] ? record.deltas[eshop] : null;
+            } else {
+                return record.totals && record.totals[eshop] ? record.totals[eshop] : null;
+            }
+        });
+
+        datasets.push({
             label: eshop,
-            data: data,
+            data: currentData,
             borderColor: color,
             backgroundColor: chartType === 'area' ? color + '40' : color + '20',
             borderWidth: 3,
@@ -1289,9 +1382,56 @@ function updateTrendChart() {
             tension: 0.3,
             spanGaps: true,
             fill: chartType === 'area'
-        };
+        });
 
-        return dataset;
+        // Dataset pro meziroční srovnání (předchozí rok)
+        if (showYoY) {
+            // Získat rok z prvního záznamu pro label
+            const firstRecordDate = processedData.length > 0
+                ? new Date(aggregation === 'days' ? processedData[0].date : `${processedData[0].year}-01-01`)
+                : new Date();
+            const previousYear = firstRecordDate.getFullYear() - 1;
+
+            const yoyData = processedData.map(record => {
+                const currentDate = new Date(aggregation === 'days' ? record.date : `${record.year}-${String(record.month || 1).padStart(2, '0')}-01`);
+                const previousYearDate = new Date(currentDate);
+                previousYearDate.setFullYear(currentDate.getFullYear() - 1);
+
+                // Najít odpovídající záznam z předchozího roku
+                const previousYearRecord = sortedData.find(r => {
+                    const rDate = new Date(r.date);
+                    if (aggregation === 'weeks') {
+                        const rWeek = getWeekNumber(rDate);
+                        const targetWeek = getWeekNumber(previousYearDate);
+                        return rDate.getFullYear() === previousYearDate.getFullYear() && rWeek === targetWeek;
+                    } else if (aggregation === 'months') {
+                        return rDate.getFullYear() === previousYearDate.getFullYear() && rDate.getMonth() === previousYearDate.getMonth();
+                    } else {
+                        return r.date === previousYearDate.toISOString().split('T')[0];
+                    }
+                });
+
+                if (previousYearRecord) {
+                    return previousYearRecord.deltas && previousYearRecord.deltas[eshop] ? previousYearRecord.deltas[eshop] : null;
+                }
+                return null;
+            });
+
+            // Přidat YoY dataset s čárkovanou čárou
+            datasets.push({
+                label: `${eshop} (${previousYear})`,
+                data: yoyData,
+                borderColor: color,
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                borderDash: [5, 5],
+                pointRadius: 3,
+                pointHoverRadius: 5,
+                tension: 0.3,
+                spanGaps: true,
+                fill: false
+            });
+        }
     });
 
     // Změnit typ grafu
@@ -1301,7 +1441,7 @@ function updateTrendChart() {
         charts.trend.config.type = 'line';
     }
 
-    charts.trend.data.labels = dates.map(d => formatDate(d));
+    charts.trend.data.labels = labels;
     charts.trend.data.datasets = datasets;
     charts.trend.update();
 }
@@ -1394,7 +1534,7 @@ window.updateDeltaEshopsFilter = function() {
     console.log('Aktualizace Delta e-shopů pro trh:', market);
 
     // Definice e-shopů podle trhů
-    const czEshops = ["Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz", "sexicekshop.cz", "honitka.cz", "sexshop.cz", "eroticke-pomucky.cz", "flagranti.cz", "sexshopik.cz", "sex-shop69.cz", "eroticcity.cz", "e-kondomy.cz", "ruzovyslon.cz", "kondomshop.cz"];
+    const czEshops = ["Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz", "honitka.cz", "eroticke-pomucky.cz", "flagranti.cz", "sexshopik.cz", "e-kondomy.cz", "ruzovyslon.cz", "kondomshop.cz"];
     const skEshops = ["isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk", "ruzovyslon.sk", "kondomshop.sk"];
     const foreignEshops = ["sexyelephant.ro", "sexyelephant.hu", "sexyelephant.si", "sexyelephant.bg", "sexyelephant.hr", "superlove.ro", "superlove.pl", "superlove.eu", "superlove.at", "superlove.hr", "superlove.it", "superlove.si", "superlove.bg", "superlove.lt", "superlove.es", "superlove.hu", "goldengate.hu", "padlizsan.hu", "sexshopcenter.hu", "erotikashow.hu", "szexaruhaz.hu", "szexshop.hu", "vagyaim.hu"];
 
@@ -1582,6 +1722,146 @@ function updateDeltaChart() {
 
     charts.delta.update();
 }
+
+// Aktualizovat mezitýdenní srovnání CZ a SK e-shopů
+window.updateWeeklyComparison = function() {
+    console.log('🔄 Aktualizace mezitýdenního srovnání...');
+
+    if (!window.trackingData || window.trackingData.length === 0) {
+        console.warn('⚠️ Žádná data pro mezitýdenní srovnání');
+        const tbody = document.getElementById('weekly-comparison-tbody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Žádná data k zobrazení</td></tr>';
+        }
+        return;
+    }
+
+    // Získat CZ a SK e-shopy
+    const czEshops = ["Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz", "honitka.cz", "eroticke-pomucky.cz", "flagranti.cz", "sexshopik.cz", "e-kondomy.cz", "ruzovyslon.cz", "kondomshop.cz"];
+    const skEshops = ["isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk", "ruzovyslon.sk", "kondomshop.sk"];
+    const allEshops = [...czEshops, ...skEshops];
+
+    // Seřadit data podle data (nejnovější první)
+    const sortedData = [...window.trackingData].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // Získat poslední 14 dní dat
+    const today = new Date();
+    const fourteenDaysAgo = new Date(today);
+    fourteenDaysAgo.setDate(today.getDate() - 14);
+
+    const last14Days = sortedData.filter(record => {
+        const recordDate = new Date(record.date);
+        return recordDate >= fourteenDaysAgo && recordDate <= today;
+    });
+
+    if (last14Days.length === 0) {
+        console.warn('⚠️ Nedostatek dat pro mezitýdenní srovnání');
+        const tbody = document.getElementById('weekly-comparison-tbody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Nedostatek dat (potřeba alespoň 14 dní)</td></tr>';
+        }
+        return;
+    }
+
+    // Rozdělit na tento týden (poslední 7 dní) a minulý týden (dny 8-14)
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(today.getDate() - 7);
+
+    const thisWeekData = sortedData.filter(record => {
+        const recordDate = new Date(record.date);
+        return recordDate >= sevenDaysAgo && recordDate <= today;
+    });
+
+    const lastWeekData = sortedData.filter(record => {
+        const recordDate = new Date(record.date);
+        const fourteenDaysAgo = new Date(today);
+        fourteenDaysAgo.setDate(today.getDate() - 14);
+        return recordDate >= fourteenDaysAgo && recordDate < sevenDaysAgo;
+    });
+
+    console.log(`📊 Tento týden: ${thisWeekData.length} záznamů, Minulý týden: ${lastWeekData.length} záznamů`);
+
+    // Vypočítat součty pro každý e-shop
+    const weeklyStats = [];
+
+    allEshops.forEach(eshop => {
+        // Součet delta hodnot pro tento týden
+        const thisWeekTotal = thisWeekData.reduce((sum, record) => {
+            const delta = (record.deltas && record.deltas[eshop]) ? record.deltas[eshop] : 0;
+            return sum + delta;
+        }, 0);
+
+        // Součet delta hodnot pro minulý týden
+        const lastWeekTotal = lastWeekData.reduce((sum, record) => {
+            const delta = (record.deltas && record.deltas[eshop]) ? record.deltas[eshop] : 0;
+            return sum + delta;
+        }, 0);
+
+        // Vypočítat změnu
+        const change = thisWeekTotal - lastWeekTotal;
+        const percentChange = lastWeekTotal !== 0 ? ((change / lastWeekTotal) * 100) : 0;
+
+        weeklyStats.push({
+            eshop: eshop,
+            lastWeek: lastWeekTotal,
+            thisWeek: thisWeekTotal,
+            change: change,
+            percentChange: percentChange
+        });
+    });
+
+    // Seřadit podle procentuální změny (nejlepší první)
+    weeklyStats.sort((a, b) => b.percentChange - a.percentChange);
+
+    // Vygenerovat HTML pro tabulku
+    const tbody = document.getElementById('weekly-comparison-tbody');
+    if (!tbody) {
+        console.error('❌ Element weekly-comparison-tbody nenalezen');
+        return;
+    }
+
+    let html = '';
+    weeklyStats.forEach(stat => {
+        // Určit trend
+        let trendIcon = '→';
+        let trendColor = 'text-gray-500';
+        if (stat.percentChange > 0) {
+            trendIcon = '↑';
+            trendColor = 'text-green-600';
+        } else if (stat.percentChange < 0) {
+            trendIcon = '↓';
+            trendColor = 'text-red-600';
+        }
+
+        // Formátovat změnu
+        const changeSign = stat.change >= 0 ? '+' : '';
+        const changeText = `${changeSign}${stat.change.toLocaleString('cs-CZ')}`;
+        const percentText = `${stat.percentChange >= 0 ? '+' : ''}${stat.percentChange.toFixed(1)}%`;
+
+        // Barva pro změnu
+        let changeColor = 'text-gray-700';
+        if (stat.change > 0) changeColor = 'text-green-700';
+        else if (stat.change < 0) changeColor = 'text-red-700';
+
+        html += `
+            <tr class="hover:bg-gray-50 transition-colors">
+                <td class="px-6 py-4 font-medium text-gray-900">${stat.eshop}</td>
+                <td class="px-6 py-4 text-right text-gray-700">${stat.lastWeek.toLocaleString('cs-CZ')}</td>
+                <td class="px-6 py-4 text-right font-semibold text-gray-900">${stat.thisWeek.toLocaleString('cs-CZ')}</td>
+                <td class="px-6 py-4 text-center ${changeColor} font-medium">
+                    ${changeText}
+                    <span class="text-xs ml-1">(${percentText})</span>
+                </td>
+                <td class="px-6 py-4 text-center">
+                    <span class="${trendColor} text-2xl font-bold">${trendIcon}</span>
+                </td>
+            </tr>
+        `;
+    });
+
+    tbody.innerHTML = html;
+    console.log('✅ Mezitýdenní srovnání aktualizováno');
+};
 
 // Pomocná funkce pro výpočet průměru v daném období
 function calculatePeriodAverage(eshop, startDate, endDate) {
@@ -1827,7 +2107,7 @@ function updateMarketShareChart() {
 
 function updateAllCharts() {
     updateTrendChart();
-    updateDeltaChart();
+    updateWeeklyComparison();
     updateMarketShareChart();
 }
 
