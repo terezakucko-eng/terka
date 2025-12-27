@@ -441,9 +441,12 @@ function handleRecordFormSubmit(e) {
     // Přepočítat delty
     calculateDeltas();
 
-    // Uložit do Firestore (pokud je aktivní)
-    if (typeof saveTrackingRecordToFirestore === 'function') {
-        saveTrackingRecordToFirestore(record);
+    // Najít aktualizovaný record po přepočtu delt
+    const updatedRecord = window.trackingData.find(r => r.id === record.id);
+
+    // Uložit do Firestore (pokud je aktivní) - použít aktualizovaný record s přepočtenými deltami
+    if (typeof saveTrackingRecordToFirestore === 'function' && updatedRecord) {
+        saveTrackingRecordToFirestore(updatedRecord);
     }
 
     // Uložit a aktualizovat UI
