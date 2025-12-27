@@ -788,6 +788,46 @@ ední půlrok</option>
                     </div>
 
                     <div class="border-b pb-4">
+                        <h4 class="text-md font-semibold mb-3">📝 Hromadné vložení dat</h4>
+                        <p class="text-sm text-gray-600 mb-3">
+                            Přidejte záznamy pro sledování objednávek pomocí tabulky níže. Můžete také vložit data z Excelu (Ctrl+V).
+                        </p>
+
+                        <div class="mb-3">
+                            <button onclick="addBulkRow()" class="bg-[#ffb3d9] text-gray-700 px-3 py-1.5 rounded-lg hover:bg-[#ffc9e0] transition text-sm font-medium shadow-sm">
+                                ➕ Přidat řádek
+                            </button>
+                            <button onclick="importBulkData()" class="bg-[#32cd32] text-white px-3 py-1.5 rounded-lg hover:bg-[#2eb82e] transition text-sm font-medium shadow-sm ml-2">
+                                ✅ Importovat do aplikace
+                            </button>
+                            <button onclick="clearBulkTable()" class="bg-gray-500 text-white px-3 py-1.5 rounded-lg hover:bg-gray-600 transition text-sm font-medium shadow-sm ml-2">
+                                🗑️ Vymazat tabulku
+                            </button>
+                        </div>
+
+                        <div class="overflow-x-auto border rounded-lg">
+                            <table id="bulk-data-table" class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">E-shop</th>
+                                        <th class="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Datum</th>
+                                        <th class="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Číslo obj.</th>
+                                        <th class="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Počet obj.</th>
+                                        <th class="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Akce</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bulk-data-tbody" class="bg-white divide-y divide-gray-200">
+                                    <!-- Řádky budou přidány JavaScriptem -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="mt-2 text-xs text-gray-500">
+                            💡 Tip: Můžete zkopírovat data z Excelu a vložit je přímo do tabulky (Ctrl+C v Excelu, kliknutí do první buňky, Ctrl+V)
+                        </div>
+                    </div>
+
+                    <div class="border-b pb-4">
                         <h4 class="text-md font-semibold mb-3">📤 Export dat</h4>
                         <div class="space-y-3">
                             <button onclick="exportToJSON()"

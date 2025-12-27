@@ -444,6 +444,287 @@ function clearAllData() {
 }
 
 // =====================================================
+// HROMADNÉ VLOŽENÍ DAT
+// =====================================================
+
+// Globální proměnná pro uložení dat z bulk tabulky
+let bulkDataRows = [];
+
+window.addBulkRow = function() {
+    const tbody = document.getElementById('bulk-data-tbody');
+    const row = document.createElement('tr');
+    row.className = 'hover:bg-gray-50';
+
+    const today = new Date().toISOString().split('T')[0];
+
+    row.innerHTML = `
+        <td class="px-3 py-2">
+            <input type="text" class="bulk-eshop w-full px-2 py-1 border rounded text-sm" placeholder="ruzovyslon.cz" list="eshop-list">
+        </td>
+        <td class="px-3 py-2">
+            <input type="date" class="bulk-date w-full px-2 py-1 border rounded text-sm" value="${today}">
+        </td>
+        <td class="px-3 py-2">
+            <input type="number" class="bulk-order-number w-full px-2 py-1 border rounded text-sm" placeholder="12345">
+        </td>
+        <td class="px-3 py-2">
+            <input type="number" class="bulk-order-count w-full px-2 py-1 border rounded text-sm" placeholder="50">
+        </td>
+        <td class="px-3 py-2">
+            <button onclick="removeBulkRow(this)" class="text-red-600 hover:text-red-800 text-sm font-semibold">Smazat</button>
+        </td>
+    `;
+
+    tbody.appendChild(row);
+
+    // Přidat paste handler pro Excel
+    const firstInput = row.querySelector('.bulk-eshop');
+    firstInput.addEventListener('paste', handleExcelPaste);
+};
+
+window.removeBulkRow = function(button) {
+    button.closest('tr').remove();
+};
+
+window.clearBulkTable = function() {
+    if (confirm('Opravdu chcete vymazat všechny řádky v tabulce?')) {
+        document.getElementById('bulk-data-tbody').innerHTML = '';
+    }
+};
+
+window.importBulkData = function() {
+    const tbody = document.getElementById('bulk-data-tbody');
+    const rows = tbody.querySelectorAll('tr');
+
+    if (rows.length === 0) {
+        alert('Tabulka je prázdná. Přidejte nejprve nějaké řádky.');
+        return;
+    }
+
+    let importedCount = 0;
+    let errors = [];
+
+    rows.forEach((row, index) => {
+        const eshop = row.querySelector('.bulk-eshop').value.trim();
+        const date = row.querySelector('.bulk-date').value;
+        const orderNumber = row.querySelector('.bulk-order-number').value;
+        const orderCount = row.querySelector('.bulk-order-count').value;
+
+        // Validace
+        if (!eshop) {
+            errors.push(`Řádek ${index + 1}: Chybí název e-shopu`);
+            return;
+        }
+        if (!date) {
+            errors.push(`Řádek ${index + 1}: Chybí datum`);
+            return;
+        }
+
+        // Kontrola, zda je to vlastní e-shop nebo konkurent
+        const isOwnEshop = window.OWN_ESHOPS && window.OWN_ESHOPS.includes(eshop);
+
+        // Pro konkurenty musí být číslo objednávky
+        if (!isOwnEshop && !orderNumber) {
+            errors.push(`Řádek ${index + 1}: Chybí číslo objednávky pro konkurenta ${eshop}`);
+            return;
+        }
+
+        // Pro vlastní e-shopy musí být počet objednávek
+        if (isOwnEshop && !orderCount) {
+            errors.push(`Řádek ${index + 1}: Chybí počet objednávek pro vlastní e-shop ${eshop}`);
+            return;
+        }
+
+        // Přidat záznam do tracking dat
+        if (typeof addBulkTrackingRecord === 'function') {
+            addBulkTrackingRecord(eshop, date, orderNumber || null, orderCount || null);
+            importedCount++;
+        }
+    });
+
+    if (errors.length > 0) {
+        alert('Chyby při importu:\n\n' + errors.join('\n') + '\n\nImportováno: ' + importedCount + ' záznamů');
+    } else {
+        alert(`✅ Úspěšně importováno ${importedCount} záznamů!`);
+
+        // Vyčistit tabulku
+        document.getElementById('bulk-data-tbody').innerHTML = '';
+
+        // Zavřít modal
+        closeDataManagementModal();
+
+        // Aktualizovat UI
+        if (typeof renderTrackingTable === 'function') {
+            renderTrackingTable();
+        }
+        if (typeof updateMetricsDisplay === 'function') {
+            updateMetricsDisplay();
+        }
+        if (typeof updateAllCharts === 'function') {
+            updateAllCharts();
+        }
+    }
+};
+
+// Handler pro paste z Excelu
+function handleExcelPaste(e) {
+    e.preventDefault();
+
+    const clipboardData = e.clipboardData || window.clipboardData;
+    const pastedData = clipboardData.getData('text');
+
+    if (!pastedData) return;
+
+    // Rozdělit data na řádky a buňky
+    const rows = pastedData.split(/\r?\n/).filter(row => row.trim());
+    const currentRow = e.target.closest('tr');
+    const tbody = currentRow.parentElement;
+
+    // Vyčistit tabulku před vložením
+    tbody.innerHTML = '';
+
+    rows.forEach(rowData => {
+        const cells = rowData.split('\t'); // Excel používá tabulátor
+
+        if (cells.length < 2) return; // Ignorovat řádky s méně než 2 buňkami
+
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-gray-50';
+
+        const eshop = cells[0] || '';
+        const date = cells[1] || new Date().toISOString().split('T')[0];
+        const orderNumber = cells[2] || '';
+        const orderCount = cells[3] || '';
+
+        row.innerHTML = `
+            <td class="px-3 py-2">
+                <input type="text" class="bulk-eshop w-full px-2 py-1 border rounded text-sm" value="${eshop}" list="eshop-list">
+            </td>
+            <td class="px-3 py-2">
+                <input type="date" class="bulk-date w-full px-2 py-1 border rounded text-sm" value="${date}">
+            </td>
+            <td class="px-3 py-2">
+                <input type="number" class="bulk-order-number w-full px-2 py-1 border rounded text-sm" value="${orderNumber}">
+            </td>
+            <td class="px-3 py-2">
+                <input type="number" class="bulk-order-count w-full px-2 py-1 border rounded text-sm" value="${orderCount}">
+            </td>
+            <td class="px-3 py-2">
+                <button onclick="removeBulkRow(this)" class="text-red-600 hover:text-red-800 text-sm font-semibold">Smazat</button>
+            </td>
+        `;
+
+        tbody.appendChild(row);
+    });
+}
+
+// =====================================================
+// PŘIDÁNÍ HROMADNÉHO ZÁZNAMU DO TRACKING DAT
+// =====================================================
+
+/**
+ * Přidá záznam pro konkrétní e-shop a datum do tracking dat
+ * @param {string} eshop - Název e-shopu
+ * @param {string} date - Datum ve formátu YYYY-MM-DD
+ * @param {number|null} orderNumber - Číslo objednávky (pro konkurenty)
+ * @param {number|null} orderCount - Počet objednávek (pro vlastní e-shopy)
+ */
+function addBulkTrackingRecord(eshop, date, orderNumber, orderCount) {
+    if (!window.trackingData) {
+        window.trackingData = [];
+    }
+
+    // Zjistit, jestli je to vlastní e-shop
+    const isOwnEshop = window.OWN_ESHOPS && window.OWN_ESHOPS.includes(eshop);
+
+    // Najít existující záznam pro dané datum
+    let record = window.trackingData.find(r => r.date === date);
+
+    if (!record) {
+        // Vytvořit nový záznam pro toto datum
+        record = {
+            id: Date.now() + Math.random(), // Unikátní ID
+            date: date,
+            competitors: {},
+            deltas: {},
+            monthEndValues: {},
+            notes: ''
+        };
+
+        // Inicializovat všechny e-shopy na 0
+        if (window.COMPETITORS) {
+            window.COMPETITORS.forEach(comp => {
+                record.competitors[comp] = 0;
+                record.deltas[comp] = 0;
+            });
+        }
+
+        window.trackingData.push(record);
+    }
+
+    // Aktualizovat hodnoty pro daný e-shop
+    if (isOwnEshop) {
+        // Vlastní e-shop: uložit počet objednávek do deltas
+        record.deltas[eshop] = parseInt(orderCount) || 0;
+        record.competitors[eshop] = 0; // Nenastavujeme číslo objednávky
+    } else {
+        // Konkurent: uložit číslo objednávky do competitors
+        record.competitors[eshop] = parseInt(orderNumber) || 0;
+        // Delta se vypočítá později v calculateDeltas()
+    }
+
+    // Seřadit data podle data
+    window.trackingData.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Přepočítat delty (pro konkurenty)
+    if (typeof calculateDeltas === 'function') {
+        calculateDeltas();
+    }
+
+    // Uložit do Firestore (pokud je aktivní)
+    if (typeof saveTrackingRecordToFirestore === 'function') {
+        saveTrackingRecordToFirestore(record);
+    }
+
+    // Uložit do localStorage/Firestore
+    if (typeof saveTrackingData === 'function') {
+        saveTrackingData();
+    }
+}
+
+// Export funkce
+window.addBulkTrackingRecord = addBulkTrackingRecord;
+
+// Datalist pro e-shopy
+window.addEventListener('DOMContentLoaded', function() {
+    // Přidat datalist do body pokud ještě neexistuje
+    if (!document.getElementById('eshop-list')) {
+        const datalist = document.createElement('datalist');
+        datalist.id = 'eshop-list';
+
+        const allEshops = [
+            'ruzovyslon.cz', 'kondomshop.cz', 'ruzovyslon.sk', 'kondomshop.sk',
+            'sexyelephant.ro', 'sexyelephant.hu', 'sexyelephant.si', 'sexyelephant.bg', 'sexyelephant.hr',
+            'Hopnato.cz', 'erosstar.cz', 'deeplove.cz', 'yoo.cz', 'sexicekshop.cz', 'honitka.cz',
+            'sexshop.cz', 'eroticke-pomucky.cz', 'flagranti.cz', 'sexshopik.cz', 'sex-shop69.cz',
+            'eroticcity.cz', 'e-kondomy.cz', 'isexshop.sk', 'flagranti.sk', 'superlove.sk', 'eros.sk',
+            'superlove.ro', 'superlove.pl', 'superlove.eu', 'superlove.at', 'superlove.hr',
+            'superlove.it', 'superlove.si', 'superlove.bg', 'superlove.lt', 'superlove.es',
+            'superlove.hu', 'goldengate.hu', 'padlizsan.hu', 'sexshopcenter.hu', 'erotikashow.hu',
+            'szexaruhaz.hu', 'szexshop.hu', 'vagyaim.hu'
+        ];
+
+        allEshops.forEach(eshop => {
+            const option = document.createElement('option');
+            option.value = eshop;
+            datalist.appendChild(option);
+        });
+
+        document.body.appendChild(datalist);
+    }
+});
+
+// =====================================================
 // ZÁLOŽKA: SLEDOVÁNÍ OBJEDNÁVEK
 // =====================================================
 
