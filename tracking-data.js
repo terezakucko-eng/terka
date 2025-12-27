@@ -249,6 +249,18 @@ function calculateDeltas() {
                 }
             });
         }
+
+        // PŘEPSÁNÍ AUTOMATICKÉHO VÝPOČTU MANUÁLNÍMI DELTAMI
+        // Pokud uživatel zadal manuální hodnotu, použij ji místo automatické
+        if (record.manualDeltas) {
+            Object.keys(record.manualDeltas).forEach(eshop => {
+                const manualValue = record.manualDeltas[eshop];
+                if (manualValue !== undefined && manualValue !== null) {
+                    console.log(`✏️ Přepsání automatické delty pro ${eshop}: ${record.deltas[eshop]} → ${manualValue}`);
+                    record.deltas[eshop] = manualValue;
+                }
+            });
+        }
     });
 
     // Vypočítat agregované metriky pro každý záznam

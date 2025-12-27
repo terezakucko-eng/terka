@@ -415,15 +415,24 @@ function handleRecordFormSubmit(e) {
         }
     });
 
-    // Načíst koncové hodnoty měsíce (erosstar.cz, deeplove.cz)
-    const erosstarMonthEnd = document.getElementById('monthend-erosstar-cz');
-    const deeploveMonthEnd = document.getElementById('monthend-deeplove-cz');
+    // Načíst manuální delty (přepíší automatický výpočet)
+    const manualDeltaErosstar = document.getElementById('manual-delta-erosstar-cz');
+    const manualDeltaDeeplove = document.getElementById('manual-delta-deeplove-cz');
 
-    if (erosstarMonthEnd && erosstarMonthEnd.value) {
-        record.monthEndValues['erosstar.cz'] = parseInt(erosstarMonthEnd.value) || 0;
+    // Inicializovat manualDeltas, pokud neexistuje
+    if (!record.manualDeltas) {
+        record.manualDeltas = {};
     }
-    if (deeploveMonthEnd && deeploveMonthEnd.value) {
-        record.monthEndValues['deeplove.cz'] = parseInt(deeploveMonthEnd.value) || 0;
+
+    if (manualDeltaErosstar && manualDeltaErosstar.value) {
+        const value = parseInt(manualDeltaErosstar.value) || 0;
+        record.manualDeltas['erosstar.cz'] = value;
+        console.log(`✏️ Ruční delta pro erosstar.cz: ${value}`);
+    }
+    if (manualDeltaDeeplove && manualDeltaDeeplove.value) {
+        const value = parseInt(manualDeltaDeeplove.value) || 0;
+        record.manualDeltas['deeplove.cz'] = value;
+        console.log(`✏️ Ruční delta pro deeplove.cz: ${value}`);
     }
 
     // Aktualizovat nebo přidat záznam
@@ -487,15 +496,15 @@ window.editTrackingRecord = function(id) {
         }
     });
 
-    // Naplnit koncové hodnoty měsíce
-    const erosstarMonthEnd = document.getElementById('monthend-erosstar-cz');
-    const deeploveMonthEnd = document.getElementById('monthend-deeplove-cz');
+    // Naplnit manuální delty
+    const manualDeltaErosstar = document.getElementById('manual-delta-erosstar-cz');
+    const manualDeltaDeeplove = document.getElementById('manual-delta-deeplove-cz');
 
-    if (erosstarMonthEnd) {
-        erosstarMonthEnd.value = (record.monthEndValues && record.monthEndValues['erosstar.cz']) || '';
+    if (manualDeltaErosstar) {
+        manualDeltaErosstar.value = (record.manualDeltas && record.manualDeltas['erosstar.cz']) || '';
     }
-    if (deeploveMonthEnd) {
-        deeploveMonthEnd.value = (record.monthEndValues && record.monthEndValues['deeplove.cz']) || '';
+    if (manualDeltaDeeplove) {
+        manualDeltaDeeplove.value = (record.manualDeltas && record.manualDeltas['deeplove.cz']) || '';
     }
 
     document.getElementById('form-title-record').textContent = 'Upravit záznam';

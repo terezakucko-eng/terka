@@ -557,20 +557,19 @@ ední půlrok</option>
                     <!-- Dynamicky generovaná pole pro e-shopy -->
                     <div id="competitor-fields-container"></div>
 
-                    <!-- Speciální pole pro změnu měsíce (erosstar.cz, deeplove.cz) -->
+                    <!-- Ruční zadání počtu objednávek pro erosstar a deeplove -->
                     <div class="mb-6 border-t pt-6">
-                        <div class="bg-amber-50 border-l-4 border-amber-500 p-4 mb-4">
+                        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
                             <div class="flex">
                                 <div class="flex-shrink-0">
-                                    <svg class="h-5 w-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                    <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
                                     </svg>
                                 </div>
                                 <div class="ml-3">
-                                    <h4 class="text-sm font-medium text-amber-800">Změna měsíce (erosstar.cz & deeplove.cz)</h4>
-                                    <p class="mt-1 text-xs text-amber-700">
-                                        Pokud toto měření přechází do nového měsíce, zadej koncové číslo objednávky z předchozího měsíce z <strong>měsíční tabulky</strong>.
-                                        <br>Příklad: 29.7 → 5.8: Najdi poslední číslo z července v měsíční tabulce (31.7: 124074452) a zadej ho níže.
+                                    <h4 class="text-sm font-medium text-blue-800">Ruční zadání počtu objednávek (erosstar.cz & deeplove.cz)</h4>
+                                    <p class="mt-1 text-xs text-blue-700">
+                                        Pokud chceš přepsat automatický výpočet, zadej počet objednávek ručně. <strong>Nechej prázdné</strong> pro automatický výpočet.
                                     </p>
                                 </div>
                             </div>
@@ -578,28 +577,26 @@ ední půlrok</option>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label for="monthend-erosstar-cz" class="block text-sm font-medium text-gray-700 mb-1">
-                                    erosstar.cz - Konec měsíce
-                                    <span class="text-xs text-gray-500">(volitelné)</span>
+                                <label for="manual-delta-erosstar-cz" class="block text-sm font-medium text-gray-700 mb-1">
+                                    erosstar.cz - Počet objednávek
+                                    <span class="text-xs text-blue-600">(přepíše automatický výpočet)</span>
                                 </label>
                                 <input
                                     type="number"
-                                    id="monthend-erosstar-cz"
-                                    class="w-full px-3 py-2 border border-amber-300 rounded-lg bg-amber-50 focus:ring-2 focus:ring-amber-500"
-                                    placeholder="např. 124074452">
-                                <p class="text-xs text-gray-500 mt-1">Pouze pokud se mění měsíc!</p>
+                                    id="manual-delta-erosstar-cz"
+                                    class="w-full px-3 py-2 border-2 border-blue-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500"
+                                    placeholder="např. 687">
                             </div>
                             <div>
-                                <label for="monthend-deeplove-cz" class="block text-sm font-medium text-gray-700 mb-1">
-                                    deeplove.cz - Konec měsíce
-                                    <span class="text-xs text-gray-500">(volitelné)</span>
+                                <label for="manual-delta-deeplove-cz" class="block text-sm font-medium text-gray-700 mb-1">
+                                    deeplove.cz - Počet objednávek
+                                    <span class="text-xs text-blue-600">(přepíše automatický výpočet)</span>
                                 </label>
                                 <input
                                     type="number"
-                                    id="monthend-deeplove-cz"
-                                    class="w-full px-3 py-2 border border-amber-300 rounded-lg bg-amber-50 focus:ring-2 focus:ring-amber-500"
-                                    placeholder="např. 225093130">
-                                <p class="text-xs text-gray-500 mt-1">Pouze pokud se mění měsíc!</p>
+                                    id="manual-delta-deeplove-cz"
+                                    class="w-full px-3 py-2 border-2 border-blue-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500"
+                                    placeholder="např. 859">
                             </div>
                         </div>
                     </div>
