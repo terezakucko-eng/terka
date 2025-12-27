@@ -53,23 +53,23 @@ const COMPETITORS_BY_MARKET = [
     { name: "sexiveci.sk", domain: "sexiveci.sk", market: "SK" },
 ];
 
-// Pastelová barevná paleta - světlé a jemné odstíny
+// Sytější barevná paleta pro lepší viditelnost v grafech
 const CHART_COLORS = [
-    '#ffb3d9', // pastelově růžová
-    '#b3d9ff', // pastelově modrá
-    '#d4b3f0', // pastelově fialová
-    '#b8e6a8', // pastelově zelená
-    '#fff0b3', // pastelově žlutá
-    '#ffc9e0', // světle růžová
-    '#d9b3ff', // světle purpurová
-    '#ffcce0', // světle coral
-    '#b3d4d4', // světle teal
-    '#ffd9e6', // světle pink
-    '#e0c9ff', // pastelově levandulová
-    '#c9d9ff', // pastelově indigo
-    '#b3e5ff', // pastelově sky blue
-    '#d4f0c9', // pastelově limetková
-    '#fff5cc'  // pastelově cream
+    '#ff69b4', // živě růžová
+    '#4169e1', // královská modrá
+    '#9370db', // středně fialová
+    '#32cd32', // limetkově zelená
+    '#ffd700', // zlatá
+    '#ff1493', // tmavě růžová
+    '#8a2be2', // fialová
+    '#ff6347', // rajčatová
+    '#20b2aa', // světle mořská
+    '#ff69b4', // orchidej
+    '#ba55d3', // středně orchidej
+    '#6495ed', // cornflower blue
+    '#00bfff', // deep sky blue
+    '#7fff00', // chartreuse
+    '#ffa500'  // oranžová
 ];
 
 // ----- GLOBÁLNÍ PROMĚNNÉ -----
@@ -842,6 +842,9 @@ function updateTrendChart() {
             data: data,
             borderColor: color,
             backgroundColor: chartType === 'area' ? color + '40' : color + '20',
+            borderWidth: 3,
+            pointRadius: 4,
+            pointHoverRadius: 6,
             tension: 0.3,
             spanGaps: true,
             fill: chartType === 'area'
@@ -986,7 +989,7 @@ function updateDeltaChart() {
 
     const labels = limitedData.map(item => item.eshop);
     const data = limitedData.map(item => item.delta);
-    const colors = data.map(val => val >= 0 ? '#b8e6a8' : '#ffb3b3'); // pastelově zelená a pastelově červená
+    const colors = data.map(val => val >= 0 ? '#32cd32' : '#ff6347'); // sytě zelená a rajčatová
 
     charts.delta.data.labels = labels;
     charts.delta.data.datasets[0].data = data;
