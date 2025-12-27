@@ -401,6 +401,105 @@ async function importFromGoogleSheetsCustomFormat() {
     }
 }
 
+/**
+ * Parser pro VERTIKÁLNÍ formát
+ * Struktura: E-SHOP | Datum | Číslo obj. | Počet obj.
+ *
+ * Příklad:
+ * deeplove.cz | 6.1.2025  | 225010673 | 859
+ * erosstar.cz | 6.1.2025  | 125010687 | 687
+ * deeplove.cz | 13.1.2025 | 225011646 | 973
+ */
+function parseVerticalCSV(lines) {
+    const header = parseCSVLine(lines[0]);
+
+    // Najít indexy sloupců
+    let eshopIndex = -1;
+    let dateIndex = -1;
+    let orderNumIndex = -1;
+    let countIndex = -1;
+
+    header.forEach((col, index) => {
+        const colLower = col.toLowerCase().trim();
+        if (colLower.includes('e-shop') || colLower.includes('eshop')) {
+            eshopIndex = index;
+        } else if (colLower.includes('datum') || colLower.includes('date')) {
+            dateIndex = index;
+        } else if (colLower.includes('číslo') || colLower.includes('cislo')) {
+            orderNumIndex = index;
+        } else if (colLower.includes('počet') || colLower.includes('pocet') || colLower.includes('count')) {
+            countIndex = index;
+        }
+    });
+
+    console.log(`📍 Indexy sloupců: E-SHOP=${eshopIndex}, Datum=${dateIndex}, Číslo obj.=${orderNumIndex}, Počet obj.=${countIndex}`);
+
+    if (eshopIndex === -1 || dateIndex === -1 || orderNumIndex === -1) {
+        console.error('❌ Nepodařilo se najít všechny požadované sloupce');
+        throw new Error('Nenalezeny požadované sloupce (E-SHOP, Datum, Číslo obj.)');
+    }
+
+    // Seskupit řádky podle data
+    const recordsByDate = {};
+
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        const columns = parseCSVLine(line);
+        if (columns.length < 3) continue;
+
+        const eshop = columns[eshopIndex]?.trim();
+        const dateStr = columns[dateIndex]?.trim();
+        const orderNum = columns[orderNumIndex]?.trim();
+        const count = countIndex !== -1 ? columns[countIndex]?.trim() : '';
+
+        if (!eshop || !dateStr) continue;
+
+        // Konverze data
+        const formattedDate = formatDateForStorage(dateStr);
+        if (!formattedDate) {
+            console.warn(`⚠️ Neplatné datum: "${dateStr}"`);
+            continue;
+        }
+
+        // Inicializovat záznam pro toto datum
+        if (!recordsByDate[formattedDate]) {
+            recordsByDate[formattedDate] = {
+                date: formattedDate,
+                competitors: {},
+                deltas: {}
+            };
+        }
+
+        // Přidat data e-shopu
+        recordsByDate[formattedDate].competitors[eshop] = orderNum ? parseInt(orderNum) || 0 : 0;
+        recordsByDate[formattedDate].deltas[eshop] = count ? parseInt(count) || 0 : 0;
+    }
+
+    // Převést na pole a seřadit podle data
+    trackingData = Object.values(recordsByDate)
+        .sort((a, b) => new Date(a.date) - new Date(b.date))
+        .map((record, index) => ({
+            id: Date.now() + index,
+            date: record.date,
+            competitors: record.competitors,
+            deltas: record.deltas,
+            cellNotes: {},
+            monthEndValues: {},
+            notes: ''
+        }));
+
+    console.log(`✅ Načteno ${trackingData.length} záznamů z vertikálního CSV`);
+    if (trackingData.length > 0) {
+        console.log('📅 První záznam:', trackingData[0].date);
+        console.log('📅 Poslední záznam:', trackingData[trackingData.length - 1].date);
+        console.log('📊 E-shopy v prvním záznamu:', Object.keys(trackingData[0].competitors).join(', '));
+    }
+
+    window.trackingData = trackingData;
+}
+
 function parseCustomCSV(csvText) {
     const lines = csvText.split('\n');
     if (lines.length < 2) {
@@ -411,9 +510,23 @@ function parseCustomCSV(csvText) {
     // Parsovat záhlaví
     const header = parseCSVLine(lines[0]);
     console.log('📋 Načtených sloupců:', header.length);
-    console.log('📋 První sloupce:', header.slice(0, 5).join(' | '));
+    console.log('📋 Sloupce:', header.join(' | '));
 
-    // Najít indexy sloupců
+    // Detekovat formát tabulky (vertikální vs horizontální)
+    const hasEshopColumn = header.some(col =>
+        col.toLowerCase().includes('e-shop') ||
+        col.toLowerCase().includes('eshop')
+    );
+
+    if (hasEshopColumn) {
+        console.log('🔄 Detekován VERTIKÁLNÍ formát (jeden e-shop na řádek)');
+        parseVerticalCSV(lines);
+        return;
+    }
+
+    console.log('🔄 Detekován HORIZONTÁLNÍ formát (e-shopy jako sloupce)');
+
+    // HORIZONTÁLNÍ PARSER (původní kód)
     // columnMap = čísla objednávek (absolutní) pro konkurenty
     // deltaMap = "Objednáno kusů" (delty) pro vlastní e-shopy
     const columnMap = {};
