@@ -148,8 +148,8 @@ function calculateDeltaWithMonthlyReset(current, previous, competitorName, recor
     }
 
     // ZMĚNA MĚSÍCE - potřebujeme koncové číslo předchozího měsíce
-    // Zkontroluj, jestli uživatel zadal monthEndValue
-    const monthEndValue = record.monthEndValues && record.monthEndValues[competitorName];
+    // Zkontroluj, jestli uživatel zadal monthEndValue v PŘEDCHOZÍM záznamu
+    const monthEndValue = prevRecord.monthEndValues && prevRecord.monthEndValues[competitorName];
 
     if (monthEndValue) {
         // Máme koncové číslo měsíce - použij správný vzorec
