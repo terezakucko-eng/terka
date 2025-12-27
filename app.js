@@ -137,17 +137,16 @@ async function initializeApp() {
     const trendEshopsFilter = document.getElementById('trend-eshops-filter');
     const trendTypeFilter = document.getElementById('trend-type-filter');
     const deltaMarketFilter = document.getElementById('delta-market-filter');
-    const deltaTopFilter = document.getElementById('delta-top-filter');
-    const deltaPeriod1Start = document.getElementById('delta-period1-start');
-    const deltaPeriod1End = document.getElementById('delta-period1-end');
-    const deltaPeriod2Start = document.getElementById('delta-period2-start');
-    const deltaPeriod2End = document.getElementById('delta-period2-end');
+    const deltaEshopsFilter = document.getElementById('delta-eshops-filter');
 
     if (trendPeriodFilter) trendPeriodFilter.addEventListener('change', updateTrendChart);
     if (trendEshopsFilter) trendEshopsFilter.addEventListener('change', updateTrendChart);
     if (trendTypeFilter) trendTypeFilter.addEventListener('change', updateTrendChart);
-    if (deltaMarketFilter) deltaMarketFilter.addEventListener('change', updateDeltaChart);
-    if (deltaTopFilter) deltaTopFilter.addEventListener('change', updateDeltaChart);
+
+    // Inicializovat delta e-shops filter
+    if (deltaMarketFilter) {
+        updateDeltaEshopsFilter();
+    }
 
     // Event listenery pro datová pole delta grafu nejsou potřeba - uživatel klikne na tlačítko
 
@@ -1365,15 +1364,66 @@ function initDeltaChart() {
     });
 }
 
+// Aktualizovat seznam e-shopů podle vybraného trhu
+window.updateDeltaEshopsFilter = function() {
+    const marketFilter = document.getElementById('delta-market-filter');
+    const eshopsFilter = document.getElementById('delta-eshops-filter');
+
+    if (!marketFilter || !eshopsFilter) {
+        console.error('❌ Delta eshops filter nenalezen');
+        return;
+    }
+
+    const market = marketFilter.value;
+
+    // Definice e-shopů podle trhů
+    const czEshops = ["Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz", "sexicekshop.cz", "honitka.cz", "sexshop.cz", "eroticke-pomucky.cz", "flagranti.cz", "sexshopik.cz", "sex-shop69.cz", "eroticcity.cz", "e-kondomy.cz", "ruzovyslon.cz", "kondomshop.cz"];
+    const skEshops = ["isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk", "ruzovyslon.sk", "kondomshop.sk"];
+    const foreignEshops = ["sexyelephant.ro", "sexyelephant.hu", "sexyelephant.si", "sexyelephant.bg", "sexyelephant.hr", "superlove.ro", "superlove.pl", "superlove.eu", "superlove.at", "superlove.hr", "superlove.it", "superlove.si", "superlove.bg", "superlove.lt", "superlove.es", "superlove.hu", "goldengate.hu", "padlizsan.hu", "sexshopcenter.hu", "erotikashow.hu", "szexaruhaz.hu", "szexshop.hu", "vagyaim.hu"];
+
+    let eshops;
+    if (market === 'CZ') eshops = czEshops;
+    else if (market === 'SK') eshops = skEshops;
+    else if (market === 'Foreign') eshops = foreignEshops;
+    else eshops = [];
+
+    // Vyčistit a naplnit select
+    eshopsFilter.innerHTML = '';
+
+    // Definice vlastních e-shopů
+    const ownEshopsCZ = ["ruzovyslon.cz", "kondomshop.cz"];
+    const ownEshopsSK = ["ruzovyslon.sk", "kondomshop.sk"];
+    const ownEshopsForeign = ["sexyelephant.ro", "sexyelephant.hu", "sexyelephant.si", "sexyelephant.bg", "sexyelephant.hr"];
+
+    eshops.forEach(eshop => {
+        const option = document.createElement('option');
+        option.value = eshop;
+
+        // Přidat emoji podle trhu a typu e-shopu
+        let emoji = '';
+        if (market === 'CZ') {
+            emoji = ownEshopsCZ.includes(eshop) ? '🌸 ' : '🇨🇿 ';
+        } else if (market === 'SK') {
+            emoji = ownEshopsSK.includes(eshop) ? '🌸 ' : '🇸🇰 ';
+        } else if (market === 'Foreign') {
+            emoji = ownEshopsForeign.includes(eshop) ? '🐘 ' : '🌍 ';
+        }
+
+        option.textContent = emoji + eshop;
+        option.selected = true; // Výchozí: všechny vybrané
+        eshopsFilter.appendChild(option);
+    });
+};
+
 function updateDeltaChart() {
     const marketFilter = document.getElementById('delta-market-filter');
-    const topFilter = document.getElementById('delta-top-filter');
+    const eshopsFilter = document.getElementById('delta-eshops-filter');
     const period1Start = document.getElementById('delta-period1-start');
     const period1End = document.getElementById('delta-period1-end');
     const period2Start = document.getElementById('delta-period2-start');
     const period2End = document.getElementById('delta-period2-end');
 
-    if (!marketFilter || !topFilter) {
+    if (!marketFilter || !eshopsFilter) {
         console.error('❌ Delta chart filtry nenalezeny');
         return;
     }
@@ -1384,7 +1434,6 @@ function updateDeltaChart() {
     }
 
     const market = marketFilter.value;
-    const topN = topFilter.value;
 
     // Validace období
     if (!period1Start.value || !period1End.value || !period2Start.value || !period2End.value) {
@@ -1399,19 +1448,16 @@ function updateDeltaChart() {
         return;
     }
 
-    // Mapování e-shopů na trhy
-    const czEshops = ["Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz", "sexicekshop.cz", "honitka.cz", "sexshop.cz", "eroticke-pomucky.cz", "flagranti.cz", "sexshopik.cz", "sex-shop69.cz", "eroticcity.cz", "e-kondomy.cz", "ruzovyslon.cz", "kondomshop.cz"];
-    const skEshops = ["isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk", "ruzovyslon.sk", "kondomshop.sk"];
-    const foreignEshops = ["sexyelephant.ro", "sexyelephant.hu", "sexyelephant.si", "sexyelephant.bg", "sexyelephant.hr", "superlove.ro", "superlove.pl", "superlove.eu", "superlove.at", "superlove.hr", "superlove.it", "superlove.si", "superlove.bg", "superlove.lt", "superlove.es", "superlove.hu", "goldengate.hu", "padlizsan.hu", "sexshopcenter.hu", "erotikashow.hu", "szexaruhaz.hu", "szexshop.hu", "vagyaim.hu"];
+    // Získat vybrané e-shopy z multi-select
+    const selectedEshops = Array.from(eshopsFilter.selectedOptions).map(opt => opt.value);
 
-    let eshops;
-    if (market === 'CZ') eshops = czEshops;
-    else if (market === 'SK') eshops = skEshops;
-    else if (market === 'Foreign') eshops = foreignEshops;
-    else eshops = window.COMPETITORS || [];
+    if (selectedEshops.length === 0) {
+        alert('Vyber prosím alespoň jeden e-shop.');
+        return;
+    }
 
     // Výpočet průměrů pro každý e-shop ve dvou obdobích
-    const deltaData = eshops.map(eshop => {
+    const deltaData = selectedEshops.map(eshop => {
         const period1Avg = calculatePeriodAverage(eshop, period1Start.value, period1End.value);
         const period2Avg = calculatePeriodAverage(eshop, period2Start.value, period2End.value);
 
@@ -1434,14 +1480,7 @@ function updateDeltaChart() {
     // Seřadit sestupně podle procent
     deltaData.sort((a, b) => b.percent - a.percent);
 
-    // Omezit na top N
-    let limitedData = deltaData;
-    if (topN !== 'all') {
-        const limit = parseInt(topN);
-        limitedData = deltaData.slice(0, limit);
-    }
-
-    if (limitedData.length === 0) {
+    if (deltaData.length === 0) {
         alert('Žádná data pro zvolená období. Zkontroluj, zda máš data v těchto datech.');
         charts.delta.data.labels = [];
         charts.delta.data.datasets[0].data = [];
@@ -1449,11 +1488,11 @@ function updateDeltaChart() {
         return;
     }
 
-    const labels = limitedData.map(item => item.eshop);
-    const percentData = limitedData.map(item => item.percent);
-    const period1Data = limitedData.map(item => item.period1);
-    const period2Data = limitedData.map(item => item.period2);
-    const diffData = limitedData.map(item => item.diff);
+    const labels = deltaData.map(item => item.eshop);
+    const percentData = deltaData.map(item => item.percent);
+    const period1Data = deltaData.map(item => item.period1);
+    const period2Data = deltaData.map(item => item.period2);
+    const diffData = deltaData.map(item => item.diff);
     const colors = percentData.map(val => val >= 0 ? '#32cd32' : '#ff6347');
 
     charts.delta.data.labels = labels;
