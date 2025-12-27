@@ -137,15 +137,19 @@ async function initializeApp() {
     const trendEshopsFilter = document.getElementById('trend-eshops-filter');
     const trendTypeFilter = document.getElementById('trend-type-filter');
     const deltaMarketFilter = document.getElementById('delta-market-filter');
-    const deltaCompareFilter = document.getElementById('delta-compare-filter');
     const deltaTopFilter = document.getElementById('delta-top-filter');
+    const deltaPeriod1Start = document.getElementById('delta-period1-start');
+    const deltaPeriod1End = document.getElementById('delta-period1-end');
+    const deltaPeriod2Start = document.getElementById('delta-period2-start');
+    const deltaPeriod2End = document.getElementById('delta-period2-end');
 
     if (trendPeriodFilter) trendPeriodFilter.addEventListener('change', updateTrendChart);
     if (trendEshopsFilter) trendEshopsFilter.addEventListener('change', updateTrendChart);
     if (trendTypeFilter) trendTypeFilter.addEventListener('change', updateTrendChart);
     if (deltaMarketFilter) deltaMarketFilter.addEventListener('change', updateDeltaChart);
-    if (deltaCompareFilter) deltaCompareFilter.addEventListener('change', updateDeltaChart);
     if (deltaTopFilter) deltaTopFilter.addEventListener('change', updateDeltaChart);
+
+    // Event listenery pro datová pole delta grafu nejsou potřeba - uživatel klikne na tlačítko
 
     // Aktualizovat všechny grafy s načtenými daty
     updateAllCharts();
@@ -1304,7 +1308,8 @@ function initDeltaChart() {
                 data: [],
                 backgroundColor: [],
                 borderColor: [],
-                borderWidth: 2
+                borderWidth: 2,
+                yAxisID: 'y-percent'
             }]
         },
         options: {
@@ -1315,13 +1320,30 @@ function initDeltaChart() {
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            return context.parsed.y.toFixed(2) + '%';
+                            const dataIndex = context.dataIndex;
+                            const dataset = context.chart.data.datasets[0];
+                            const percent = dataset.data[dataIndex];
+                            const period1 = dataset.period1Data ? dataset.period1Data[dataIndex] : null;
+                            const period2 = dataset.period2Data ? dataset.period2Data[dataIndex] : null;
+                            const diff = dataset.diffData ? dataset.diffData[dataIndex] : null;
+
+                            const lines = [];
+                            lines.push(`Růst: ${percent.toFixed(1)}%`);
+                            if (period1 !== null && period2 !== null) {
+                                lines.push(`Období 1: ${period1.toLocaleString('cs-CZ')} obj.`);
+                                lines.push(`Období 2: ${period2.toLocaleString('cs-CZ')} obj.`);
+                                lines.push(`Rozdíl: ${diff >= 0 ? '+' : ''}${diff.toLocaleString('cs-CZ')} obj.`);
+                            }
+
+                            return lines;
                         }
                     }
                 }
             },
             scales: {
-                y: {
+                'y-percent': {
+                    type: 'linear',
+                    position: 'left',
                     ticks: {
                         color: '#4b5563',
                         callback: function(value) {
@@ -1345,10 +1367,13 @@ function initDeltaChart() {
 
 function updateDeltaChart() {
     const marketFilter = document.getElementById('delta-market-filter');
-    const compareFilter = document.getElementById('delta-compare-filter');
     const topFilter = document.getElementById('delta-top-filter');
+    const period1Start = document.getElementById('delta-period1-start');
+    const period1End = document.getElementById('delta-period1-end');
+    const period2Start = document.getElementById('delta-period2-start');
+    const period2End = document.getElementById('delta-period2-end');
 
-    if (!marketFilter || !compareFilter || !topFilter) {
+    if (!marketFilter || !topFilter) {
         console.error('❌ Delta chart filtry nenalezeny');
         return;
     }
@@ -1359,8 +1384,13 @@ function updateDeltaChart() {
     }
 
     const market = marketFilter.value;
-    const compareMode = compareFilter.value; // last, avg3, avg6
-    const topN = topFilter.value; // 5, 10, 15, all
+    const topN = topFilter.value;
+
+    // Validace období
+    if (!period1Start.value || !period1End.value || !period2Start.value || !period2End.value) {
+        alert('Vyber prosím obě období (datum od-do) pro porovnání.');
+        return;
+    }
 
     if (!window.trackingData || window.trackingData.length === 0) {
         charts.delta.data.labels = [];
@@ -1380,28 +1410,29 @@ function updateDeltaChart() {
     else if (market === 'Foreign') eshops = foreignEshops;
     else eshops = window.COMPETITORS || [];
 
-    const sorted = [...window.trackingData].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    // Výpočet delta pro každý e-shop
+    // Výpočet průměrů pro každý e-shop ve dvou obdobích
     const deltaData = eshops.map(eshop => {
-        let delta;
+        const period1Avg = calculatePeriodAverage(eshop, period1Start.value, period1End.value);
+        const period2Avg = calculatePeriodAverage(eshop, period2Start.value, period2End.value);
 
-        if (compareMode === 'last') {
-            // Porovnání posledního záznamu s předchozím
-            delta = calculateEshopDelta(sorted, eshop, 1);
-        } else if (compareMode === 'avg3') {
-            // Průměr posledních 3 vs průměr 3 předchozích
-            delta = calculateEshopDeltaAverage(sorted, eshop, 3);
-        } else if (compareMode === 'avg6') {
-            // Průměr posledních 6 vs průměr 6 předchozích
-            delta = calculateEshopDeltaAverage(sorted, eshop, 6);
+        if (period1Avg === null || period2Avg === null || period2Avg === 0) {
+            return null;
         }
 
-        return { eshop: eshop, delta: delta };
-    }).filter(item => item.delta !== null && !isNaN(item.delta));
+        const percentChange = ((period1Avg - period2Avg) / period2Avg) * 100;
+        const absoluteDiff = period1Avg - period2Avg;
 
-    // Seřadit sestupně podle delta
-    deltaData.sort((a, b) => b.delta - a.delta);
+        return {
+            eshop: eshop,
+            percent: percentChange,
+            period1: period1Avg,
+            period2: period2Avg,
+            diff: absoluteDiff
+        };
+    }).filter(item => item !== null);
+
+    // Seřadit sestupně podle procent
+    deltaData.sort((a, b) => b.percent - a.percent);
 
     // Omezit na top N
     let limitedData = deltaData;
@@ -1410,15 +1441,57 @@ function updateDeltaChart() {
         limitedData = deltaData.slice(0, limit);
     }
 
+    if (limitedData.length === 0) {
+        alert('Žádná data pro zvolená období. Zkontroluj, zda máš data v těchto datech.');
+        charts.delta.data.labels = [];
+        charts.delta.data.datasets[0].data = [];
+        charts.delta.update();
+        return;
+    }
+
     const labels = limitedData.map(item => item.eshop);
-    const data = limitedData.map(item => item.delta);
-    const colors = data.map(val => val >= 0 ? '#32cd32' : '#ff6347'); // sytě zelená a rajčatová
+    const percentData = limitedData.map(item => item.percent);
+    const period1Data = limitedData.map(item => item.period1);
+    const period2Data = limitedData.map(item => item.period2);
+    const diffData = limitedData.map(item => item.diff);
+    const colors = percentData.map(val => val >= 0 ? '#32cd32' : '#ff6347');
 
     charts.delta.data.labels = labels;
-    charts.delta.data.datasets[0].data = data;
+    charts.delta.data.datasets[0].data = percentData;
     charts.delta.data.datasets[0].backgroundColor = colors.map(c => c + 'CC');
     charts.delta.data.datasets[0].borderColor = colors;
+    charts.delta.data.datasets[0].period1Data = period1Data;
+    charts.delta.data.datasets[0].period2Data = period2Data;
+    charts.delta.data.datasets[0].diffData = diffData;
     charts.delta.update();
+}
+
+// Pomocná funkce pro výpočet průměru v daném období
+function calculatePeriodAverage(eshop, startDate, endDate) {
+    if (!window.trackingData) return null;
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    // Filtrovat záznamy v období
+    const recordsInPeriod = window.trackingData.filter(record => {
+        const recordDate = new Date(record.date);
+        return recordDate >= start && recordDate <= end;
+    });
+
+    if (recordsInPeriod.length === 0) return null;
+
+    // Zjistit, jestli je to vlastní e-shop
+    const isOwnEshop = window.OWN_ESHOPS && window.OWN_ESHOPS.includes(eshop);
+
+    // Sečíst delty (pro vlastní i konkurenty)
+    const totalDeltas = recordsInPeriod.reduce((sum, record) => {
+        const delta = record.deltas && record.deltas[eshop] ? record.deltas[eshop] : 0;
+        return sum + delta;
+    }, 0);
+
+    // Vrátit průměr
+    return totalDeltas / recordsInPeriod.length;
 }
 
 function calculateEshopDelta(sortedData, eshop, recordsBack) {
