@@ -1810,8 +1810,18 @@ window.updateWeeklyComparison = function() {
         });
     });
 
-    // Seřadit podle procentuální změny (nejlepší první)
-    weeklyStats.sort((a, b) => b.percentChange - a.percentChange);
+    // Seřadit abecedně - nejdříve CZ, pak SK
+    weeklyStats.sort((a, b) => {
+        const aIsCZ = czEshops.includes(a.eshop);
+        const bIsCZ = czEshops.includes(b.eshop);
+
+        // CZ před SK
+        if (aIsCZ && !bIsCZ) return -1;
+        if (!aIsCZ && bIsCZ) return 1;
+
+        // V rámci stejného trhu - abecedně
+        return a.eshop.localeCompare(b.eshop, 'cs-CZ');
+    });
 
     // Vygenerovat HTML pro tabulku
     const tbody = document.getElementById('weekly-comparison-tbody');
@@ -1942,8 +1952,18 @@ window.updateMonthlyYoYComparison = function() {
         });
     });
 
-    // Seřadit podle procentuální změny (nejlepší první)
-    monthlyStats.sort((a, b) => b.percentChange - a.percentChange);
+    // Seřadit abecedně - nejdříve CZ, pak SK
+    monthlyStats.sort((a, b) => {
+        const aIsCZ = czEshops.includes(a.eshop);
+        const bIsCZ = czEshops.includes(b.eshop);
+
+        // CZ před SK
+        if (aIsCZ && !bIsCZ) return -1;
+        if (!aIsCZ && bIsCZ) return 1;
+
+        // V rámci stejného trhu - abecedně
+        return a.eshop.localeCompare(b.eshop, 'cs-CZ');
+    });
 
     // Vygenerovat HTML pro tabulku
     const tbody = document.getElementById('monthly-yoy-comparison-tbody');
