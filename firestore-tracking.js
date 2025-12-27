@@ -51,6 +51,13 @@ function setupRealtimeListeners() {
             // Aktualizovat lokální data
             window.trackingData = data;
 
+            // Synchronizovat localStorage s Firestore
+            if (data.length === 0) {
+                localStorage.removeItem('trackingData');
+            } else {
+                localStorage.setItem('trackingData', JSON.stringify(data));
+            }
+
             // Aktualizovat UI
             if (typeof renderTrackingTable === 'function') {
                 renderTrackingTable();

@@ -1174,7 +1174,13 @@ function renderOrderTable() {
 // =====================================================
 
 function initTrendChart() {
-    const ctx = document.getElementById('trendChart').getContext('2d');
+    const canvas = document.getElementById('trendChart');
+    if (!canvas) {
+        console.warn('Trend chart canvas nenalezen, přeskakuji inicializaci');
+        return;
+    }
+
+    const ctx = canvas.getContext('2d');
     charts.trend = new Chart(ctx, {
         type: 'line',
         data: {
@@ -1706,7 +1712,13 @@ function calculateCompetitorGrowth(sortedData, competitor, daysDiff) {
 }
 
 function initMarketShareChart() {
-    const ctx = document.getElementById('marketShareChart').getContext('2d');
+    const canvas = document.getElementById('marketShareChart');
+    if (!canvas) {
+        console.warn('Market share chart canvas nenalezen, přeskakuji inicializaci');
+        return;
+    }
+
+    const ctx = canvas.getContext('2d');
     charts.marketShare = new Chart(ctx, {
         type: 'doughnut',
         data: {

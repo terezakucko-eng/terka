@@ -574,14 +574,22 @@ async function loadTrackingData() {
     try {
         if (typeof loadTrackingDataFromFirestore === 'function') {
             const data = await loadTrackingDataFromFirestore();
-            if (data && data.length > 0) {
+            // Pokud Firestore vrátilo data (i prázdné pole), použij je a synchronizuj localStorage
+            if (data !== null && data !== undefined) {
                 trackingData = data;
                 window.trackingData = trackingData;
+
+                // Synchronizovat localStorage s Firestore
+                if (data.length === 0) {
+                    localStorage.removeItem('trackingData');
+                } else {
+                    localStorage.setItem('trackingData', JSON.stringify(data));
+                }
                 return;
             }
         }
 
-        // Fallback na LocalStorage
+        // Fallback na LocalStorage pouze pokud Firestore není dostupný
         const saved = localStorage.getItem('trackingData');
         if (saved) {
             trackingData = JSON.parse(saved);
