@@ -118,12 +118,15 @@ const MONTHLY_RESET_COMPETITORS = ["erosstar.cz", "deeplove.cz"];
 /**
  * Vypočítá deltu pro konkurenty s měsíčním resetem číselné řady
  * Formát: 1YYMMSSSS kde 1=prefix, YY=rok, MM=měsíc, SSSS=pořadové číslo v měsíci
- * Např.: 124074452 = 1-24-07-4452 (rok 2024, červenec, 4452. objednávka)
+ * Např.: 125010687 = 1-25-01-0687 (rok 2025, leden, 687. objednávka)
  *
  * Při změně měsíce: Delta = (konec_měsíce - předchozí_měření) + nový_měsíc
- * Např.: (4452 - 4122) + 632 = 330 + 632 = 962
+ * Např.: (14721 - 13986) + 326 = 735 + 326 = 1061
+ *
+ * AUTOMATICKÉ HLEDÁNÍ: Když detekuje změnu měsíce, automaticky najde poslední
+ * záznam z předchozího měsíce v databázi a použije ho jako "konec měsíce".
  */
-function calculateDeltaWithMonthlyReset(current, previous, competitorName, record, prevRecord) {
+function calculateDeltaWithMonthlyReset(current, previous, competitorName, record, prevRecord, allRecords, currentIndex) {
     if (current === 0 || previous === 0) {
         return current - previous;
     }
@@ -147,9 +150,42 @@ function calculateDeltaWithMonthlyReset(current, previous, competitorName, recor
         return currentOrder - previousOrder;
     }
 
-    // ZMĚNA MĚSÍCE - potřebujeme koncové číslo předchozího měsíce
-    // Zkontroluj, jestli uživatel zadal monthEndValue v PŘEDCHOZÍM záznamu
-    const monthEndValue = prevRecord.monthEndValues && prevRecord.monthEndValues[competitorName];
+    // ZMĚNA MĚSÍCE - automaticky najít poslední záznam předchozího měsíce
+    console.log(`🔄 ${competitorName}: Detekována změna měsíce ${previousYear}-${previousMonth} → ${currentYear}-${currentMonth}`);
+
+    // Hledat v celé databázi poslední záznam z předchozího měsíce
+    let monthEndValue = null;
+    let monthEndSource = 'neznámý';
+
+    // 1. Pokusit se najít poslední záznam předchozího měsíce v databázi
+    for (let i = currentIndex - 1; i >= 0; i--) {
+        const checkRecord = allRecords[i];
+        const checkValue = checkRecord.competitors[competitorName] || 0;
+
+        if (checkValue === 0) continue;
+
+        const checkStr = String(checkValue).padStart(10, '0');
+        const checkYear = checkStr.substring(1, 3);
+        const checkMonth = checkStr.substring(3, 5);
+
+        // Pokud jsme našli záznam z předchozího měsíce
+        if (checkYear === previousYear && checkMonth === previousMonth) {
+            monthEndValue = checkValue;
+            monthEndSource = `automaticky (záznam z ${checkRecord.date})`;
+            break;
+        }
+
+        // Pokud jsme už v ještě starším měsíci, můžeme přestat hledat
+        if (checkYear < previousYear || (checkYear === previousYear && checkMonth < previousMonth)) {
+            break;
+        }
+    }
+
+    // 2. Pokud nenajdeme automaticky, zkusit monthEndValues z předchozího záznamu
+    if (!monthEndValue && prevRecord.monthEndValues && prevRecord.monthEndValues[competitorName]) {
+        monthEndValue = prevRecord.monthEndValues[competitorName];
+        monthEndSource = 'manuálně zadaná hodnota';
+    }
 
     if (monthEndValue) {
         // Máme koncové číslo měsíce - použij správný vzorec
@@ -158,7 +194,7 @@ function calculateDeltaWithMonthlyReset(current, previous, competitorName, recor
 
         const delta = (monthEndOrder - previousOrder) + currentOrder;
 
-        console.log(`✅ ${competitorName}: Změna měsíce ${previousMonth}→${currentMonth}`);
+        console.log(`✅ ${competitorName}: Použit konec měsíce (${monthEndSource})`);
         console.log(`   Výpočet: (${monthEndOrder} - ${previousOrder}) + ${currentOrder} = ${delta}`);
 
         return delta;
@@ -168,7 +204,7 @@ function calculateDeltaWithMonthlyReset(current, previous, competitorName, recor
     console.warn(`⚠️ ${competitorName}: Změna měsíce bez koncového čísla!`);
     console.warn(`   Měsíc: ${previousYear}-${previousMonth} → ${currentYear}-${currentMonth}`);
     console.warn(`   Použit zjednodušený výpočet (jen nový měsíc): ${currentOrder}`);
-    console.warn(`   💡 Pro přesný výpočet zadej "Konec měsíce" hodnotu!`);
+    console.warn(`   💡 Přidej záznam z konce předchozího měsíce pro přesný výpočet!`);
 
     return currentOrder;
 }
@@ -207,7 +243,7 @@ function calculateDeltas() {
 
                 // Speciální logika pro konkurenty s měsíčním resetem
                 if (MONTHLY_RESET_COMPETITORS.includes(comp)) {
-                    record.deltas[comp] = calculateDeltaWithMonthlyReset(current, previous, comp, record, prevRecord);
+                    record.deltas[comp] = calculateDeltaWithMonthlyReset(current, previous, comp, record, prevRecord, trackingData, index);
                 } else {
                     record.deltas[comp] = current - previous;
                 }
