@@ -271,66 +271,55 @@
                         </button>
                     </div>
 
-                    <!-- Filtr trhů -->
-                    <div class="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">🌍 Zobrazit trhy:</label>
-                        <div class="flex flex-wrap gap-3">
-                            <label class="inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="filter-market-cz" class="market-filter-checkbox" checked onchange="renderTrackingTable()">
-                                <span class="ml-2 text-sm font-medium text-gray-700">🇨🇿 CZ trh (15 e-shopů)</span>
-                            </label>
-                            <label class="inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="filter-market-sk" class="market-filter-checkbox" onchange="renderTrackingTable()">
-                                <span class="ml-2 text-sm font-medium text-gray-700">🇸🇰 SK trh (6 e-shopů)</span>
-                            </label>
-                            <label class="inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="filter-market-foreign" class="market-filter-checkbox" onchange="renderTrackingTable()">
-                                <span class="ml-2 text-sm font-medium text-gray-700">🌍 Zahraniční (29 e-shopů)</span>
-                            </label>
-                            <button onclick="toggleAllMarkets()" class="ml-4 text-sm text-blue-600 hover:text-blue-800 font-medium">
-                                Vybrat/Zrušit vše
-                            </button>
+                    <!-- TABULKA CZ TRH -->
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                            <span>🇨🇿</span> Český trh (15 e-shopů)
+                        </h3>
+                        <div class="rounded-lg border-2 border-gray-300 overflow-x-auto" style="max-height: 500px; overflow-y: auto;">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead id="tracking-table-head-cz" class="bg-gray-800 text-white sticky top-0 z-10">
+                                    <!-- Generováno JavaScriptem -->
+                                </thead>
+                                <tbody id="tracking-table-body-cz" class="bg-white divide-y divide-gray-200">
+                                    <!-- Generováno JavaScriptem -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
-                    <div class="rounded-lg border-2 border-gray-300 overflow-x-auto" style="max-height: 600px; overflow-y: auto;">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-800 text-white sticky top-0 z-10">
-                                <tr id="tracking-table-head">
-                                    <th scope="col" class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-center bg-gray-900 sticky left-0 border-r-2 border-gray-600 z-20">
-                                        Datum
-                                    </th>
-                                    <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center">Hopnato.cz</th>
-                                    <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center">erosstar.cz</th>
-                                    <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center">deeplove.cz</th>
-                                    <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center">yoo.cz</th>
-                                    <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center">sexicekshop.cz</th>
-                                    <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center">honitka.cz</th>
-                                    <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center">sexshop.cz</th>
-                                    <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center">eroticke-pomucky.cz</th>
-                                    <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center">flagranti.cz</th>
-                                    <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center">sexshopik.cz</th>
-                                    <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center">sex-shop69.cz</th>
-                                    <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center">eroticcity.cz</th>
-                                    <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center">e-kondomy.cz</th>
-                                    <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center bg-blue-900">🌸 ruzovyslon.cz</th>
-                                    <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center">kondomshop.cz</th>
-                                    <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center bg-yellow-600 border-l-2 border-yellow-400">Celkem Δ</th>
-                                    <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center bg-green-600">Slon %</th>
-                                    <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center bg-gray-700 sticky right-0 border-l-2 border-gray-600 z-20">Akce</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tracking-table-body" class="bg-white divide-y divide-gray-200">
-                                <tr>
-                                    <td colspan="19" class="text-center p-8 text-gray-500">
-                                        <div class="space-y-2">
-                                            <p class="text-lg font-medium">Zatím nebyly přidány žádné záznamy.</p>
-                                            <p class="text-sm">Klikněte na "Přidat záznam" nebo importujte data z Google Sheets.</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <!-- TABULKA SK TRH -->
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                            <span>🇸🇰</span> Slovenský trh (6 e-shopů)
+                        </h3>
+                        <div class="rounded-lg border-2 border-gray-300 overflow-x-auto" style="max-height: 500px; overflow-y: auto;">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead id="tracking-table-head-sk" class="bg-gray-800 text-white sticky top-0 z-10">
+                                    <!-- Generováno JavaScriptem -->
+                                </thead>
+                                <tbody id="tracking-table-body-sk" class="bg-white divide-y divide-gray-200">
+                                    <!-- Generováno JavaScriptem -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- TABULKA ZAHRANIČNÍ TRH -->
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                            <span>🌍</span> Zahraniční trhy (29 e-shopů)
+                        </h3>
+                        <div class="rounded-lg border-2 border-gray-300 overflow-x-auto" style="max-height: 500px; overflow-y: auto;">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead id="tracking-table-head-foreign" class="bg-gray-800 text-white sticky top-0 z-10">
+                                    <!-- Generováno JavaScriptem -->
+                                </thead>
+                                <tbody id="tracking-table-body-foreign" class="bg-white divide-y divide-gray-200">
+                                    <!-- Generováno JavaScriptem -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
 
                     <div class="mt-4 text-sm text-gray-600">

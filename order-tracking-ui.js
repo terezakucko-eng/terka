@@ -143,57 +143,15 @@ window.renderFormFields = renderFormFields;
 // =====================================================
 
 /**
- * Získá seznam e-shopů podle vybraných trhů ve filtru
+ * Vykreslí hlavičku tabulky pro daný trh
+ * @param {string} market - 'CZ', 'SK', nebo 'Foreign'
+ * @param {Array} competitors - seznam e-shopů
  */
-function getFilteredCompetitors() {
-    const czChecked = document.getElementById('filter-market-cz')?.checked || false;
-    const skChecked = document.getElementById('filter-market-sk')?.checked || false;
-    const foreignChecked = document.getElementById('filter-market-foreign')?.checked || false;
-
-    // Definice e-shopů podle trhů
-    const czEshops = [
-        "Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz", "sexicekshop.cz",
-        "honitka.cz", "sexshop.cz", "eroticke-pomucky.cz", "flagranti.cz",
-        "sexshopik.cz", "sex-shop69.cz", "eroticcity.cz", "e-kondomy.cz",
-        "ruzovyslon.cz", "kondomshop.cz"
-    ];
-
-    const skEshops = [
-        "isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk",
-        "ruzovyslon.sk", "kondomshop.sk"
-    ];
-
-    const foreignEshops = [
-        "sexyelephant.ro", "sexyelephant.hu", "sexyelephant.si",
-        "sexyelephant.bg", "sexyelephant.hr",
-        "superlove.ro", "superlove.pl", "superlove.eu", "superlove.at",
-        "superlove.hr", "superlove.it", "superlove.si", "superlove.bg",
-        "superlove.lt", "superlove.es", "superlove.hu",
-        "goldengate.hu", "padlizsan.hu", "sexshopcenter.hu",
-        "erotikashow.hu", "szexaruhaz.hu", "szexshop.hu", "vagyaim.hu"
-    ];
-
-    let filtered = [];
-    if (czChecked) filtered = filtered.concat(czEshops);
-    if (skChecked) filtered = filtered.concat(skEshops);
-    if (foreignChecked) filtered = filtered.concat(foreignEshops);
-
-    // Pokud není nic vybráno, zobraz CZ trh defaultně
-    if (filtered.length === 0) {
-        filtered = czEshops;
-    }
-
-    return filtered;
-}
-
-/**
- * Vygeneruje hlavičku tabulky podle vybraných e-shopů
- */
-function renderTrackingTableHead(competitors) {
-    const thead = document.getElementById('tracking-table-head');
+function renderTrackingTableHead(market, competitors) {
+    const thead = document.getElementById(`tracking-table-head-${market.toLowerCase()}`);
     if (!thead) return;
 
-    let html = `
+    let html = `<tr>
         <th scope="col" class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-center bg-gray-900 sticky left-0 border-r-2 border-gray-600 z-20">
             Datum
         </th>
@@ -211,43 +169,61 @@ function renderTrackingTableHead(competitors) {
         `;
     });
 
+    // CELKEM Δ a SLON % pouze pro CZ a SK
+    if (market === 'CZ' || market === 'SK') {
+        html += `
+            <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center bg-yellow-600 border-l-2 border-yellow-400">Celkem Δ</th>
+            <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center bg-green-600">Slon %</th>
+        `;
+    }
+
     html += `
-        <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center bg-yellow-600 border-l-2 border-yellow-400">Celkem Δ</th>
-        <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center bg-green-600">Slon %</th>
-        <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center bg-blue-600">📝 Poznámky</th>
         <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center bg-gray-700 sticky right-0 border-l-2 border-gray-600 z-20">Akce</th>
-    `;
+    </tr>`;
 
     thead.innerHTML = html;
 }
 
 /**
- * Toggle všechny checkboxy trhů
+ * Hlavní funkce pro vykreslení všech tří tabulek (CZ, SK, Foreign)
  */
-window.toggleAllMarkets = function() {
-    const checkboxes = document.querySelectorAll('.market-filter-checkbox');
-    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-
-    checkboxes.forEach(cb => cb.checked = !allChecked);
-    renderTrackingTable();
-};
-
 function renderTrackingTable() {
-    const tbody = document.getElementById('tracking-table-body');
-    if (!tbody) return;
+    // Definice e-shopů podle trhů
+    const czEshops = ["Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz", "sexicekshop.cz", "honitka.cz", "sexshop.cz", "eroticke-pomucky.cz", "flagranti.cz", "sexshopik.cz", "sex-shop69.cz", "eroticcity.cz", "e-kondomy.cz", "ruzovyslon.cz", "kondomshop.cz"];
+    const skEshops = ["isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk", "ruzovyslon.sk", "kondomshop.sk"];
+    const foreignEshops = ["sexyelephant.ro", "sexyelephant.hu", "sexyelephant.si", "sexyelephant.bg", "sexyelephant.hr", "superlove.ro", "superlove.pl", "superlove.eu", "superlove.at", "superlove.hr", "superlove.it", "superlove.si", "superlove.bg", "superlove.lt", "superlove.es", "superlove.hu", "goldengate.hu", "padlizsan.hu", "sexshopcenter.hu", "erotikashow.hu", "szexaruhaz.hu", "szexshop.hu", "vagyaim.hu"];
 
-    // Získat filtrované e-shopy podle výběru trhů
-    const filteredCompetitors = getFilteredCompetitors();
+    // Vykreslit každou tabulku
+    renderMarketTable('CZ', czEshops);
+    renderMarketTable('SK', skEshops);
+    renderMarketTable('Foreign', foreignEshops);
 
-    // Vygenerovat hlavičku tabulky
-    renderTrackingTableHead(filteredCompetitors);
+    // Aktualizovat metriky
+    updateMetricsDisplay();
+}
+
+/**
+ * Vykreslí tabulku pro konkrétní trh
+ * @param {string} market - 'CZ', 'SK', nebo 'Foreign'
+ * @param {Array} eshops - seznam e-shopů pro tento trh
+ */
+function renderMarketTable(market, eshops) {
+    const tbody = document.getElementById(`tracking-table-body-${market.toLowerCase()}`);
+    if (!tbody) {
+        console.error(`Table body not found for market: ${market}`);
+        return;
+    }
+
+    // Vygenerovat hlavičku
+    renderTrackingTableHead(market, eshops);
 
     tbody.innerHTML = '';
 
     if (!window.trackingData || window.trackingData.length === 0) {
+        const extraCols = (market === 'CZ' || market === 'SK') ? 3 : 1; // Akce + (CELKEM Δ + SLON % pro CZ/SK)
         tbody.innerHTML = `
             <tr>
-                <td colspan="${filteredCompetitors.length + 5}" class="text-center p-8 text-gray-500">
+                <td colspan="${eshops.length + extraCols}" class="text-center p-8 text-gray-500">
                     <div class="space-y-2">
                         <p class="text-lg font-medium">Zatím nebyly přidány žádné záznamy.</p>
                         <p class="text-sm">Klikněte na "Přidat záznam" nebo importujte data z Google Sheets.</p>
@@ -272,24 +248,30 @@ function renderTrackingTable() {
             </td>
         `;
 
-        // Pro každého FILTROVANÉHO e-shopu: Číslo objednávky a Delta
-        filteredCompetitors.forEach((comp, index) => {
-            const orderNum = record.competitors[comp] || 0;
-            const delta = record.deltas[comp] || 0;
+        // Pro každý e-shop v tomto trhu
+        eshops.forEach(eshop => {
+            const orderNum = record.competitors[eshop] || 0;
+            const delta = record.deltas[eshop] || 0;
             const deltaClass = delta > 0 ? 'text-green-600' : (delta < 0 ? 'text-red-600' : 'text-gray-400');
 
             // Zjistit, jestli je to vlastní e-shop
-            const isOwnEshop = window.OWN_ESHOPS && window.OWN_ESHOPS.includes(comp);
+            const isOwnEshop = window.OWN_ESHOPS && window.OWN_ESHOPS.includes(eshop);
 
-            // Pro vlastní e-shopy zelené pozadí, jinak normální
+            // Pro vlastní e-shopy zelené pozadí
             const bgClass = isOwnEshop ? 'bg-green-50 font-bold' : '';
 
             // Pro vlastní e-shopy zobrazit "-" místo čísla objednávky
             const orderNumDisplay = isOwnEshop ? '-' : orderNum.toLocaleString('cs-CZ');
 
+            // Získat poznámku pro tento e-shop (pokud existuje)
+            const cellNote = record.cellNotes && record.cellNotes[eshop] ? record.cellNotes[eshop] : '';
+            const noteIndicator = cellNote ? ' 📝' : '';
+            const noteTitle = cellNote ? `title="${escapeHtml(cellNote)}"` : '';
+
             row.innerHTML += `
-                <td class="px-3 py-3 text-sm text-center ${bgClass}">
-                    <div class="font-medium text-gray-500 text-xs">${orderNumDisplay}</div>
+                <td class="px-3 py-3 text-sm text-center ${bgClass} cursor-pointer hover:bg-blue-100"
+                    onclick="editCellNote('${record.id}', '${eshop}')" ${noteTitle}>
+                    <div class="font-medium text-gray-500 text-xs">${orderNumDisplay}${noteIndicator}</div>
                     <div class="${deltaClass} text-xs font-semibold">
                         ${delta > 0 ? '+' : ''}${delta.toLocaleString('cs-CZ')}
                     </div>
@@ -297,27 +279,32 @@ function renderTrackingTable() {
             `;
         });
 
-        // Agregované metriky a poznámky
-        const escapeHtml = (text) => {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        };
+        // CELKEM Δ a SLON % pouze pro CZ a SK
+        if (market === 'CZ' || market === 'SK') {
+            // Vypočítat celkový delta pro tento trh
+            const totalDelta = eshops.reduce((sum, eshop) => {
+                return sum + (record.deltas[eshop] || 0);
+            }, 0);
 
-        const notesDisplay = record.notes && record.notes.trim() !== ''
-            ? `<span class="text-xs text-gray-700 italic" title="${escapeHtml(record.notes)}">${escapeHtml(record.notes.length > 30 ? record.notes.substring(0, 30) + '...' : record.notes)}</span>`
-            : '<span class="text-xs text-gray-400">-</span>';
+            // Vypočítat Slon % pro tento trh
+            const ownEshops = market === 'CZ' ? ['ruzovyslon.cz', 'kondomshop.cz'] : ['ruzovyslon.sk', 'kondomshop.sk'];
+            const slonDelta = ownEshops.reduce((sum, eshop) => {
+                return sum + (record.deltas[eshop] || 0);
+            }, 0);
+            const slonShare = totalDelta > 0 ? (slonDelta / totalDelta * 100) : 0;
 
+            row.innerHTML += `
+                <td class="px-3 py-3 text-sm text-center bg-yellow-50 font-bold border-l-2 border-yellow-300">
+                    ${totalDelta.toLocaleString('cs-CZ')}
+                </td>
+                <td class="px-3 py-3 text-sm text-center bg-green-50 font-bold">
+                    ${slonShare.toFixed(1)}%
+                </td>
+            `;
+        }
+
+        // Akce
         row.innerHTML += `
-            <td class="px-3 py-3 text-sm text-center bg-yellow-50 font-bold border-l-2 border-yellow-300">
-                ${record.totalOrders.toLocaleString('cs-CZ')}
-            </td>
-            <td class="px-3 py-3 text-sm text-center bg-green-50 font-bold">
-                ${record.slonShare.toFixed(1)}%
-            </td>
-            <td class="px-3 py-3 text-sm text-left bg-blue-50">
-                ${notesDisplay}
-            </td>
             <td class="px-3 py-3 text-sm text-right bg-gray-50 sticky right-0 border-l border-gray-300">
                 <button onclick="editTrackingRecord(${record.id})" class="text-blue-600 hover:text-blue-800 mr-2">
                     ✏️
@@ -330,9 +317,13 @@ function renderTrackingTable() {
 
         tbody.appendChild(row);
     });
+}
 
-    // Aktualizovat metriky
-    updateMetricsDisplay();
+// Pomocná funkce pro escapování HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // =====================================================
@@ -722,6 +713,56 @@ function formatDate(dateString) {
     const year = date.getFullYear();
     return `${day}.${month}.${year}`;
 }
+
+// =====================================================
+// EDITACE POZNÁMEK V BUŇKÁCH
+// =====================================================
+
+/**
+ * Otevře dialog pro editaci poznámky k buňce
+ * @param {number} recordId - ID záznamu
+ * @param {string} eshop - Název e-shopu
+ */
+window.editCellNote = function(recordId, eshop) {
+    // Najít záznam
+    const record = window.trackingData.find(r => r.id == recordId);
+    if (!record) {
+        alert('Záznam nenalezen');
+        return;
+    }
+
+    // Inicializovat cellNotes pokud neexistuje
+    if (!record.cellNotes) {
+        record.cellNotes = {};
+    }
+
+    // Získat aktuální poznámku
+    const currentNote = record.cellNotes[eshop] || '';
+
+    // Zobrazit prompt pro editaci
+    const newNote = prompt(
+        `Poznámka pro ${eshop} dne ${formatDate(record.date)}:\n\n(např. "Akce 20%", "Black Friday", "Email kampaň")`,
+        currentNote
+    );
+
+    // Pokud uživatel klikl na Cancel, nic nedělat
+    if (newNote === null) return;
+
+    // Uložit poznámku (prázdný string = smazat)
+    if (newNote.trim() === '') {
+        delete record.cellNotes[eshop];
+    } else {
+        record.cellNotes[eshop] = newNote.trim();
+    }
+
+    // Uložit data
+    if (typeof saveTrackingData === 'function') {
+        saveTrackingData();
+    }
+
+    // Překreslit tabulku
+    renderTrackingTable();
+};
 
 // Export funkcí
 window.renderTrackingTable = renderTrackingTable;
