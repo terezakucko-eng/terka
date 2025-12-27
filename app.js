@@ -1416,22 +1416,24 @@ window.updateDeltaEshopsFilter = function() {
 function updateDeltaChart() {
     const marketFilter = document.getElementById('delta-market-filter');
     const eshopsFilter = document.getElementById('delta-eshops-filter');
+    const chartTypeSelect = document.getElementById('delta-chart-type');
     const period1Start = document.getElementById('delta-period1-start');
     const period1End = document.getElementById('delta-period1-end');
     const period2Start = document.getElementById('delta-period2-start');
     const period2End = document.getElementById('delta-period2-end');
 
-    if (!marketFilter || !eshopsFilter) {
-        console.error('❌ Delta chart filtry nenalezeny');
+    if (!marketFilter || !eshopsFilter || !chartTypeSelect) {
+        console.error('Delta chart filtry nenalezeny');
         return;
     }
 
     if (!charts.delta) {
-        console.warn('⚠️ Delta chart není inicializován');
+        console.warn('Delta chart není inicializován');
         return;
     }
 
     const market = marketFilter.value;
+    const chartType = chartTypeSelect.value;
 
     // Validace období
     if (!period1Start.value || !period1End.value || !period2Start.value || !period2End.value) {
@@ -1441,7 +1443,7 @@ function updateDeltaChart() {
 
     if (!window.trackingData || window.trackingData.length === 0) {
         charts.delta.data.labels = [];
-        charts.delta.data.datasets[0].data = [];
+        charts.delta.data.datasets = [];
         charts.delta.update();
         return;
     }
@@ -1459,11 +1461,11 @@ function updateDeltaChart() {
         const period1Avg = calculatePeriodAverage(eshop, period1Start.value, period1End.value);
         const period2Avg = calculatePeriodAverage(eshop, period2Start.value, period2End.value);
 
-        if (period1Avg === null || period2Avg === null || period2Avg === 0) {
+        if (period1Avg === null || period2Avg === null) {
             return null;
         }
 
-        const percentChange = ((period1Avg - period2Avg) / period2Avg) * 100;
+        const percentChange = period2Avg === 0 ? 0 : ((period1Avg - period2Avg) / period2Avg) * 100;
         const absoluteDiff = period1Avg - period2Avg;
 
         return {
@@ -1475,31 +1477,91 @@ function updateDeltaChart() {
         };
     }).filter(item => item !== null);
 
-    // Seřadit sestupně podle procent
-    deltaData.sort((a, b) => b.percent - a.percent);
+    // Seřadit sestupně podle period1 (nebo percent pro growth)
+    if (chartType === 'growth') {
+        deltaData.sort((a, b) => b.percent - a.percent);
+    } else {
+        deltaData.sort((a, b) => b.period1 - a.period1);
+    }
 
     if (deltaData.length === 0) {
         alert('Žádná data pro zvolená období. Zkontroluj, zda máš data v těchto datech.');
         charts.delta.data.labels = [];
-        charts.delta.data.datasets[0].data = [];
+        charts.delta.data.datasets = [];
         charts.delta.update();
         return;
     }
 
     const labels = deltaData.map(item => item.eshop);
-    const percentData = deltaData.map(item => item.percent);
-    const period1Data = deltaData.map(item => item.period1);
-    const period2Data = deltaData.map(item => item.period2);
-    const diffData = deltaData.map(item => item.diff);
-    const colors = percentData.map(val => val >= 0 ? '#32cd32' : '#ff6347');
 
-    charts.delta.data.labels = labels;
-    charts.delta.data.datasets[0].data = percentData;
-    charts.delta.data.datasets[0].backgroundColor = colors.map(c => c + 'CC');
-    charts.delta.data.datasets[0].borderColor = colors;
-    charts.delta.data.datasets[0].period1Data = period1Data;
-    charts.delta.data.datasets[0].period2Data = period2Data;
-    charts.delta.data.datasets[0].diffData = diffData;
+    // Nastavit typ grafu a data podle výběru
+    if (chartType === 'comparison') {
+        // Sloupcový graf s dvěma datasety
+        charts.delta.config.type = 'bar';
+        charts.delta.data.labels = labels;
+        charts.delta.data.datasets = [
+            {
+                label: 'Období 1 (novější)',
+                data: deltaData.map(item => item.period1),
+                backgroundColor: 'rgba(76, 175, 80, 0.7)',
+                borderColor: 'rgba(76, 175, 80, 1)',
+                borderWidth: 2
+            },
+            {
+                label: 'Období 2 (starší)',
+                data: deltaData.map(item => item.period2),
+                backgroundColor: 'rgba(33, 150, 243, 0.7)',
+                borderColor: 'rgba(33, 150, 243, 1)',
+                borderWidth: 2
+            }
+        ];
+        charts.delta.options.scales.y.title.text = 'Průměrný počet objednávek';
+    } else if (chartType === 'growth') {
+        // Procentuální růst
+        charts.delta.config.type = 'bar';
+        const percentData = deltaData.map(item => item.percent);
+        const colors = percentData.map(val => val >= 0 ? '#32cd32' : '#ff6347');
+
+        charts.delta.data.labels = labels;
+        charts.delta.data.datasets = [{
+            label: 'Procentuální změna',
+            data: percentData,
+            backgroundColor: colors.map(c => c + 'CC'),
+            borderColor: colors,
+            borderWidth: 2
+        }];
+        charts.delta.options.scales.y.title.text = 'Změna (%)';
+    } else if (chartType === 'line') {
+        // Čárový graf
+        charts.delta.config.type = 'line';
+        charts.delta.data.labels = labels;
+        charts.delta.data.datasets = [
+            {
+                label: 'Období 1 (novější)',
+                data: deltaData.map(item => item.period1),
+                borderColor: 'rgba(76, 175, 80, 1)',
+                backgroundColor: 'rgba(76, 175, 80, 0.2)',
+                borderWidth: 3,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                tension: 0.3,
+                fill: false
+            },
+            {
+                label: 'Období 2 (starší)',
+                data: deltaData.map(item => item.period2),
+                borderColor: 'rgba(33, 150, 243, 1)',
+                backgroundColor: 'rgba(33, 150, 243, 0.2)',
+                borderWidth: 3,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                tension: 0.3,
+                fill: false
+            }
+        ];
+        charts.delta.options.scales.y.title.text = 'Průměrný počet objednávek';
+    }
+
     charts.delta.update();
 }
 
