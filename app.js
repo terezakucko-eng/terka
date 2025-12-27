@@ -1322,8 +1322,7 @@ function initDeltaChart() {
                 data: [],
                 backgroundColor: [],
                 borderColor: [],
-                borderWidth: 2,
-                yAxisID: 'y-percent'
+                borderWidth: 2
             }]
         },
         options: {
@@ -1355,16 +1354,18 @@ function initDeltaChart() {
                 }
             },
             scales: {
-                'y-percent': {
+                y: {
                     type: 'linear',
                     position: 'left',
                     ticks: {
-                        color: '#4b5563',
-                        callback: function(value) {
-                            return value + '%';
-                        }
+                        color: '#4b5563'
                     },
-                    grid: { color: '#e5e7eb' }
+                    grid: { color: '#e5e7eb' },
+                    title: {
+                        display: true,
+                        text: 'Hodnota',
+                        color: '#4b5563'
+                    }
                 },
                 x: {
                     ticks: {
