@@ -577,8 +577,15 @@ function handleExcelPaste(e) {
 
     // Rozdělit data na řádky a buňky
     const rows = pastedData.split(/\r?\n/).filter(row => row.trim());
+
+    // Najít tbody - buď z aktuálního řádku nebo přímo podle ID
     const currentRow = e.target.closest('tr');
-    const tbody = currentRow.parentElement;
+    const tbody = currentRow ? currentRow.parentElement : document.getElementById('bulk-data-tbody');
+
+    if (!tbody) {
+        console.error('Tabulka pro bulk import nebyla nalezena');
+        return;
+    }
 
     // Vyčistit tabulku před vložením
     tbody.innerHTML = '';
@@ -592,7 +599,25 @@ function handleExcelPaste(e) {
         row.className = 'hover:bg-gray-50';
 
         const eshop = cells[0] || '';
-        const date = cells[1] || new Date().toISOString().split('T')[0];
+
+        // Převést datum do formátu YYYY-MM-DD (pro input type="date")
+        let date = cells[1] || '';
+        if (date) {
+            // Zkusit parsovat různé formáty
+            const dateMatch = date.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/); // DD.MM.YYYY
+            if (dateMatch) {
+                const day = dateMatch[1].padStart(2, '0');
+                const month = dateMatch[2].padStart(2, '0');
+                const year = dateMatch[3];
+                date = `${year}-${month}-${day}`;
+            } else if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                // Pokud není ve formátu YYYY-MM-DD, použij dnešní datum
+                date = new Date().toISOString().split('T')[0];
+            }
+        } else {
+            date = new Date().toISOString().split('T')[0];
+        }
+
         const orderNumber = cells[2] || '';
         const orderCount = cells[3] || '';
 
@@ -694,6 +719,23 @@ function addBulkTrackingRecord(eshop, date, orderNumber, orderCount) {
 
 // Export funkce
 window.addBulkTrackingRecord = addBulkTrackingRecord;
+
+// Přidat globální paste handler na bulk tabulku
+window.addEventListener('DOMContentLoaded', function() {
+    const bulkTableBody = document.getElementById('bulk-data-tbody');
+    if (bulkTableBody) {
+        // Přidat paste handler na celý tbody pro zachycení paste i když je prázdný
+        bulkTableBody.addEventListener('paste', function(e) {
+            // Kontrola, zda není už přidán handler na konkrétní input (přednost má specifický handler)
+            if (e.target.classList.contains('bulk-eshop')) {
+                return; // Nech to zpracovat handleExcelPaste na inputu
+            }
+
+            // Pokud je paste na tbody nebo jiný element, zpracuj to globálně
+            handleExcelPaste(e);
+        });
+    }
+});
 
 // Datalist pro e-shopy
 window.addEventListener('DOMContentLoaded', function() {
