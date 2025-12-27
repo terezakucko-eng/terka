@@ -538,9 +538,15 @@ function parseVerticalCSV(lines) {
 
     console.log(`📍 Indexy sloupců: E-SHOP=${eshopIndex}, Datum=${dateIndex}, Číslo obj.=${orderNumIndex}, Počet obj.=${countIndex}`);
 
-    if (eshopIndex === -1 || dateIndex === -1 || orderNumIndex === -1) {
-        console.error('❌ Nepodařilo se najít všechny požadované sloupce');
-        throw new Error('Nenalezeny požadované sloupce (E-SHOP, Datum, Číslo obj.)');
+    if (eshopIndex === -1 || dateIndex === -1) {
+        console.error('❌ Nepodařilo se najít povinné sloupce');
+        throw new Error('Nenalezeny požadované sloupce (E-SHOP, Datum)');
+    }
+
+    // Číslo obj. a Počet obj. jsou nepovinné
+    if (orderNumIndex === -1 && countIndex === -1) {
+        console.error('❌ Musí být alespoň jeden sloupec: Číslo obj. nebo Počet obj.');
+        throw new Error('Nenalezen žádný sloupec s daty objednávek');
     }
 
     // Seskupit řádky podle data
