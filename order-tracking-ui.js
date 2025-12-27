@@ -265,16 +265,21 @@ function renderMarketTable(market, eshops) {
 
             // Získat poznámku pro tento e-shop (pokud existuje)
             const cellNote = record.cellNotes && record.cellNotes[eshop] ? record.cellNotes[eshop] : '';
-            const noteIndicator = cellNote ? ' 📝' : '';
             const noteTitle = cellNote ? `title="${escapeHtml(cellNote)}"` : '';
+
+            // Zkrácený text poznámky pro zobrazení (max 15 znaků)
+            const noteDisplay = cellNote ?
+                (cellNote.length > 15 ? cellNote.substring(0, 15) + '...' : cellNote) :
+                '';
 
             row.innerHTML += `
                 <td class="px-3 py-3 text-sm text-center ${bgClass} cursor-pointer hover:bg-blue-100"
                     onclick="editCellNote('${record.id}', '${eshop}')" ${noteTitle}>
-                    <div class="font-medium text-gray-500 text-xs">${orderNumDisplay}${noteIndicator}</div>
+                    <div class="font-medium text-gray-500 text-xs">${orderNumDisplay}</div>
                     <div class="${deltaClass} text-xs font-semibold">
                         ${delta > 0 ? '+' : ''}${delta.toLocaleString('cs-CZ')}
                     </div>
+                    ${cellNote ? `<div class="text-blue-600 text-xs italic mt-1">📝 ${escapeHtml(noteDisplay)}</div>` : ''}
                 </td>
             `;
         });
