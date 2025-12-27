@@ -282,6 +282,102 @@ function calculateDeltas() {
             record.shares[comp] = total > 0 ? (slonDelta / total) * 100 : 0;
         });
     });
+
+    // AUTOMATICKÉ DOPLNĚNÍ CHYBĚJÍCÍCH DAT INTERPOLACÍ
+    interpolateMissingData();
+}
+
+/**
+ * Automaticky doplní chybějící data (kde je 0) pomocí interpolace
+ * Najde nejbližší předchozí a následující nenulovou hodnotu a spočítá průměr
+ */
+function interpolateMissingData() {
+    if (trackingData.length < 3) {
+        // Interpolace má smysl jen když máme alespoň 3 záznamy
+        return;
+    }
+
+    console.log('🔧 Interpolace chybějících dat...');
+    let interpolatedCount = 0;
+
+    // Pro každý e-shop zkontroluj všechny záznamy
+    COMPETITORS.forEach(comp => {
+        trackingData.forEach((record, index) => {
+            // Přeskočit první a poslední záznam
+            if (index === 0 || index === trackingData.length - 1) {
+                return;
+            }
+
+            // Pokud má e-shop hodnotu 0 (chybějící data)
+            const currentValue = record.competitors[comp] || 0;
+            if (currentValue === 0) {
+                // Najít předchozí nenulovou hodnotu
+                let prevValue = null;
+                let prevIndex = -1;
+                for (let i = index - 1; i >= 0; i--) {
+                    const val = trackingData[i].competitors[comp] || 0;
+                    if (val !== 0) {
+                        prevValue = val;
+                        prevIndex = i;
+                        break;
+                    }
+                }
+
+                // Najít následující nenulovou hodnotu
+                let nextValue = null;
+                let nextIndex = -1;
+                for (let i = index + 1; i < trackingData.length; i++) {
+                    const val = trackingData[i].competitors[comp] || 0;
+                    if (val !== 0) {
+                        nextValue = val;
+                        nextIndex = i;
+                        break;
+                    }
+                }
+
+                // Pokud máme obě hodnoty, spočítat interpolaci
+                if (prevValue !== null && nextValue !== null) {
+                    // Lineární interpolace podle vzdálenosti
+                    const totalDistance = nextIndex - prevIndex;
+                    const currentDistance = index - prevIndex;
+                    const ratio = currentDistance / totalDistance;
+
+                    const interpolatedValue = Math.round(prevValue + (nextValue - prevValue) * ratio);
+
+                    console.log(`  📊 ${comp} [${formatDate(record.date)}]: Interpolace ${prevValue} → ${interpolatedValue} → ${nextValue}`);
+
+                    // Uložit interpolovanou hodnotu
+                    record.competitors[comp] = interpolatedValue;
+
+                    // Přepočítat deltu pro tento záznam
+                    if (index > 0) {
+                        const prevRecord = trackingData[index - 1];
+                        const prevOrderNum = prevRecord.competitors[comp] || 0;
+
+                        if (MONTHLY_RESET_COMPETITORS.includes(comp)) {
+                            record.deltas[comp] = calculateDeltaWithMonthlyReset(
+                                interpolatedValue,
+                                prevOrderNum,
+                                comp,
+                                record,
+                                prevRecord,
+                                trackingData,
+                                index
+                            );
+                        } else {
+                            record.deltas[comp] = interpolatedValue - prevOrderNum;
+                        }
+                    }
+
+                    interpolatedCount++;
+                }
+            }
+        });
+    });
+
+    if (interpolatedCount > 0) {
+        console.log(`✅ Interpolováno ${interpolatedCount} chybějících hodnot`);
+    }
 }
 
 // =====================================================
