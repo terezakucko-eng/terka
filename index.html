@@ -175,7 +175,7 @@
                         CZ - Český trh
                         <span class="ml-2 text-sm font-normal text-gray-500" id="metric-cz-period">-</span>
                     </h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                         <div class="metric-card blue">
                             <h3 class="text-sm font-medium opacity-90 mb-1">Celkem objednávek</h3>
                             <p class="text-3xl font-bold" id="metric-cz-total">-</p>
@@ -186,15 +186,20 @@
                             <p class="text-3xl font-bold" id="metric-cz-slon">-</p>
                             <p class="text-xs mt-2 opacity-75" id="metric-cz-slon-share">Podíl: -</p>
                         </div>
+                        <div class="metric-card green">
+                            <h3 class="text-sm font-medium opacity-90 mb-1">Kondomshop CZ</h3>
+                            <p class="text-3xl font-bold" id="metric-cz-kondomshop">-</p>
+                            <p class="text-xs mt-2 opacity-75" id="metric-cz-kondomshop-share">Podíl: -</p>
+                        </div>
                         <div class="metric-card orange">
                             <h3 class="text-sm font-medium opacity-90 mb-1">Top konkurent</h3>
                             <p class="text-lg font-bold" id="metric-cz-top-name">-</p>
                             <p class="text-2xl font-bold" id="metric-cz-top-orders">-</p>
                         </div>
-                        <div class="metric-card">
-                            <h3 class="text-sm font-medium opacity-90 mb-1">Růst měsíc/měsíc</h3>
-                            <p class="text-3xl font-bold" id="metric-cz-mom">-</p>
-                            <p class="text-xs mt-2 opacity-75">Celý CZ trh</p>
+                        <div class="metric-card purple">
+                            <h3 class="text-sm font-medium opacity-90 mb-1">% skokan týdne</h3>
+                            <p class="text-lg font-bold" id="metric-cz-wk-jumper-name">-</p>
+                            <p class="text-2xl font-bold" id="metric-cz-wk-jumper-pct">-</p>
                         </div>
                     </div>
                 </div>
@@ -205,7 +210,7 @@
                         SK - Slovenský trh
                         <span class="ml-2 text-sm font-normal text-gray-500" id="metric-sk-period">-</span>
                     </h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                         <div class="metric-card blue">
                             <h3 class="text-sm font-medium opacity-90 mb-1">Celkem objednávek</h3>
                             <p class="text-3xl font-bold" id="metric-sk-total">-</p>
@@ -216,15 +221,20 @@
                             <p class="text-3xl font-bold" id="metric-sk-slon">-</p>
                             <p class="text-xs mt-2 opacity-75" id="metric-sk-slon-share">Podíl: -</p>
                         </div>
+                        <div class="metric-card green">
+                            <h3 class="text-sm font-medium opacity-90 mb-1">Kondomshop SK</h3>
+                            <p class="text-3xl font-bold" id="metric-sk-kondomshop">-</p>
+                            <p class="text-xs mt-2 opacity-75" id="metric-sk-kondomshop-share">Podíl: -</p>
+                        </div>
                         <div class="metric-card orange">
                             <h3 class="text-sm font-medium opacity-90 mb-1">Top konkurent</h3>
                             <p class="text-lg font-bold" id="metric-sk-top-name">-</p>
                             <p class="text-2xl font-bold" id="metric-sk-top-orders">-</p>
                         </div>
-                        <div class="metric-card">
-                            <h3 class="text-sm font-medium opacity-90 mb-1">Růst měsíc/měsíc</h3>
-                            <p class="text-3xl font-bold" id="metric-sk-mom">-</p>
-                            <p class="text-xs mt-2 opacity-75">Celý SK trh</p>
+                        <div class="metric-card purple">
+                            <h3 class="text-sm font-medium opacity-90 mb-1">% skokan týdne</h3>
+                            <p class="text-lg font-bold" id="metric-sk-wk-jumper-name">-</p>
+                            <p class="text-2xl font-bold" id="metric-sk-wk-jumper-pct">-</p>
                         </div>
                     </div>
                 </div>
@@ -251,10 +261,10 @@
                             <p class="text-lg font-bold" id="metric-foreign-top-name">-</p>
                             <p class="text-2xl font-bold" id="metric-foreign-top-orders">-</p>
                         </div>
-                        <div class="metric-card">
-                            <h3 class="text-sm font-medium opacity-90 mb-1">Růst měsíc/měsíc</h3>
-                            <p class="text-3xl font-bold" id="metric-foreign-mom">-</p>
-                            <p class="text-xs mt-2 opacity-75">Celý zahraniční trh</p>
+                        <div class="metric-card purple">
+                            <h3 class="text-sm font-medium opacity-90 mb-1">% skokan týdne</h3>
+                            <p class="text-lg font-bold" id="metric-foreign-wk-jumper-name">-</p>
+                            <p class="text-2xl font-bold" id="metric-foreign-wk-jumper-pct">-</p>
                         </div>
                     </div>
                 </div>
@@ -274,7 +284,7 @@
                     <!-- TABULKA CZ TRH -->
                     <div class="mb-6">
                         <h3 class="text-xl font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                            CZ - Český trh (15 e-shopů)
+                            CZ - Český trh (11 e-shopů)
                         </h3>
                         <div class="rounded-lg border-2 border-gray-300 overflow-x-auto" style="max-height: 500px; overflow-y: auto;">
                             <table class="min-w-full divide-y divide-gray-200">

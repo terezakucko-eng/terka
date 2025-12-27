@@ -586,16 +586,23 @@ function updateMetricsDisplay() {
 function updateMarketMetrics(market, eshops, latest, sorted, dateStr, ownEshops) {
     // Celkový počet objednávek na trhu (DELTY, ne absolutní čísla!)
     let totalOrders = 0;
-    let ownOrders = 0;
+    let slonOrders = 0;
+    let kondomshopOrders = 0;
+    let elephantOrders = 0;
     let topCompetitor = { name: '-', orders: 0 };
 
     eshops.forEach(eshop => {
         const delta = latest.deltas[eshop] || 0;
         totalOrders += delta;
 
-        if (ownEshops.includes(eshop)) {
-            ownOrders += delta;
-        } else {
+        // Rozdělit Růžový Slon, Kondomshop a Sexy Elephant
+        if (eshop === 'ruzovyslon.cz' || eshop === 'ruzovyslon.sk') {
+            slonOrders += delta;
+        } else if (eshop === 'kondomshop.cz' || eshop === 'kondomshop.sk') {
+            kondomshopOrders += delta;
+        } else if (eshop.startsWith('sexyelephant.')) {
+            elephantOrders += delta;
+        } else if (!ownEshops.includes(eshop)) {
             // Hledat top konkurenta (ne vlastní e-shop)
             if (delta > topCompetitor.orders) {
                 topCompetitor = { name: eshop, orders: delta };
@@ -609,12 +616,18 @@ function updateMarketMetrics(market, eshops, latest, sorted, dateStr, ownEshops)
 
     // Vlastní e-shopy
     if (market === 'cz' || market === 'sk') {
-        document.getElementById(`metric-${market}-slon`).textContent = ownOrders.toLocaleString('cs-CZ');
-        const share = totalOrders > 0 ? (ownOrders / totalOrders * 100).toFixed(1) : '0.0';
-        document.getElementById(`metric-${market}-slon-share`).textContent = `Podíl: ${share}%`;
+        // Růžový Slon
+        document.getElementById(`metric-${market}-slon`).textContent = slonOrders.toLocaleString('cs-CZ');
+        const slonShare = totalOrders > 0 ? (slonOrders / totalOrders * 100).toFixed(1) : '0.0';
+        document.getElementById(`metric-${market}-slon-share`).textContent = `Podíl: ${slonShare}%`;
+
+        // Kondomshop
+        document.getElementById(`metric-${market}-kondomshop`).textContent = kondomshopOrders.toLocaleString('cs-CZ');
+        const kondomshopShare = totalOrders > 0 ? (kondomshopOrders / totalOrders * 100).toFixed(1) : '0.0';
+        document.getElementById(`metric-${market}-kondomshop-share`).textContent = `Podíl: ${kondomshopShare}%`;
     } else if (market === 'foreign') {
-        document.getElementById(`metric-${market}-elephant`).textContent = ownOrders.toLocaleString('cs-CZ');
-        const share = totalOrders > 0 ? (ownOrders / totalOrders * 100).toFixed(1) : '0.0';
+        document.getElementById(`metric-${market}-elephant`).textContent = elephantOrders.toLocaleString('cs-CZ');
+        const share = totalOrders > 0 ? (elephantOrders / totalOrders * 100).toFixed(1) : '0.0';
         document.getElementById(`metric-${market}-elephant-share`).textContent = `Podíl: ${share}%`;
     }
 
@@ -622,10 +635,69 @@ function updateMarketMetrics(market, eshops, latest, sorted, dateStr, ownEshops)
     document.getElementById(`metric-${market}-top-name`).textContent = topCompetitor.name;
     document.getElementById(`metric-${market}-top-orders`).textContent = topCompetitor.orders.toLocaleString('cs-CZ');
 
-    // Růst měsíc/měsíc (celého trhu)
-    const mom = calculateMarketGrowth(sorted, eshops, 30);
-    document.getElementById(`metric-${market}-mom`).textContent =
-        mom !== null ? `${mom > 0 ? '+' : ''}${mom.toFixed(1)}%` : 'N/A';
+    // Skokan týdne (e-shop s největším procentuálním mezitýdenním růstem)
+    const weekJumper = calculateWeekJumper(sorted, eshops);
+    document.getElementById(`metric-${market}-wk-jumper-name`).textContent = weekJumper.name;
+    document.getElementById(`metric-${market}-wk-jumper-pct`).textContent = weekJumper.pct;
+}
+
+function calculateWeekJumper(sortedData, eshops) {
+    if (sortedData.length < 14) {
+        return { name: '-', pct: 'N/A' };
+    }
+
+    const today = new Date();
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(today.getDate() - 7);
+    const fourteenDaysAgo = new Date(today);
+    fourteenDaysAgo.setDate(today.getDate() - 14);
+
+    // Data pro tento týden (poslední 7 dní)
+    const thisWeekData = sortedData.filter(record => {
+        const recordDate = new Date(record.date);
+        return recordDate >= sevenDaysAgo && recordDate <= today;
+    });
+
+    // Data pro minulý týden (dny 8-14)
+    const lastWeekData = sortedData.filter(record => {
+        const recordDate = new Date(record.date);
+        return recordDate >= fourteenDaysAgo && recordDate < sevenDaysAgo;
+    });
+
+    if (thisWeekData.length === 0 || lastWeekData.length === 0) {
+        return { name: '-', pct: 'N/A' };
+    }
+
+    let bestJumper = { name: '-', pct: -Infinity, pctText: 'N/A' };
+
+    // Vypočítat mezitýdenní změnu pro každý e-shop
+    eshops.forEach(eshop => {
+        // Součet delta hodnot pro tento týden
+        const thisWeekTotal = thisWeekData.reduce((sum, record) => {
+            const delta = (record.deltas && record.deltas[eshop]) ? record.deltas[eshop] : 0;
+            return sum + delta;
+        }, 0);
+
+        // Součet delta hodnot pro minulý týden
+        const lastWeekTotal = lastWeekData.reduce((sum, record) => {
+            const delta = (record.deltas && record.deltas[eshop]) ? record.deltas[eshop] : 0;
+            return sum + delta;
+        }, 0);
+
+        // Vypočítat procentuální změnu
+        if (lastWeekTotal > 0) {
+            const percentChange = ((thisWeekTotal - lastWeekTotal) / lastWeekTotal) * 100;
+            if (percentChange > bestJumper.pct) {
+                bestJumper = {
+                    name: eshop,
+                    pct: percentChange,
+                    pctText: `${percentChange > 0 ? '+' : ''}${percentChange.toFixed(1)}%`
+                };
+            }
+        }
+    });
+
+    return { name: bestJumper.name, pct: bestJumper.pctText };
 }
 
 function calculateMarketGrowth(sortedData, eshops, daysDiff) {
@@ -673,13 +745,16 @@ function resetAllMetrics() {
     ['cz', 'sk', 'foreign'].forEach(market => {
         document.getElementById(`metric-${market}-period`).textContent = '-';
         document.getElementById(`metric-${market}-total`).textContent = '-';
-        document.getElementById(`metric-${market}-mom`).textContent = '-';
         document.getElementById(`metric-${market}-top-name`).textContent = '-';
         document.getElementById(`metric-${market}-top-orders`).textContent = '-';
+        document.getElementById(`metric-${market}-wk-jumper-name`).textContent = '-';
+        document.getElementById(`metric-${market}-wk-jumper-pct`).textContent = '-';
 
         if (market === 'cz' || market === 'sk') {
             document.getElementById(`metric-${market}-slon`).textContent = '-';
             document.getElementById(`metric-${market}-slon-share`).textContent = 'Podíl: -';
+            document.getElementById(`metric-${market}-kondomshop`).textContent = '-';
+            document.getElementById(`metric-${market}-kondomshop-share`).textContent = 'Podíl: -';
         } else {
             document.getElementById(`metric-${market}-elephant`).textContent = '-';
             document.getElementById(`metric-${market}-elephant-share`).textContent = 'Podíl: -';
