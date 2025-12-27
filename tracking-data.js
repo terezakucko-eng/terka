@@ -290,11 +290,11 @@ async function importFromGoogleSheetsCustomFormat() {
 
         // Získat vybraný list
         const sheetSelector = document.getElementById('sheet-selector');
-        const sheetName = sheetSelector ? sheetSelector.value : "Zkušeb.obj.CZ-týden";
+        const sheetName = sheetSelector && sheetSelector.value ? sheetSelector.value : "List1";
 
-        console.log(`📊 Import začíná: ${sheetName} z ${spreadsheetId}`);
+        console.log(`Import začíná: ${sheetName} z ${spreadsheetId}`);
 
-        showStatus(`⏳ Načítám data z listu "${sheetName}"...`, 'info');
+        showStatus(`Načítám data z listu "${sheetName}"...`, 'info');
 
         const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
 
@@ -305,7 +305,7 @@ async function importFromGoogleSheetsCustomFormat() {
 
         const csvText = await response.text();
 
-        showStatus('⏳ Parsování dat...', 'info');
+        showStatus('Parsování dat...', 'info');
         parseCustomCSV(csvText);
 
         if (trackingData.length === 0) {

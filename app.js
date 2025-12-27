@@ -1385,11 +1385,12 @@ window.updateDeltaEshopsFilter = function() {
     const eshopsFilter = document.getElementById('delta-eshops-filter');
 
     if (!marketFilter || !eshopsFilter) {
-        console.error('❌ Delta eshops filter nenalezen');
+        console.error('Delta eshops filter nenalezen');
         return;
     }
 
     const market = marketFilter.value;
+    console.log('Aktualizace Delta e-shopů pro trh:', market);
 
     // Definice e-shopů podle trhů
     const czEshops = ["Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz", "sexicekshop.cz", "honitka.cz", "sexshop.cz", "eroticke-pomucky.cz", "flagranti.cz", "sexshopik.cz", "sex-shop69.cz", "eroticcity.cz", "e-kondomy.cz", "ruzovyslon.cz", "kondomshop.cz"];
