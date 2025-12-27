@@ -14,7 +14,7 @@ function renderFormFields() {
 
     // Sekce: CZ Konkurence
     html += '<div class="mb-6">';
-    html += '<h4 class="text-lg font-semibold text-gray-900 mb-2 pb-2 border-b-2 border-blue-500">🇨🇿 České e-shopy - Konkurence</h4>';
+    html += '<h4 class="text-lg font-semibold text-gray-900 mb-2 pb-2 border-b-2 border-blue-500">CZ - České e-shopy - Konkurence</h4>';
     html += '<p class="text-sm text-gray-600 mb-4">Zadej číslo poslední objednávky</p>';
     html += '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">';
 
@@ -32,14 +32,14 @@ function renderFormFields() {
 
     // Sekce: CZ Vlastní e-shopy
     html += '<div class="mb-6">';
-    html += '<h4 class="text-lg font-semibold text-green-900 mb-2 pb-2 border-b-2 border-green-500">🏪 České e-shopy - Vlastní</h4>';
-    html += '<p class="text-sm text-green-700 mb-4">✅ Zadej počet objednávek (delta)</p>';
+    html += '<h4 class="text-lg font-semibold text-green-900 mb-2 pb-2 border-b-2 border-green-500">České e-shopy - Vlastní</h4>';
+    html += '<p class="text-sm text-green-700 mb-4">Zadej počet objednávek (delta)</p>';
     html += '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">';
 
     ["ruzovyslon.cz", "kondomshop.cz"].forEach(comp => {
         html += `
             <div class="bg-green-50 p-3 rounded-lg border-2 border-green-300">
-                <label class="block text-sm font-bold text-green-900 mb-1">🌸 ${comp}</label>
+                <label class="block text-sm font-bold text-green-900 mb-1">${comp}</label>
                 <input type="number" id="comp-${sanitizeId(comp)}"
                     class="w-full px-3 py-2 border-2 border-green-400 rounded-lg font-bold"
                     placeholder="Počet objednávek">
@@ -49,7 +49,7 @@ function renderFormFields() {
 
     // Sekce: SK Konkurence
     html += '<div class="mb-6">';
-    html += '<h4 class="text-lg font-semibold text-gray-900 mb-2 pb-2 border-b-2 border-blue-500">🇸🇰 Slovenské e-shopy - Konkurence</h4>';
+    html += '<h4 class="text-lg font-semibold text-gray-900 mb-2 pb-2 border-b-2 border-blue-500">SK - Slovenské e-shopy - Konkurence</h4>';
     html += '<p class="text-sm text-gray-600 mb-4">Zadej číslo poslední objednávky</p>';
     html += '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">';
 
@@ -66,14 +66,14 @@ function renderFormFields() {
 
     // Sekce: SK Vlastní e-shopy
     html += '<div class="mb-6">';
-    html += '<h4 class="text-lg font-semibold text-green-900 mb-2 pb-2 border-b-2 border-green-500">🏪 Slovenské e-shopy - Vlastní</h4>';
-    html += '<p class="text-sm text-green-700 mb-4">✅ Zadej počet objednávek (delta)</p>';
+    html += '<h4 class="text-lg font-semibold text-green-900 mb-2 pb-2 border-b-2 border-green-500">Slovenské e-shopy - Vlastní</h4>';
+    html += '<p class="text-sm text-green-700 mb-4">Zadej počet objednávek (delta)</p>';
     html += '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">';
 
     ["ruzovyslon.sk", "kondomshop.sk"].forEach(comp => {
         html += `
             <div class="bg-green-50 p-3 rounded-lg border-2 border-green-300">
-                <label class="block text-sm font-bold text-green-900 mb-1">🌸 ${comp}</label>
+                <label class="block text-sm font-bold text-green-900 mb-1">${comp}</label>
                 <input type="number" id="comp-${sanitizeId(comp)}"
                     class="w-full px-3 py-2 border-2 border-green-400 rounded-lg font-bold"
                     placeholder="Počet objednávek">
@@ -83,14 +83,14 @@ function renderFormFields() {
 
     // Sekce: Sexy Elephant (vlastní zahraniční)
     html += '<div class="mb-6">';
-    html += '<h4 class="text-lg font-semibold text-green-900 mb-2 pb-2 border-b-2 border-green-500">🏪 Sexy Elephant - Vlastní (Zahraniční)</h4>';
-    html += '<p class="text-sm text-green-700 mb-4">✅ Zadej počet objednávek (delta)</p>';
+    html += '<h4 class="text-lg font-semibold text-green-900 mb-2 pb-2 border-b-2 border-green-500">Sexy Elephant - Vlastní (Zahraniční)</h4>';
+    html += '<p class="text-sm text-green-700 mb-4">Zadej počet objednávek (delta)</p>';
     html += '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">';
 
     ["sexyelephant.ro", "sexyelephant.hu", "sexyelephant.si", "sexyelephant.bg", "sexyelephant.hr"].forEach(comp => {
         html += `
             <div class="bg-green-50 p-3 rounded-lg border-2 border-green-300">
-                <label class="block text-sm font-bold text-green-900 mb-1">🐘 ${comp}</label>
+                <label class="block text-sm font-bold text-green-900 mb-1">${comp}</label>
                 <input type="number" id="comp-${sanitizeId(comp)}"
                     class="w-full px-3 py-2 border-2 border-green-400 rounded-lg font-bold"
                     placeholder="Počet objednávek">
@@ -100,7 +100,7 @@ function renderFormFields() {
 
     // Sekce: Superlove (konkurence zahraniční)
     html += '<div class="mb-6">';
-    html += '<h4 class="text-lg font-semibold text-gray-900 mb-2 pb-2 border-b-2 border-blue-500">🌍 Superlove - Konkurence (Evropa)</h4>';
+    html += '<h4 class="text-lg font-semibold text-gray-900 mb-2 pb-2 border-b-2 border-blue-500">Superlove - Konkurence (Evropa)</h4>';
     html += '<p class="text-sm text-gray-600 mb-4">Zadej číslo poslední objednávky</p>';
     html += '<div class="grid grid-cols-1 md:grid-cols-4 gap-3">';
 
@@ -160,7 +160,7 @@ function renderTrackingTableHead(market, competitors) {
     competitors.forEach(comp => {
         const isOwnEshop = window.OWN_ESHOPS && window.OWN_ESHOPS.includes(comp);
         const bgClass = isOwnEshop ? 'bg-green-600' : '';
-        const icon = isOwnEshop ? '🌸 ' : '';
+        const icon = isOwnEshop ? '' : '';
 
         html += `
             <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center ${bgClass}">
@@ -279,7 +279,7 @@ function renderMarketTable(market, eshops) {
                     <div class="${deltaClass} text-xs font-semibold">
                         ${delta > 0 ? '+' : ''}${delta.toLocaleString('cs-CZ')}
                     </div>
-                    ${cellNote ? `<div class="text-blue-600 text-xs italic mt-1">📝 ${escapeHtml(noteDisplay)}</div>` : ''}
+                    ${cellNote ? `<div class="text-blue-600 text-xs italic mt-1">${escapeHtml(noteDisplay)}</div>` : ''}
                 </td>
             `;
         });

@@ -1407,18 +1407,7 @@ window.updateDeltaEshopsFilter = function() {
     eshops.forEach(eshop => {
         const option = document.createElement('option');
         option.value = eshop;
-
-        // Přidat emoji podle trhu a typu e-shopu
-        let emoji = '';
-        if (market === 'CZ') {
-            emoji = ownEshopsCZ.includes(eshop) ? '🌸 ' : '🇨🇿 ';
-        } else if (market === 'SK') {
-            emoji = ownEshopsSK.includes(eshop) ? '🌸 ' : '🇸🇰 ';
-        } else if (market === 'Foreign') {
-            emoji = ownEshopsForeign.includes(eshop) ? '🐘 ' : '🌍 ';
-        }
-
-        option.textContent = emoji + eshop;
+        option.textContent = eshop;
         option.selected = true; // Výchozí: všechny vybrané
         eshopsFilter.appendChild(option);
     });
