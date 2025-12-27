@@ -499,6 +499,39 @@
                         </table>
                     </div>
                 </div>
+
+                <!-- Meziroční srovnání měsíců -->
+                <div class="bg-gradient-to-br from-white to-gray-50 p-8 rounded-3xl shadow-xl border border-gray-100">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                                Meziroční srovnání měsíců CZ a SK
+                            </h2>
+                            <p class="text-sm text-gray-500 mt-1">Porovnání stejných měsíců mezi roky (např. leden 2025 vs. leden 2024)</p>
+                        </div>
+                        <button onclick="updateMonthlyYoYComparison()" class="px-6 py-2.5 bg-gradient-to-r from-[#d4b3f0] to-[#e0c9ff] text-gray-700 rounded-xl hover:from-[#e0c9ff] hover:to-[#d9b3ff] transition font-semibold shadow-lg shadow-purple-200">
+                            Obnovit data
+                        </button>
+                    </div>
+
+                    <!-- Tabulka meziročního srovnání -->
+                    <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-800 text-white">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider">E-shop</th>
+                                    <th class="px-6 py-3 text-right text-xs font-bold uppercase tracking-wider">Předchozí rok</th>
+                                    <th class="px-6 py-3 text-right text-xs font-bold uppercase tracking-wider">Letošní rok</th>
+                                    <th class="px-6 py-3 text-center text-xs font-bold uppercase tracking-wider">Změna</th>
+                                    <th class="px-6 py-3 text-center text-xs font-bold uppercase tracking-wider">Trend</th>
+                                </tr>
+                            </thead>
+                            <tbody id="monthly-yoy-comparison-tbody" class="bg-white divide-y divide-gray-200">
+                                <!-- Naplní se dynamicky -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </section>
         </div>
 

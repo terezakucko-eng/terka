@@ -1863,6 +1863,146 @@ window.updateWeeklyComparison = function() {
     console.log('✅ Mezitýdenní srovnání aktualizováno');
 };
 
+// Aktualizovat meziroční srovnání měsíců CZ a SK e-shopů
+window.updateMonthlyYoYComparison = function() {
+    console.log('🔄 Aktualizace meziročního srovnání měsíců...');
+
+    if (!window.trackingData || window.trackingData.length === 0) {
+        console.warn('⚠️ Žádná data pro meziroční srovnání');
+        const tbody = document.getElementById('monthly-yoy-comparison-tbody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Žádná data k zobrazení</td></tr>';
+        }
+        return;
+    }
+
+    // Získat CZ a SK e-shopy
+    const czEshops = ["Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz", "honitka.cz", "eroticke-pomucky.cz", "flagranti.cz", "sexshopik.cz", "e-kondomy.cz", "ruzovyslon.cz", "kondomshop.cz"];
+    const skEshops = ["isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk", "ruzovyslon.sk", "kondomshop.sk"];
+    const allEshops = [...czEshops, ...skEshops];
+
+    // Seřadit data podle data
+    const sortedData = [...window.trackingData].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Zjistit aktuální měsíc a rok
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth(); // 0-11
+
+    // Najít data pro aktuální měsíc letošního roku
+    const thisYearData = sortedData.filter(record => {
+        const recordDate = new Date(record.date);
+        return recordDate.getFullYear() === currentYear && recordDate.getMonth() === currentMonth;
+    });
+
+    // Najít data pro stejný měsíc předchozího roku
+    const lastYearData = sortedData.filter(record => {
+        const recordDate = new Date(record.date);
+        return recordDate.getFullYear() === (currentYear - 1) && recordDate.getMonth() === currentMonth;
+    });
+
+    if (thisYearData.length === 0 && lastYearData.length === 0) {
+        console.warn('⚠️ Nedostatek dat pro meziroční srovnání');
+        const tbody = document.getElementById('monthly-yoy-comparison-tbody');
+        if (tbody) {
+            const monthNames = ['ledna', 'února', 'března', 'dubna', 'května', 'června', 'července', 'srpna', 'září', 'října', 'listopadu', 'prosince'];
+            tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Nedostatek dat pro ${monthNames[currentMonth]} (potřeba data z ${currentYear} i ${currentYear - 1})</td></tr>`;
+        }
+        return;
+    }
+
+    console.log(`📊 Letošní rok (${currentMonth + 1}/${currentYear}): ${thisYearData.length} záznamů, Minulý rok (${currentMonth + 1}/${currentYear - 1}): ${lastYearData.length} záznamů`);
+
+    // Vypočítat součty pro každý e-shop
+    const monthlyStats = [];
+
+    allEshops.forEach(eshop => {
+        // Součet delta hodnot pro letošní měsíc
+        const thisYearTotal = thisYearData.reduce((sum, record) => {
+            const delta = (record.deltas && record.deltas[eshop]) ? record.deltas[eshop] : 0;
+            return sum + delta;
+        }, 0);
+
+        // Součet delta hodnot pro stejný měsíc loni
+        const lastYearTotal = lastYearData.reduce((sum, record) => {
+            const delta = (record.deltas && record.deltas[eshop]) ? record.deltas[eshop] : 0;
+            return sum + delta;
+        }, 0);
+
+        // Vypočítat změnu
+        const change = thisYearTotal - lastYearTotal;
+        const percentChange = lastYearTotal !== 0 ? ((change / lastYearTotal) * 100) : 0;
+
+        monthlyStats.push({
+            eshop: eshop,
+            lastYear: lastYearTotal,
+            thisYear: thisYearTotal,
+            change: change,
+            percentChange: percentChange
+        });
+    });
+
+    // Seřadit podle procentuální změny (nejlepší první)
+    monthlyStats.sort((a, b) => b.percentChange - a.percentChange);
+
+    // Vygenerovat HTML pro tabulku
+    const tbody = document.getElementById('monthly-yoy-comparison-tbody');
+    if (!tbody) {
+        console.error('❌ Element monthly-yoy-comparison-tbody nenalezen');
+        return;
+    }
+
+    const monthNames = ['Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen', 'Červenec', 'Srpen', 'Září', 'Říjen', 'Listopad', 'Prosinec'];
+
+    let html = '';
+    monthlyStats.forEach(stat => {
+        // Určit trend
+        let trendIcon = '→';
+        let trendColor = 'text-gray-500';
+        if (stat.percentChange > 0) {
+            trendIcon = '↑';
+            trendColor = 'text-green-600';
+        } else if (stat.percentChange < 0) {
+            trendIcon = '↓';
+            trendColor = 'text-red-600';
+        }
+
+        // Formátovat změnu
+        const changeSign = stat.change >= 0 ? '+' : '';
+        const changeText = `${changeSign}${stat.change.toLocaleString('cs-CZ')}`;
+        const percentText = `${stat.percentChange >= 0 ? '+' : ''}${stat.percentChange.toFixed(1)}%`;
+
+        // Barva pro změnu
+        let changeColor = 'text-gray-700';
+        if (stat.change > 0) changeColor = 'text-green-700';
+        else if (stat.change < 0) changeColor = 'text-red-700';
+
+        html += `
+            <tr class="hover:bg-gray-50 transition-colors">
+                <td class="px-6 py-4 font-medium text-gray-900">${stat.eshop}</td>
+                <td class="px-6 py-4 text-right text-gray-700">
+                    ${stat.lastYear.toLocaleString('cs-CZ')}
+                    <span class="text-xs text-gray-500 block">${monthNames[currentMonth]} ${currentYear - 1}</span>
+                </td>
+                <td class="px-6 py-4 text-right font-semibold text-gray-900">
+                    ${stat.thisYear.toLocaleString('cs-CZ')}
+                    <span class="text-xs text-gray-500 block">${monthNames[currentMonth]} ${currentYear}</span>
+                </td>
+                <td class="px-6 py-4 text-center ${changeColor} font-medium">
+                    ${changeText}
+                    <span class="text-xs ml-1">(${percentText})</span>
+                </td>
+                <td class="px-6 py-4 text-center">
+                    <span class="${trendColor} text-2xl font-bold">${trendIcon}</span>
+                </td>
+            </tr>
+        `;
+    });
+
+    tbody.innerHTML = html;
+    console.log('✅ Meziroční srovnání měsíců aktualizováno');
+};
+
 // Pomocná funkce pro výpočet průměru v daném období
 function calculatePeriodAverage(eshop, startDate, endDate) {
     if (!window.trackingData) return null;
@@ -2108,6 +2248,7 @@ function updateMarketShareChart() {
 function updateAllCharts() {
     updateTrendChart();
     updateWeeklyComparison();
+    updateMonthlyYoYComparison();
     updateMarketShareChart();
 }
 
