@@ -1458,6 +1458,12 @@ function updateDeltaChart() {
     // Získat vybrané e-shopy z multi-select
     const selectedEshops = Array.from(eshopsFilter.selectedOptions).map(opt => opt.value);
 
+    console.log('🔍 Delta Graf Debug:');
+    console.log('  - Vybrané e-shopy:', selectedEshops.length, selectedEshops);
+    console.log('  - Období 1:', period1Start.value, '-', period1End.value);
+    console.log('  - Období 2:', period2Start.value, '-', period2End.value);
+    console.log('  - Počet záznamů v trackingData:', window.trackingData.length);
+
     if (selectedEshops.length === 0) {
         alert('Vyber prosím alespoň jeden e-shop.');
         return;
@@ -1467,6 +1473,8 @@ function updateDeltaChart() {
     const deltaData = selectedEshops.map(eshop => {
         const period1Avg = calculatePeriodAverage(eshop, period1Start.value, period1End.value);
         const period2Avg = calculatePeriodAverage(eshop, period2Start.value, period2End.value);
+
+        console.log(`  - ${eshop}: P1=${period1Avg}, P2=${period2Avg}`);
 
         if (period1Avg === null || period2Avg === null) {
             return null;
@@ -1483,6 +1491,8 @@ function updateDeltaChart() {
             diff: absoluteDiff
         };
     }).filter(item => item !== null);
+
+    console.log('  - Platných dat po filtraci:', deltaData.length);
 
     // Seřadit sestupně podle period1 (nebo percent pro growth)
     if (chartType === 'growth') {
