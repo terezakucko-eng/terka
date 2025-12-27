@@ -538,12 +538,22 @@ window.importBulkData = function() {
             return;
         }
 
-        // Přidat záznam do tracking dat
+        // Přidat záznam do tracking dat (bez přepočítávání delt)
         if (typeof addBulkTrackingRecord === 'function') {
-            addBulkTrackingRecord(eshop, date, orderNumber || null, orderCount || null);
+            addBulkTrackingRecord(eshop, date, orderNumber || null, orderCount || null, true); // true = skip calculateDeltas
             importedCount++;
         }
     });
+
+    // Přepočítat delty JEDNOU pro všechny importované záznamy
+    if (importedCount > 0 && typeof calculateDeltas === 'function') {
+        calculateDeltas();
+    }
+
+    // Uložit data po importu
+    if (importedCount > 0 && typeof saveTrackingData === 'function') {
+        saveTrackingData();
+    }
 
     if (errors.length > 0) {
         alert('Chyby při importu:\n\n' + errors.join('\n') + '\n\nImportováno: ' + importedCount + ' záznamů');
@@ -555,8 +565,10 @@ window.importBulkData = function() {
 
         // Zavřít modal
         closeDataManagementModal();
+    }
 
-        // Aktualizovat UI
+    // Aktualizovat UI vždy (i když byly chyby)
+    if (importedCount > 0) {
         if (typeof renderTrackingTable === 'function') {
             renderTrackingTable();
         }
@@ -756,8 +768,9 @@ function parseDateString(dateStr) {
  * @param {string} date - Datum ve formátu YYYY-MM-DD
  * @param {number|null} orderNumber - Číslo objednávky (pro konkurenty)
  * @param {number|null} orderCount - Počet objednávek (pro vlastní e-shopy)
+ * @param {boolean} skipDeltaCalculation - Přeskočit výpočet delt (použít při hromadném importu)
  */
-function addBulkTrackingRecord(eshop, date, orderNumber, orderCount) {
+function addBulkTrackingRecord(eshop, date, orderNumber, orderCount, skipDeltaCalculation = false) {
     if (!window.trackingData) {
         window.trackingData = [];
     }
@@ -804,18 +817,18 @@ function addBulkTrackingRecord(eshop, date, orderNumber, orderCount) {
     // Seřadit data podle data
     window.trackingData.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    // Přepočítat delty (pro konkurenty)
-    if (typeof calculateDeltas === 'function') {
+    // Přepočítat delty (pro konkurenty) - pouze pokud není skipDeltaCalculation
+    if (!skipDeltaCalculation && typeof calculateDeltas === 'function') {
         calculateDeltas();
     }
 
-    // Uložit do Firestore (pokud je aktivní)
-    if (typeof saveTrackingRecordToFirestore === 'function') {
+    // Uložit do Firestore (pokud je aktivní) - pouze pokud není skipDeltaCalculation
+    if (!skipDeltaCalculation && typeof saveTrackingRecordToFirestore === 'function') {
         saveTrackingRecordToFirestore(record);
     }
 
-    // Uložit do localStorage/Firestore
-    if (typeof saveTrackingData === 'function') {
+    // Uložit do localStorage/Firestore - pouze pokud není skipDeltaCalculation
+    if (!skipDeltaCalculation && typeof saveTrackingData === 'function') {
         saveTrackingData();
     }
 }
