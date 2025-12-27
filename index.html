@@ -842,15 +842,14 @@ ední půlrok</option>
                     </div>
 
                     <div class="border-b pb-4">
-                        <h4 class="text-md font-semibold mb-3">📤 Export dat</h4>
+                        <h4 class="text-md font-semibold mb-3">📤 Export dat do Excelu</h4>
                         <div class="space-y-3">
-                            <button onclick="exportToJSON()"
-                                class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
-                                Stáhnout jako JSON
-                            </button>
-                            <button onclick="exportToCSV()"
-                                class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition ml-2">
-                                Stáhnout jako CSV
+                            <p class="text-sm text-gray-600 mb-3">
+                                Stáhne všechna data ze Sledování objednávek ve formátu CSV (otevřeš v Excelu).
+                            </p>
+                            <button onclick="exportTrackingToExcel()"
+                                class="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition font-medium shadow-md">
+                                📥 Stáhnout sledování objednávek (Excel/CSV)
                             </button>
                         </div>
                     </div>

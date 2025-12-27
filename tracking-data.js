@@ -770,8 +770,74 @@ async function loadTrackingData() {
     }
 }
 
+// =====================================================
+// EXPORT DO EXCELU (CSV)
+// =====================================================
+
+/**
+ * Exportuje všechna data ze Sledování objednávek do CSV formátu (pro Excel)
+ * Struktura: Datum | erosstar.cz | deeplove.cz | ... (všechny e-shopy)
+ * Druhý řádek pro každé datum: Delta pro každý e-shop
+ */
+function exportTrackingToExcel() {
+    if (!window.trackingData || window.trackingData.length === 0) {
+        alert('Nejsou k dispozici žádná data pro export.');
+        return;
+    }
+
+    console.log('📥 Export sledování objednávek do CSV...');
+
+    // Seřadit podle data (nejstarší první)
+    const sortedData = [...window.trackingData].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Vytvořit hlavičku CSV
+    let csv = 'Datum';
+
+    // Přidat všechny e-shopy jako sloupce
+    COMPETITORS.forEach(comp => {
+        csv += `,${comp}`;
+    });
+    csv += '\n';
+
+    // Pro každý záznam vytvoř dva řádky: čísla objednávek a delty
+    sortedData.forEach(record => {
+        // Formátovat datum pro Excel (DD.MM.YYYY)
+        const dateParts = record.date.split('-'); // YYYY-MM-DD
+        const excelDate = `${dateParts[2]}.${dateParts[1]}.${dateParts[0]}`;
+
+        // Řádek 1: Čísla objednávek
+        let row1 = `"${excelDate}"`;
+        COMPETITORS.forEach(comp => {
+            const orderNum = record.competitors[comp] || 0;
+            row1 += `,${orderNum}`;
+        });
+        csv += row1 + '\n';
+
+        // Řádek 2: Deltas (počet objednávek)
+        let row2 = `"  Δ ${excelDate}"`;
+        COMPETITORS.forEach(comp => {
+            const delta = record.deltas[comp] || 0;
+            row2 += `,${delta}`;
+        });
+        csv += row2 + '\n';
+    });
+
+    // Stáhnout CSV soubor
+    const BOM = '\uFEFF'; // Byte Order Mark pro správné zobrazení diakritiky v Excelu
+    const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sledovani-objednavek-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    console.log(`✅ Exportováno ${sortedData.length} záznamů do CSV`);
+}
+
 // Export funkcí
 window.importFromGoogleSheetsCustomFormat = importFromGoogleSheetsCustomFormat;
+window.exportTrackingToExcel = exportTrackingToExcel;
 window.calculateDeltas = calculateDeltas;
 window.saveTrackingData = saveTrackingData;
 window.loadTrackingData = loadTrackingData;
