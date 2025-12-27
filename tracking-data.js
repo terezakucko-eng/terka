@@ -352,7 +352,14 @@ async function importFromGoogleSheetsCustomFormat() {
         calculateDeltas();
 
         showStatus('⏳ Ukládám data...', 'info');
+
+        // Uložit do localStorage
         await saveTrackingData();
+
+        // Uložit všechny záznamy do Firestore (pokud je aktivní)
+        if (typeof saveAllTrackingDataToFirestore === 'function') {
+            await saveAllTrackingDataToFirestore(trackingData);
+        }
 
         renderTrackingTable();
         if (typeof updateMetricsDisplay === 'function') {

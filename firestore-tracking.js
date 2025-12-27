@@ -135,31 +135,34 @@ async function saveTrackingRecordToFirestore(record) {
     try {
         const db = window.getFirestore();
 
+        // Připravit data pro uložení
+        const recordData = {
+            id: record.id,
+            date: record.date,
+            competitors: record.competitors || {},
+            deltas: record.deltas || {},
+            cellNotes: record.cellNotes || {},
+            monthEndValues: record.monthEndValues || {},
+            notes: record.notes || '',
+            totalOrders: record.totalOrders || 0,
+            slonShare: record.slonShare || 0,
+            shares: record.shares || {},
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
         // Pokud má záznam firestoreId, aktualizuj ho
         if (record.firestoreId) {
-            await db.collection('trackingData').doc(record.firestoreId).update({
-                id: record.id,
-                date: record.date,
-                competitors: record.competitors || {},
-                deltas: record.deltas || {},
-                totalOrders: record.totalOrders || 0,
-                slonShare: record.slonShare || 0,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            await db.collection('trackingData').doc(record.firestoreId).update(recordData);
             console.log('✅ Tracking záznam aktualizován v Firestore');
         } else {
             // Jinak vytvoř nový
-            const docRef = await db.collection('trackingData').add({
-                id: record.id,
-                date: record.date,
-                competitors: record.competitors || {},
-                deltas: record.deltas || {},
-                totalOrders: record.totalOrders || 0,
-                slonShare: record.slonShare || 0,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            recordData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            const docRef = await db.collection('trackingData').add(recordData);
             console.log('✅ Tracking záznam přidán do Firestore:', docRef.id);
+
+            // Uložit firestoreId zpět do záznamu
+            record.firestoreId = docRef.id;
+
             return docRef.id;
         }
     } catch (error) {
@@ -191,6 +194,70 @@ async function deleteTrackingRecordFromFirestore(recordId) {
     } catch (error) {
         console.error('❌ Chyba při mazání tracking záznamu:', error);
         return deleteTrackingRecordFromLocalStorage(recordId);
+    }
+}
+
+/**
+ * Hromadné uložení všech tracking záznamů do Firestore
+ * Používá se po importu z Google Sheets
+ */
+async function saveAllTrackingDataToFirestore(records) {
+    if (!useFirestore) {
+        console.log('Firestore není aktivní, ukládám pouze do localStorage');
+        return;
+    }
+
+    try {
+        const db = window.getFirestore();
+        console.log(`🔄 Hromadné ukládání ${records.length} záznamů do Firestore...`);
+
+        // Nejdřív smazat všechny existující záznamy
+        const existingSnapshot = await db.collection('trackingData').get();
+        if (!existingSnapshot.empty) {
+            const deleteBatch = db.batch();
+            existingSnapshot.forEach(doc => {
+                deleteBatch.delete(doc.ref);
+            });
+            await deleteBatch.commit();
+            console.log(`🗑️ Smazáno ${existingSnapshot.size} starých záznamů`);
+        }
+
+        // Pak přidat nové záznamy v dávkách (Firestore limit je 500 operací na batch)
+        const BATCH_SIZE = 500;
+        for (let i = 0; i < records.length; i += BATCH_SIZE) {
+            const batch = db.batch();
+            const batchRecords = records.slice(i, i + BATCH_SIZE);
+
+            for (const record of batchRecords) {
+                const docRef = db.collection('trackingData').doc();
+                batch.set(docRef, {
+                    id: record.id,
+                    date: record.date,
+                    competitors: record.competitors || {},
+                    deltas: record.deltas || {},
+                    cellNotes: record.cellNotes || {},
+                    monthEndValues: record.monthEndValues || {},
+                    notes: record.notes || '',
+                    totalOrders: record.totalOrders || 0,
+                    slonShare: record.slonShare || 0,
+                    shares: record.shares || {},
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                // Uložit firestoreId zpět do záznamu
+                record.firestoreId = docRef.id;
+            }
+
+            await batch.commit();
+            console.log(`✅ Uloženo ${batchRecords.length} záznamů (batch ${Math.floor(i / BATCH_SIZE) + 1})`);
+        }
+
+        console.log(`✅ Všech ${records.length} záznamů úspěšně uloženo do Firestore`);
+
+    } catch (error) {
+        console.error('❌ Chyba při hromadném ukládání do Firestore:', error);
+        throw error;
     }
 }
 
@@ -357,6 +424,7 @@ window.addEventListener('beforeunload', cleanupFirestoreListeners);
 window.initFirestoreTracking = initFirestoreTracking;
 window.loadTrackingDataFromFirestore = loadTrackingDataFromFirestore;
 window.saveTrackingRecordToFirestore = saveTrackingRecordToFirestore;
+window.saveAllTrackingDataToFirestore = saveAllTrackingDataToFirestore;
 window.deleteTrackingRecordFromFirestore = deleteTrackingRecordFromFirestore;
 window.loadCampaignsFromFirestore = loadCampaignsFromFirestore;
 window.saveCampaignToFirestore = saveCampaignToFirestore;
