@@ -590,34 +590,103 @@ function handleExcelPaste(e) {
     // Vyčistit tabulku před vložením
     tbody.innerHTML = '';
 
-    rows.forEach(rowData => {
-        const cells = rowData.split('\t'); // Excel používá tabulátor
+    if (rows.length === 0) return;
 
-        if (cells.length < 2) return; // Ignorovat řádky s méně než 2 buňkami
+    // Parsovat první řádek jako záhlaví
+    const headerCells = rows[0].split('\t');
+
+    // Detekovat formát: sloupcový (první buňka = "Datum") vs. řádkový (první buňka = název e-shopu)
+    const isColumnFormat = headerCells[0] && (
+        headerCells[0].toLowerCase().includes('datum') ||
+        headerCells[0].toLowerCase().includes('date')
+    );
+
+    if (isColumnFormat) {
+        // SLOUPCOVÝ FORMÁT: Datum | Hopnato.cz | erosstar.cz | ...
+        console.log('📊 Detekován sloupcový formát (Google Sheets)');
+        parseColumnFormat(rows, tbody);
+    } else {
+        // ŘÁDKOVÝ FORMÁT: E-shop | Datum | Číslo obj. | Počet obj.
+        console.log('📋 Detekován řádkový formát');
+        parseRowFormat(rows, tbody);
+    }
+}
+
+// Parsování sloupcového formátu (Google Sheets)
+function parseColumnFormat(rows, tbody) {
+    const headerCells = rows[0].split('\t');
+
+    // Mapovat sloupce na e-shopy (přeskočit první sloupec = Datum)
+    const eshopColumns = [];
+    for (let i = 1; i < headerCells.length; i++) {
+        const eshopName = headerCells[i].trim();
+        if (eshopName) {
+            eshopColumns.push({ index: i, name: eshopName });
+        }
+    }
+
+    console.log(`📋 Nalezeno ${eshopColumns.length} e-shopů:`, eshopColumns.map(c => c.name));
+
+    // Parsovat datové řádky
+    for (let rowIndex = 1; rowIndex < rows.length; rowIndex++) {
+        const cells = rows[rowIndex].split('\t');
+
+        // První buňka = datum
+        let dateStr = cells[0] || '';
+        let date = parseDateString(dateStr);
+
+        // Pro každý e-shop vytvořit řádek v tabulce
+        eshopColumns.forEach(eshopCol => {
+            const value = cells[eshopCol.index];
+
+            // Přeskočit prázdné hodnoty
+            if (!value || value.trim() === '') return;
+
+            const eshopName = eshopCol.name;
+            const numValue = parseInt(value) || 0;
+
+            // Zjistit, jestli je to vlastní e-shop
+            const isOwnEshop = window.OWN_ESHOPS && window.OWN_ESHOPS.includes(eshopName);
+
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-gray-50';
+
+            row.innerHTML = `
+                <td class="px-3 py-2">
+                    <input type="text" class="bulk-eshop w-full px-2 py-1 border rounded text-sm" value="${eshopName}" list="eshop-list">
+                </td>
+                <td class="px-3 py-2">
+                    <input type="date" class="bulk-date w-full px-2 py-1 border rounded text-sm" value="${date}">
+                </td>
+                <td class="px-3 py-2">
+                    <input type="number" class="bulk-order-number w-full px-2 py-1 border rounded text-sm" value="${isOwnEshop ? '' : numValue}">
+                </td>
+                <td class="px-3 py-2">
+                    <input type="number" class="bulk-order-count w-full px-2 py-1 border rounded text-sm" value="${isOwnEshop ? numValue : ''}">
+                </td>
+                <td class="px-3 py-2">
+                    <button onclick="removeBulkRow(this)" class="text-red-600 hover:text-red-800 text-sm font-semibold">Smazat</button>
+                </td>
+            `;
+
+            tbody.appendChild(row);
+        });
+    }
+}
+
+// Parsování řádkového formátu
+function parseRowFormat(rows, tbody) {
+    rows.forEach(rowData => {
+        const cells = rowData.split('\t');
+
+        if (cells.length < 2) return;
 
         const row = document.createElement('tr');
         row.className = 'hover:bg-gray-50';
 
         const eshop = cells[0] || '';
-
-        // Převést datum do formátu YYYY-MM-DD (pro input type="date")
-        let date = cells[1] || '';
-        if (date) {
-            // Zkusit parsovat různé formáty
-            const dateMatch = date.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/); // DD.MM.YYYY
-            if (dateMatch) {
-                const day = dateMatch[1].padStart(2, '0');
-                const month = dateMatch[2].padStart(2, '0');
-                const year = dateMatch[3];
-                date = `${year}-${month}-${day}`;
-            } else if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-                // Pokud není ve formátu YYYY-MM-DD, použij dnešní datum
-                date = new Date().toISOString().split('T')[0];
-            }
-        } else {
-            date = new Date().toISOString().split('T')[0];
-        }
-
+        const dateStr = cells[1] || '';
+        const date = parseDateString(dateStr);
         const orderNumber = cells[2] || '';
         const orderCount = cells[3] || '';
 
@@ -641,6 +710,37 @@ function handleExcelPaste(e) {
 
         tbody.appendChild(row);
     });
+}
+
+// Pomocná funkce pro parsování data
+function parseDateString(dateStr) {
+    if (!dateStr) return new Date().toISOString().split('T')[0];
+
+    // Zkusit parsovat různé formáty
+    const dateMatch = dateStr.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/); // DD.MM.YYYY
+    if (dateMatch) {
+        const day = dateMatch[1].padStart(2, '0');
+        const month = dateMatch[2].padStart(2, '0');
+        const year = dateMatch[3];
+        return `${year}-${month}-${day}`;
+    }
+
+    // Formát D.M.YYYY (bez nuly)
+    const dateMatch2 = dateStr.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+    if (dateMatch2) {
+        const day = dateMatch2[1].padStart(2, '0');
+        const month = dateMatch2[2].padStart(2, '0');
+        const year = dateMatch2[3];
+        return `${year}-${month}-${day}`;
+    }
+
+    // Už je ve formátu YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        return dateStr;
+    }
+
+    // Pokud nelze parsovat, použij dnešní datum
+    return new Date().toISOString().split('T')[0];
 }
 
 // =====================================================
