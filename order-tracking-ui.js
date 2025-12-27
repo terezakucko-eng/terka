@@ -214,6 +214,7 @@ function renderTrackingTableHead(competitors) {
     html += `
         <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center bg-yellow-600 border-l-2 border-yellow-400">Celkem Δ</th>
         <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center bg-green-600">Slon %</th>
+        <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center bg-blue-600">📝 Poznámky</th>
         <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center bg-gray-700 sticky right-0 border-l-2 border-gray-600 z-20">Akce</th>
     `;
 
@@ -246,7 +247,7 @@ function renderTrackingTable() {
     if (!window.trackingData || window.trackingData.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="${filteredCompetitors.length + 4}" class="text-center p-8 text-gray-500">
+                <td colspan="${filteredCompetitors.length + 5}" class="text-center p-8 text-gray-500">
                     <div class="space-y-2">
                         <p class="text-lg font-medium">Zatím nebyly přidány žádné záznamy.</p>
                         <p class="text-sm">Klikněte na "Přidat záznam" nebo importujte data z Google Sheets.</p>
@@ -296,13 +297,26 @@ function renderTrackingTable() {
             `;
         });
 
-        // Agregované metriky
+        // Agregované metriky a poznámky
+        const escapeHtml = (text) => {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        };
+
+        const notesDisplay = record.notes && record.notes.trim() !== ''
+            ? `<span class="text-xs text-gray-700 italic" title="${escapeHtml(record.notes)}">${escapeHtml(record.notes.length > 30 ? record.notes.substring(0, 30) + '...' : record.notes)}</span>`
+            : '<span class="text-xs text-gray-400">-</span>';
+
         row.innerHTML += `
             <td class="px-3 py-3 text-sm text-center bg-yellow-50 font-bold border-l-2 border-yellow-300">
                 ${record.totalOrders.toLocaleString('cs-CZ')}
             </td>
             <td class="px-3 py-3 text-sm text-center bg-green-50 font-bold">
                 ${record.slonShare.toFixed(1)}%
+            </td>
+            <td class="px-3 py-3 text-sm text-left bg-blue-50">
+                ${notesDisplay}
             </td>
             <td class="px-3 py-3 text-sm text-right bg-gray-50 sticky right-0 border-l border-gray-300">
                 <button onclick="editTrackingRecord(${record.id})" class="text-blue-600 hover:text-blue-800 mr-2">
