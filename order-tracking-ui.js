@@ -403,19 +403,25 @@ function escapeHtml(text) {
 // FORMULÁŘ PRO PŘIDÁNÍ/EDITACI ZÁZNAMU
 // =====================================================
 
-function showAddRecordForm() {
+function showAddRecordForm(market = 'CZ') {
     const modal = document.getElementById('record-form-modal');
     if (!modal) return;
 
-    // Vygenerovat formulářová pole pro e-shopy (pokud ještě nejsou)
+    // Uložit vybraný trh pro pozdější použití
+    window.currentMarket = market;
+
+    // Vygenerovat formulářová pole pouze pro e-shopy z daného trhu
     if (typeof renderFormFields === 'function') {
-        renderFormFields();
+        renderFormFields(market);
     }
 
     // Reset formuláře
     document.getElementById('record-date').value = new Date().toISOString().split('T')[0];
     document.getElementById('record-id').value = '';
-    document.getElementById('form-title-record').textContent = 'Přidat nový záznam';
+
+    // Aktualizovat nadpis podle trhu
+    const marketNames = { 'CZ': 'CZ', 'SK': 'SK', 'Foreign': 'zahraničních trhů' };
+    document.getElementById('form-title-record').textContent = `Přidat nový záznam (${marketNames[market] || market})`;
 
     // Vyčistit všechna pole pro konkurenty
     window.COMPETITORS.forEach(comp => {

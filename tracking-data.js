@@ -88,6 +88,26 @@ const COMPETITORS = [
     "vagyaim.hu"
 ];
 
+// E-shopy podle trhů
+const CZ_ESHOPS = [
+    "Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz", "honitka.cz",
+    "eroticke-pomucky.cz", "flagranti.cz", "sexshopik.cz", "e-kondomy.cz",
+    "ruzovyslon.cz", "kondomshop.cz"
+];
+
+const SK_ESHOPS = [
+    "isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk",
+    "ruzovyslon.sk", "kondomshop.sk"
+];
+
+const FOREIGN_ESHOPS = [
+    "sexyelephant.ro", "sexyelephant.hu", "sexyelephant.si", "sexyelephant.bg", "sexyelephant.hr",
+    "superlove.ro", "superlove.pl", "superlove.eu", "superlove.at", "superlove.hr",
+    "superlove.it", "superlove.si", "superlove.bg", "superlove.lt", "superlove.es", "superlove.hu",
+    "goldengate.hu", "padlizsan.hu", "sexshopcenter.hu", "erotikashow.hu",
+    "szexaruhaz.hu", "szexshop.hu", "vagyaim.hu"
+];
+
 // Vlastní e-shopy - zadává se počet objednávek (delty) přímo, ne číslo objednávky
 const OWN_ESHOPS = [
     "ruzovyslon.cz",
@@ -1411,3 +1431,6 @@ window.cleanupMarketData = cleanupMarketData;
 window.trackingData = trackingData;
 window.COMPETITORS = COMPETITORS;
 window.OWN_ESHOPS = OWN_ESHOPS;
+window.CZ_ESHOPS = CZ_ESHOPS;
+window.SK_ESHOPS = SK_ESHOPS;
+window.FOREIGN_ESHOPS = FOREIGN_ESHOPS;
