@@ -162,9 +162,14 @@ function renderTrackingTableHead(market, competitors) {
         const bgClass = isOwnEshop ? 'bg-green-600' : '';
         const icon = isOwnEshop ? '' : '';
 
+        // Pro CZ trh zkrátit názvy (odstranit .cz) a použít kompaktní styling
+        const compactMode = market === 'CZ';
+        const displayName = compactMode ? comp.replace('.cz', '') : comp;
+        const paddingClass = compactMode ? 'px-1 py-2' : 'px-3 py-3';
+
         html += `
-            <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center ${bgClass}">
-                ${icon}${comp}
+            <th scope="col" class="${paddingClass} text-xs font-bold uppercase tracking-wider text-center ${bgClass}">
+                ${icon}${displayName}
             </th>
         `;
     });
@@ -300,10 +305,14 @@ function renderMarketTable(market, eshops) {
                 (cellNote.length > 15 ? cellNote.substring(0, 15) + '...' : cellNote) :
                 '';
 
+            // Kompaktní režim pro CZ trh
+            const compactMode = market === 'CZ';
+            const cellPadding = compactMode ? 'px-1 py-2' : 'px-3 py-3';
+
             // Speciální zobrazení pro nezměřené buňky
             if (isNotMeasured) {
                 row.innerHTML += `
-                    <td class="px-3 py-3 text-sm text-center ${bgClass} cursor-pointer hover:bg-gray-300 relative"
+                    <td class="${cellPadding} text-sm text-center ${bgClass} cursor-pointer hover:bg-gray-300 relative"
                         onclick="editCellNote('${record.id}', '${eshop}')" ${noteTitle}>
                         <div class="font-medium text-gray-400 text-xs line-through">${orderNumDisplay}</div>
                         <div class="text-gray-400 text-xs font-semibold line-through">
@@ -315,7 +324,7 @@ function renderMarketTable(market, eshops) {
                 `;
             } else {
                 row.innerHTML += `
-                    <td class="px-3 py-3 text-sm text-center ${bgClass} cursor-pointer hover:bg-blue-100"
+                    <td class="${cellPadding} text-sm text-center ${bgClass} cursor-pointer hover:bg-blue-100"
                         onclick="editCellNote('${record.id}', '${eshop}')" ${noteTitle}>
                         <div class="font-medium text-gray-500 text-xs">${orderNumDisplay}</div>
                         <div class="${deltaClass} text-xs font-semibold">
