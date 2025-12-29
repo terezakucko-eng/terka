@@ -142,6 +142,7 @@ async function saveTrackingRecordToFirestore(record) {
             competitors: record.competitors || {},
             deltas: record.deltas || {},
             cellNotes: record.cellNotes || {},
+            notMeasured: record.notMeasured || {},
             manualDeltas: record.manualDeltas || {},
             notes: record.notes || '',
             totalOrders: record.totalOrders || 0,
