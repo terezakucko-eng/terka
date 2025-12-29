@@ -162,16 +162,28 @@ function renderTrackingTableHead(market, competitors) {
         const bgClass = isOwnEshop ? 'bg-green-600' : '';
         const icon = isOwnEshop ? '' : '';
 
-        // Pro CZ trh zkrátit názvy (odstranit .cz) a použít kompaktní styling
+        // Pro CZ trh zkrátit názvy (odstranit .cz) a použít kompaktní styling s vertikálním textem
         const compactMode = market === 'CZ';
         const displayName = compactMode ? comp.replace('.cz', '') : comp;
         const paddingClass = compactMode ? 'px-1 py-2' : 'px-3 py-3';
+        const borderClass = compactMode ? 'border-r border-gray-400' : '';
 
-        html += `
-            <th scope="col" class="${paddingClass} text-xs font-bold uppercase tracking-wider text-center ${bgClass}">
-                ${icon}${displayName}
-            </th>
-        `;
+        if (compactMode) {
+            // Vertikální text pro CZ trh
+            html += `
+                <th scope="col" class="${paddingClass} text-xs font-bold uppercase tracking-wider text-center ${bgClass} ${borderClass}" style="min-width: 40px; max-width: 40px; height: 120px;">
+                    <div style="writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap;">
+                        ${icon}${displayName}
+                    </div>
+                </th>
+            `;
+        } else {
+            html += `
+                <th scope="col" class="${paddingClass} text-xs font-bold uppercase tracking-wider text-center ${bgClass}">
+                    ${icon}${displayName}
+                </th>
+            `;
+        }
     });
 
     // CELKEM Δ a SLON % pouze pro CZ a SK
@@ -308,12 +320,14 @@ function renderMarketTable(market, eshops) {
             // Kompaktní režim pro CZ trh
             const compactMode = market === 'CZ';
             const cellPadding = compactMode ? 'px-1 py-2' : 'px-3 py-3';
+            const cellBorder = compactMode ? 'border-r border-gray-300' : '';
+            const cellWidth = compactMode ? 'style="min-width: 40px; max-width: 40px;"' : '';
 
             // Speciální zobrazení pro nezměřené buňky
             if (isNotMeasured) {
                 row.innerHTML += `
-                    <td class="${cellPadding} text-sm text-center ${bgClass} cursor-pointer hover:bg-gray-300 relative"
-                        onclick="editCellNote('${record.id}', '${eshop}')" ${noteTitle}>
+                    <td class="${cellPadding} text-sm text-center ${bgClass} ${cellBorder} cursor-pointer hover:bg-gray-300 relative"
+                        onclick="editCellNote('${record.id}', '${eshop}')" ${noteTitle} ${cellWidth}>
                         <div class="font-medium text-gray-400 text-xs line-through">${orderNumDisplay}</div>
                         <div class="text-gray-400 text-xs font-semibold line-through">
                             ${delta > 0 ? '+' : ''}${delta.toLocaleString('cs-CZ')}
@@ -324,8 +338,8 @@ function renderMarketTable(market, eshops) {
                 `;
             } else {
                 row.innerHTML += `
-                    <td class="${cellPadding} text-sm text-center ${bgClass} cursor-pointer hover:bg-blue-100"
-                        onclick="editCellNote('${record.id}', '${eshop}')" ${noteTitle}>
+                    <td class="${cellPadding} text-sm text-center ${bgClass} ${cellBorder} cursor-pointer hover:bg-blue-100"
+                        onclick="editCellNote('${record.id}', '${eshop}')" ${noteTitle} ${cellWidth}>
                         <div class="font-medium text-gray-500 text-xs">${orderNumDisplay}</div>
                         <div class="${deltaClass} text-xs font-semibold">
                             ${delta > 0 ? '+' : ''}${delta.toLocaleString('cs-CZ')}
