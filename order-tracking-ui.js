@@ -382,7 +382,7 @@ function renderMarketTable(market, eshops) {
                 <button onclick="editTrackingRecord(${record.id})" class="text-blue-600 hover:text-blue-800 mr-2">
                     ✏️
                 </button>
-                <button onclick="deleteTrackingRecord(${record.id})" class="text-red-600 hover:text-red-800">
+                <button onclick="deleteTrackingRecord(${record.id}, '${market}')" class="text-red-600 hover:text-red-800">
                     🗑️
                 </button>
             </td>
@@ -403,25 +403,19 @@ function escapeHtml(text) {
 // FORMULÁŘ PRO PŘIDÁNÍ/EDITACI ZÁZNAMU
 // =====================================================
 
-function showAddRecordForm(market = 'CZ') {
+function showAddRecordForm() {
     const modal = document.getElementById('record-form-modal');
     if (!modal) return;
 
-    // Uložit vybraný trh pro pozdější použití
-    window.currentMarket = market;
-
-    // Vygenerovat formulářová pole pouze pro e-shopy z daného trhu
+    // Vygenerovat formulářová pole pro e-shopy (pokud ještě nejsou)
     if (typeof renderFormFields === 'function') {
-        renderFormFields(market);
+        renderFormFields();
     }
 
     // Reset formuláře
     document.getElementById('record-date').value = new Date().toISOString().split('T')[0];
     document.getElementById('record-id').value = '';
-
-    // Aktualizovat nadpis podle trhu
-    const marketNames = { 'CZ': 'CZ', 'SK': 'SK', 'Foreign': 'zahraničních trhů' };
-    document.getElementById('form-title-record').textContent = `Přidat nový záznam (${marketNames[market] || market})`;
+    document.getElementById('form-title-record').textContent = 'Přidat nový záznam';
 
     // Vyčistit všechna pole pro konkurenty
     window.COMPETITORS.forEach(comp => {
@@ -576,19 +570,53 @@ window.editTrackingRecord = function(id) {
     document.getElementById('record-form-modal').classList.remove('hidden');
 };
 
-window.deleteTrackingRecord = async function(id) {
-    if (!confirm('Opravdu chcete smazat tento záznam? Tato akce je nevratná.')) {
+window.deleteTrackingRecord = async function(id, market) {
+    const marketNames = { 'CZ': 'CZ', 'SK': 'SK', 'Foreign': 'zahraničních' };
+    const marketName = marketNames[market] || market;
+
+    if (!confirm(`Opravdu chcete smazat data ${marketName} trhu pro toto datum? Tato akce je nevratná.`)) {
         return;
     }
 
     const index = window.trackingData.findIndex(r => r.id === id);
     if (index !== -1) {
-        // Smazat z Firestore (pokud je aktivní)
-        if (typeof deleteTrackingRecordFromFirestore === 'function') {
-            await deleteTrackingRecordFromFirestore(id);
+        const record = window.trackingData[index];
+
+        // Získat seznam e-shopů podle trhu
+        let eshopsToDelete = [];
+        if (market === 'CZ' && window.CZ_ESHOPS) {
+            eshopsToDelete = window.CZ_ESHOPS;
+        } else if (market === 'SK' && window.SK_ESHOPS) {
+            eshopsToDelete = window.SK_ESHOPS;
+        } else if (market === 'Foreign' && window.FOREIGN_ESHOPS) {
+            eshopsToDelete = window.FOREIGN_ESHOPS;
         }
 
-        window.trackingData.splice(index, 1);
+        // Smazat data jen pro e-shopy z tohoto trhu
+        eshopsToDelete.forEach(eshop => {
+            if (record.competitors && record.competitors[eshop] !== undefined) {
+                delete record.competitors[eshop];
+            }
+            if (record.deltas && record.deltas[eshop] !== undefined) {
+                delete record.deltas[eshop];
+            }
+        });
+
+        // Zkontrolovat, jestli záznam má ještě nějaká data
+        const hasAnyData = Object.keys(record.competitors || {}).length > 0 ||
+                          Object.keys(record.deltas || {}).filter(key => (record.deltas[key] || 0) !== 0).length > 0;
+
+        if (!hasAnyData) {
+            // Žádná data nezbyla - smazat celý záznam
+            if (typeof deleteTrackingRecordFromFirestore === 'function') {
+                await deleteTrackingRecordFromFirestore(id);
+            }
+            window.trackingData.splice(index, 1);
+        } else {
+            // Ještě jsou nějaká data - jen aktualizovat záznam
+            window.trackingData[index] = record;
+        }
+
         calculateDeltas();
         saveTrackingData();
         renderTrackingTable();
