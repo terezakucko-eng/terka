@@ -1385,6 +1385,11 @@ function updateTrendChart() {
 
         // Dataset pro aktuální období
         const currentData = processedData.map(record => {
+            // Pokud je e-shop označen jako nezměřený, vrátit 0
+            if (record.notMeasured && record.notMeasured[eshop]) {
+                return 0;
+            }
+
             if (aggregation === 'days') {
                 return record.deltas && record.deltas[eshop] ? record.deltas[eshop] : null;
             } else {
@@ -2129,6 +2134,12 @@ function calculateEshopDeltaAverage(sortedData, eshop, n) {
     let recentCount = 0;
     for (let i = 0; i < n && i < sortedData.length; i++) {
         const record = sortedData[i];
+
+        // Přeskočit nezměřené e-shopy
+        if (record.notMeasured && record.notMeasured[eshop]) {
+            continue;
+        }
+
         let value;
 
         if (isOwnEshop) {
@@ -2148,6 +2159,12 @@ function calculateEshopDeltaAverage(sortedData, eshop, n) {
     let oldCount = 0;
     for (let i = n; i < n * 2 && i < sortedData.length; i++) {
         const record = sortedData[i];
+
+        // Přeskočit nezměřené e-shopy
+        if (record.notMeasured && record.notMeasured[eshop]) {
+            continue;
+        }
+
         let value;
 
         if (isOwnEshop) {
