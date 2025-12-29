@@ -419,6 +419,45 @@ function cleanupFirestoreListeners() {
 window.addEventListener('beforeunload', cleanupFirestoreListeners);
 
 // =====================================================
+// VYMAZÁNÍ VŠECH DAT
+// =====================================================
+
+async function clearAllTrackingDataFromFirestore() {
+    if (!useFirestore) {
+        console.log('⚠️ Firestore není aktivní');
+        return;
+    }
+
+    const db = window.getFirestore();
+
+    console.log('🗑️ Mažu všechna tracking data z Firestore...');
+
+    // Smazat tracking data
+    const trackingSnapshot = await db.collection('trackingData').get();
+    const trackingBatch = db.batch();
+    trackingSnapshot.docs.forEach(doc => {
+        trackingBatch.delete(doc.ref);
+    });
+    await trackingBatch.commit();
+    console.log(`✅ Smazáno ${trackingSnapshot.docs.length} tracking záznamů`);
+
+    // Smazat tracking records (pokud existují)
+    try {
+        const recordsSnapshot = await db.collection('trackingRecords').get();
+        const recordsBatch = db.batch();
+        recordsSnapshot.docs.forEach(doc => {
+            recordsBatch.delete(doc.ref);
+        });
+        await recordsBatch.commit();
+        console.log(`✅ Smazáno ${recordsSnapshot.docs.length} tracking records`);
+    } catch (err) {
+        console.log('ℹ️ Kolekce trackingRecords neexistuje nebo je prázdná');
+    }
+
+    console.log('✅ Všechna data smazána z Firestore');
+}
+
+// =====================================================
 // EXPORT
 // =====================================================
 
@@ -427,6 +466,7 @@ window.loadTrackingDataFromFirestore = loadTrackingDataFromFirestore;
 window.saveTrackingRecordToFirestore = saveTrackingRecordToFirestore;
 window.saveAllTrackingDataToFirestore = saveAllTrackingDataToFirestore;
 window.deleteTrackingRecordFromFirestore = deleteTrackingRecordFromFirestore;
+window.clearAllTrackingDataFromFirestore = clearAllTrackingDataFromFirestore;
 window.loadCampaignsFromFirestore = loadCampaignsFromFirestore;
 window.saveCampaignToFirestore = saveCampaignToFirestore;
 window.deleteCampaignFromFirestore = deleteCampaignFromFirestore;

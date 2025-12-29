@@ -430,18 +430,34 @@ function exportToCSV() {
 function clearAllData() {
     if (confirm('Opravdu chcete vymazat VŠECHNA data? Tato akce je nevratná!\n\nDoporučujeme nejprve exportovat data jako zálohu.')) {
         if (confirm('Jste si jisti? Toto je poslední varování!')) {
-            orderData = [];
-            window.mktCampaignData = [];
-            localStorage.removeItem(STORAGE_KEY_ORDERS);
-            localStorage.removeItem(STORAGE_KEY_CAMPAIGNS);
-            localStorage.removeItem(STORAGE_KEY_SETTINGS);
+            // Vymazat tracking data
+            window.trackingData = [];
+            localStorage.removeItem('trackingData');
 
-            renderOrderTable();
-            renderMktTable();
-            updateAllCharts();
+            // Vymazat tracking data z Firestore
+            if (typeof clearAllTrackingDataFromFirestore === 'function') {
+                clearAllTrackingDataFromFirestore().then(() => {
+                    console.log('✅ Data smazána z Firestore');
+                }).catch(err => {
+                    console.error('❌ Chyba při mazání z Firestore:', err);
+                });
+            }
+
+            // Překreslit tabulky
+            if (typeof renderTrackingTable === 'function') {
+                renderTrackingTable();
+            }
+            if (typeof updateMetricsDisplay === 'function') {
+                updateMetricsDisplay();
+            }
+            if (typeof updateAllCharts === 'function') {
+                updateAllCharts();
+            }
 
             alert('Všechna data byla vymazána.');
-            closeDataManagementModal();
+            if (typeof closeDataManagementModal === 'function') {
+                closeDataManagementModal();
+            }
         }
     }
 }
