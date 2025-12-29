@@ -371,6 +371,15 @@ function redistributeNotMeasuredDeltas() {
 
                 // Dopočítat číslo objednávky pro tento záznam
                 record.competitors[comp] = estimatedCurrentOrderNum;
+
+                // DŮLEŽITÉ: Přepočítat deltu i pro následující změřený záznam
+                // Protože ten původně počítal deltu oproti starému číslu, ne odhadovanému
+                const nextRecord = trackingData[nextMeasuredIndex];
+                const correctedNextDelta = nextMeasuredOrderNum - estimatedCurrentOrderNum;
+
+                console.log(`  📈 ${comp} [${formatDate(nextRecord.date)}]: Přepočítána delta následujícího měření ${nextRecord.deltas[comp]} → ${correctedNextDelta}`);
+
+                nextRecord.deltas[comp] = correctedNextDelta;
             }
         });
     });
