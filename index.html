@@ -21,10 +21,20 @@
             max-width: 800px;
             margin-left: auto;
             margin-right: auto;
-            height: 350px;
+            height: 250px;
             max-height: 400px;
         }
+        @media (min-width: 640px) {
+            .chart-container {
+                height: 300px;
+            }
+        }
         @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        @media (min-width: 1024px) {
             .chart-container {
                 height: 400px;
             }
@@ -111,9 +121,21 @@
         .metric-card {
             background: linear-gradient(135deg, #ffc9e0 0%, #ffb3d9 100%);
             border-radius: 12px;
-            padding: 20px;
+            padding: 12px;
             color: #4a4a4a;
             box-shadow: 0 4px 12px rgba(255, 179, 217, 0.3);
+        }
+
+        @media (min-width: 640px) {
+            .metric-card {
+                padding: 16px;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .metric-card {
+                padding: 20px;
+            }
         }
 
         .metric-card.green {
@@ -143,19 +165,24 @@
 <body class="bg-gray-100 font-sans text-gray-800 antialiased">
 
     <div class="bg-white shadow-md">
-        <div class="container mx-auto px-4 sm:px-8">
-            <div class="flex justify-between items-center py-4">
-                <h1 class="text-2xl font-bold text-gray-900">Sledování konkurence - Růžový Slon</h1>
-                <button onclick="showDataManagementModal()" class="bg-[#b3d9ff] text-gray-700 px-4 py-2 rounded-lg hover:bg-[#99ccff] transition shadow-md">
-                    ⚙️ Správa dat
+        <div class="container mx-auto px-3 sm:px-4 lg:px-8">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center py-3 sm:py-4 gap-3">
+                <h1 class="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
+                    <span class="hidden sm:inline">Sledování konkurence - Růžový Slon</span>
+                    <span class="sm:hidden">Růžový Slon</span>
+                </h1>
+                <button onclick="showDataManagementModal()" class="bg-[#b3d9ff] text-gray-700 px-3 sm:px-4 py-2 rounded-lg hover:bg-[#99ccff] transition shadow-md text-sm sm:text-base whitespace-nowrap">
+                    ⚙️ <span class="hidden xs:inline">Správa dat</span><span class="xs:hidden">Správa</span>
                 </button>
             </div>
-            <nav class="flex space-x-4">
-                <button id="tab-orders" class="py-4 px-6 font-medium text-[#ff6b9d] border-b-2 border-[#ffb3d9]" onclick="showTab('order-tracking')">
-                    Sledování objednávek
+            <nav class="flex space-x-2 sm:space-x-4 overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
+                <button id="tab-orders" class="py-3 px-3 sm:px-6 font-medium text-[#ff6b9d] border-b-2 border-[#ffb3d9] text-sm sm:text-base whitespace-nowrap" onclick="showTab('order-tracking')">
+                    <span class="hidden sm:inline">Sledování objednávek</span>
+                    <span class="sm:hidden">Objednávky</span>
                 </button>
-                <button id="tab-mkt" class="py-4 px-6 font-medium text-gray-500 hover:text-gray-700" onclick="showTab('mkt-tracking')">
-                    Sledování MKT kampaní
+                <button id="tab-mkt" class="py-3 px-3 sm:px-6 font-medium text-gray-500 hover:text-gray-700 text-sm sm:text-base whitespace-nowrap" onclick="showTab('mkt-tracking')">
+                    <span class="hidden sm:inline">Sledování MKT kampaní</span>
+                    <span class="sm:hidden">MKT kampaně</span>
                 </button>
             </nav>
         </div>
@@ -171,70 +198,70 @@
 
                 <!-- CZ TRH -->
                 <div>
-                    <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
-                        CZ - Český trh
-                        <span class="ml-2 text-sm font-normal text-gray-500" id="metric-cz-period">-</span>
+                    <h2 class="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-0">
+                        <span>CZ - Český trh</span>
+                        <span class="sm:ml-2 text-xs sm:text-sm font-normal text-gray-500" id="metric-cz-period">-</span>
                     </h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
                         <div class="metric-card blue">
-                            <h3 class="text-sm font-medium opacity-90 mb-1">Celkem objednávek</h3>
-                            <p class="text-3xl font-bold" id="metric-cz-total">-</p>
-                            <p class="text-xs mt-2 opacity-75">Všechny CZ e-shopy</p>
+                            <h3 class="text-xs sm:text-sm font-medium opacity-90 mb-1">Celkem objednávek</h3>
+                            <p class="text-2xl sm:text-3xl font-bold" id="metric-cz-total">-</p>
+                            <p class="text-xs mt-1 sm:mt-2 opacity-75">Všechny CZ e-shopy</p>
                         </div>
                         <div class="metric-card green">
-                            <h3 class="text-sm font-medium opacity-90 mb-1">Růžový Slon CZ</h3>
-                            <p class="text-3xl font-bold" id="metric-cz-slon">-</p>
-                            <p class="text-xs mt-2 opacity-75" id="metric-cz-slon-share">Podíl: -</p>
+                            <h3 class="text-xs sm:text-sm font-medium opacity-90 mb-1">Růžový Slon CZ</h3>
+                            <p class="text-2xl sm:text-3xl font-bold" id="metric-cz-slon">-</p>
+                            <p class="text-xs mt-1 sm:mt-2 opacity-75" id="metric-cz-slon-share">Podíl: -</p>
                         </div>
                         <div class="metric-card green">
-                            <h3 class="text-sm font-medium opacity-90 mb-1">Kondomshop CZ</h3>
-                            <p class="text-3xl font-bold" id="metric-cz-kondomshop">-</p>
-                            <p class="text-xs mt-2 opacity-75" id="metric-cz-kondomshop-share">Podíl: -</p>
+                            <h3 class="text-xs sm:text-sm font-medium opacity-90 mb-1">Kondomshop CZ</h3>
+                            <p class="text-2xl sm:text-3xl font-bold" id="metric-cz-kondomshop">-</p>
+                            <p class="text-xs mt-1 sm:mt-2 opacity-75" id="metric-cz-kondomshop-share">Podíl: -</p>
                         </div>
                         <div class="metric-card orange">
-                            <h3 class="text-sm font-medium opacity-90 mb-1">Top konkurent</h3>
-                            <p class="text-lg font-bold" id="metric-cz-top-name">-</p>
-                            <p class="text-2xl font-bold" id="metric-cz-top-orders">-</p>
+                            <h3 class="text-xs sm:text-sm font-medium opacity-90 mb-1">Top konkurent</h3>
+                            <p class="text-base sm:text-lg font-bold" id="metric-cz-top-name">-</p>
+                            <p class="text-xl sm:text-2xl font-bold" id="metric-cz-top-orders">-</p>
                         </div>
                         <div class="metric-card purple">
-                            <h3 class="text-sm font-medium opacity-90 mb-1">Slon vs. e-kondomy.cz</h3>
-                            <p class="text-sm font-semibold opacity-90" id="metric-cz-comparison-label">Náskok Slona:</p>
-                            <p class="text-3xl font-bold" id="metric-cz-comparison-value">-</p>
+                            <h3 class="text-xs sm:text-sm font-medium opacity-90 mb-1">Slon vs. e-kondomy.cz</h3>
+                            <p class="text-xs sm:text-sm font-semibold opacity-90" id="metric-cz-comparison-label">Náskok Slona:</p>
+                            <p class="text-2xl sm:text-3xl font-bold" id="metric-cz-comparison-value">-</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- SK TRH -->
                 <div>
-                    <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
-                        SK - Slovenský trh
-                        <span class="ml-2 text-sm font-normal text-gray-500" id="metric-sk-period">-</span>
+                    <h2 class="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-0">
+                        <span>SK - Slovenský trh</span>
+                        <span class="sm:ml-2 text-xs sm:text-sm font-normal text-gray-500" id="metric-sk-period">-</span>
                     </h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
                         <div class="metric-card blue">
-                            <h3 class="text-sm font-medium opacity-90 mb-1">Celkem objednávek</h3>
-                            <p class="text-3xl font-bold" id="metric-sk-total">-</p>
-                            <p class="text-xs mt-2 opacity-75">Všechny SK e-shopy</p>
+                            <h3 class="text-xs sm:text-sm font-medium opacity-90 mb-1">Celkem objednávek</h3>
+                            <p class="text-2xl sm:text-3xl font-bold" id="metric-sk-total">-</p>
+                            <p class="text-xs mt-1 sm:mt-2 opacity-75">Všechny SK e-shopy</p>
                         </div>
                         <div class="metric-card green">
-                            <h3 class="text-sm font-medium opacity-90 mb-1">Růžový Slon SK</h3>
-                            <p class="text-3xl font-bold" id="metric-sk-slon">-</p>
-                            <p class="text-xs mt-2 opacity-75" id="metric-sk-slon-share">Podíl: -</p>
+                            <h3 class="text-xs sm:text-sm font-medium opacity-90 mb-1">Růžový Slon SK</h3>
+                            <p class="text-2xl sm:text-3xl font-bold" id="metric-sk-slon">-</p>
+                            <p class="text-xs mt-1 sm:mt-2 opacity-75" id="metric-sk-slon-share">Podíl: -</p>
                         </div>
                         <div class="metric-card green">
-                            <h3 class="text-sm font-medium opacity-90 mb-1">Kondomshop SK</h3>
-                            <p class="text-3xl font-bold" id="metric-sk-kondomshop">-</p>
-                            <p class="text-xs mt-2 opacity-75" id="metric-sk-kondomshop-share">Podíl: -</p>
+                            <h3 class="text-xs sm:text-sm font-medium opacity-90 mb-1">Kondomshop SK</h3>
+                            <p class="text-2xl sm:text-3xl font-bold" id="metric-sk-kondomshop">-</p>
+                            <p class="text-xs mt-1 sm:mt-2 opacity-75" id="metric-sk-kondomshop-share">Podíl: -</p>
                         </div>
                         <div class="metric-card orange">
-                            <h3 class="text-sm font-medium opacity-90 mb-1">Top konkurent</h3>
-                            <p class="text-lg font-bold" id="metric-sk-top-name">-</p>
-                            <p class="text-2xl font-bold" id="metric-sk-top-orders">-</p>
+                            <h3 class="text-xs sm:text-sm font-medium opacity-90 mb-1">Top konkurent</h3>
+                            <p class="text-base sm:text-lg font-bold" id="metric-sk-top-name">-</p>
+                            <p class="text-xl sm:text-2xl font-bold" id="metric-sk-top-orders">-</p>
                         </div>
                         <div class="metric-card purple">
-                            <h3 class="text-sm font-medium opacity-90 mb-1">Slon vs. superlove.sk</h3>
-                            <p class="text-sm font-semibold opacity-90" id="metric-sk-comparison-label">Náskok Slona:</p>
-                            <p class="text-3xl font-bold" id="metric-sk-comparison-value">-</p>
+                            <h3 class="text-xs sm:text-sm font-medium opacity-90 mb-1">Slon vs. superlove.sk</h3>
+                            <p class="text-xs sm:text-sm font-semibold opacity-90" id="metric-sk-comparison-label">Náskok Slona:</p>
+                            <p class="text-2xl sm:text-3xl font-bold" id="metric-sk-comparison-value">-</p>
                         </div>
                     </div>
                 </div>
@@ -242,22 +269,26 @@
             </section>
 
             <!-- Přehledná tabulka sledování objednávek -->
-            <section class="space-y-8 mb-8">
-                <div class="bg-white p-6 rounded-2xl shadow-lg">
-                    <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-4">
-                        <h2 class="text-2xl font-semibold text-gray-900 mb-2 sm:mb-0">Sledování objednávek</h2>
-                        <button onclick="showAddRecordForm()" class="bg-[#ffb3d9] text-gray-700 px-6 py-2 rounded-lg hover:bg-[#ffc9e0] transition font-medium shadow-md">
+            <section class="space-y-6 sm:space-y-8 mb-6 sm:mb-8">
+                <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-lg">
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-3">
+                        <h2 class="text-xl sm:text-2xl font-semibold text-gray-900">Sledování objednávek</h2>
+                        <button onclick="showAddRecordForm()" class="bg-[#ffb3d9] text-gray-700 px-4 sm:px-6 py-2 rounded-lg hover:bg-[#ffc9e0] transition font-medium shadow-md text-sm sm:text-base w-full sm:w-auto">
                             + Přidat záznam
                         </button>
                     </div>
 
                     <!-- TABULKA CZ TRH -->
                     <div class="mb-6">
-                        <h3 class="text-xl font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                            CZ - Český trh (11 e-shopů)
+                        <h3 class="text-base sm:text-xl font-semibold text-gray-800 mb-2 sm:mb-3 flex items-center gap-2">
+                            <span>CZ - Český trh</span>
+                            <span class="text-sm sm:text-base font-normal text-gray-500">(11 e-shopů)</span>
                         </h3>
+                        <div class="text-xs text-gray-500 mb-2 sm:hidden">
+                            💡 Posuňte tabulku vodorovně pro zobrazení všech sloupců
+                        </div>
                         <div class="rounded-lg border-2 border-gray-300 overflow-x-auto" style="max-height: 500px; overflow-y: auto;">
-                            <table class="min-w-full divide-y divide-gray-200">
+                            <table class="min-w-full divide-y divide-gray-200 text-sm sm:text-base">
                                 <thead id="tracking-table-head-cz" class="bg-gray-800 text-white sticky top-0 z-10">
                                     <!-- Generováno JavaScriptem -->
                                 </thead>
@@ -270,11 +301,15 @@
 
                     <!-- TABULKA SK TRH -->
                     <div class="mb-6">
-                        <h3 class="text-xl font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                            SK - Slovenský trh (6 e-shopů)
+                        <h3 class="text-base sm:text-xl font-semibold text-gray-800 mb-2 sm:mb-3 flex items-center gap-2">
+                            <span>SK - Slovenský trh</span>
+                            <span class="text-sm sm:text-base font-normal text-gray-500">(6 e-shopů)</span>
                         </h3>
+                        <div class="text-xs text-gray-500 mb-2 sm:hidden">
+                            💡 Posuňte tabulku vodorovně pro zobrazení všech sloupců
+                        </div>
                         <div class="rounded-lg border-2 border-gray-300 overflow-x-auto" style="max-height: 500px; overflow-y: auto;">
-                            <table class="min-w-full divide-y divide-gray-200">
+                            <table class="min-w-full divide-y divide-gray-200 text-sm sm:text-base">
                                 <thead id="tracking-table-head-sk" class="bg-gray-800 text-white sticky top-0 z-10">
                                     <!-- Generováno JavaScriptem -->
                                 </thead>
@@ -287,11 +322,15 @@
 
                     <!-- TABULKA ZAHRANIČNÍ TRH -->
                     <div class="mb-6">
-                        <h3 class="text-xl font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                            Zahraniční trhy (29 e-shopů)
+                        <h3 class="text-base sm:text-xl font-semibold text-gray-800 mb-2 sm:mb-3 flex items-center gap-2">
+                            <span>Zahraniční trhy</span>
+                            <span class="text-sm sm:text-base font-normal text-gray-500">(29 e-shopů)</span>
                         </h3>
+                        <div class="text-xs text-gray-500 mb-2 sm:hidden">
+                            💡 Posuňte tabulku vodorovně pro zobrazení všech sloupců
+                        </div>
                         <div class="rounded-lg border-2 border-gray-300 overflow-x-auto" style="max-height: 500px; overflow-y: auto;">
-                            <table class="min-w-full divide-y divide-gray-200">
+                            <table class="min-w-full divide-y divide-gray-200 text-sm sm:text-base">
                                 <thead id="tracking-table-head-foreign" class="bg-gray-800 text-white sticky top-0 z-10">
                                     <!-- Generováno JavaScriptem -->
                                 </thead>
@@ -302,7 +341,7 @@
                         </div>
                     </div>
 
-                    <div class="mt-4 text-sm text-gray-600">
+                    <div class="mt-4 text-xs sm:text-sm text-gray-600 px-2 sm:px-0">
                         <p><strong>Legenda:</strong> Každá buňka zobrazuje číslo objednávky a pod ním růst (delta) od posledního měření.</p>
                         <p class="mt-1">Růžový Slon (zvýrazněno zeleně) | Δ = Celkový růst objednávek | % = Podíl Růžového Slona</p>
                     </div>
@@ -310,23 +349,23 @@
             </section>
 
             <!-- Pokročilé grafy -->
-            <section class="space-y-6 mb-8">
+            <section class="space-y-6 mb-6 sm:mb-8">
                 <!-- Graf vývoje v čase -->
-                <div class="bg-gradient-to-br from-white to-gray-50 p-8 rounded-3xl shadow-xl border border-gray-100">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <div class="bg-gradient-to-br from-white to-gray-50 p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl shadow-xl border border-gray-100">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
                         <div>
-                            <h2 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                            <h2 class="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
                                 Vývoj objednávek v čase
                             </h2>
-                            <p class="text-sm text-gray-500 mt-1">Sledujte trend absolutních čísel objednávek</p>
+                            <p class="text-xs sm:text-sm text-gray-500 mt-1">Sledujte trend absolutních čísel objednávek</p>
                         </div>
                     </div>
 
                     <!-- Filtry -->
-                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6 p-4 bg-white rounded-2xl border border-gray-200">
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Období</label>
-                            <select id="trend-period-filter" class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-4 sm:mb-6 p-3 sm:p-4 bg-white rounded-xl sm:rounded-2xl border border-gray-200">
+                        <div class="sm:col-span-2 lg:col-span-1">
+                            <label class="block text-xs font-semibold text-gray-700 mb-1 sm:mb-2 uppercase tracking-wide">Období</label>
+                            <select id="trend-period-filter" class="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
                                 <option value="7">Poslední týden</option>
                                 <option value="30" selected>Poslední měsíc</option>
                                 <option value="90">Poslední 3 měsíce</option>
@@ -336,18 +375,18 @@
                             </select>
                         </div>
 
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Zobrazit podle</label>
-                            <select id="trend-aggregation-filter" class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                        <div class="sm:col-span-2 lg:col-span-1">
+                            <label class="block text-xs font-semibold text-gray-700 mb-1 sm:mb-2 uppercase tracking-wide">Zobrazit podle</label>
+                            <select id="trend-aggregation-filter" class="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
                                 <option value="days" selected>Dny</option>
                                 <option value="weeks">Týdny</option>
                                 <option value="months">Měsíce</option>
                             </select>
                         </div>
 
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">E-shopy (multi)</label>
-                            <select id="trend-eshops-filter" class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition overflow-y-auto" multiple size="1" style="max-height: 250px;">
+                        <div class="sm:col-span-2 lg:col-span-1">
+                            <label class="block text-xs font-semibold text-gray-700 mb-1 sm:mb-2 uppercase tracking-wide">E-shopy (multi)</label>
+                            <select id="trend-eshops-filter" class="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition overflow-y-auto" multiple size="1" style="max-height: 250px;">
                                 <optgroup label="CZ - Vlastní">
                                     <option value="ruzovyslon.cz" selected>Růžový Slon CZ</option>
                                     <option value="kondomshop.cz">Kondomshop CZ</option>
@@ -404,56 +443,56 @@
                             <p class="text-xs text-gray-500 mt-1">Ctrl/Cmd + klik pro vícenásobný výběr • <strong>Celkem 46 e-shopů</strong></p>
                         </div>
 
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Typ grafu</label>
-                            <select id="trend-type-filter" class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                        <div class="sm:col-span-2 lg:col-span-1">
+                            <label class="block text-xs font-semibold text-gray-700 mb-1 sm:mb-2 uppercase tracking-wide">Typ grafu</label>
+                            <select id="trend-type-filter" class="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
                                 <option value="line">Čárový</option>
                                 <option value="bar">Sloupcový</option>
                                 <option value="area">Plošný</option>
                             </select>
                         </div>
 
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Akce</label>
-                            <button onclick="updateTrendChart()" class="w-full px-4 py-2.5 bg-gradient-to-r from-[#ffb3d9] to-[#ffc9e0] text-gray-700 rounded-xl hover:from-[#ffc9e0] hover:to-[#ffd9e6] transition font-semibold shadow-lg shadow-pink-200">
+                        <div class="sm:col-span-2 lg:col-span-1">
+                            <label class="block text-xs font-semibold text-gray-700 mb-1 sm:mb-2 uppercase tracking-wide">Akce</label>
+                            <button onclick="updateTrendChart()" class="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base bg-gradient-to-r from-[#ffb3d9] to-[#ffc9e0] text-gray-700 rounded-lg sm:rounded-xl hover:from-[#ffc9e0] hover:to-[#ffd9e6] transition font-semibold shadow-lg shadow-pink-200">
                                 Aktualizovat
                             </button>
                         </div>
                     </div>
 
                     <!-- Meziroční srovnání -->
-                    <div class="mb-6 p-4 bg-white rounded-2xl border border-gray-200">
-                        <label class="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" id="trend-yoy-comparison" class="w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 transition">
-                            <span class="text-sm font-semibold text-gray-700">
+                    <div class="mb-4 sm:mb-6 p-3 sm:p-4 bg-white rounded-xl sm:rounded-2xl border border-gray-200">
+                        <label class="flex items-start sm:items-center gap-2 sm:gap-3 cursor-pointer">
+                            <input type="checkbox" id="trend-yoy-comparison" class="w-4 h-4 sm:w-5 sm:h-5 mt-0.5 sm:mt-0 text-blue-600 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 transition flex-shrink-0">
+                            <span class="text-xs sm:text-sm font-semibold text-gray-700">
                                 Zobrazit meziroční srovnání (Year-over-Year)
                                 <span class="block text-xs text-gray-500 font-normal mt-0.5">Porovná data s předchozím rokem ve stejném období</span>
                             </span>
                         </label>
                     </div>
 
-                    <div class="bg-white rounded-2xl p-4 border border-gray-100" style="height: 400px;">
+                    <div class="bg-white rounded-xl sm:rounded-2xl p-2 sm:p-4 border border-gray-100" style="height: 300px;">
                         <canvas id="trendChart"></canvas>
                     </div>
                 </div>
 
                 <!-- Mezitýdenní srovnání -->
-                <div class="bg-gradient-to-br from-white to-gray-50 p-8 rounded-3xl shadow-xl border border-gray-100">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <div class="bg-gradient-to-br from-white to-gray-50 p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl shadow-xl border border-gray-100">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
                         <div>
-                            <h2 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                            <h2 class="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
                                 Mezitýdenní srovnání CZ a SK
                             </h2>
-                            <p class="text-sm text-gray-500 mt-1">Porovnání výkonnosti e-shopů za poslední dva týdny</p>
+                            <p class="text-xs sm:text-sm text-gray-500 mt-1">Porovnání výkonnosti e-shopů za poslední dva týdny</p>
                         </div>
-                        <button onclick="updateWeeklyComparison()" class="px-6 py-2.5 bg-gradient-to-r from-[#d4b3f0] to-[#e0c9ff] text-gray-700 rounded-xl hover:from-[#e0c9ff] hover:to-[#d9b3ff] transition font-semibold shadow-lg shadow-purple-200">
+                        <button onclick="updateWeeklyComparison()" class="px-4 sm:px-6 py-2 sm:py-2.5 text-sm sm:text-base bg-gradient-to-r from-[#d4b3f0] to-[#e0c9ff] text-gray-700 rounded-lg sm:rounded-xl hover:from-[#e0c9ff] hover:to-[#d9b3ff] transition font-semibold shadow-lg shadow-purple-200 w-full sm:w-auto">
                             Obnovit data
                         </button>
                     </div>
 
                     <!-- Tabulka mezitýdenního srovnání -->
-                    <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                        <table class="min-w-full divide-y divide-gray-200">
+                    <div class="bg-white rounded-xl sm:rounded-2xl border border-gray-100 overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 text-sm sm:text-base">
                             <thead class="bg-gray-800 text-white">
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider">E-shop</th>
@@ -471,22 +510,22 @@
                 </div>
 
                 <!-- Meziroční srovnání měsíců -->
-                <div class="bg-gradient-to-br from-white to-gray-50 p-8 rounded-3xl shadow-xl border border-gray-100">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <div class="bg-gradient-to-br from-white to-gray-50 p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl shadow-xl border border-gray-100">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
                         <div>
-                            <h2 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                            <h2 class="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
                                 Meziroční srovnání měsíců CZ a SK
                             </h2>
-                            <p class="text-sm text-gray-500 mt-1">Porovnání stejných měsíců mezi roky (např. leden 2025 vs. leden 2024)</p>
+                            <p class="text-xs sm:text-sm text-gray-500 mt-1">Porovnání stejných měsíců mezi roky (např. leden 2025 vs. leden 2024)</p>
                         </div>
-                        <button onclick="updateMonthlyYoYComparison()" class="px-6 py-2.5 bg-gradient-to-r from-[#d4b3f0] to-[#e0c9ff] text-gray-700 rounded-xl hover:from-[#e0c9ff] hover:to-[#d9b3ff] transition font-semibold shadow-lg shadow-purple-200">
+                        <button onclick="updateMonthlyYoYComparison()" class="px-4 sm:px-6 py-2 sm:py-2.5 text-sm sm:text-base bg-gradient-to-r from-[#d4b3f0] to-[#e0c9ff] text-gray-700 rounded-lg sm:rounded-xl hover:from-[#e0c9ff] hover:to-[#d9b3ff] transition font-semibold shadow-lg shadow-purple-200 w-full sm:w-auto">
                             Obnovit data
                         </button>
                     </div>
 
                     <!-- Tabulka meziročního srovnání -->
-                    <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                        <table class="min-w-full divide-y divide-gray-200">
+                    <div class="bg-white rounded-xl sm:rounded-2xl border border-gray-100 overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 text-sm sm:text-base">
                             <thead class="bg-gray-800 text-white">
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider">E-shop</th>
@@ -506,24 +545,24 @@
         </div>
 
         <!-- Modal pro přidání/editaci záznamu -->
-        <div id="record-form-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-                <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-                    <h3 id="form-title-record" class="text-2xl font-bold text-gray-900">Přidat nový záznam</h3>
-                    <button onclick="hideRecordForm()" class="text-gray-400 hover:text-gray-600 text-3xl font-bold">&times;</button>
+        <div id="record-form-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2 sm:p-4">
+            <div class="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+                <div class="sticky top-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center rounded-t-xl sm:rounded-t-2xl">
+                    <h3 id="form-title-record" class="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">Přidat nový záznam</h3>
+                    <button onclick="hideRecordForm()" class="text-gray-400 hover:text-gray-600 text-2xl sm:text-3xl font-bold">&times;</button>
                 </div>
 
-                <form id="tracking-record-form" onsubmit="handleRecordFormSubmit(event)" class="p-6">
+                <form id="tracking-record-form" onsubmit="handleRecordFormSubmit(event)" class="p-4 sm:p-6">
                     <input type="hidden" id="record-id">
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
                         <div>
-                            <label for="record-date" class="block text-sm font-medium text-gray-700 mb-1">Datum měření (Povinné)</label>
-                            <input type="date" id="record-date" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <label for="record-date" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Datum měření (Povinné)</label>
+                            <input type="date" id="record-date" required class="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                         </div>
                         <div>
-                            <label for="record-notes" class="block text-sm font-medium text-gray-700 mb-1">Poznámky</label>
-                            <input type="text" id="record-notes" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Volitelné poznámky...">
+                            <label for="record-notes" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Poznámky</label>
+                            <input type="text" id="record-notes" class="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Volitelné poznámky...">
                         </div>
                     </div>
 
@@ -531,16 +570,16 @@
                     <div id="competitor-fields-container"></div>
 
                     <!-- Ruční zadání počtu objednávek pro erosstar a deeplove -->
-                    <div class="mb-6 border-t pt-6">
-                        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
-                            <div class="flex">
+                    <div class="mb-4 sm:mb-6 border-t pt-4 sm:pt-6">
+                        <div class="bg-blue-50 border-l-4 border-blue-500 p-3 sm:p-4 mb-3 sm:mb-4">
+                            <div class="flex gap-2 sm:gap-3">
                                 <div class="flex-shrink-0">
-                                    <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg class="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
                                     </svg>
                                 </div>
-                                <div class="ml-3">
-                                    <h4 class="text-sm font-medium text-blue-800">Ruční zadání počtu objednávek (erosstar.cz & deeplove.cz)</h4>
+                                <div>
+                                    <h4 class="text-xs sm:text-sm font-medium text-blue-800">Ruční zadání počtu objednávek (erosstar.cz & deeplove.cz)</h4>
                                     <p class="mt-1 text-xs text-blue-700">
                                         Pokud chceš přepsat automatický výpočet, zadej počet objednávek ručně. <strong>Nechej prázdné</strong> pro automatický výpočet.
                                     </p>
@@ -548,37 +587,37 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                             <div>
-                                <label for="manual-delta-erosstar-cz" class="block text-sm font-medium text-gray-700 mb-1">
+                                <label for="manual-delta-erosstar-cz" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                                     erosstar.cz - Počet objednávek
                                     <span class="text-xs text-blue-600">(přepíše automatický výpočet)</span>
                                 </label>
                                 <input
                                     type="number"
                                     id="manual-delta-erosstar-cz"
-                                    class="w-full px-3 py-2 border-2 border-blue-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500"
+                                    class="w-full px-3 py-2 text-sm sm:text-base border-2 border-blue-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500"
                                     placeholder="např. 687">
                             </div>
                             <div>
-                                <label for="manual-delta-deeplove-cz" class="block text-sm font-medium text-gray-700 mb-1">
+                                <label for="manual-delta-deeplove-cz" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                                     deeplove.cz - Počet objednávek
                                     <span class="text-xs text-blue-600">(přepíše automatický výpočet)</span>
                                 </label>
                                 <input
                                     type="number"
                                     id="manual-delta-deeplove-cz"
-                                    class="w-full px-3 py-2 border-2 border-blue-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500"
+                                    class="w-full px-3 py-2 text-sm sm:text-base border-2 border-blue-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500"
                                     placeholder="např. 859">
                             </div>
                         </div>
                     </div>
 
-                    <div class="flex gap-4">
-                        <button type="submit" class="flex-1 bg-[#ffb3d9] text-gray-700 font-bold py-3 px-6 rounded-lg hover:bg-[#ffc9e0] transition shadow-md">
+                    <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                        <button type="submit" class="flex-1 bg-[#ffb3d9] text-gray-700 font-bold py-2.5 sm:py-3 px-4 sm:px-6 text-sm sm:text-base rounded-lg hover:bg-[#ffc9e0] transition shadow-md order-2 sm:order-1">
                             Uložit záznam
                         </button>
-                        <button type="button" onclick="hideRecordForm()" class="flex-1 bg-gray-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-700 transition">
+                        <button type="button" onclick="hideRecordForm()" class="flex-1 bg-gray-600 text-white font-bold py-2.5 sm:py-3 px-4 sm:px-6 text-sm sm:text-base rounded-lg hover:bg-gray-700 transition order-1 sm:order-2">
                             Zrušit
                         </button>
                     </div>
@@ -885,34 +924,34 @@
     </div>
 
     <!-- Modal pro editaci buňky -->
-    <div id="cellEditModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
-            <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center rounded-t-2xl">
-                <h3 id="cellEditTitle" class="text-xl font-bold text-gray-900">Editace buňky</h3>
-                <button onclick="closeCellEditModal()" class="text-gray-400 hover:text-gray-600 text-3xl font-bold">&times;</button>
+    <div id="cellEditModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2 sm:p-4">
+        <div class="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-md w-full mx-2 sm:mx-0">
+            <div class="sticky top-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center rounded-t-xl sm:rounded-t-2xl">
+                <h3 id="cellEditTitle" class="text-lg sm:text-xl font-bold text-gray-900">Editace buňky</h3>
+                <button onclick="closeCellEditModal()" class="text-gray-400 hover:text-gray-600 text-2xl sm:text-3xl font-bold">&times;</button>
             </div>
 
-            <div class="p-6">
+            <div class="p-4 sm:p-6">
                 <div class="mb-4">
-                    <label for="cellNote" class="block text-sm font-medium text-gray-700 mb-2">Poznámka</label>
-                    <textarea id="cellNote" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="např. 'Akce 20%', 'Black Friday', 'Email kampaň'"></textarea>
+                    <label for="cellNote" class="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Poznámka</label>
+                    <textarea id="cellNote" rows="3" class="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="např. 'Akce 20%', 'Black Friday', 'Email kampaň'"></textarea>
                 </div>
 
-                <div class="mb-6">
-                    <label class="flex items-center gap-3 cursor-pointer p-3 bg-red-50 border-2 border-red-200 rounded-lg hover:bg-red-100 transition">
-                        <input type="checkbox" id="cellNotMeasured" class="w-5 h-5 text-red-600 border-2 border-red-300 rounded focus:ring-2 focus:ring-red-500">
+                <div class="mb-4 sm:mb-6">
+                    <label class="flex items-start sm:items-center gap-2 sm:gap-3 cursor-pointer p-3 bg-red-50 border-2 border-red-200 rounded-lg hover:bg-red-100 transition">
+                        <input type="checkbox" id="cellNotMeasured" class="w-4 h-4 sm:w-5 sm:h-5 mt-0.5 sm:mt-0 text-red-600 border-2 border-red-300 rounded focus:ring-2 focus:ring-red-500 flex-shrink-0">
                         <div>
-                            <span class="text-sm font-semibold text-red-900">Nezměřeno v tento den</span>
+                            <span class="text-xs sm:text-sm font-semibold text-red-900">Nezměřeno v tento den</span>
                             <span class="block text-xs text-red-700 mt-0.5">Hodnota se nezapočítá do celkových součtů</span>
                         </div>
                     </label>
                 </div>
 
-                <div class="flex gap-3">
-                    <button onclick="saveCellEdit()" class="flex-1 bg-[#ffb3d9] text-gray-700 font-bold py-2.5 px-4 rounded-lg hover:bg-[#ffc9e0] transition shadow-md">
+                <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                    <button onclick="saveCellEdit()" class="flex-1 bg-[#ffb3d9] text-gray-700 font-bold py-2 sm:py-2.5 px-4 text-sm sm:text-base rounded-lg hover:bg-[#ffc9e0] transition shadow-md order-2 sm:order-1">
                         Uložit
                     </button>
-                    <button onclick="closeCellEditModal()" class="flex-1 bg-gray-600 text-white font-bold py-2.5 px-4 rounded-lg hover:bg-gray-700 transition">
+                    <button onclick="closeCellEditModal()" class="flex-1 bg-gray-600 text-white font-bold py-2 sm:py-2.5 px-4 text-sm sm:text-base rounded-lg hover:bg-gray-700 transition order-1 sm:order-2">
                         Zrušit
                     </button>
                 </div>
