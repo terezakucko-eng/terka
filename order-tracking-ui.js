@@ -429,6 +429,12 @@ function showAddRecordForm() {
     if (erosstarMonthEnd) erosstarMonthEnd.value = '';
     if (deeploveMonthEnd) deeploveMonthEnd.value = '';
 
+    // Vyčistit manuální delty
+    const manualDeltasContainer = document.getElementById('manual-deltas-container');
+    if (manualDeltasContainer) {
+        manualDeltasContainer.innerHTML = '';
+    }
+
     modal.classList.remove('hidden');
 }
 
@@ -475,24 +481,24 @@ function handleRecordFormSubmit(e) {
     });
 
     // Načíst manuální delty (přepíší automatický výpočet)
-    const manualDeltaErosstar = document.getElementById('manual-delta-erosstar-cz');
-    const manualDeltaDeeplove = document.getElementById('manual-delta-deeplove-cz');
-
     // Inicializovat manualDeltas, pokud neexistuje
     if (!record.manualDeltas) {
         record.manualDeltas = {};
     }
 
-    if (manualDeltaErosstar && manualDeltaErosstar.value) {
-        const value = parseInt(manualDeltaErosstar.value) || 0;
-        record.manualDeltas['erosstar.cz'] = value;
-        console.log(`✏️ Ruční delta pro erosstar.cz: ${value}`);
-    }
-    if (manualDeltaDeeplove && manualDeltaDeeplove.value) {
-        const value = parseInt(manualDeltaDeeplove.value) || 0;
-        record.manualDeltas['deeplove.cz'] = value;
-        console.log(`✏️ Ruční delta pro deeplove.cz: ${value}`);
-    }
+    // Projít všechny dynamicky přidané řádky pro manuální delty
+    const manualDeltaRows = document.querySelectorAll('[data-manual-delta-row]');
+    manualDeltaRows.forEach(row => {
+        const selectElem = row.querySelector('select');
+        const inputElem = row.querySelector('input[type="number"]');
+
+        if (selectElem && inputElem && selectElem.value && inputElem.value) {
+            const eshop = selectElem.value;
+            const value = parseInt(inputElem.value) || 0;
+            record.manualDeltas[eshop] = value;
+            console.log(`✏️ Ruční delta pro ${eshop}: ${value}`);
+        }
+    });
 
     // Aktualizovat nebo přidat záznam
     if (recordId) {
@@ -556,14 +562,19 @@ window.editTrackingRecord = function(id) {
     });
 
     // Naplnit manuální delty
-    const manualDeltaErosstar = document.getElementById('manual-delta-erosstar-cz');
-    const manualDeltaDeeplove = document.getElementById('manual-delta-deeplove-cz');
+    const manualDeltasContainer = document.getElementById('manual-deltas-container');
+    if (manualDeltasContainer) {
+        manualDeltasContainer.innerHTML = ''; // Vyčistit
 
-    if (manualDeltaErosstar) {
-        manualDeltaErosstar.value = (record.manualDeltas && record.manualDeltas['erosstar.cz']) || '';
-    }
-    if (manualDeltaDeeplove) {
-        manualDeltaDeeplove.value = (record.manualDeltas && record.manualDeltas['deeplove.cz']) || '';
+        // Přidat řádky pro existující manuální delty
+        if (record.manualDeltas && Object.keys(record.manualDeltas).length > 0) {
+            Object.keys(record.manualDeltas).forEach(eshop => {
+                const value = record.manualDeltas[eshop];
+                if (value) {
+                    addManualDeltaRow(eshop, value);
+                }
+            });
+        }
     }
 
     document.getElementById('form-title-record').textContent = 'Upravit záznam';
@@ -1039,6 +1050,109 @@ window.saveCellEdit = function() {
     // Uložit do Firestore
     if (typeof saveTrackingRecordToFirestore === 'function') {
         saveTrackingRecordToFirestore(record);
+    }
+};
+
+// =====================================================
+// FUNKCE PRO RUČNÍ ÚPRAVU DELT
+// =====================================================
+
+let manualDeltaRowCounter = 0;
+
+/**
+ * Přidá nový řádek pro ruční úpravu delty
+ */
+window.addManualDeltaRow = function(selectedEshop = '', value = '') {
+    const container = document.getElementById('manual-deltas-container');
+    if (!container) return;
+
+    const rowId = `manual-delta-row-${manualDeltaRowCounter++}`;
+
+    // Vytvořit HTML řádku
+    const rowHTML = `
+        <div data-manual-delta-row id="${rowId}" class="grid grid-cols-1 md:grid-cols-12 gap-2 sm:gap-3 items-end">
+            <div class="md:col-span-5">
+                <label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">E-shop</label>
+                <select class="w-full px-3 py-2 text-sm sm:text-base border-2 border-blue-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500">
+                    <option value="">Vyberte e-shop...</option>
+                    <optgroup label="CZ">
+                        <option value="Hopnato.cz" ${selectedEshop === 'Hopnato.cz' ? 'selected' : ''}>Hopnato.cz</option>
+                        <option value="erosstar.cz" ${selectedEshop === 'erosstar.cz' ? 'selected' : ''}>erosstar.cz</option>
+                        <option value="deeplove.cz" ${selectedEshop === 'deeplove.cz' ? 'selected' : ''}>deeplove.cz</option>
+                        <option value="yoo.cz" ${selectedEshop === 'yoo.cz' ? 'selected' : ''}>yoo.cz</option>
+                        <option value="honitka.cz" ${selectedEshop === 'honitka.cz' ? 'selected' : ''}>honitka.cz</option>
+                        <option value="eroticke-pomucky.cz" ${selectedEshop === 'eroticke-pomucky.cz' ? 'selected' : ''}>eroticke-pomucky.cz</option>
+                        <option value="flagranti.cz" ${selectedEshop === 'flagranti.cz' ? 'selected' : ''}>flagranti.cz</option>
+                        <option value="sexshopik.cz" ${selectedEshop === 'sexshopik.cz' ? 'selected' : ''}>sexshopik.cz</option>
+                        <option value="e-kondomy.cz" ${selectedEshop === 'e-kondomy.cz' ? 'selected' : ''}>e-kondomy.cz</option>
+                        <option value="ruzovyslon.cz" ${selectedEshop === 'ruzovyslon.cz' ? 'selected' : ''}>ruzovyslon.cz</option>
+                        <option value="kondomshop.cz" ${selectedEshop === 'kondomshop.cz' ? 'selected' : ''}>kondomshop.cz</option>
+                    </optgroup>
+                    <optgroup label="SK">
+                        <option value="isexshop.sk" ${selectedEshop === 'isexshop.sk' ? 'selected' : ''}>isexshop.sk</option>
+                        <option value="flagranti.sk" ${selectedEshop === 'flagranti.sk' ? 'selected' : ''}>flagranti.sk</option>
+                        <option value="superlove.sk" ${selectedEshop === 'superlove.sk' ? 'selected' : ''}>superlove.sk</option>
+                        <option value="eros.sk" ${selectedEshop === 'eros.sk' ? 'selected' : ''}>eros.sk</option>
+                        <option value="ruzovyslon.sk" ${selectedEshop === 'ruzovyslon.sk' ? 'selected' : ''}>ruzovyslon.sk</option>
+                        <option value="kondomshop.sk" ${selectedEshop === 'kondomshop.sk' ? 'selected' : ''}>kondomshop.sk</option>
+                    </optgroup>
+                    <optgroup label="Foreign - Sexy Elephant">
+                        <option value="sexyelephant.ro" ${selectedEshop === 'sexyelephant.ro' ? 'selected' : ''}>sexyelephant.ro</option>
+                        <option value="sexyelephant.hu" ${selectedEshop === 'sexyelephant.hu' ? 'selected' : ''}>sexyelephant.hu</option>
+                        <option value="sexyelephant.si" ${selectedEshop === 'sexyelephant.si' ? 'selected' : ''}>sexyelephant.si</option>
+                        <option value="sexyelephant.bg" ${selectedEshop === 'sexyelephant.bg' ? 'selected' : ''}>sexyelephant.bg</option>
+                        <option value="sexyelephant.hr" ${selectedEshop === 'sexyelephant.hr' ? 'selected' : ''}>sexyelephant.hr</option>
+                    </optgroup>
+                    <optgroup label="Foreign - Ostatní">
+                        <option value="superlove.ro" ${selectedEshop === 'superlove.ro' ? 'selected' : ''}>superlove.ro</option>
+                        <option value="superlove.pl" ${selectedEshop === 'superlove.pl' ? 'selected' : ''}>superlove.pl</option>
+                        <option value="superlove.eu" ${selectedEshop === 'superlove.eu' ? 'selected' : ''}>superlove.eu</option>
+                        <option value="superlove.at" ${selectedEshop === 'superlove.at' ? 'selected' : ''}>superlove.at</option>
+                        <option value="superlove.hr" ${selectedEshop === 'superlove.hr' ? 'selected' : ''}>superlove.hr</option>
+                        <option value="superlove.it" ${selectedEshop === 'superlove.it' ? 'selected' : ''}>superlove.it</option>
+                        <option value="superlove.si" ${selectedEshop === 'superlove.si' ? 'selected' : ''}>superlove.si</option>
+                        <option value="superlove.bg" ${selectedEshop === 'superlove.bg' ? 'selected' : ''}>superlove.bg</option>
+                        <option value="superlove.lt" ${selectedEshop === 'superlove.lt' ? 'selected' : ''}>superlove.lt</option>
+                        <option value="superlove.es" ${selectedEshop === 'superlove.es' ? 'selected' : ''}>superlove.es</option>
+                        <option value="superlove.hu" ${selectedEshop === 'superlove.hu' ? 'selected' : ''}>superlove.hu</option>
+                        <option value="goldengate.hu" ${selectedEshop === 'goldengate.hu' ? 'selected' : ''}>goldengate.hu</option>
+                        <option value="padlizsan.hu" ${selectedEshop === 'padlizsan.hu' ? 'selected' : ''}>padlizsan.hu</option>
+                        <option value="sexshopcenter.hu" ${selectedEshop === 'sexshopcenter.hu' ? 'selected' : ''}>sexshopcenter.hu</option>
+                        <option value="erotikashow.hu" ${selectedEshop === 'erotikashow.hu' ? 'selected' : ''}>erotikashow.hu</option>
+                        <option value="szexaruhaz.hu" ${selectedEshop === 'szexaruhaz.hu' ? 'selected' : ''}>szexaruhaz.hu</option>
+                        <option value="szexshop.hu" ${selectedEshop === 'szexshop.hu' ? 'selected' : ''}>szexshop.hu</option>
+                        <option value="vagyaim.hu" ${selectedEshop === 'vagyaim.hu' ? 'selected' : ''}>vagyaim.hu</option>
+                    </optgroup>
+                </select>
+            </div>
+            <div class="md:col-span-6">
+                <label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                    Počet objednávek <span class="text-xs text-blue-600">(přepíše automatický výpočet)</span>
+                </label>
+                <input
+                    type="number"
+                    value="${value}"
+                    class="w-full px-3 py-2 text-sm sm:text-base border-2 border-blue-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500"
+                    placeholder="např. 150">
+            </div>
+            <div class="md:col-span-1">
+                <button type="button" onclick="removeManualDeltaRow('${rowId}')" class="w-full px-3 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition border-2 border-red-300 font-medium">
+                    ✕
+                </button>
+            </div>
+        </div>
+    `;
+
+    container.insertAdjacentHTML('beforeend', rowHTML);
+};
+
+/**
+ * Odstraní řádek pro ruční úpravu delty
+ */
+window.removeManualDeltaRow = function(rowId) {
+    const row = document.getElementById(rowId);
+    if (row) {
+        row.remove();
     }
 };
 

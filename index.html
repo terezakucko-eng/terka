@@ -569,7 +569,7 @@
                     <!-- Dynamicky generovaná pole pro e-shopy -->
                     <div id="competitor-fields-container"></div>
 
-                    <!-- Ruční zadání počtu objednávek pro erosstar a deeplove -->
+                    <!-- Ruční úprava delt - univerzální systém -->
                     <div class="mb-4 sm:mb-6 border-t pt-4 sm:pt-6">
                         <div class="bg-blue-50 border-l-4 border-blue-500 p-3 sm:p-4 mb-3 sm:mb-4">
                             <div class="flex gap-2 sm:gap-3">
@@ -579,38 +579,22 @@
                                     </svg>
                                 </div>
                                 <div>
-                                    <h4 class="text-xs sm:text-sm font-medium text-blue-800">Ruční zadání počtu objednávek (erosstar.cz & deeplove.cz)</h4>
+                                    <h4 class="text-xs sm:text-sm font-medium text-blue-800">🔧 Pokročilé: Ruční úprava delt</h4>
                                     <p class="mt-1 text-xs text-blue-700">
-                                        Pokud chceš přepsat automatický výpočet, zadej počet objednávek ručně. <strong>Nechej prázdné</strong> pro automatický výpočet.
+                                        Použij, když potřebuješ přepsat automatický výpočet (např. reset číselné řady, oprava chyby).
+                                        <strong>Nechej prázdné</strong> pro automatický výpočet.
                                     </p>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                            <div>
-                                <label for="manual-delta-erosstar-cz" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                                    erosstar.cz - Počet objednávek
-                                    <span class="text-xs text-blue-600">(přepíše automatický výpočet)</span>
-                                </label>
-                                <input
-                                    type="number"
-                                    id="manual-delta-erosstar-cz"
-                                    class="w-full px-3 py-2 text-sm sm:text-base border-2 border-blue-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500"
-                                    placeholder="např. 687">
-                            </div>
-                            <div>
-                                <label for="manual-delta-deeplove-cz" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                                    deeplove.cz - Počet objednávek
-                                    <span class="text-xs text-blue-600">(přepíše automatický výpočet)</span>
-                                </label>
-                                <input
-                                    type="number"
-                                    id="manual-delta-deeplove-cz"
-                                    class="w-full px-3 py-2 text-sm sm:text-base border-2 border-blue-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500"
-                                    placeholder="např. 859">
-                            </div>
+                        <div id="manual-deltas-container" class="space-y-3">
+                            <!-- Dynamicky generované řádky pro ruční delty -->
                         </div>
+
+                        <button type="button" onclick="addManualDeltaRow()" class="mt-3 w-full sm:w-auto px-4 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition border-2 border-blue-300 font-medium">
+                            + Přidat e-shop pro ruční úpravu
+                        </button>
                     </div>
 
                     <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
