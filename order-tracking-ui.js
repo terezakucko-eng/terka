@@ -159,7 +159,15 @@ function renderTrackingTableHead(market, competitors) {
 
     competitors.forEach(comp => {
         const isOwnEshop = window.OWN_ESHOPS && window.OWN_ESHOPS.includes(comp);
-        const bgClass = isOwnEshop ? 'bg-green-600' : '';
+
+        // Barvy pro vlastní e-shopy
+        let bgClass = '';
+        if (comp === 'ruzovyslon.cz' || comp === 'ruzovyslon.sk' || comp === 'sexshopik') {
+            bgClass = 'bg-pink-300';  // Světle růžová pro Růžový slon a Sexy elephant
+        } else if (comp === 'kondomshop.cz' || comp === 'kondomshop.sk') {
+            bgClass = 'bg-blue-300';  // Světle modrá pro Kondomshop
+        }
+
         const icon = isOwnEshop ? '' : '';
 
         // Pro CZ trh zkrátit názvy (odstranit .cz) a použít kompaktní styling s vertikálním textem
@@ -169,10 +177,10 @@ function renderTrackingTableHead(market, competitors) {
         const borderClass = compactMode ? 'border-r border-gray-400' : '';
 
         if (compactMode) {
-            // Vertikální text pro CZ trh
+            // Vertikální text pro CZ trh s centrováním
             html += `
                 <th scope="col" class="${paddingClass} text-xs font-bold uppercase tracking-wider text-center ${bgClass} ${borderClass}" style="min-width: 65px; max-width: 65px; height: 120px;">
-                    <div style="writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap;">
+                    <div style="writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; display: flex; align-items: center; justify-content: center; height: 100%;">
                         ${icon}${displayName}
                     </div>
                 </th>
@@ -297,12 +305,14 @@ function renderMarketTable(market, eshops) {
             // Zjistit, jestli je to vlastní e-shop
             const isOwnEshop = window.OWN_ESHOPS && window.OWN_ESHOPS.includes(eshop);
 
-            // Pro vlastní e-shopy zelené pozadí, pro nezměřené šedé
+            // Barvy pro vlastní e-shopy
             let bgClass = '';
             if (isNotMeasured) {
                 bgClass = 'bg-gray-200 opacity-60';
-            } else if (isOwnEshop) {
-                bgClass = 'bg-green-50 font-bold';
+            } else if (eshop === 'ruzovyslon.cz' || eshop === 'ruzovyslon.sk' || eshop === 'sexshopik') {
+                bgClass = 'bg-pink-100 font-bold';  // Světle růžová
+            } else if (eshop === 'kondomshop.cz' || eshop === 'kondomshop.sk') {
+                bgClass = 'bg-blue-100 font-bold';  // Světle modrá
             }
 
             // Pro vlastní e-shopy zobrazit "-" místo čísla objednávky
