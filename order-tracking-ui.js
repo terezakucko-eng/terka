@@ -170,28 +170,12 @@ function renderTrackingTableHead(market, competitors) {
 
         const icon = isOwnEshop ? '' : '';
 
-        // Pro CZ trh zkrátit názvy (odstranit .cz) a použít kompaktní styling s vertikálním textem
-        const compactMode = market === 'CZ';
-        const displayName = compactMode ? comp.replace('.cz', '') : comp;
-        const paddingClass = compactMode ? 'px-1 py-2' : 'px-3 py-3';
-        const borderClass = compactMode ? 'border-r border-gray-400' : '';
-
-        if (compactMode) {
-            // Vertikální text pro CZ trh s centrováním
-            html += `
-                <th scope="col" class="${paddingClass} text-xs font-bold uppercase tracking-wider text-center ${bgClass} ${borderClass}" style="min-width: 65px; max-width: 65px; height: 120px;">
-                    <div style="writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; display: flex; align-items: center; justify-content: center; height: 100%;">
-                        ${icon}${displayName}
-                    </div>
-                </th>
-            `;
-        } else {
-            html += `
-                <th scope="col" class="${paddingClass} text-xs font-bold uppercase tracking-wider text-center ${bgClass}">
-                    ${icon}${displayName}
-                </th>
-            `;
-        }
+        // Normální zobrazení pro všechny trhy
+        html += `
+            <th scope="col" class="px-3 py-3 text-xs font-bold uppercase tracking-wider text-center ${bgClass}">
+                ${icon}${comp}
+            </th>
+        `;
     });
 
     // CELKEM Δ a SLON % pouze pro CZ a SK
@@ -327,35 +311,29 @@ function renderMarketTable(market, eshops) {
                 (cellNote.length > 15 ? cellNote.substring(0, 15) + '...' : cellNote) :
                 '';
 
-            // Kompaktní režim pro CZ trh
-            const compactMode = market === 'CZ';
-            const cellPadding = compactMode ? 'px-0.5 py-1' : 'px-3 py-3';
-            const cellBorder = compactMode ? 'border-r border-gray-300' : '';
-            const cellWidth = compactMode ? 'style="min-width: 65px; max-width: 65px;"' : '';
-            const fontSize = compactMode ? 'text-[10px]' : 'text-xs';
-
+            // Normální zobrazení pro všechny trhy
             // Speciální zobrazení pro nezměřené buňky
             if (isNotMeasured) {
                 row.innerHTML += `
-                    <td class="${cellPadding} text-sm text-center ${bgClass} ${cellBorder} cursor-pointer hover:bg-gray-300 relative"
-                        onclick="editCellNote('${record.id}', '${eshop}')" ${noteTitle} ${cellWidth}>
-                        <div class="font-medium text-gray-400 ${fontSize} line-through">${orderNumDisplay}</div>
-                        <div class="text-gray-400 ${fontSize} font-semibold line-through">
+                    <td class="px-3 py-3 text-sm text-center ${bgClass} cursor-pointer hover:bg-gray-300 relative"
+                        onclick="editCellNote('${record.id}', '${eshop}')" ${noteTitle}>
+                        <div class="font-medium text-gray-400 text-xs line-through">${orderNumDisplay}</div>
+                        <div class="text-gray-400 text-xs font-semibold line-through">
                             ${delta > 0 ? '+' : ''}${delta.toLocaleString('cs-CZ')}
                         </div>
-                        <div class="text-red-600 ${fontSize} font-bold mt-0.5">⊗ N/A</div>
-                        ${cellNote ? `<div class="text-blue-600 ${fontSize} italic mt-0.5">${escapeHtml(noteDisplay)}</div>` : ''}
+                        <div class="text-red-600 text-xs font-bold mt-1">⊗ N/A</div>
+                        ${cellNote ? `<div class="text-blue-600 text-xs italic mt-1">${escapeHtml(noteDisplay)}</div>` : ''}
                     </td>
                 `;
             } else {
                 row.innerHTML += `
-                    <td class="${cellPadding} text-sm text-center ${bgClass} ${cellBorder} cursor-pointer hover:bg-blue-100"
-                        onclick="editCellNote('${record.id}', '${eshop}')" ${noteTitle} ${cellWidth}>
-                        <div class="font-medium text-gray-500 ${fontSize}">${orderNumDisplay}</div>
-                        <div class="${deltaClass} ${fontSize} font-semibold">
+                    <td class="px-3 py-3 text-sm text-center ${bgClass} cursor-pointer hover:bg-blue-100"
+                        onclick="editCellNote('${record.id}', '${eshop}')" ${noteTitle}>
+                        <div class="font-medium text-gray-500 text-xs">${orderNumDisplay}</div>
+                        <div class="${deltaClass} text-xs font-semibold">
                             ${delta > 0 ? '+' : ''}${delta.toLocaleString('cs-CZ')}
                         </div>
-                        ${cellNote ? `<div class="text-blue-600 ${fontSize} italic mt-0.5">${escapeHtml(noteDisplay)}</div>` : ''}
+                        ${cellNote ? `<div class="text-blue-600 text-xs italic mt-1">${escapeHtml(noteDisplay)}</div>` : ''}
                     </td>
                 `;
             }
