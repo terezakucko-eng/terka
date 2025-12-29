@@ -196,6 +196,7 @@ function renderTrackingTable() {
     // Vykreslit každou tabulku
     renderMarketTable('CZ', czEshops);
     renderMarketTable('SK', skEshops);
+    renderMarketTable('Foreign', foreignEshops);
 
     // Aktualizovat metriky
     updateMetricsDisplay();
