@@ -251,11 +251,33 @@ function calculateDeltas() {
                 }
 
                 const current = record.competitors[comp] || 0;
-                const previous = prevRecord.competitors[comp] || 0;
 
-                // Speciální logika pro konkurenty s měsíčním resetem
-                if (MONTHLY_RESET_COMPETITORS.includes(comp)) {
-                    record.deltas[comp] = calculateDeltaWithMonthlyReset(current, previous, comp, record, prevRecord, trackingData, index);
+                // Najít poslední záznam, kde byl e-shop skutečně změřen
+                let previous = 0;
+                let foundPrevious = false;
+                for (let i = index - 1; i >= 0; i--) {
+                    const prevRec = trackingData[i];
+                    if (prevRec.competitors[comp] !== undefined) {
+                        previous = prevRec.competitors[comp];
+                        foundPrevious = true;
+                        break;
+                    }
+                }
+
+                // Pokud nebyl nalezen předchozí záznam, delta = 0 (první měření)
+                if (!foundPrevious) {
+                    record.deltas[comp] = 0;
+                } else if (MONTHLY_RESET_COMPETITORS.includes(comp)) {
+                    // Speciální logika pro konkurenty s měsíčním resetem
+                    // Najít záznam pro calculateDeltaWithMonthlyReset
+                    let actualPrevRecord = null;
+                    for (let i = index - 1; i >= 0; i--) {
+                        if (trackingData[i].competitors[comp] !== undefined) {
+                            actualPrevRecord = trackingData[i];
+                            break;
+                        }
+                    }
+                    record.deltas[comp] = calculateDeltaWithMonthlyReset(current, previous, comp, record, actualPrevRecord || prevRecord, trackingData, index);
                 } else {
                     record.deltas[comp] = current - previous;
                 }
