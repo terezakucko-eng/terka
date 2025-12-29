@@ -207,10 +207,21 @@ function calculateDeltaWithMonthlyReset(current, previous, competitorName, recor
 
 /**
  * Vyčistí záznamy od zahraničních e-shopů, které do nich nepatří
- * Pokud záznam nemá žádný zahraniční e-shop s původní hodnotou, odstraní všechny zahraniční e-shopy
+ * Maže zahraniční e-shopy z záznamů, které jsou určeny pro CZ/SK trhy
  */
 function cleanForeignEshopsFromRecords() {
     console.log('🧹 Čištění zahraničních e-shopů ze záznamů...');
+
+    const CZ_ESHOPS = [
+        "Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz", "honitka.cz",
+        "eroticke-pomucky.cz", "flagranti.cz", "sexshopik.cz", "e-kondomy.cz",
+        "ruzovyslon.cz", "kondomshop.cz"
+    ];
+
+    const SK_ESHOPS = [
+        "isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk",
+        "ruzovyslon.sk", "kondomshop.sk"
+    ];
 
     const FOREIGN_ESHOPS = [
         "sexyelephant.hr", "sexyelephant.ro", "sexyelephant.hu", "sexyelephant.si", "sexyelephant.bg",
@@ -220,15 +231,19 @@ function cleanForeignEshopsFromRecords() {
     ];
 
     trackingData.forEach(record => {
-        // Zjistit, jestli má záznam NĚJAKÝ zahraniční e-shop s nenulovou hodnotou
-        const hasForeignData = FOREIGN_ESHOPS.some(eshop => {
+        // Zjistit, jestli má záznam CZ nebo SK data
+        const hasCzData = CZ_ESHOPS.some(eshop => {
             const value = record.competitors[eshop];
-            // Považovat za "má data", pokud je hodnota > 0 (ne 0, ne undefined)
-            return value !== undefined && value > 0;
+            return value !== undefined && value !== 0;
         });
 
-        // Pokud nemá žádná zahraniční data, odstranit všechny zahraniční e-shopy
-        if (!hasForeignData) {
+        const hasSkData = SK_ESHOPS.some(eshop => {
+            const value = record.competitors[eshop];
+            return value !== undefined && value !== 0;
+        });
+
+        // Pokud má CZ nebo SK data, odstranit všechny zahraniční e-shopy
+        if (hasCzData || hasSkData) {
             let removedCount = 0;
             FOREIGN_ESHOPS.forEach(eshop => {
                 if (record.competitors[eshop] !== undefined) {
@@ -241,7 +256,7 @@ function cleanForeignEshopsFromRecords() {
             });
 
             if (removedCount > 0) {
-                console.log(`  🗑️ ${formatDate(record.date)}: Odstraněno ${removedCount} zahraničních e-shopů`);
+                console.log(`  🗑️ ${formatDate(record.date)}: Odstraněno ${removedCount} zahraničních e-shopů (záznam má CZ/SK data)`);
             }
         }
     });
