@@ -277,18 +277,32 @@ function calculateDeltas() {
 
     // Vypočítat agregované metriky pro každý záznam
     trackingData.forEach(record => {
-        // Celkem objednávek (suma delt všech konkurentů)
-        record.totalOrders = Object.values(record.deltas).reduce((sum, delta) => sum + delta, 0);
+        // Celkem objednávek (suma delt všech konkurentů) - PŘESKOČIT NEZMĚŘENÉ
+        record.totalOrders = Object.keys(record.deltas).reduce((sum, eshop) => {
+            // Přeskočit nezměřené e-shopy
+            if (record.notMeasured && record.notMeasured[eshop]) {
+                return sum;
+            }
+            return sum + (record.deltas[eshop] || 0);
+        }, 0);
 
-        // Podíl Růžového Slona
-        const slonDelta = record.deltas["ruzovyslon.cz"] || 0;
+        // Podíl Růžového Slona - PŘESKOČIT POKUD NEZMĚŘENO
+        const slonNotMeasured = record.notMeasured && record.notMeasured["ruzovyslon.cz"];
+        const slonDelta = slonNotMeasured ? 0 : (record.deltas["ruzovyslon.cz"] || 0);
         record.slonShare = record.totalOrders > 0 ? (slonDelta / record.totalOrders) * 100 : 0;
 
-        // Podíly vůči jednotlivým konkurentům
+        // Podíly vůči jednotlivým konkurentům - PŘESKOČIT NEZMĚŘENÉ
         record.shares = {};
         const competitorsForShare = ["e-kondomy.cz", "flagranti.cz", "sexshop.cz", "erosstar.cz", "yoo.cz", "deeplove.cz"];
 
         competitorsForShare.forEach(comp => {
+            // Pokud je slon nebo konkurent nezměřený, nemůžeme počítat podíl
+            const compNotMeasured = record.notMeasured && record.notMeasured[comp];
+            if (slonNotMeasured || compNotMeasured) {
+                record.shares[comp] = 0;
+                return;
+            }
+
             const compDelta = record.deltas[comp] || 0;
             const total = slonDelta + compDelta;
             record.shares[comp] = total > 0 ? (slonDelta / total) * 100 : 0;
@@ -1039,19 +1053,29 @@ function exportTrackingToExcel() {
         const dateParts = record.date.split('-'); // YYYY-MM-DD
         const excelDate = `${dateParts[2]}.${dateParts[1]}.${dateParts[0]}`;
 
-        // Řádek 1: Čísla objednávek
+        // Řádek 1: Čísla objednávek (označit nezměřené jako N/A)
         let row1 = `"${excelDate}"`;
         COMPETITORS.forEach(comp => {
-            const orderNum = record.competitors[comp] || 0;
-            row1 += `,${orderNum}`;
+            const isNotMeasured = record.notMeasured && record.notMeasured[comp];
+            if (isNotMeasured) {
+                row1 += `,N/A`;
+            } else {
+                const orderNum = record.competitors[comp] || 0;
+                row1 += `,${orderNum}`;
+            }
         });
         csv += row1 + '\n';
 
-        // Řádek 2: Deltas (počet objednávek)
+        // Řádek 2: Deltas (označit nezměřené jako N/A)
         let row2 = `"  Δ ${excelDate}"`;
         COMPETITORS.forEach(comp => {
-            const delta = record.deltas[comp] || 0;
-            row2 += `,${delta}`;
+            const isNotMeasured = record.notMeasured && record.notMeasured[comp];
+            if (isNotMeasured) {
+                row2 += `,N/A`;
+            } else {
+                const delta = record.deltas[comp] || 0;
+                row2 += `,${delta}`;
+            }
         });
         csv += row2 + '\n';
     });

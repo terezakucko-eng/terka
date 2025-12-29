@@ -1249,6 +1249,10 @@ function aggregateByWeeks(data, eshops) {
         }
 
         eshops.forEach(eshop => {
+            // Přeskočit nezměřené e-shopy
+            if (record.notMeasured && record.notMeasured[eshop]) {
+                return;
+            }
             const delta = (record.deltas && record.deltas[eshop]) ? record.deltas[eshop] : 0;
             weeklyData[weekKey].totals[eshop] += delta;
         });
@@ -1276,6 +1280,10 @@ function aggregateByMonths(data, eshops) {
         }
 
         eshops.forEach(eshop => {
+            // Přeskočit nezměřené e-shopy
+            if (record.notMeasured && record.notMeasured[eshop]) {
+                return;
+            }
             const delta = (record.deltas && record.deltas[eshop]) ? record.deltas[eshop] : 0;
             monthlyData[monthKey].totals[eshop] += delta;
         });
@@ -1798,14 +1806,22 @@ window.updateWeeklyComparison = function() {
     const weeklyStats = [];
 
     allEshops.forEach(eshop => {
-        // Součet delta hodnot pro tento týden
+        // Součet delta hodnot pro tento týden (přeskočit nezměřené)
         const thisWeekTotal = thisWeekData.reduce((sum, record) => {
+            // Přeskočit nezměřené e-shopy
+            if (record.notMeasured && record.notMeasured[eshop]) {
+                return sum;
+            }
             const delta = (record.deltas && record.deltas[eshop]) ? record.deltas[eshop] : 0;
             return sum + delta;
         }, 0);
 
-        // Součet delta hodnot pro minulý týden
+        // Součet delta hodnot pro minulý týden (přeskočit nezměřené)
         const lastWeekTotal = lastWeekData.reduce((sum, record) => {
+            // Přeskočit nezměřené e-shopy
+            if (record.notMeasured && record.notMeasured[eshop]) {
+                return sum;
+            }
             const delta = (record.deltas && record.deltas[eshop]) ? record.deltas[eshop] : 0;
             return sum + delta;
         }, 0);
@@ -1940,14 +1956,22 @@ window.updateMonthlyYoYComparison = function() {
     const monthlyStats = [];
 
     allEshops.forEach(eshop => {
-        // Součet delta hodnot pro letošní měsíc
+        // Součet delta hodnot pro letošní měsíc (přeskočit nezměřené)
         const thisYearTotal = thisYearData.reduce((sum, record) => {
+            // Přeskočit nezměřené e-shopy
+            if (record.notMeasured && record.notMeasured[eshop]) {
+                return sum;
+            }
             const delta = (record.deltas && record.deltas[eshop]) ? record.deltas[eshop] : 0;
             return sum + delta;
         }, 0);
 
-        // Součet delta hodnot pro stejný měsíc loni
+        // Součet delta hodnot pro stejný měsíc loni (přeskočit nezměřené)
         const lastYearTotal = lastYearData.reduce((sum, record) => {
+            // Přeskočit nezměřené e-shopy
+            if (record.notMeasured && record.notMeasured[eshop]) {
+                return sum;
+            }
             const delta = (record.deltas && record.deltas[eshop]) ? record.deltas[eshop] : 0;
             return sum + delta;
         }, 0);
@@ -2054,14 +2078,22 @@ function calculatePeriodAverage(eshop, startDate, endDate) {
     // Zjistit, jestli je to vlastní e-shop
     const isOwnEshop = window.OWN_ESHOPS && window.OWN_ESHOPS.includes(eshop);
 
-    // Sečíst delty (pro vlastní i konkurenty)
-    const totalDeltas = recordsInPeriod.reduce((sum, record) => {
-        const delta = record.deltas && record.deltas[eshop] ? record.deltas[eshop] : 0;
-        return sum + delta;
-    }, 0);
+    // Sečíst delty (pro vlastní i konkurenty) - přeskočit nezměřené
+    let totalDeltas = 0;
+    let measuredCount = 0;
 
-    // Vrátit průměr
-    return totalDeltas / recordsInPeriod.length;
+    recordsInPeriod.forEach(record => {
+        // Přeskočit nezměřené e-shopy
+        if (record.notMeasured && record.notMeasured[eshop]) {
+            return;
+        }
+        const delta = record.deltas && record.deltas[eshop] ? record.deltas[eshop] : 0;
+        totalDeltas += delta;
+        measuredCount++;
+    });
+
+    // Vrátit průměr (pouze z měřených dní)
+    return measuredCount > 0 ? totalDeltas / measuredCount : null;
 }
 
 function calculateEshopDelta(sortedData, eshop, recordsBack) {

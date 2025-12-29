@@ -739,14 +739,22 @@ function calculateWeekJumper(sortedData, eshops) {
 
     // Vypočítat mezitýdenní změnu pro každý e-shop
     eshops.forEach(eshop => {
-        // Součet delta hodnot pro tento týden
+        // Součet delta hodnot pro tento týden (přeskočit nezměřené)
         const thisWeekTotal = thisWeekData.reduce((sum, record) => {
+            // Přeskočit nezměřené e-shopy
+            if (record.notMeasured && record.notMeasured[eshop]) {
+                return sum;
+            }
             const delta = (record.deltas && record.deltas[eshop]) ? record.deltas[eshop] : 0;
             return sum + delta;
         }, 0);
 
-        // Součet delta hodnot pro minulý týden
+        // Součet delta hodnot pro minulý týden (přeskočit nezměřené)
         const lastWeekTotal = lastWeekData.reduce((sum, record) => {
+            // Přeskočit nezměřené e-shopy
+            if (record.notMeasured && record.notMeasured[eshop]) {
+                return sum;
+            }
             const delta = (record.deltas && record.deltas[eshop]) ? record.deltas[eshop] : 0;
             return sum + delta;
         }, 0);
@@ -793,13 +801,19 @@ function calculateMarketGrowth(sortedData, eshops, daysDiff) {
         return null;
     }
 
-    // Sečíst DELTY pro tento trh
+    // Sečíst DELTY pro tento trh (přeskočit nezměřené)
     let latestTotal = 0;
     let oldTotal = 0;
 
     eshops.forEach(eshop => {
-        latestTotal += latest.deltas[eshop] || 0;
-        oldTotal += closestRecord.deltas[eshop] || 0;
+        // Přeskočit nezměřené e-shopy v aktuálním záznamu
+        if (!latest.notMeasured || !latest.notMeasured[eshop]) {
+            latestTotal += latest.deltas[eshop] || 0;
+        }
+        // Přeskočit nezměřené e-shopy ve starším záznamu
+        if (!closestRecord.notMeasured || !closestRecord.notMeasured[eshop]) {
+            oldTotal += closestRecord.deltas[eshop] || 0;
+        }
     });
 
     if (oldTotal === 0) return null;
