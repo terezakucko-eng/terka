@@ -326,7 +326,10 @@ function calculateDeltas() {
 
                 // Pokud e-shop nemá data v aktuálním záznamu, přeskočit
                 // (nechceme vytvářet delty pro e-shopy, které v tomto záznamu nemají data)
-                const hasCurrentData = record.competitors[comp] !== undefined || record.deltas[comp] !== undefined;
+                // VÝJIMKA: pokud je nastavená manuální delta, tak ji použít
+                const hasCurrentData = record.competitors[comp] !== undefined ||
+                                      record.deltas[comp] !== undefined ||
+                                      (record.manualDeltas && record.manualDeltas[comp] !== undefined);
 
                 if (!hasCurrentData) {
                     // Aktuální záznam nemá data pro tento e-shop - přeskočit
