@@ -297,6 +297,83 @@ function calculateDeltas() {
 
     // AUTOMATICKÉ DOPLNĚNÍ CHYBĚJÍCÍCH DAT INTERPOLACÍ
     interpolateMissingData();
+
+    // PŘEPOČÍTÁNÍ DELT PRO NEZMĚŘENÉ E-SHOPY
+    redistributeNotMeasuredDeltas();
+}
+
+/**
+ * Přepočítá delty pro e-shopy označené jako "nezměřeno"
+ * Rozpočítá objednávky mezi posledním a dalším měřeným datem proporcionálně podle počtu dní
+ */
+function redistributeNotMeasuredDeltas() {
+    console.log('📊 Přepočítávám delty pro nezměřené e-shopy...');
+
+    // Pro každý e-shop
+    COMPETITORS.forEach(comp => {
+        // Najít všechny nezměřené záznamy pro tento e-shop
+        trackingData.forEach((record, index) => {
+            if (!record.notMeasured || !record.notMeasured[comp]) {
+                return; // Není označen jako nezměřeno, přeskočit
+            }
+
+            // Najít poslední změřený záznam před tímto
+            let prevMeasuredIndex = -1;
+            let prevMeasuredOrderNum = null;
+            for (let i = index - 1; i >= 0; i--) {
+                const rec = trackingData[i];
+                if (rec.competitors[comp] !== undefined &&
+                    (!rec.notMeasured || !rec.notMeasured[comp])) {
+                    prevMeasuredIndex = i;
+                    prevMeasuredOrderNum = rec.competitors[comp];
+                    break;
+                }
+            }
+
+            // Najít první změřený záznam po tomto
+            let nextMeasuredIndex = -1;
+            let nextMeasuredOrderNum = null;
+            for (let i = index + 1; i < trackingData.length; i++) {
+                const rec = trackingData[i];
+                if (rec.competitors[comp] !== undefined &&
+                    (!rec.notMeasured || !rec.notMeasured[comp])) {
+                    nextMeasuredIndex = i;
+                    nextMeasuredOrderNum = rec.competitors[comp];
+                    break;
+                }
+            }
+
+            // Pokud máme obě hranice, přepočítat
+            if (prevMeasuredIndex !== -1 && nextMeasuredIndex !== -1) {
+                const prevDate = new Date(trackingData[prevMeasuredIndex].date);
+                const nextDate = new Date(trackingData[nextMeasuredIndex].date);
+                const currentDate = new Date(record.date);
+
+                // Vypočítat počet dní (kalendářních)
+                const totalDays = Math.round((nextDate - prevDate) / (1000 * 60 * 60 * 24));
+                const daysFromPrev = Math.round((currentDate - prevDate) / (1000 * 60 * 60 * 24));
+
+                const totalDelta = nextMeasuredOrderNum - prevMeasuredOrderNum;
+                const avgDeltaPerDay = totalDelta / totalDays;
+
+                // Vypočítat deltu pro tento nezměřený záznam (kumulativně od prev)
+                const estimatedCumulativeDelta = Math.round(avgDeltaPerDay * daysFromPrev);
+
+                // Delta pro tento konkrétní den (rozdíl oproti předchozímu záznamu)
+                const prevRecordOrderNum = trackingData[index - 1].competitors[comp] || prevMeasuredOrderNum;
+                const estimatedCurrentOrderNum = prevMeasuredOrderNum + estimatedCumulativeDelta;
+                const dailyDelta = estimatedCurrentOrderNum - prevRecordOrderNum;
+
+                console.log(`  📈 ${comp} [${formatDate(record.date)}]: Nezměřeno - přepočítána delta ${dailyDelta} (celkem ${totalDelta} obj. / ${totalDays} dní, ${daysFromPrev} dní od posledního měření)`);
+
+                // Nastavit přepočítanou deltu pro tento den
+                record.deltas[comp] = dailyDelta;
+
+                // Dopočítat číslo objednávky pro tento záznam
+                record.competitors[comp] = estimatedCurrentOrderNum;
+            }
+        });
+    });
 }
 
 /**
