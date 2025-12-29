@@ -325,8 +325,14 @@ function interpolateMissingData() {
                 return;
             }
 
-            // Pokud má e-shop hodnotu 0 (chybějící data)
-            const currentValue = record.competitors[comp] || 0;
+            // Pokud e-shop v tomto záznamu VŮBEC NEMÁ DATA (undefined), přeskočit
+            // Nechceme interpolovat e-shopy, které do tohoto záznamu nepatří (jiný trh)
+            const currentValue = record.competitors[comp];
+            if (currentValue === undefined) {
+                return; // E-shop není v tomto záznamu, neinterpolovat
+            }
+
+            // Interpolovat pouze pokud má e-shop explicitně hodnotu 0 (chybějící měření)
             if (currentValue === 0) {
                 // Najít předchozí nenulovou hodnotu
                 let prevValue = null;
