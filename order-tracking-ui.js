@@ -264,6 +264,13 @@ function renderMarketTable(market, eshops) {
             // Zjistit, jestli je označeno jako nezměřeno
             const isNotMeasured = record.notMeasured && record.notMeasured[eshop];
 
+            // Debug log pro kontrolu sexshopik.cz
+            if (eshop === 'sexshopik.cz' && record.date === '2025-11-30') {
+                console.log(`🖼️ RENDER sexshopik.cz ${record.date}:`);
+                console.log(`  record.notMeasured:`, record.notMeasured);
+                console.log(`  isNotMeasured:`, isNotMeasured);
+            }
+
             const deltaClass = delta > 0 ? 'text-green-600' : (delta < 0 ? 'text-red-600' : 'text-gray-400');
 
             // Zjistit, jestli je to vlastní e-shop
