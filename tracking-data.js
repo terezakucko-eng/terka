@@ -218,10 +218,17 @@ function calculateDeltas() {
             // První záznam nemá delty (kromě importovaných)
             record.deltas = existingDeltas;
             COMPETITORS.forEach(comp => {
-                // Pokud delta není už nastavená, dej 0
-                if (record.deltas[comp] === undefined) {
-                    record.deltas[comp] = 0;
+                // Inicializovat pouze e-shopy, které mají číslo objednávky nebo deltu
+                const hasOrderNumber = record.competitors[comp] !== undefined && record.competitors[comp] !== 0;
+                const hasDelta = record.deltas[comp] !== undefined && record.deltas[comp] !== 0;
+
+                if (hasOrderNumber || hasDelta) {
+                    // E-shop má data, inicializovat na 0 pokud není nastaveno
+                    if (record.deltas[comp] === undefined) {
+                        record.deltas[comp] = 0;
+                    }
                 }
+                // Pokud e-shop nemá data, NENASTAVOVAT na 0 - nechat undefined
             });
         } else {
             // Vypočítat delta oproti předchozímu záznamu
@@ -236,6 +243,15 @@ function calculateDeltas() {
 
                 const current = record.competitors[comp] || 0;
                 const previous = prevRecord.competitors[comp] || 0;
+
+                // Pokud e-shop nemá data v aktuálním ANI předchozím záznamu, přeskočit
+                const hasCurrentData = record.competitors[comp] !== undefined || record.deltas[comp] !== undefined;
+                const hasPreviousData = prevRecord.competitors[comp] !== undefined || prevRecord.deltas[comp] !== undefined;
+
+                if (!hasCurrentData && !hasPreviousData) {
+                    // E-shop nemá data ani v aktuálním ani v předchozím záznamu - přeskočit
+                    return;
+                }
 
                 // Speciální logika pro konkurenty s měsíčním resetem
                 if (MONTHLY_RESET_COMPETITORS.includes(comp)) {

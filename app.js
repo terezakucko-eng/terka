@@ -792,13 +792,10 @@ function addBulkTrackingRecord(eshop, date, orderNumber, orderCount, skipDeltaCa
             notes: ''
         };
 
-        // Inicializovat všechny e-shopy na 0
-        if (window.COMPETITORS) {
-            window.COMPETITORS.forEach(comp => {
-                record.competitors[comp] = 0;
-                record.deltas[comp] = 0;
-            });
-        }
+        // NEBUDEME inicializovat všechny e-shopy na 0
+        // Nastaví se pouze hodnoty pro e-shopy, které skutečně importujeme
+        // To zajistí, že trhy budou nezávislé - když importuješ SK data,
+        // nevytvoří se záznam pro CZ trh
 
         window.trackingData.push(record);
     }
