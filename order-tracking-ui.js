@@ -236,12 +236,15 @@ function renderMarketTable(market, eshops) {
     // Seřadit podle data (nejnovější nahoře)
     const sortedData = [...window.trackingData].sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    // Filtrovat záznamy - zobrazit pouze ty, které mají alespoň jednu nenulovou hodnotu pro tento trh
+    // Filtrovat záznamy - zobrazit pouze ty, které mají alespoň jednu SKUTEČNOU hodnotu pro tento trh
+    // (ne undefined a ne 0 - chceme pouze záznamy s reálnými daty)
     const filteredData = sortedData.filter(record => {
         return eshops.some(eshop => {
-            const orderNum = record.competitors[eshop] || 0;
-            const delta = record.deltas[eshop] || 0;
-            return orderNum !== 0 || delta !== 0;
+            const orderNum = record.competitors[eshop];
+            const delta = record.deltas[eshop];
+            // Zobrazit pouze pokud má nenulovou hodnotu (musí být definovaná A nenulová)
+            return (orderNum !== undefined && orderNum !== 0) ||
+                   (delta !== undefined && delta !== 0);
         });
     });
 
