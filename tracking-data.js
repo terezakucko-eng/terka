@@ -603,9 +603,20 @@ function parseVerticalCSV(lines) {
             };
         }
 
-        // Přidat data e-shopu
-        recordsByDate[formattedDate].competitors[eshop] = orderNum ? parseInt(orderNum) || 0 : 0;
-        recordsByDate[formattedDate].deltas[eshop] = count ? parseInt(count) || 0 : 0;
+        // Přidat data e-shopu - POUZE pokud jsou v CSV přítomná
+        if (orderNum && orderNum.trim() !== '') {
+            const parsed = parseInt(orderNum);
+            if (!isNaN(parsed) && parsed !== 0) {
+                recordsByDate[formattedDate].competitors[eshop] = parsed;
+            }
+        }
+
+        if (count && count.trim() !== '') {
+            const parsed = parseInt(count);
+            if (!isNaN(parsed)) {
+                recordsByDate[formattedDate].deltas[eshop] = parsed;
+            }
+        }
     }
 
     // Převést na pole a seřadit podle data
