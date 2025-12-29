@@ -241,17 +241,17 @@ function calculateDeltas() {
                     return;
                 }
 
-                const current = record.competitors[comp] || 0;
-                const previous = prevRecord.competitors[comp] || 0;
-
-                // Pokud e-shop nemá data v aktuálním ANI předchozím záznamu, přeskočit
+                // Pokud e-shop nemá data v aktuálním záznamu, přeskočit
+                // (nechceme vytvářet delty pro e-shopy, které v tomto záznamu nemají data)
                 const hasCurrentData = record.competitors[comp] !== undefined || record.deltas[comp] !== undefined;
-                const hasPreviousData = prevRecord.competitors[comp] !== undefined || prevRecord.deltas[comp] !== undefined;
 
-                if (!hasCurrentData && !hasPreviousData) {
-                    // E-shop nemá data ani v aktuálním ani v předchozím záznamu - přeskočit
+                if (!hasCurrentData) {
+                    // Aktuální záznam nemá data pro tento e-shop - přeskočit
                     return;
                 }
+
+                const current = record.competitors[comp] || 0;
+                const previous = prevRecord.competitors[comp] || 0;
 
                 // Speciální logika pro konkurenty s měsíčním resetem
                 if (MONTHLY_RESET_COMPETITORS.includes(comp)) {
