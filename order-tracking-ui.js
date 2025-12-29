@@ -162,7 +162,9 @@ function renderTrackingTableHead(market, competitors) {
 
         // Barvy pro vlastní e-shopy
         let bgClass = '';
-        if (comp === 'ruzovyslon.cz' || comp === 'ruzovyslon.sk' || comp === 'sexshopik') {
+        if (comp === 'ruzovyslon.cz' || comp === 'ruzovyslon.sk' || comp === 'sexshopik' ||
+            comp === 'sexyelephant.ro' || comp === 'sexyelephant.hu' || comp === 'sexyelephant.si' ||
+            comp === 'sexyelephant.bg' || comp === 'sexyelephant.hr') {
             bgClass = 'bg-pink-300';  // Světle růžová pro Růžový slon a Sexy elephant
         } else if (comp === 'kondomshop.cz' || comp === 'kondomshop.sk') {
             bgClass = 'bg-blue-300';  // Světle modrá pro Kondomshop
@@ -293,7 +295,9 @@ function renderMarketTable(market, eshops) {
             let bgClass = '';
             if (isNotMeasured) {
                 bgClass = 'bg-gray-200 opacity-60';
-            } else if (eshop === 'ruzovyslon.cz' || eshop === 'ruzovyslon.sk' || eshop === 'sexshopik') {
+            } else if (eshop === 'ruzovyslon.cz' || eshop === 'ruzovyslon.sk' || eshop === 'sexshopik' ||
+                       eshop === 'sexyelephant.ro' || eshop === 'sexyelephant.hu' || eshop === 'sexyelephant.si' ||
+                       eshop === 'sexyelephant.bg' || eshop === 'sexyelephant.hr') {
                 bgClass = 'bg-pink-100 font-bold';  // Světle růžová
             } else if (eshop === 'kondomshop.cz' || eshop === 'kondomshop.sk') {
                 bgClass = 'bg-blue-100 font-bold';  // Světle modrá
