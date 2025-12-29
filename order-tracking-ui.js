@@ -260,13 +260,22 @@ function renderMarketTable(market, eshops) {
         eshops.forEach(eshop => {
             const orderNum = record.competitors[eshop] || 0;
             const delta = record.deltas[eshop] || 0;
+
+            // Zjistit, jestli je označeno jako nezměřeno
+            const isNotMeasured = record.notMeasured && record.notMeasured[eshop];
+
             const deltaClass = delta > 0 ? 'text-green-600' : (delta < 0 ? 'text-red-600' : 'text-gray-400');
 
             // Zjistit, jestli je to vlastní e-shop
             const isOwnEshop = window.OWN_ESHOPS && window.OWN_ESHOPS.includes(eshop);
 
-            // Pro vlastní e-shopy zelené pozadí
-            const bgClass = isOwnEshop ? 'bg-green-50 font-bold' : '';
+            // Pro vlastní e-shopy zelené pozadí, pro nezměřené šedé
+            let bgClass = '';
+            if (isNotMeasured) {
+                bgClass = 'bg-gray-200 opacity-60';
+            } else if (isOwnEshop) {
+                bgClass = 'bg-green-50 font-bold';
+            }
 
             // Pro vlastní e-shopy zobrazit "-" místo čísla objednávky
             const orderNumDisplay = isOwnEshop ? '-' : orderNum.toLocaleString('cs-CZ');
@@ -280,28 +289,51 @@ function renderMarketTable(market, eshops) {
                 (cellNote.length > 15 ? cellNote.substring(0, 15) + '...' : cellNote) :
                 '';
 
-            row.innerHTML += `
-                <td class="px-3 py-3 text-sm text-center ${bgClass} cursor-pointer hover:bg-blue-100"
-                    onclick="editCellNote('${record.id}', '${eshop}')" ${noteTitle}>
-                    <div class="font-medium text-gray-500 text-xs">${orderNumDisplay}</div>
-                    <div class="${deltaClass} text-xs font-semibold">
-                        ${delta > 0 ? '+' : ''}${delta.toLocaleString('cs-CZ')}
-                    </div>
-                    ${cellNote ? `<div class="text-blue-600 text-xs italic mt-1">${escapeHtml(noteDisplay)}</div>` : ''}
-                </td>
-            `;
+            // Speciální zobrazení pro nezměřené buňky
+            if (isNotMeasured) {
+                row.innerHTML += `
+                    <td class="px-3 py-3 text-sm text-center ${bgClass} cursor-pointer hover:bg-gray-300 relative"
+                        onclick="editCellNote('${record.id}', '${eshop}')" ${noteTitle}>
+                        <div class="font-medium text-gray-400 text-xs line-through">${orderNumDisplay}</div>
+                        <div class="text-gray-400 text-xs font-semibold line-through">
+                            ${delta > 0 ? '+' : ''}${delta.toLocaleString('cs-CZ')}
+                        </div>
+                        <div class="text-red-600 text-xs font-bold mt-1">⊗ N/A</div>
+                        ${cellNote ? `<div class="text-blue-600 text-xs italic mt-1">${escapeHtml(noteDisplay)}</div>` : ''}
+                    </td>
+                `;
+            } else {
+                row.innerHTML += `
+                    <td class="px-3 py-3 text-sm text-center ${bgClass} cursor-pointer hover:bg-blue-100"
+                        onclick="editCellNote('${record.id}', '${eshop}')" ${noteTitle}>
+                        <div class="font-medium text-gray-500 text-xs">${orderNumDisplay}</div>
+                        <div class="${deltaClass} text-xs font-semibold">
+                            ${delta > 0 ? '+' : ''}${delta.toLocaleString('cs-CZ')}
+                        </div>
+                        ${cellNote ? `<div class="text-blue-600 text-xs italic mt-1">${escapeHtml(noteDisplay)}</div>` : ''}
+                    </td>
+                `;
+            }
         });
 
         // CELKEM Δ a SLON % pouze pro CZ a SK
         if (market === 'CZ' || market === 'SK') {
-            // Vypočítat celkový delta pro tento trh
+            // Vypočítat celkový delta pro tento trh (přeskočit nezměřené e-shopy)
             const totalDelta = eshops.reduce((sum, eshop) => {
+                // Přeskočit, pokud je e-shop označen jako nezměřeno
+                if (record.notMeasured && record.notMeasured[eshop]) {
+                    return sum;
+                }
                 return sum + (record.deltas[eshop] || 0);
             }, 0);
 
-            // Vypočítat Slon % pro tento trh
+            // Vypočítat Slon % pro tento trh (přeskočit nezměřené e-shopy)
             const ownEshops = market === 'CZ' ? ['ruzovyslon.cz', 'kondomshop.cz'] : ['ruzovyslon.sk', 'kondomshop.sk'];
             const slonDelta = ownEshops.reduce((sum, eshop) => {
+                // Přeskočit, pokud je e-shop označen jako nezměřeno
+                if (record.notMeasured && record.notMeasured[eshop]) {
+                    return sum;
+                }
                 return sum + (record.deltas[eshop] || 0);
             }, 0);
             const slonShare = totalDelta > 0 ? (slonDelta / totalDelta * 100) : 0;
@@ -575,6 +607,11 @@ function updateMarketMetrics(market, eshops, latest, sorted, dateStr, ownEshops)
     let topCompetitor = { name: '-', orders: 0 };
 
     eshops.forEach(eshop => {
+        // Přeskočit, pokud je e-shop označen jako nezměřeno
+        if (latest.notMeasured && latest.notMeasured[eshop]) {
+            return;
+        }
+
         const delta = latest.deltas[eshop] || 0;
         totalOrders += delta;
 
@@ -625,6 +662,17 @@ function updateMarketMetrics(market, eshops, latest, sorted, dateStr, ownEshops)
 }
 
 function calculateSlonVsCompetitor(latest, slonEshop, competitorEshop) {
+    // Kontrola, jestli nejsou e-shopy označeny jako nezměřeno
+    const slonNotMeasured = latest.notMeasured && latest.notMeasured[slonEshop];
+    const competitorNotMeasured = latest.notMeasured && latest.notMeasured[competitorEshop];
+
+    if (slonNotMeasured || competitorNotMeasured) {
+        return {
+            label: 'Porovnání:',
+            value: 'N/A'
+        };
+    }
+
     const slonOrders = (latest.deltas && latest.deltas[slonEshop]) ? latest.deltas[slonEshop] : 0;
     const competitorOrders = (latest.deltas && latest.deltas[competitorEshop]) ? latest.deltas[competitorEshop] : 0;
 
@@ -820,6 +868,10 @@ function formatDate(dateString) {
 // EDITACE POZNÁMEK V BUŇKÁCH
 // =====================================================
 
+// Globální proměnné pro modal editace buňky
+let currentCellEditRecordId = null;
+let currentCellEditEshop = null;
+
 /**
  * Otevře dialog pro editaci poznámky k buňce
  * @param {number} recordId - ID záznamu
@@ -833,37 +885,77 @@ window.editCellNote = function(recordId, eshop) {
         return;
     }
 
-    // Inicializovat cellNotes pokud neexistuje
+    // Inicializovat cellNotes a notMeasured pokud neexistují
     if (!record.cellNotes) {
         record.cellNotes = {};
     }
+    if (!record.notMeasured) {
+        record.notMeasured = {};
+    }
 
-    // Získat aktuální poznámku
-    const currentNote = record.cellNotes[eshop] || '';
+    // Uložit aktuální kontext
+    currentCellEditRecordId = recordId;
+    currentCellEditEshop = eshop;
 
-    // Zobrazit prompt pro editaci
-    const newNote = prompt(
-        `Poznámka pro ${eshop} dne ${formatDate(record.date)}:\n\n(např. "Akce 20%", "Black Friday", "Email kampaň")`,
-        currentNote
-    );
+    // Nastavit titulek modalu
+    document.getElementById('cellEditTitle').textContent = `${eshop} - ${formatDate(record.date)}`;
 
-    // Pokud uživatel klikl na Cancel, nic nedělat
-    if (newNote === null) return;
+    // Naplnit aktuální hodnoty
+    document.getElementById('cellNote').value = record.cellNotes[eshop] || '';
+    document.getElementById('cellNotMeasured').checked = record.notMeasured[eshop] || false;
 
-    // Uložit poznámku (prázdný string = smazat)
-    if (newNote.trim() === '') {
-        delete record.cellNotes[eshop];
+    // Zobrazit modal
+    document.getElementById('cellEditModal').classList.remove('hidden');
+};
+
+window.closeCellEditModal = function() {
+    document.getElementById('cellEditModal').classList.add('hidden');
+    currentCellEditRecordId = null;
+    currentCellEditEshop = null;
+};
+
+window.saveCellEdit = function() {
+    if (!currentCellEditRecordId || !currentCellEditEshop) return;
+
+    // Najít záznam
+    const record = window.trackingData.find(r => r.id == currentCellEditRecordId);
+    if (!record) {
+        alert('Záznam nenalezen');
+        return;
+    }
+
+    // Inicializovat objekty pokud neexistují
+    if (!record.cellNotes) record.cellNotes = {};
+    if (!record.notMeasured) record.notMeasured = {};
+
+    // Uložit poznámku
+    const note = document.getElementById('cellNote').value.trim();
+    if (note === '') {
+        delete record.cellNotes[currentCellEditEshop];
     } else {
-        record.cellNotes[eshop] = newNote.trim();
+        record.cellNotes[currentCellEditEshop] = note;
     }
 
-    // Uložit data
-    if (typeof saveTrackingData === 'function') {
-        saveTrackingData();
+    // Uložit stav "nezměřeno"
+    const notMeasured = document.getElementById('cellNotMeasured').checked;
+    if (notMeasured) {
+        record.notMeasured[currentCellEditEshop] = true;
+    } else {
+        delete record.notMeasured[currentCellEditEshop];
     }
 
-    // Překreslit tabulku
+    // Zavřít modal
+    closeCellEditModal();
+
+    // Uložit změny
+    saveTrackingData();
     renderTrackingTable();
+    updateMetricsDisplay();
+
+    // Uložit do Firestore
+    if (typeof saveTrackingRecordToFirestore === 'function') {
+        saveTrackingRecordToFirestore(record);
+    }
 };
 
 // Export funkcí
