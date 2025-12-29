@@ -268,10 +268,6 @@ function calculateDeltas() {
     // Seřadit data podle data
     trackingData.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    // VYČISTIT ZÁZNAMY OD ZAHRANIČNÍCH E-SHOPŮ, KTERÉ DO NICH NEPATŘÍ
-    // Toto musí být PŘED výpočtem delt!
-    cleanForeignEshopsFromRecords();
-
     // Pro každý záznam vypočítat delty
     trackingData.forEach((record, index) => {
         // Zachovat existující delty (z importu vlastních e-shopů)
@@ -485,12 +481,12 @@ function redistributeNotMeasuredDeltas() {
 }
 
 /**
- * Přepočítá všechny delty - vyčistí chybná data a přepočítá vše od začátku
+ * Přepočítá všechny delty
  */
 function recalculateAllDeltas() {
     console.log('🔄 Přepočítávám všechny delty...');
 
-    // Zavolat calculateDeltas, která automaticky vyčistí a přepočítá
+    // Zavolat calculateDeltas
     calculateDeltas();
 
     // Uložit do databáze
@@ -499,9 +495,32 @@ function recalculateAllDeltas() {
     // Obnovit UI
     renderTrackingTable();
 
-    alert('✅ Delty byly úspěšně přepočítány! Záznamy bez zahraničních dat byly vyčištěny.');
+    alert('✅ Delty byly úspěšně přepočítány!');
 
     console.log('✅ Přepočet dokončen');
+}
+
+/**
+ * Vyčistí zahraniční e-shopy ze záznamů s CZ/SK daty (jen pro opravu chybných dat)
+ */
+function cleanAndRecalculate() {
+    console.log('🧹 Čištění a přepočet...');
+
+    // Vyčistit zahraniční e-shopy ze záznamů s CZ/SK daty
+    cleanForeignEshopsFromRecords();
+
+    // Přepočítat delty
+    calculateDeltas();
+
+    // Uložit do databáze
+    saveTrackingData();
+
+    // Obnovit UI
+    renderTrackingTable();
+
+    alert('✅ Záznamy byly vyčištěny a delty přepočítány!');
+
+    console.log('✅ Čištění a přepočet dokončen');
 }
 
 /**
