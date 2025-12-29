@@ -954,12 +954,97 @@ function exportTrackingToExcel() {
     console.log(`✅ Exportováno ${sortedData.length} záznamů do CSV`);
 }
 
+/**
+ * Vyčistí stará data - odstraní hodnoty pro e-shopy, které do daného záznamu nepatří
+ * Používá se pro opravu dat, která byla vytvořena před opravou nezávislosti trhů
+ */
+function cleanupMarketData() {
+    // Definice e-shopů podle trhů
+    const CZ_ESHOPS = [
+        "Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz", "honitka.cz",
+        "eroticke-pomucky.cz", "flagranti.cz", "sexshopik.cz", "e-kondomy.cz",
+        "ruzovyslon.cz", "kondomshop.cz"
+    ];
+
+    const SK_ESHOPS = [
+        "isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk",
+        "ruzovyslon.sk", "kondomshop.sk"
+    ];
+
+    const FOREIGN_ESHOPS = [
+        "sexyelephant.ro", "sexyelephant.hu", "sexyelephant.si", "sexyelephant.bg", "sexyelephant.hr",
+        "superlove.ro", "superlove.pl", "superlove.eu", "superlove.at", "superlove.hr",
+        "superlove.it", "superlove.si", "superlove.bg", "superlove.lt", "superlove.es", "superlove.hu",
+        "goldengate.hu", "padlizsan.hu", "sexshopcenter.hu", "erotikashow.hu", "szexaruhaz.hu", "szexshop.hu", "vagyaim.hu"
+    ];
+
+    let cleanedCount = 0;
+
+    trackingData.forEach(record => {
+        // Zjistit, které trhy mají v tomto záznamu nenulové hodnoty
+        const hasCzData = CZ_ESHOPS.some(eshop =>
+            (record.competitors[eshop] !== undefined && record.competitors[eshop] !== 0) ||
+            (record.deltas[eshop] !== undefined && record.deltas[eshop] !== 0)
+        );
+
+        const hasSkData = SK_ESHOPS.some(eshop =>
+            (record.competitors[eshop] !== undefined && record.competitors[eshop] !== 0) ||
+            (record.deltas[eshop] !== undefined && record.deltas[eshop] !== 0)
+        );
+
+        const hasForeignData = FOREIGN_ESHOPS.some(eshop =>
+            (record.competitors[eshop] !== undefined && record.competitors[eshop] !== 0) ||
+            (record.deltas[eshop] !== undefined && record.deltas[eshop] !== 0)
+        );
+
+        // Vyčistit e-shopy, které nepatří do trhů s daty
+        let eshopsToClean = [];
+
+        if (!hasCzData) {
+            eshopsToClean = eshopsToClean.concat(CZ_ESHOPS);
+        }
+        if (!hasSkData) {
+            eshopsToClean = eshopsToClean.concat(SK_ESHOPS);
+        }
+        if (!hasForeignData) {
+            eshopsToClean = eshopsToClean.concat(FOREIGN_ESHOPS);
+        }
+
+        // Odstranit hodnoty pro e-shopy, které do tohoto záznamu nepatří
+        eshopsToClean.forEach(eshop => {
+            if (record.competitors[eshop] !== undefined || record.deltas[eshop] !== undefined) {
+                delete record.competitors[eshop];
+                delete record.deltas[eshop];
+                cleanedCount++;
+            }
+        });
+    });
+
+    console.log(`🧹 Vyčištěno ${cleanedCount} hodnot z ${trackingData.length} záznamů`);
+
+    // Uložit vyčištěná data
+    saveTrackingData();
+
+    // Uložit do Firestore
+    if (typeof saveAllTrackingRecordsToFirestore === 'function') {
+        saveAllTrackingRecordsToFirestore(trackingData);
+    }
+
+    // Překreslit tabulky
+    if (typeof renderTrackingTable === 'function') {
+        renderTrackingTable();
+    }
+
+    alert(`✅ Data vyčištěna! Odstraněno ${cleanedCount} hodnot z ${trackingData.length} záznamů.`);
+}
+
 // Export funkcí
 window.importFromGoogleSheetsCustomFormat = importFromGoogleSheetsCustomFormat;
 window.exportTrackingToExcel = exportTrackingToExcel;
 window.calculateDeltas = calculateDeltas;
 window.saveTrackingData = saveTrackingData;
 window.loadTrackingData = loadTrackingData;
+window.cleanupMarketData = cleanupMarketData;
 window.trackingData = trackingData;
 window.COMPETITORS = COMPETITORS;
 window.OWN_ESHOPS = OWN_ESHOPS;
