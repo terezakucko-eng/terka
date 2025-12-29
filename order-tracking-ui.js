@@ -509,7 +509,44 @@ function handleRecordFormSubmit(e) {
             window.trackingData[index] = record;
         }
     } else {
-        window.trackingData.push(record);
+        // KONTROLA DUPLICITNÍHO data - pokud už existuje záznam se stejným datem, SLOUČIT data
+        const existingRecordIndex = window.trackingData.findIndex(r => r.date === record.date);
+
+        if (existingRecordIndex !== -1) {
+            console.log(`⚠️ Záznam pro ${record.date} už existuje - slučuji data`);
+            const existingRecord = window.trackingData[existingRecordIndex];
+
+            // Sloučit competitors (nové hodnoty přepíší staré)
+            record.competitors = { ...existingRecord.competitors, ...record.competitors };
+
+            // Sloučit deltas (nové hodnoty přepíší staré)
+            record.deltas = { ...existingRecord.deltas, ...record.deltas };
+
+            // Sloučit manualDeltas (nové hodnoty přepíší staré)
+            record.manualDeltas = { ...existingRecord.manualDeltas, ...record.manualDeltas };
+
+            // Sloučit notMeasured (nové hodnoty přepíší staré)
+            record.notMeasured = { ...existingRecord.notMeasured, ...record.notMeasured };
+
+            // Zachovat ID a firestoreId existujícího záznamu
+            record.id = existingRecord.id;
+            record.firestoreId = existingRecord.firestoreId;
+
+            // Aktualizovat poznámky (spojit, pokud obě existují)
+            if (existingRecord.notes && record.notes) {
+                record.notes = existingRecord.notes + '\n' + record.notes;
+            } else if (existingRecord.notes) {
+                record.notes = existingRecord.notes;
+            }
+
+            // Nahradit existující záznam sloučeným
+            window.trackingData[existingRecordIndex] = record;
+            console.log(`✅ Data sloučena do existujícího záznamu ID ${record.id}`);
+        } else {
+            // Žádný záznam se stejným datem - vytvořit nový
+            window.trackingData.push(record);
+            console.log(`✅ Vytvořen nový záznam pro ${record.date}`);
+        }
     }
 
     // Přepočítat delty
@@ -1153,6 +1190,97 @@ window.removeManualDeltaRow = function(rowId) {
     const row = document.getElementById(rowId);
     if (row) {
         row.remove();
+    }
+};
+
+/**
+ * Vyčistí duplicitní záznamy se stejným datem
+ * Sloučí data z duplikátů do jednoho záznamu
+ */
+window.cleanupDuplicateRecords = function() {
+    if (!window.trackingData || window.trackingData.length === 0) {
+        console.log('📊 Žádná data k vyčištění');
+        return;
+    }
+
+    console.log('🧹 Hledám duplicitní záznamy...');
+
+    // Seskupit záznamy podle data
+    const recordsByDate = {};
+    window.trackingData.forEach(record => {
+        if (!recordsByDate[record.date]) {
+            recordsByDate[record.date] = [];
+        }
+        recordsByDate[record.date].push(record);
+    });
+
+    // Najít duplicity
+    let duplicatesFound = 0;
+    const cleanedData = [];
+
+    Object.keys(recordsByDate).forEach(date => {
+        const records = recordsByDate[date];
+
+        if (records.length > 1) {
+            console.log(`⚠️ Nalezeno ${records.length} záznamů pro ${date} - slučuji...`);
+            duplicatesFound += records.length - 1;
+
+            // Sloučit všechny záznamy pro toto datum
+            const mergedRecord = {
+                id: records[0].id, // Zachovat první ID
+                firestoreId: records[0].firestoreId, // Zachovat první firestoreId
+                date: date,
+                competitors: {},
+                deltas: {},
+                manualDeltas: {},
+                notMeasured: {},
+                notes: ''
+            };
+
+            // Sloučit data ze všech záznamů
+            records.forEach((record, index) => {
+                mergedRecord.competitors = { ...mergedRecord.competitors, ...record.competitors };
+                mergedRecord.deltas = { ...mergedRecord.deltas, ...record.deltas };
+                mergedRecord.manualDeltas = { ...mergedRecord.manualDeltas, ...record.manualDeltas };
+                mergedRecord.notMeasured = { ...mergedRecord.notMeasured, ...record.notMeasured };
+
+                // Spojit poznámky
+                if (record.notes) {
+                    if (mergedRecord.notes) {
+                        mergedRecord.notes += '\n' + record.notes;
+                    } else {
+                        mergedRecord.notes = record.notes;
+                    }
+                }
+
+                console.log(`  └─ Sloučen záznam ID ${record.id}`);
+            });
+
+            cleanedData.push(mergedRecord);
+        } else {
+            // Žádný duplikát, zachovat záznam
+            cleanedData.push(records[0]);
+        }
+    });
+
+    if (duplicatesFound > 0) {
+        window.trackingData = cleanedData;
+        calculateDeltas();
+        saveTrackingData();
+        renderTrackingTable();
+
+        // Aktualizovat metriky
+        if (typeof updateMetricsDisplay === 'function') {
+            updateMetricsDisplay();
+        }
+
+        updateAllCharts();
+
+        console.log(`✅ Vyčištěno ${duplicatesFound} duplicitních záznamů`);
+        alert(`✅ Vyčištěno ${duplicatesFound} duplicitních záznamů.\n\nData byla sloučena a uložena.`);
+    } else {
+        console.log('✅ Žádné duplicity nenalezeny');
+        alert('✅ Žádné duplicitní záznamy nenalezeny.');
     }
 };
 
