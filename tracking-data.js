@@ -757,20 +757,32 @@ function parseCustomCSV(csvText) {
         Object.keys(columnMap).forEach(competitor => {
             const colIndex = columnMap[competitor];
             const value = columns[colIndex];
-            record.competitors[competitor] = value ? parseInt(value) || 0 : 0;
+            // Nastavit hodnotu pouze pokud je v CSV přítomná a nenulová
+            if (value && value.trim() !== '') {
+                const parsed = parseInt(value);
+                if (!isNaN(parsed) && parsed !== 0) {
+                    record.competitors[competitor] = parsed;
+                }
+            }
+            // Pokud není přítomná, zůstane undefined (nebudeme nastavovat na 0)
         });
 
         // Načtení delt pro vlastní e-shopy (přímo z "Objednáno kusů")
         Object.keys(deltaMap).forEach(eshop => {
             const colIndex = deltaMap[eshop];
             const value = columns[colIndex];
-            const deltaValue = value ? parseInt(value) || 0 : 0;
 
-            // Pro vlastní e-shopy uložíme deltu přímo
-            record.deltas[eshop] = deltaValue;
-
-            // A také nastavíme competitors na 0 (nebudeme počítat deltu znovu)
-            record.competitors[eshop] = 0;
+            // Nastavit deltu pouze pokud je v CSV přítomná
+            if (value && value.trim() !== '') {
+                const parsed = parseInt(value);
+                if (!isNaN(parsed)) {
+                    // Pro vlastní e-shopy uložíme deltu přímo (může být i 0)
+                    record.deltas[eshop] = parsed;
+                    // A také nastavíme competitors na 0 (nebudeme počítat deltu znovu)
+                    record.competitors[eshop] = 0;
+                }
+            }
+            // Pokud není přítomná, zůstane undefined
         });
 
         trackingData.push(record);
