@@ -331,6 +331,9 @@ function calculateDeltas() {
         });
     });
 
+    // VYČISTIT ZÁZNAMY OD ZAHRANIČNÍCH E-SHOPŮ, KTERÉ DO NICH NEPATŘÍ
+    cleanForeignEshopsFromRecords();
+
     // AUTOMATICKÉ DOPLNĚNÍ CHYBĚJÍCÍCH DAT INTERPOLACÍ
     interpolateMissingData();
 
@@ -419,6 +422,70 @@ function redistributeNotMeasuredDeltas() {
             }
         });
     });
+}
+
+/**
+ * Přepočítá všechny delty - vyčistí chybná data a přepočítá vše od začátku
+ */
+function recalculateAllDeltas() {
+    console.log('🔄 Přepočítávám všechny delty...');
+
+    // Zavolat calculateDeltas, která automaticky vyčistí a přepočítá
+    calculateDeltas();
+
+    // Uložit do databáze
+    saveTrackingData();
+
+    // Obnovit UI
+    renderTrackingTable();
+
+    alert('✅ Delty byly úspěšně přepočítány! Záznamy bez zahraničních dat byly vyčištěny.');
+
+    console.log('✅ Přepočet dokončen');
+}
+
+/**
+ * Vyčistí záznamy od zahraničních e-shopů, které do nich nepatří
+ * Pokud záznam nemá žádný zahraniční e-shop s původní hodnotou, odstraní všechny zahraniční e-shopy
+ */
+function cleanForeignEshopsFromRecords() {
+    console.log('🧹 Čištění zahraničních e-shopů ze záznamů...');
+
+    const FOREIGN_ESHOPS = [
+        "sexyelephant.hr", "sexyelephant.ro", "sexyelephant.hu", "sexyelephant.si", "sexyelephant.bg",
+        "superlove.ro", "superlove.pl", "superlove.eu", "superlove.at", "superlove.hr",
+        "superlove.it", "superlove.si", "superlove.bg", "superlove.lt", "superlove.es", "superlove.hu",
+        "goldengate.hu", "padlizsan.hu", "sexshopcenter.hu", "erotikashow.hu", "szexaruhaz.hu", "szexshop.hu", "vagyaim.hu"
+    ];
+
+    trackingData.forEach(record => {
+        // Zjistit, jestli má záznam NĚJAKÝ zahraniční e-shop s nenulovou hodnotou
+        const hasForeignData = FOREIGN_ESHOPS.some(eshop => {
+            const value = record.competitors[eshop];
+            // Považovat za "má data", pokud je hodnota > 0 (ne 0, ne undefined)
+            return value !== undefined && value > 0;
+        });
+
+        // Pokud nemá žádná zahraniční data, odstranit všechny zahraniční e-shopy
+        if (!hasForeignData) {
+            let removedCount = 0;
+            FOREIGN_ESHOPS.forEach(eshop => {
+                if (record.competitors[eshop] !== undefined) {
+                    delete record.competitors[eshop];
+                    removedCount++;
+                }
+                if (record.deltas && record.deltas[eshop] !== undefined) {
+                    delete record.deltas[eshop];
+                }
+            });
+
+            if (removedCount > 0) {
+                console.log(`  🗑️ ${formatDate(record.date)}: Odstraněno ${removedCount} zahraničních e-shopů`);
+            }
+        }
+    });
+
+    console.log('✅ Čištění dokončeno');
 }
 
 /**
