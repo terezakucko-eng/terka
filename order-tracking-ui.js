@@ -322,6 +322,7 @@ function renderMarketTable(market, eshops) {
             const totalDelta = eshops.reduce((sum, eshop) => {
                 // Přeskočit, pokud je e-shop označen jako nezměřeno
                 if (record.notMeasured && record.notMeasured[eshop]) {
+                    console.log(`🚫 Přeskakuji nezměřený e-shop: ${eshop} v záznamu ${record.date}`);
                     return sum;
                 }
                 return sum + (record.deltas[eshop] || 0);
@@ -938,11 +939,15 @@ window.saveCellEdit = function() {
 
     // Uložit stav "nezměřeno"
     const notMeasured = document.getElementById('cellNotMeasured').checked;
+    console.log(`💾 Ukládám stav nezměřeno pro ${currentCellEditEshop}: ${notMeasured}`);
     if (notMeasured) {
         record.notMeasured[currentCellEditEshop] = true;
+        console.log(`✅ Nastaveno record.notMeasured['${currentCellEditEshop}'] = true`);
     } else {
         delete record.notMeasured[currentCellEditEshop];
+        console.log(`❌ Odstraněno record.notMeasured['${currentCellEditEshop}']`);
     }
+    console.log('🔍 Aktuální record.notMeasured:', record.notMeasured);
 
     // Zavřít modal
     closeCellEditModal();
