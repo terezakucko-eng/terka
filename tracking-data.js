@@ -1177,9 +1177,109 @@ function cleanupMarketData() {
     alert(`✅ Data vyčištěna! Odstraněno ${cleanedCount} hodnot z ${trackingData.length} záznamů.`);
 }
 
+// =====================================================
+// ZÁLOHOVÁNÍ A OBNOVA DAT
+// =====================================================
+
+/**
+ * Zálohuje všechna tracking data do JSON souboru
+ */
+function backupTrackingData() {
+    if (!window.trackingData || window.trackingData.length === 0) {
+        alert('Nejsou k dispozici žádná data pro zálohování.');
+        return;
+    }
+
+    const backup = {
+        version: '1.0',
+        timestamp: new Date().toISOString(),
+        dataCount: window.trackingData.length,
+        data: window.trackingData
+    };
+
+    const json = JSON.stringify(backup, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tracking-data-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+
+    URL.revokeObjectURL(url);
+
+    console.log(`✅ Záloha vytvořena: ${window.trackingData.length} záznamů`);
+    alert(`✅ Záloha úspěšně vytvořena!\n\nZálohováno ${window.trackingData.length} záznamů.`);
+}
+
+/**
+ * Obnoví tracking data ze záložního JSON souboru
+ */
+function restoreTrackingData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!confirm('Opravdu chceš obnovit data ze zálohy?\n\nStávající data budou PŘEPSÁNA!')) {
+        event.target.value = ''; // Reset input
+        return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        try {
+            const backup = JSON.parse(e.target.result);
+
+            // Validace zálohy
+            if (!backup.data || !Array.isArray(backup.data)) {
+                throw new Error('Neplatný formát zálohy - chybí pole "data"');
+            }
+
+            // Obnovit data
+            window.trackingData = backup.data;
+
+            // Přepočítat delty
+            calculateDeltas();
+
+            // Uložit do localStorage
+            saveTrackingData();
+
+            // Uložit do Firestore
+            if (typeof saveAllTrackingDataToFirestore === 'function') {
+                saveAllTrackingDataToFirestore(window.trackingData);
+            }
+
+            // Překreslit tabulky a metriky
+            if (typeof renderTrackingTable === 'function') {
+                renderTrackingTable();
+            }
+            if (typeof updateMetricsDisplay === 'function') {
+                updateMetricsDisplay();
+            }
+            if (typeof updateAllCharts === 'function') {
+                updateAllCharts();
+            }
+
+            console.log(`✅ Data obnovena ze zálohy: ${window.trackingData.length} záznamů`);
+            alert(`✅ Data úspěšně obnovena!\n\nObnoveno ${window.trackingData.length} záznamů.\nZáloha z: ${new Date(backup.timestamp).toLocaleString('cs-CZ')}`);
+
+        } catch (error) {
+            console.error('❌ Chyba při obnově ze zálohy:', error);
+            alert(`❌ Chyba při obnově ze zálohy:\n\n${error.message}`);
+        }
+
+        // Reset input
+        event.target.value = '';
+    };
+
+    reader.readAsText(file);
+}
+
 // Export funkcí
 window.importFromGoogleSheetsCustomFormat = importFromGoogleSheetsCustomFormat;
 window.exportTrackingToExcel = exportTrackingToExcel;
+window.backupTrackingData = backupTrackingData;
+window.restoreTrackingData = restoreTrackingData;
 window.calculateDeltas = calculateDeltas;
 window.saveTrackingData = saveTrackingData;
 window.loadTrackingData = loadTrackingData;

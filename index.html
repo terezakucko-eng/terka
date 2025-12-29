@@ -827,6 +827,26 @@
                         </div>
                     </div>
 
+                    <div class="border-b pb-4">
+                        <h4 class="text-md font-semibold mb-3">💾 Zálohování a obnova dat</h4>
+                        <div class="space-y-3">
+                            <p class="text-sm text-gray-600 mb-3">
+                                Zálohuj všechna data do JSON souboru nebo obnov data ze zálohy.
+                            </p>
+                            <button onclick="backupTrackingData()"
+                                class="w-full bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition font-medium shadow-md">
+                                💾 Zálohovat data (JSON)
+                            </button>
+                            <div>
+                                <input type="file" id="restore-file-input" accept=".json" class="hidden" onchange="restoreTrackingData(event)">
+                                <button onclick="document.getElementById('restore-file-input').click()"
+                                    class="w-full bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 transition font-medium shadow-md">
+                                    📂 Obnovit ze zálohy
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     <div>
                         <h4 class="text-md font-semibold mb-3 text-red-600">🗑️ Vymazat data</h4>
                         <p class="text-sm text-gray-600 mb-3">
