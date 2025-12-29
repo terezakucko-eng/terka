@@ -613,8 +613,12 @@ window.deleteTrackingRecord = async function(id, market) {
             }
             window.trackingData.splice(index, 1);
         } else {
-            // Ještě jsou nějaká data - jen aktualizovat záznam
+            // Ještě jsou nějaká data - aktualizovat záznam
             window.trackingData[index] = record;
+            // Uložit aktualizovaný záznam do Firestore
+            if (typeof saveTrackingRecordToFirestore === 'function') {
+                await saveTrackingRecordToFirestore(record);
+            }
         }
 
         calculateDeltas();
