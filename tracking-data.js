@@ -314,9 +314,13 @@ function calculateDeltas() {
             const prevRecord = trackingData[index - 1];
 
             COMPETITORS.forEach(comp => {
+                // Pro zahraniční e-shopy VŽDY přepočítat delty (ignorovat staré hodnoty)
+                const isForeignEshop = FOREIGN_ESHOPS.includes(comp);
+
                 // Pokud je delta už nastavená (z importu "Objednáno kusů"), nech ji být
-                if (existingDeltas[comp] !== undefined && existingDeltas[comp] !== 0) {
-                    // Delta už je importovaná, přeskočit výpočet
+                // ALE: pro zahraniční e-shopy přepočítat vždy (mají často staré špatné delty)
+                if (!isForeignEshop && existingDeltas[comp] !== undefined && existingDeltas[comp] !== 0) {
+                    // Delta už je importovaná pro CZ/SK e-shop, přeskočit výpočet
                     return;
                 }
 
