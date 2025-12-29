@@ -298,6 +298,11 @@ function interpolateMissingData() {
 
     // Pro každý e-shop zkontroluj všechny záznamy
     COMPETITORS.forEach(comp => {
+        // Přeskočit vlastní e-shopy - ty mají delty zadané přímo uživatelem
+        if (OWN_ESHOPS.includes(comp)) {
+            return;
+        }
+
         trackingData.forEach((record, index) => {
             // Přeskočit první a poslední záznam
             if (index === 0 || index === trackingData.length - 1) {
