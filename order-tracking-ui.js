@@ -666,7 +666,7 @@ function updateMarketMetrics(market, eshops, latest, sorted, dateStr, ownEshops)
         document.getElementById(`metric-cz-comparison-label`).textContent = slonVsCompetitor.label;
         document.getElementById(`metric-cz-comparison-value`).textContent = slonVsCompetitor.value;
     } else if (market === 'sk') {
-        const slonVsCompetitor = calculateSlonVsCompetitor(latest, 'ruzovyslon.sk', 'eros.sk');
+        const slonVsCompetitor = calculateSlonVsCompetitor(latest, 'ruzovyslon.sk', 'superlove.sk');
         document.getElementById(`metric-sk-comparison-label`).textContent = slonVsCompetitor.label;
         document.getElementById(`metric-sk-comparison-value`).textContent = slonVsCompetitor.value;
     }
