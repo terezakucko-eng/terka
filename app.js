@@ -463,6 +463,154 @@ function clearAllData() {
 }
 
 // =====================================================
+// EXPORT DAT
+// =====================================================
+
+// Helper funkce pro escapování CSV hodnot
+function escapeCSV(value) {
+    if (value === null || value === undefined) return '';
+    const str = String(value);
+    // Pokud obsahuje čárku, uvozovky nebo nový řádek, obalit do uvozovek
+    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return '"' + str.replace(/"/g, '""') + '"';
+    }
+    return str;
+}
+
+// Helper funkce pro stažení CSV
+function downloadCSV(csvContent, filename) {
+    const BOM = '\uFEFF'; // UTF-8 BOM pro správné zobrazení v Excelu
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Export sledování konkurence
+window.exportCompetitorDataToCSV = function() {
+    if (!window.trackingData || window.trackingData.length === 0) {
+        alert('❌ Žádná data k exportu');
+        return;
+    }
+
+    console.log('📤 Exportuji data sledování konkurence...');
+
+    // Získat všechny e-shopy ze všech záznamů
+    const allEshops = new Set();
+    window.trackingData.forEach(record => {
+        if (record.competitors) {
+            Object.keys(record.competitors).forEach(eshop => allEshops.add(eshop));
+        }
+        if (record.deltas) {
+            Object.keys(record.deltas).forEach(eshop => allEshops.add(eshop));
+        }
+    });
+    const eshopList = Array.from(allEshops).sort();
+
+    // Hlavička CSV
+    const headers = ['Datum', 'Celkem objednávek'];
+    eshopList.forEach(eshop => {
+        headers.push(`${eshop} - Počet`, `${eshop} - Delta`);
+    });
+
+    const rows = [headers.map(escapeCSV).join(',')];
+
+    // Data
+    window.trackingData
+        .sort((a, b) => new Date(a.date) - new Date(b.date))
+        .forEach(record => {
+            const row = [
+                record.date,
+                record.totalOrders || 0
+            ];
+
+            eshopList.forEach(eshop => {
+                const orderNum = record.competitors && record.competitors[eshop] !== undefined
+                    ? record.competitors[eshop]
+                    : '';
+                const delta = record.deltas && record.deltas[eshop] !== undefined
+                    ? record.deltas[eshop]
+                    : '';
+
+                row.push(orderNum, delta);
+            });
+
+            rows.push(row.map(escapeCSV).join(','));
+        });
+
+    const csvContent = rows.join('\n');
+    const filename = `sledovani-konkurence-${new Date().toISOString().split('T')[0]}.csv`;
+
+    downloadCSV(csvContent, filename);
+    console.log(`✅ Export dokončen: ${filename}`);
+    alert(`✅ Data exportována do souboru:\n${filename}`);
+}
+
+// Export MKT kampaní
+window.exportMKTCampaignsToCSV = function() {
+    const campaigns = localStorage.getItem('mktCampaigns');
+
+    if (!campaigns) {
+        alert('❌ Žádné MKT kampaně k exportu');
+        return;
+    }
+
+    const mktCampaigns = JSON.parse(campaigns);
+
+    if (!mktCampaigns || mktCampaigns.length === 0) {
+        alert('❌ Žádné MKT kampaně k exportu');
+        return;
+    }
+
+    console.log('📤 Exportuji data MKT kampaní...');
+
+    // Hlavička CSV
+    const headers = [
+        'Název kampaně',
+        'Typ kampaně',
+        'Období od',
+        'Období do',
+        'Zdroj',
+        'Rozpočet (Kč)',
+        'Objednávky',
+        'CPO (Kč)',
+        'Newsletter text'
+    ];
+
+    const rows = [headers.map(escapeCSV).join(',')];
+
+    // Data
+    mktCampaigns.forEach(campaign => {
+        const row = [
+            campaign.name || '',
+            campaign.type || '',
+            campaign.periodFrom || '',
+            campaign.periodTo || '',
+            campaign.source || '',
+            campaign.budget || '',
+            campaign.orders || '',
+            campaign.cpo || '',
+            campaign.newsletterText || ''
+        ];
+
+        rows.push(row.map(escapeCSV).join(','));
+    });
+
+    const csvContent = rows.join('\n');
+    const filename = `mkt-kampane-${new Date().toISOString().split('T')[0]}.csv`;
+
+    downloadCSV(csvContent, filename);
+    console.log(`✅ Export dokončen: ${filename}`);
+    alert(`✅ MKT kampaně exportovány do souboru:\n${filename}`);
+}
+
+// =====================================================
 // HROMADNÉ VLOŽENÍ DAT
 // =====================================================
 
