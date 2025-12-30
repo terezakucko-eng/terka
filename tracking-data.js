@@ -349,13 +349,17 @@ function calculateDeltas() {
 
                 const current = record.competitors[comp] || 0;
 
-                // Najít poslední záznam, kde byl e-shop skutečně změřen
+                // Najít poslední záznam, kde byl e-shop skutečně změřen (nenulová hodnota)
                 let previous = 0;
                 let foundPrevious = false;
                 for (let i = index - 1; i >= 0; i--) {
                     const prevRec = trackingData[i];
-                    if (prevRec.competitors[comp] !== undefined) {
-                        previous = prevRec.competitors[comp];
+                    const prevValue = prevRec.competitors[comp];
+
+                    // Považovat za "měřeno" pouze pokud je hodnota definovaná A nenulová
+                    // Nula znamená "neměřeno" nebo "placeholder"
+                    if (prevValue !== undefined && prevValue !== 0) {
+                        previous = prevValue;
                         foundPrevious = true;
                         break;
                     }
