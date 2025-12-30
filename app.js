@@ -1243,9 +1243,13 @@ function aggregateByWeeks(data, eshops) {
                 date: weekKey,
                 year: recordDate.getFullYear(),
                 week: weekNumber,
-                totals: {}
+                totals: {},
+                counts: {} // Počet měření v týdnu
             };
-            eshops.forEach(eshop => weeklyData[weekKey].totals[eshop] = 0);
+            eshops.forEach(eshop => {
+                weeklyData[weekKey].totals[eshop] = 0;
+                weeklyData[weekKey].counts[eshop] = 0;
+            });
         }
 
         eshops.forEach(eshop => {
@@ -1254,7 +1258,24 @@ function aggregateByWeeks(data, eshops) {
                 return;
             }
             const delta = (record.deltas && record.deltas[eshop]) ? record.deltas[eshop] : 0;
-            weeklyData[weekKey].totals[eshop] += delta;
+
+            // Pouze pokud existuje delta (ne null), započítat
+            if (record.deltas && record.deltas[eshop] !== undefined && record.deltas[eshop] !== null) {
+                weeklyData[weekKey].totals[eshop] += delta;
+                weeklyData[weekKey].counts[eshop]++;
+            }
+        });
+    });
+
+    // Průměrovat data pokud chybí některá měření
+    Object.values(weeklyData).forEach(week => {
+        eshops.forEach(eshop => {
+            const count = week.counts[eshop];
+            if (count > 0 && count < 7) {
+                // Pokud máme méně než 7 měření v týdnu, průměrujeme
+                const avg = week.totals[eshop] / count;
+                week.totals[eshop] = Math.round(avg * 7); // Projekce na celý týden
+            }
         });
     });
 
@@ -1274,9 +1295,13 @@ function aggregateByMonths(data, eshops) {
                 date: monthKey,
                 year: recordDate.getFullYear(),
                 month: recordDate.getMonth() + 1,
-                totals: {}
+                totals: {},
+                counts: {} // Počet měření v měsíci
             };
-            eshops.forEach(eshop => monthlyData[monthKey].totals[eshop] = 0);
+            eshops.forEach(eshop => {
+                monthlyData[monthKey].totals[eshop] = 0;
+                monthlyData[monthKey].counts[eshop] = 0;
+            });
         }
 
         eshops.forEach(eshop => {
@@ -1285,7 +1310,26 @@ function aggregateByMonths(data, eshops) {
                 return;
             }
             const delta = (record.deltas && record.deltas[eshop]) ? record.deltas[eshop] : 0;
-            monthlyData[monthKey].totals[eshop] += delta;
+
+            // Pouze pokud existuje delta (ne null), započítat
+            if (record.deltas && record.deltas[eshop] !== undefined && record.deltas[eshop] !== null) {
+                monthlyData[monthKey].totals[eshop] += delta;
+                monthlyData[monthKey].counts[eshop]++;
+            }
+        });
+    });
+
+    // Průměrovat data pokud chybí některá měření
+    Object.values(monthlyData).forEach(month => {
+        eshops.forEach(eshop => {
+            const count = month.counts[eshop];
+            const daysInMonth = new Date(month.year, month.month, 0).getDate();
+
+            if (count > 0 && count < daysInMonth) {
+                // Pokud máme méně měření než dní v měsíci, průměrujeme
+                const avg = month.totals[eshop] / count;
+                month.totals[eshop] = Math.round(avg * daysInMonth); // Projekce na celý měsíc
+            }
         });
     });
 
@@ -1303,12 +1347,14 @@ function getWeekNumber(date) {
 
 function updateTrendChart() {
     const periodFilter = document.getElementById('trend-period-filter');
+    const dateFromInput = document.getElementById('trend-date-from');
+    const dateToInput = document.getElementById('trend-date-to');
     const eshopsFilter = document.getElementById('trend-eshops-filter');
     const typeFilter = document.getElementById('trend-type-filter');
     const aggregationFilter = document.getElementById('trend-aggregation-filter');
     const yoyCheckbox = document.getElementById('trend-yoy-comparison');
 
-    if (!periodFilter || !eshopsFilter || !typeFilter || !aggregationFilter || !yoyCheckbox) {
+    if (!periodFilter || !dateFromInput || !dateToInput || !eshopsFilter || !typeFilter || !aggregationFilter || !yoyCheckbox) {
         console.error('❌ Trend chart filtry nenalezeny');
         return;
     }
@@ -1322,6 +1368,8 @@ function updateTrendChart() {
     }
 
     const periodValue = periodFilter.value;
+    const dateFrom = dateFromInput.value;
+    const dateTo = dateToInput.value;
     const chartType = typeFilter.value;
     const aggregation = aggregationFilter.value;
     const showYoY = yoyCheckbox.checked;
@@ -1337,8 +1385,18 @@ function updateTrendChart() {
     // Seřadit podle data
     let sortedData = [...window.trackingData].sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    // Filtrovat podle období
-    if (periodValue !== 'all') {
+    // Filtrovat podle období - vlastní období má přednost před přednastavenými
+    if (dateFrom || dateTo) {
+        // Vlastní období (od-do)
+        const fromDate = dateFrom ? new Date(dateFrom) : new Date('1900-01-01');
+        const toDate = dateTo ? new Date(dateTo) : new Date('2099-12-31');
+
+        sortedData = sortedData.filter(r => {
+            const recordDate = new Date(r.date);
+            return recordDate >= fromDate && recordDate <= toDate;
+        });
+    } else if (periodValue !== '' && periodValue !== 'all') {
+        // Přednastavené období
         const period = parseInt(periodValue);
         if (!isNaN(period)) {
             const today = new Date();
@@ -1372,9 +1430,10 @@ function updateTrendChart() {
             return `${monthNames[parseInt(month) - 1]} ${year}`;
         });
     } else {
-        // Dny - původní denní zobrazení
-        processedData = sortedData;
-        labels = sortedData.map(r => formatDate(r.date));
+        // Výchozí je týdny
+        const aggregatedData = aggregateByWeeks(sortedData, selectedEshops);
+        processedData = aggregatedData;
+        labels = aggregatedData.map(d => d.date);
     }
 
     // Příprava datasetů pro vybrané e-shopy
@@ -1390,11 +1449,8 @@ function updateTrendChart() {
                 return 0;
             }
 
-            if (aggregation === 'days') {
-                return record.deltas && record.deltas[eshop] ? record.deltas[eshop] : null;
-            } else {
-                return record.totals && record.totals[eshop] ? record.totals[eshop] : null;
-            }
+            // Vždy používat agregované totals (týdny nebo měsíce)
+            return record.totals && record.totals[eshop] ? record.totals[eshop] : null;
         });
 
         datasets.push({
@@ -1414,31 +1470,32 @@ function updateTrendChart() {
         if (showYoY) {
             // Získat rok z prvního záznamu pro label
             const firstRecordDate = processedData.length > 0
-                ? new Date(aggregation === 'days' ? processedData[0].date : `${processedData[0].year}-01-01`)
+                ? new Date(`${processedData[0].year}-01-01`)
                 : new Date();
             const previousYear = firstRecordDate.getFullYear() - 1;
 
-            const yoyData = processedData.map(record => {
-                const currentDate = new Date(aggregation === 'days' ? record.date : `${record.year}-${String(record.month || 1).padStart(2, '0')}-01`);
-                const previousYearDate = new Date(currentDate);
-                previousYearDate.setFullYear(currentDate.getFullYear() - 1);
+            // Agregovat data z předchozího roku
+            const previousYearData = sortedData.filter(r => {
+                const rDate = new Date(r.date);
+                return rDate.getFullYear() === previousYear;
+            });
 
+            const previousYearAggregated = aggregation === 'weeks'
+                ? aggregateByWeeks(previousYearData, selectedEshops)
+                : aggregateByMonths(previousYearData, selectedEshops);
+
+            const yoyData = processedData.map(record => {
                 // Najít odpovídající záznam z předchozího roku
-                const previousYearRecord = sortedData.find(r => {
-                    const rDate = new Date(r.date);
+                const matchingRecord = previousYearAggregated.find(r => {
                     if (aggregation === 'weeks') {
-                        const rWeek = getWeekNumber(rDate);
-                        const targetWeek = getWeekNumber(previousYearDate);
-                        return rDate.getFullYear() === previousYearDate.getFullYear() && rWeek === targetWeek;
-                    } else if (aggregation === 'months') {
-                        return rDate.getFullYear() === previousYearDate.getFullYear() && rDate.getMonth() === previousYearDate.getMonth();
+                        return r.week === record.week;
                     } else {
-                        return r.date === previousYearDate.toISOString().split('T')[0];
+                        return r.month === record.month;
                     }
                 });
 
-                if (previousYearRecord) {
-                    return previousYearRecord.deltas && previousYearRecord.deltas[eshop] ? previousYearRecord.deltas[eshop] : null;
+                if (matchingRecord) {
+                    return matchingRecord.totals && matchingRecord.totals[eshop] ? matchingRecord.totals[eshop] : null;
                 }
                 return null;
             });
