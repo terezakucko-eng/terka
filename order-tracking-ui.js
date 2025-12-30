@@ -279,11 +279,16 @@ function renderMarketTable(market, eshops) {
             // Zjistit, jestli je označeno jako nezměřeno
             const isNotMeasured = record.notMeasured && record.notMeasured[eshop];
 
-            // Debug log pro kontrolu sexshopik.cz
-            if (eshop === 'sexshopik.cz' && record.date === '2025-11-30') {
-                console.log(`🖼️ RENDER sexshopik.cz ${record.date}:`);
-                console.log(`  record.notMeasured:`, record.notMeasured);
-                console.log(`  isNotMeasured:`, isNotMeasured);
+            // Zjistit, jestli je to první měření (nezapočítává se do součtu)
+            const isFirstMeasurement = record.firstMeasurement && record.firstMeasurement[eshop];
+
+            // Debug log pro kontrolu
+            if (eshop === 'yoo.cz' && (record.date === '2024-02-29' || record.date === '2024-03-31')) {
+                console.log(`🔍 RENDER ${eshop} ${record.date}:`);
+                console.log(`  orderNum:`, orderNum);
+                console.log(`  delta:`, delta);
+                console.log(`  isFirstMeasurement:`, isFirstMeasurement);
+                console.log(`  firstMeasurement obj:`, record.firstMeasurement);
             }
 
             const deltaClass = delta > 0 ? 'text-green-600' : (delta < 0 ? 'text-red-600' : 'text-gray-400');
@@ -326,6 +331,19 @@ function renderMarketTable(market, eshops) {
                             ${delta > 0 ? '+' : ''}${delta.toLocaleString('cs-CZ')}
                         </div>
                         <div class="text-red-600 text-xs font-bold mt-1">⊗ N/A</div>
+                        ${cellNote ? `<div class="text-blue-600 text-xs italic mt-1">${escapeHtml(noteDisplay)}</div>` : ''}
+                    </td>
+                `;
+            } else if (isFirstMeasurement) {
+                // První měření - zobrazit šedě s označením, že se nezapočítává
+                row.innerHTML += `
+                    <td class="px-3 py-3 text-sm text-center ${bgClass} cursor-pointer hover:bg-blue-100"
+                        onclick="editCellNote('${record.id}', '${eshop}')" ${noteTitle} title="První měření - nezapočítává se do celkového součtu">
+                        <div class="font-medium text-gray-500 text-xs">${orderNumDisplay}</div>
+                        <div class="text-gray-400 text-xs font-semibold">
+                            ${delta > 0 ? '+' : ''}${delta.toLocaleString('cs-CZ')}
+                            <span class="text-orange-500">*</span>
+                        </div>
                         ${cellNote ? `<div class="text-blue-600 text-xs italic mt-1">${escapeHtml(noteDisplay)}</div>` : ''}
                     </td>
                 `;
