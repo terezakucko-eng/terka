@@ -1374,7 +1374,8 @@ window.syncToFirestore = async function() {
 
         // Použít existující funkci
         if (typeof window.saveAllTrackingDataToFirestore === 'function') {
-            await window.saveAllTrackingDataToFirestore();
+            // OPRAVA: předat trackingData jako parametr
+            await window.saveAllTrackingDataToFirestore(window.trackingData);
             alert(`✅ Úspěšně nahráno ${window.trackingData.length} záznamů do Firestore!\n\nData jsou nyní synchronizovaná napříč všemi prohlížeči.`);
             console.log(`✅ ${window.trackingData.length} záznamů nahráno do Firestore`);
 
