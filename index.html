@@ -763,13 +763,42 @@
                                     placeholder="Název listu (např. 'List1', 'Data', ...)"
                                     value=""
                                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <div class="bg-blue-50 border-l-4 border-blue-500 p-3 mb-3 mt-2">
-                                    <p class="text-xs text-blue-800">
-                                        <strong>Konkurence:</strong> Importuje čísla objednávek a vypočítá delty<br>
-                                        <strong>Vlastní e-shopy:</strong> Importuje sloupec "Objednáno kusů" (delty přímo)
-                                    </p>
+                            </div>
+
+                            <!-- Režim importu -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Režim importu
+                                </label>
+                                <div class="space-y-2">
+                                    <label class="flex items-start gap-2 p-3 border-2 border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition">
+                                        <input type="radio" name="import-mode" value="merge" checked class="mt-0.5">
+                                        <div class="flex-1">
+                                            <div class="font-medium text-gray-900">✨ Doplnit data</div>
+                                            <div class="text-xs text-gray-600 mt-1">
+                                                Sloučí nová data s existujícími. Záznamy se stejným datem budou aktualizovány.
+                                            </div>
+                                        </div>
+                                    </label>
+                                    <label class="flex items-start gap-2 p-3 border-2 border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition">
+                                        <input type="radio" name="import-mode" value="replace" class="mt-0.5">
+                                        <div class="flex-1">
+                                            <div class="font-medium text-gray-900">🔄 Přepsat vše</div>
+                                            <div class="text-xs text-gray-600 mt-1">
+                                                Smaže všechna stávající data a nahradí je importovanými daty.
+                                            </div>
+                                        </div>
+                                    </label>
                                 </div>
                             </div>
+
+                            <div class="bg-blue-50 border-l-4 border-blue-500 p-3">
+                                <p class="text-xs text-blue-800">
+                                    <strong>Konkurence:</strong> Importuje čísla objednávek a vypočítá delty<br>
+                                    <strong>Vlastní e-shopy:</strong> Importuje sloupec "Objednáno kusů" (delty přímo)
+                                </p>
+                            </div>
+
                             <div class="flex gap-2">
                                 <button onclick="importFromGoogleSheetsCustomFormat()"
                                     class="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition font-medium">

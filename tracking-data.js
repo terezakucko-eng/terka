@@ -712,7 +712,11 @@ async function importFromGoogleSheetsCustomFormat() {
         const sheetSelector = document.getElementById('sheet-selector');
         const sheetName = sheetSelector && sheetSelector.value ? sheetSelector.value : "List1";
 
-        console.log(`Import začíná: ${sheetName} z ${spreadsheetId}`);
+        // Získat režim importu (merge nebo replace)
+        const importModeRadio = document.querySelector('input[name="import-mode"]:checked');
+        const importMode = importModeRadio ? importModeRadio.value : 'merge';
+
+        console.log(`Import začíná: ${sheetName} z ${spreadsheetId} (režim: ${importMode})`);
 
         showStatus(`Načítám data z listu "${sheetName}"...`, 'info');
 
@@ -726,7 +730,7 @@ async function importFromGoogleSheetsCustomFormat() {
         const csvText = await response.text();
 
         showStatus('Parsování dat...', 'info');
-        parseCustomCSV(csvText);
+        parseCustomCSV(csvText, importMode);
 
         if (trackingData.length === 0) {
             throw new Error('Nebyly načteny žádné záznamy. Zkontroluj strukturu tabulky.');
@@ -794,7 +798,7 @@ async function importFromGoogleSheetsCustomFormat() {
  * erosstar.cz | 6.1.2025  | 125010687 | 687
  * deeplove.cz | 13.1.2025 | 225011646 | 973
  */
-function parseVerticalCSV(lines) {
+function parseVerticalCSV(lines, importMode = 'replace') {
     const header = parseCSVLine(lines[0]);
 
     // Najít indexy sloupců
@@ -878,6 +882,9 @@ function parseVerticalCSV(lines) {
         }
     }
 
+    // Zachovat existující data pokud je režim 'merge'
+    const existingData = importMode === 'merge' ? [...trackingData] : [];
+
     // Převést na pole a seřadit podle data
     trackingData = Object.values(recordsByDate)
         .sort((a, b) => new Date(a.date) - new Date(b.date))
@@ -891,6 +898,42 @@ function parseVerticalCSV(lines) {
             notes: ''
         }));
 
+    // Sloučit s existujícími daty pokud je režim 'merge'
+    if (importMode === 'merge' && existingData.length > 0) {
+        console.log(`🔄 Slučuji s ${existingData.length} existujícími záznamy...`);
+
+        // Vytvořit mapu nových záznamů podle data pro rychlé vyhledávání
+        const newRecordsByDate = {};
+        trackingData.forEach(record => {
+            newRecordsByDate[record.date] = record;
+        });
+
+        // Projít existující záznamy a sloučit je s novými
+        existingData.forEach(existingRecord => {
+            const newRecord = newRecordsByDate[existingRecord.date];
+
+            if (newRecord) {
+                // Záznam s tímto datem existuje v nových datech - sloučit
+                newRecord.competitors = { ...existingRecord.competitors, ...newRecord.competitors };
+                newRecord.deltas = { ...existingRecord.deltas, ...newRecord.deltas };
+                newRecord.manualDeltas = { ...existingRecord.manualDeltas, ...newRecord.manualDeltas };
+                newRecord.notMeasured = { ...existingRecord.notMeasured, ...newRecord.notMeasured };
+                newRecord.notes = existingRecord.notes && newRecord.notes
+                    ? existingRecord.notes + '\n' + newRecord.notes
+                    : existingRecord.notes || newRecord.notes;
+
+                // Zachovat původní ID a firestoreId
+                newRecord.id = existingRecord.id;
+                newRecord.firestoreId = existingRecord.firestoreId;
+            } else {
+                // Záznam neexistuje v nových datech - zachovat existující
+                trackingData.push(existingRecord);
+            }
+        });
+
+        console.log(`✅ Sloučeno: ${trackingData.length} celkem záznamů`);
+    }
+
     console.log(`✅ Načteno ${trackingData.length} záznamů z vertikálního CSV`);
     if (trackingData.length > 0) {
         console.log('📅 První záznam:', trackingData[0].date);
@@ -901,7 +944,7 @@ function parseVerticalCSV(lines) {
     window.trackingData = trackingData;
 }
 
-function parseCustomCSV(csvText) {
+function parseCustomCSV(csvText, importMode = 'replace') {
     const lines = csvText.split('\n');
     if (lines.length < 2) {
         console.error('CSV nemá dostatek řádků');
@@ -912,6 +955,7 @@ function parseCustomCSV(csvText) {
     const header = parseCSVLine(lines[0]);
     console.log('📋 Načtených sloupců:', header.length);
     console.log('📋 Sloupce:', header.join(' | '));
+    console.log(`📋 Režim importu: ${importMode === 'merge' ? '✨ Doplnit data' : '🔄 Přepsat vše'}`);
 
     // Detekovat formát tabulky (vertikální vs horizontální)
     const hasEshopColumn = header.some(col =>
@@ -921,7 +965,7 @@ function parseCustomCSV(csvText) {
 
     if (hasEshopColumn) {
         console.log('🔄 Detekován VERTIKÁLNÍ formát (jeden e-shop na řádek)');
-        parseVerticalCSV(lines);
+        parseVerticalCSV(lines, importMode);
         return;
     }
 
@@ -998,6 +1042,8 @@ function parseCustomCSV(csvText) {
     console.log('🎯 Mapované vlastní e-shopy:', Object.keys(deltaMap));
 
     // Parsovat data
+    // V režimu 'replace' smazat všechna data, v režimu 'merge' zachovat existující
+    const existingData = importMode === 'merge' ? [...trackingData] : [];
     trackingData = [];
 
     for (let i = 1; i < lines.length; i++) {
@@ -1056,6 +1102,42 @@ function parseCustomCSV(csvText) {
         });
 
         trackingData.push(record);
+    }
+
+    // Sloučit s existujícími daty pokud je režim 'merge'
+    if (importMode === 'merge' && existingData.length > 0) {
+        console.log(`🔄 Slučuji s ${existingData.length} existujícími záznamy...`);
+
+        // Vytvořit mapu nových záznamů podle data pro rychlé vyhledávání
+        const newRecordsByDate = {};
+        trackingData.forEach(record => {
+            newRecordsByDate[record.date] = record;
+        });
+
+        // Projít existující záznamy a sloučit je s novými
+        existingData.forEach(existingRecord => {
+            const newRecord = newRecordsByDate[existingRecord.date];
+
+            if (newRecord) {
+                // Záznam s tímto datem existuje v nových datech - sloučit
+                newRecord.competitors = { ...existingRecord.competitors, ...newRecord.competitors };
+                newRecord.deltas = { ...existingRecord.deltas, ...newRecord.deltas };
+                newRecord.manualDeltas = { ...existingRecord.manualDeltas, ...newRecord.manualDeltas };
+                newRecord.notMeasured = { ...existingRecord.notMeasured, ...newRecord.notMeasured };
+                newRecord.notes = existingRecord.notes && newRecord.notes
+                    ? existingRecord.notes + '\n' + newRecord.notes
+                    : existingRecord.notes || newRecord.notes;
+
+                // Zachovat původní ID a firestoreId
+                newRecord.id = existingRecord.id;
+                newRecord.firestoreId = existingRecord.firestoreId;
+            } else {
+                // Záznam neexistuje v nových datech - zachovat existující
+                trackingData.push(existingRecord);
+            }
+        });
+
+        console.log(`✅ Sloučeno: ${trackingData.length} celkem záznamů`);
     }
 
     console.log(`✅ Načteno ${trackingData.length} záznamů z CSV`);
