@@ -1357,33 +1357,11 @@ function updateTrendChart() {
     // Seřadit podle data
     let sortedData = [...window.trackingData].sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    // Helper funkce pro parsování českého formátu data (dd.mm.rrrr)
-    function parseCzechDate(dateStr) {
-        if (!dateStr) return null;
-
-        // Pokud je formát ISO (yyyy-mm-dd), použít přímo
-        if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-            return new Date(dateStr);
-        }
-
-        // Parsovat český formát (dd.mm.rrrr nebo d.m.rrrr)
-        const parts = dateStr.split('.');
-        if (parts.length !== 3) return null;
-
-        const day = parseInt(parts[0], 10);
-        const month = parseInt(parts[1], 10) - 1; // Měsíce jsou 0-indexed
-        const year = parseInt(parts[2], 10);
-
-        if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
-
-        return new Date(year, month, day);
-    }
-
     // Filtrovat podle období - vlastní období má přednost před přednastavenými
     if (dateFrom || dateTo) {
-        // Vlastní období (od-do)
-        const fromDate = dateFrom ? parseCzechDate(dateFrom) || new Date('1900-01-01') : new Date('1900-01-01');
-        const toDate = dateTo ? parseCzechDate(dateTo) || new Date('2099-12-31') : new Date('2099-12-31');
+        // Vlastní období (od-do) - date input vrací ISO formát (yyyy-mm-dd)
+        const fromDate = dateFrom ? new Date(dateFrom) : new Date('1900-01-01');
+        const toDate = dateTo ? new Date(dateTo) : new Date('2099-12-31');
 
         sortedData = sortedData.filter(r => {
             const recordDate = new Date(r.date);
