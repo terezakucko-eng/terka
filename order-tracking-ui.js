@@ -1284,6 +1284,129 @@ window.cleanupDuplicateRecords = function() {
     }
 };
 
+// =====================================================
+// FIRESTORE DIAGNOSTIKA A SYNCHRONIZACE
+// =====================================================
+
+/**
+ * Zkontroluje status Firestore připojení a zobrazí informace
+ */
+window.checkFirestoreStatus = async function() {
+    const statusContainer = document.getElementById('firestore-status-container');
+    const statusIcon = document.getElementById('firestore-status-icon');
+    const statusText = document.getElementById('firestore-status-text');
+    const statusDetail = document.getElementById('firestore-status-detail');
+
+    if (!statusContainer || !statusIcon || !statusText || !statusDetail) {
+        console.error('Firestore status elementy nenalezeny');
+        return;
+    }
+
+    // Kontrola
+    statusIcon.textContent = '🔄';
+    statusText.textContent = 'Kontroluji připojení...';
+    statusDetail.textContent = '';
+    statusContainer.className = 'p-4 rounded-lg border-2 border-blue-300 bg-blue-50';
+
+    try {
+        // Zjistit, jestli je Firestore aktivní
+        const isFirestoreActive = typeof window.useFirestore === 'function' && window.useFirestore();
+
+        if (!isFirestoreActive) {
+            // Firestore není aktivní
+            statusIcon.textContent = '⚠️';
+            statusText.textContent = 'Firestore není připojen';
+            statusDetail.textContent = 'Data jsou uložena pouze v tomto prohlížeči (localStorage). Pro sdílení dat mezi prohlížeči nastavte Firestore pravidla.';
+            statusContainer.className = 'p-4 rounded-lg border-2 border-orange-300 bg-orange-50';
+            return;
+        }
+
+        // Firestore je aktivní - zkusit číst data
+        const db = window.getFirestore();
+        if (!db) {
+            throw new Error('Firestore databáze není inicializovaná');
+        }
+
+        // Zkusit přečíst data
+        const snapshot = await db.collection('trackingData').limit(1).get();
+
+        // Úspěch!
+        statusIcon.textContent = '✅';
+        statusText.textContent = 'Firestore je připojen a funkční';
+
+        const recordCount = window.trackingData ? window.trackingData.length : 0;
+        statusDetail.textContent = `Data se synchronizují automaticky. Aktuálně máte ${recordCount} záznamů v databázi.`;
+        statusContainer.className = 'p-4 rounded-lg border-2 border-green-300 bg-green-50';
+
+        console.log('✅ Firestore status: AKTIVNÍ');
+    } catch (error) {
+        // Chyba při čtení - pravděpodobně pravidla
+        statusIcon.textContent = '❌';
+        statusText.textContent = 'Firestore připojení selhalo';
+        statusDetail.textContent = `Chyba: ${error.message}. Zkontrolujte Firestore pravidla (viz instrukce níže).`;
+        statusContainer.className = 'p-4 rounded-lg border-2 border-red-300 bg-red-50';
+
+        console.error('❌ Firestore chyba:', error);
+    }
+};
+
+/**
+ * Nahraje všechna lokální data do Firestore
+ */
+window.syncToFirestore = async function() {
+    if (!window.trackingData || window.trackingData.length === 0) {
+        alert('Žádná data k nahrání.');
+        return;
+    }
+
+    const isFirestoreActive = typeof window.useFirestore === 'function' && window.useFirestore();
+    if (!isFirestoreActive) {
+        alert('❌ Firestore není aktivní. Zkontrolujte připojení a pravidla.');
+        return;
+    }
+
+    if (!confirm(`Nahrát ${window.trackingData.length} záznamů do Firestore?\n\nTato akce přepíše existující data v cloudu.`)) {
+        return;
+    }
+
+    try {
+        console.log(`🔄 Nahrávám ${window.trackingData.length} záznamů do Firestore...`);
+
+        // Použít existující funkci
+        if (typeof window.saveAllTrackingDataToFirestore === 'function') {
+            await window.saveAllTrackingDataToFirestore();
+            alert(`✅ Úspěšně nahráno ${window.trackingData.length} záznamů do Firestore!\n\nData jsou nyní synchronizovaná napříč všemi prohlížeči.`);
+            console.log(`✅ ${window.trackingData.length} záznamů nahráno do Firestore`);
+
+            // Aktualizovat status
+            checkFirestoreStatus();
+        } else {
+            throw new Error('Funkce saveAllTrackingDataToFirestore není dostupná');
+        }
+    } catch (error) {
+        console.error('❌ Chyba při nahrávání do Firestore:', error);
+        alert(`❌ Chyba při nahrávání: ${error.message}\n\nZkontrolujte Firestore pravidla.`);
+    }
+};
+
+/**
+ * Rozšíření funkce showDataManagementModal - automaticky zkontrolovat Firestore status
+ */
+const originalShowDataManagementModal = window.showDataManagementModal;
+window.showDataManagementModal = function() {
+    // Zavolat původní funkci (z app.js)
+    if (originalShowDataManagementModal) {
+        originalShowDataManagementModal();
+    } else {
+        document.getElementById('dataManagementModal').style.display = 'flex';
+    }
+
+    // Automaticky zkontrolovat status při otevření
+    setTimeout(() => {
+        checkFirestoreStatus();
+    }, 100);
+};
+
 // Export funkcí
 window.renderTrackingTable = renderTrackingTable;
 window.showAddRecordForm = showAddRecordForm;
