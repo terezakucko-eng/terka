@@ -870,69 +870,65 @@
                         </div>
                     </div>
 
-                    <div class="border-b pb-4">
-                        <h4 class="text-md font-semibold mb-3">🔄 Přepočítat delty</h4>
-                        <p class="text-sm text-gray-600 mb-3">
-                            Přepočítá všechny delty bez mazání dat
-                        </p>
-                        <button onclick="recalculateAllDeltas()"
-                            class="w-full bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition">
-                            🔄 Přepočítat delty
-                        </button>
-                    </div>
+                    <!-- Pokročilé nastavení -->
+                    <details class="border-t pt-4">
+                        <summary class="cursor-pointer font-semibold text-gray-700 hover:text-gray-900 text-md mb-4 flex items-center gap-2">
+                            ⚙️ Pokročilé nastavení
+                            <span class="text-xs font-normal text-gray-500">(klikni pro rozbalení)</span>
+                        </summary>
 
-                    <div class="border-b pb-4">
-                        <h4 class="text-md font-semibold mb-3">☁️ Firestore synchronizace</h4>
-                        <div class="space-y-3">
-                            <!-- Status Firestore -->
-                            <div id="firestore-status-container" class="p-4 rounded-lg border-2">
-                                <div class="flex items-center gap-3 mb-2">
-                                    <div id="firestore-status-icon">🔄</div>
-                                    <div>
-                                        <div id="firestore-status-text" class="font-medium">Kontroluji připojení...</div>
-                                        <div id="firestore-status-detail" class="text-sm text-gray-600"></div>
+                        <div class="space-y-6 mt-4">
+                            <!-- Firestore synchronizace -->
+                            <div class="border-b pb-4">
+                                <h4 class="text-md font-semibold mb-3">☁️ Firestore synchronizace</h4>
+                                <div class="space-y-3">
+                                    <!-- Status Firestore -->
+                                    <div id="firestore-status-container" class="p-4 rounded-lg border-2">
+                                        <div class="flex items-center gap-3">
+                                            <div id="firestore-status-icon" class="text-xl">🔄</div>
+                                            <div class="flex-1">
+                                                <div id="firestore-status-text" class="font-medium text-sm">Kontroluji připojení...</div>
+                                                <div id="firestore-status-detail" class="text-xs text-gray-600 mt-1"></div>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
 
-                            <!-- Tlačítka pro správu -->
-                            <div class="flex gap-2">
-                                <button onclick="checkFirestoreStatus()"
-                                    class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium">
-                                    🔄 Zkontrolovat status
-                                </button>
-                                <button onclick="syncToFirestore()"
-                                    class="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition font-medium">
-                                    ☁️ Nahrát do Firestore
-                                </button>
-                            </div>
+                                    <!-- Tlačítka pro správu -->
+                                    <div class="flex gap-2">
+                                        <button onclick="checkFirestoreStatus()"
+                                            class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium text-sm">
+                                            🔄 Zkontrolovat
+                                        </button>
+                                        <button onclick="syncToFirestore()"
+                                            class="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition font-medium text-sm">
+                                            ☁️ Nahrát do cloudu
+                                        </button>
+                                    </div>
 
-                            <!-- Nápověda -->
-                            <div class="bg-blue-50 border-l-4 border-blue-500 p-3 text-xs">
-                                <p class="font-medium text-blue-900 mb-1">💡 Co je Firestore?</p>
-                                <p class="text-blue-800 mb-2">
-                                    Firestore je cloudová databáze, která umožňuje sdílet data mezi prohlížeči a zařízeními.
-                                </p>
-                                <p class="text-blue-800 mb-1">
-                                    <strong>✅ Když je Firestore připojen:</strong> Data se automaticky synchronizují mezi všemi prohlížeči
-                                </p>
-                                <p class="text-blue-800">
-                                    <strong>⚠️ Když není připojen:</strong> Data jsou uložena jen v tomto prohlížeči (localStorage)
-                                </p>
-                            </div>
+                                    <!-- Nápověda -->
+                                    <details class="text-xs">
+                                        <summary class="cursor-pointer font-medium text-gray-700 hover:text-gray-900">
+                                            💡 Co je Firestore?
+                                        </summary>
+                                        <div class="mt-2 p-3 bg-blue-50 border-l-4 border-blue-500 rounded text-blue-800 space-y-1">
+                                            <p>Cloudová databáze pro sdílení dat mezi prohlížeči a zařízeními.</p>
+                                            <p><strong>✅ Připojeno:</strong> Automatická synchronizace</p>
+                                            <p><strong>⚠️ Nepřipojeno:</strong> Data jen v tomto prohlížeči</p>
+                                        </div>
+                                    </details>
 
-                            <!-- Instrukce pro nastavení pravidel -->
-                            <details class="text-xs">
-                                <summary class="cursor-pointer font-medium text-gray-700 hover:text-gray-900">
-                                    📋 Jak nastavit Firestore pravidla
-                                </summary>
-                                <div class="mt-2 p-3 bg-gray-50 rounded border text-gray-700 space-y-2">
-                                    <p>1. Otevři <a href="https://console.firebase.google.com" target="_blank" class="text-blue-600 hover:underline">Firebase Console</a></p>
-                                    <p>2. Vyber projekt: <strong>rs-sledovani-konkurence</strong></p>
-                                    <p>3. V levém menu klikni na <strong>Firestore Database</strong></p>
-                                    <p>4. Přejdi na záložku <strong>Rules</strong></p>
-                                    <p>5. Nahraď pravidla těmito (pro testování):</p>
-                                    <pre class="bg-gray-800 text-green-400 p-2 rounded text-xs overflow-x-auto mt-2">rules_version = '2';
+                                    <!-- Instrukce pro nastavení pravidel -->
+                                    <details class="text-xs">
+                                        <summary class="cursor-pointer font-medium text-gray-700 hover:text-gray-900">
+                                            📋 Jak nastavit Firestore pravidla
+                                        </summary>
+                                        <div class="mt-2 p-3 bg-gray-50 rounded border text-gray-700 space-y-2">
+                                            <p>1. Otevři <a href="https://console.firebase.google.com" target="_blank" class="text-blue-600 hover:underline">Firebase Console</a></p>
+                                            <p>2. Vyber projekt: <strong>rs-sledovani-konkurence</strong></p>
+                                            <p>3. V levém menu klikni na <strong>Firestore Database</strong></p>
+                                            <p>4. Přejdi na záložku <strong>Rules</strong></p>
+                                            <p>5. Nahraď pravidla těmito:</p>
+                                            <pre class="bg-gray-800 text-green-400 p-2 rounded text-xs overflow-x-auto mt-2">rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /{document=**} {
@@ -940,23 +936,38 @@ service cloud.firestore {
     }
   }
 }</pre>
-                                    <p class="text-orange-700 font-medium">⚠️ Tato pravidla umožňují přístup všem! Pro produkci použij autentizaci.</p>
-                                    <p>6. Klikni na <strong>Publish</strong></p>
+                                            <p class="text-orange-700 font-medium">⚠️ Umožňuje přístup všem! Pro produkci použij autentizaci.</p>
+                                            <p>6. Klikni na <strong>Publish</strong></p>
+                                        </div>
+                                    </details>
                                 </div>
-                            </details>
-                        </div>
-                    </div>
+                            </div>
 
-                    <div>
-                        <h4 class="text-md font-semibold mb-3 text-red-600">🗑️ Vymazat data</h4>
-                        <p class="text-sm text-gray-600 mb-3">
-                            Tato akce vymaže všechna uložená data z prohlížeče. Tato akce je nevratná!
-                        </p>
-                        <button onclick="clearAllData()"
-                            class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">
-                            Vymazat všechna data
-                        </button>
-                    </div>
+                            <!-- Přepočítat delty -->
+                            <div class="border-b pb-4">
+                                <h4 class="text-md font-semibold mb-3">🔄 Přepočítat delty</h4>
+                                <p class="text-sm text-gray-600 mb-3">
+                                    Přepočítá všechny delty bez mazání dat. Použij pouze pokud jsou delty špatně.
+                                </p>
+                                <button onclick="recalculateAllDeltas()"
+                                    class="w-full bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition">
+                                    🔄 Přepočítat delty
+                                </button>
+                            </div>
+
+                            <!-- Vymazat data -->
+                            <div>
+                                <h4 class="text-md font-semibold mb-3 text-red-600">🗑️ Vymazat všechna data</h4>
+                                <p class="text-sm text-gray-600 mb-3">
+                                    Vymaže všechna data z prohlížeče i Firestore. <strong>Tato akce je nevratná!</strong>
+                                </p>
+                                <button onclick="clearAllData()"
+                                    class="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">
+                                    🗑️ Vymazat všechna data
+                                </button>
+                            </div>
+                        </div>
+                    </details>
                 </div>
             </div>
         </div>
