@@ -58,12 +58,21 @@ function setupRealtimeListeners() {
                 localStorage.setItem('trackingData', JSON.stringify(data));
             }
 
+            // DŮLEŽITÉ: Přepočítat delty po načtení dat z Firestore
+            // (data z Firestore můžou mít staré nebo neúplné delty)
+            if (typeof calculateDeltas === 'function') {
+                calculateDeltas();
+            }
+
             // Aktualizovat UI
             if (typeof renderTrackingTable === 'function') {
                 renderTrackingTable();
             }
             if (typeof updateMetricsDisplay === 'function') {
                 updateMetricsDisplay();
+            }
+            if (typeof updateAllCharts === 'function') {
+                updateAllCharts();
             }
         }, (error) => {
             console.error('❌ Chyba při realtime sync tracking data:', error);
