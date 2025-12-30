@@ -296,16 +296,25 @@ function calculateDeltas() {
         if (index === 0) {
             // První záznam nemá delty (kromě importovaných)
             record.deltas = existingDeltas;
+            record.firstMeasurement = {}; // Inicializovat pro první záznam
+
             COMPETITORS.forEach(comp => {
                 // Inicializovat pouze e-shopy, které mají číslo objednávky nebo deltu
                 const hasOrderNumber = record.competitors[comp] !== undefined && record.competitors[comp] !== 0;
                 const hasDelta = record.deltas[comp] !== undefined && record.deltas[comp] !== 0;
 
                 if (hasOrderNumber || hasDelta) {
-                    // E-shop má data, inicializovat na 0 pokud není nastaveno
+                    // E-shop má data, inicializovat na 0 pokud není nastaveno (importovaná delta)
                     if (record.deltas[comp] === undefined) {
                         record.deltas[comp] = 0;
+                        // Označit jako první měření (není z čeho počítat)
+                        record.firstMeasurement[comp] = true;
+                    } else if (record.deltas[comp] === 0) {
+                        // Delta je 0 - také první měření
+                        record.firstMeasurement[comp] = true;
                     }
+                    // Pokud je delta naimportovaná a nenulová, NENÍ to první měření
+                    // (byla importovaná z "Objednáno kusů" sloupce)
                 }
                 // Pokud e-shop nemá data, NENASTAVOVAT na 0 - nechat undefined
             });
@@ -353,8 +362,15 @@ function calculateDeltas() {
                 }
 
                 // Pokud nebyl nalezen předchozí záznam, delta = 0 (první měření)
+                // OZNAČIT jako první měření - nebude se započítávat do totalOrders
                 if (!foundPrevious) {
                     record.deltas[comp] = 0;
+
+                    // Označit jako první měření
+                    if (!record.firstMeasurement) {
+                        record.firstMeasurement = {};
+                    }
+                    record.firstMeasurement[comp] = true;
                 } else if (MONTHLY_RESET_COMPETITORS.includes(comp)) {
                     // Speciální logika pro konkurenty s měsíčním resetem
                     // Najít záznam pro calculateDeltaWithMonthlyReset
@@ -387,12 +403,19 @@ function calculateDeltas() {
 
     // Vypočítat agregované metriky pro každý záznam
     trackingData.forEach(record => {
-        // Celkem objednávek (suma delt všech konkurentů) - PŘESKOČIT NEZMĚŘENÉ
+        // Celkem objednávek (suma delt všech konkurentů)
+        // PŘESKOČIT: nezměřené e-shopy a e-shopy s prvním měřením
         record.totalOrders = Object.keys(record.deltas).reduce((sum, eshop) => {
             // Přeskočit nezměřené e-shopy
             if (record.notMeasured && record.notMeasured[eshop]) {
                 return sum;
             }
+
+            // Přeskočit e-shopy s prvním měřením (není z čeho počítat rozdíl)
+            if (record.firstMeasurement && record.firstMeasurement[eshop]) {
+                return sum;
+            }
+
             return sum + (record.deltas[eshop] || 0);
         }, 0);
 
