@@ -1243,12 +1243,10 @@ function aggregateByWeeks(data, eshops) {
                 date: weekKey,
                 year: recordDate.getFullYear(),
                 week: weekNumber,
-                totals: {},
-                counts: {} // Počet měření v týdnu
+                totals: {}
             };
             eshops.forEach(eshop => {
                 weeklyData[weekKey].totals[eshop] = 0;
-                weeklyData[weekKey].counts[eshop] = 0;
             });
         }
 
@@ -1257,25 +1255,14 @@ function aggregateByWeeks(data, eshops) {
             if (record.notMeasured && record.notMeasured[eshop]) {
                 return;
             }
+
+            // Přeskočit první měření (nezapočítává se)
+            if (record.firstMeasurement && record.firstMeasurement[eshop]) {
+                return;
+            }
+
             const delta = (record.deltas && record.deltas[eshop]) ? record.deltas[eshop] : 0;
-
-            // Pouze pokud existuje delta (ne null), započítat
-            if (record.deltas && record.deltas[eshop] !== undefined && record.deltas[eshop] !== null) {
-                weeklyData[weekKey].totals[eshop] += delta;
-                weeklyData[weekKey].counts[eshop]++;
-            }
-        });
-    });
-
-    // Průměrovat data pokud chybí některá měření
-    Object.values(weeklyData).forEach(week => {
-        eshops.forEach(eshop => {
-            const count = week.counts[eshop];
-            if (count > 0 && count < 7) {
-                // Pokud máme méně než 7 měření v týdnu, průměrujeme
-                const avg = week.totals[eshop] / count;
-                week.totals[eshop] = Math.round(avg * 7); // Projekce na celý týden
-            }
+            weeklyData[weekKey].totals[eshop] += delta;
         });
     });
 
@@ -1295,12 +1282,10 @@ function aggregateByMonths(data, eshops) {
                 date: monthKey,
                 year: recordDate.getFullYear(),
                 month: recordDate.getMonth() + 1,
-                totals: {},
-                counts: {} // Počet měření v měsíci
+                totals: {}
             };
             eshops.forEach(eshop => {
                 monthlyData[monthKey].totals[eshop] = 0;
-                monthlyData[monthKey].counts[eshop] = 0;
             });
         }
 
@@ -1309,27 +1294,14 @@ function aggregateByMonths(data, eshops) {
             if (record.notMeasured && record.notMeasured[eshop]) {
                 return;
             }
+
+            // Přeskočit první měření (nezapočítává se)
+            if (record.firstMeasurement && record.firstMeasurement[eshop]) {
+                return;
+            }
+
             const delta = (record.deltas && record.deltas[eshop]) ? record.deltas[eshop] : 0;
-
-            // Pouze pokud existuje delta (ne null), započítat
-            if (record.deltas && record.deltas[eshop] !== undefined && record.deltas[eshop] !== null) {
-                monthlyData[monthKey].totals[eshop] += delta;
-                monthlyData[monthKey].counts[eshop]++;
-            }
-        });
-    });
-
-    // Průměrovat data pokud chybí některá měření
-    Object.values(monthlyData).forEach(month => {
-        eshops.forEach(eshop => {
-            const count = month.counts[eshop];
-            const daysInMonth = new Date(month.year, month.month, 0).getDate();
-
-            if (count > 0 && count < daysInMonth) {
-                // Pokud máme méně měření než dní v měsíci, průměrujeme
-                const avg = month.totals[eshop] / count;
-                month.totals[eshop] = Math.round(avg * daysInMonth); // Projekce na celý měsíc
-            }
+            monthlyData[monthKey].totals[eshop] += delta;
         });
     });
 
