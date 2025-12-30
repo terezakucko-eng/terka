@@ -1397,13 +1397,26 @@ function updateTrendChart() {
         });
     } else if (periodValue !== '' && periodValue !== 'all') {
         // Přednastavené období
-        const period = parseInt(periodValue);
-        if (!isNaN(period)) {
+        if (periodValue === 'previous-year') {
+            // Minulý rok - celý rok
             const today = new Date();
-            const cutoffDate = new Date(today);
-            cutoffDate.setDate(cutoffDate.getDate() - period);
+            const previousYear = today.getFullYear() - 1;
+            const fromDate = new Date(previousYear, 0, 1); // 1. ledna minulého roku
+            const toDate = new Date(previousYear, 11, 31); // 31. prosince minulého roku
 
-            sortedData = sortedData.filter(r => new Date(r.date) >= cutoffDate);
+            sortedData = sortedData.filter(r => {
+                const recordDate = new Date(r.date);
+                return recordDate >= fromDate && recordDate <= toDate;
+            });
+        } else {
+            const period = parseInt(periodValue);
+            if (!isNaN(period)) {
+                const today = new Date();
+                const cutoffDate = new Date(today);
+                cutoffDate.setDate(cutoffDate.getDate() - period);
+
+                sortedData = sortedData.filter(r => new Date(r.date) >= cutoffDate);
+            }
         }
     }
 
@@ -1474,8 +1487,12 @@ function updateTrendChart() {
                 : new Date();
             const previousYear = firstRecordDate.getFullYear() - 1;
 
-            // Agregovat data z předchozího roku
-            const previousYearData = sortedData.filter(r => {
+            // DŮLEŽITÉ: Pro YoY musíme použít CELÁ window.trackingData, ne filtrovaná sortedData!
+            // Jinak nemáme data z minulého roku, pokud je filtr na "poslední měsíc"
+            const allData = [...window.trackingData].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            // Agregovat data z předchozího roku z CELÝCH dat
+            const previousYearData = allData.filter(r => {
                 const rDate = new Date(r.date);
                 return rDate.getFullYear() === previousYear;
             });
@@ -1483,6 +1500,14 @@ function updateTrendChart() {
             const previousYearAggregated = aggregation === 'weeks'
                 ? aggregateByWeeks(previousYearData, selectedEshops)
                 : aggregateByMonths(previousYearData, selectedEshops);
+
+            console.log(`📊 YoY Debug pro ${eshop}:`, {
+                currentYear: firstRecordDate.getFullYear(),
+                previousYear: previousYear,
+                previousYearDataCount: previousYearData.length,
+                previousYearAggregatedCount: previousYearAggregated.length,
+                currentDataCount: processedData.length
+            });
 
             const yoyData = processedData.map(record => {
                 // Najít odpovídající záznam z předchozího roku
