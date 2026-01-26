@@ -323,6 +323,18 @@ function calculateDeltas() {
             const prevRecord = trackingData[index - 1];
 
             COMPETITORS.forEach(comp => {
+                // PRIORITA 1: Pokud je firstMeasurement už nastavené z formuláře, PŘESKOČIT automatický výpočet
+                // Toto znamená, že uživatel ručně označil toto jako novou číselnou řadu
+                if (record.firstMeasurement && record.firstMeasurement[comp]) {
+                    // Zachovat deltu, která je už nastavená z formuláře
+                    // DŮLEŽITÉ: Neinicializovat deltu, pokud není nastavená
+                    if (record.deltas[comp] === undefined) {
+                        record.deltas[comp] = 0;
+                    }
+                    console.log(`🔧 ${comp} na ${record.date}: firstMeasurement=true, delta=${record.deltas[comp]} (přeskakuji přepočet)`);
+                    return;
+                }
+
                 // Pro zahraniční e-shopy VŽDY přepočítat delty (ignorovat staré hodnoty)
                 const isForeignEshop = FOREIGN_ESHOPS.includes(comp);
 

@@ -529,14 +529,48 @@ function handleRecordFormSubmit(e) {
     const recordId = document.getElementById('record-id').value;
     const date = document.getElementById('record-date').value;
 
-    const record = {
-        id: recordId ? parseInt(recordId) : Date.now(),
-        date: date,
-        competitors: {},
-        deltas: {},
-        monthEndValues: {},
-        notes: document.getElementById('record-notes').value || ''
-    };
+    // Pokud editujeme existující záznam, zkopírovat ho (aby se zachovaly všechny položky)
+    // Pokud vytváříme nový, vytvořit nový objekt
+    let record;
+    if (recordId) {
+        const existingIndex = window.trackingData.findIndex(r => r.id === parseInt(recordId));
+        if (existingIndex !== -1) {
+            // Zkopírovat existující záznam (deep copy důležitých objektů)
+            const existing = window.trackingData[existingIndex];
+            record = {
+                ...existing,
+                competitors: { ...(existing.competitors || {}) },
+                deltas: { ...(existing.deltas || {}) },
+                manualDeltas: { ...(existing.manualDeltas || {}) },
+                notMeasured: { ...(existing.notMeasured || {}) },
+                firstMeasurement: { ...(existing.firstMeasurement || {}) },
+                monthEndValues: { ...(existing.monthEndValues || {}) }
+            };
+            // Aktualizovat datum a poznámky
+            record.date = date;
+            record.notes = document.getElementById('record-notes').value || '';
+        } else {
+            // Existující record nenalezen, vytvořit nový
+            record = {
+                id: parseInt(recordId),
+                date: date,
+                competitors: {},
+                deltas: {},
+                monthEndValues: {},
+                notes: document.getElementById('record-notes').value || ''
+            };
+        }
+    } else {
+        // Nový záznam
+        record = {
+            id: Date.now(),
+            date: date,
+            competitors: {},
+            deltas: {},
+            monthEndValues: {},
+            notes: document.getElementById('record-notes').value || ''
+        };
+    }
 
     // Načíst data pro všechny e-shopy
     // Rozlišujeme vlastní e-shopy (ukládáme delty přímo) a konkurenty (ukládáme čísla objednávek)
@@ -576,6 +610,12 @@ function handleRecordFormSubmit(e) {
                 }
 
                 console.log(`✨ ${comp}: Nová číselná řada - číslo ${value}, delta ${record.deltas[comp]}`);
+            } else {
+                // Checkbox NENÍ zaškrtnutý - odstranit firstMeasurement pokud existuje
+                if (record.firstMeasurement && record.firstMeasurement[comp]) {
+                    delete record.firstMeasurement[comp];
+                    console.log(`🔄 ${comp}: Zrušeno firstMeasurement - delta se přepočítá`);
+                }
             }
         }
     });
