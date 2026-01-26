@@ -20,12 +20,27 @@ function renderFormFields() {
 
     const czCompetitors = ["Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz", "honitka.cz", "eroticke-pomucky.cz", "flagranti.cz", "sexshopik.cz", "e-kondomy.cz"];
     czCompetitors.forEach(comp => {
+        const safeId = sanitizeId(comp);
         html += `
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">${comp}</label>
-                <input type="number" id="comp-${sanitizeId(comp)}"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            <div class="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                <label class="block text-sm font-medium text-gray-700 mb-2">${comp}</label>
+                <input type="number" id="comp-${safeId}"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg mb-2"
                     placeholder="Číslo objednávky">
+
+                <div class="flex items-center gap-2 mt-2">
+                    <input type="checkbox" id="first-measurement-${safeId}"
+                        class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        onchange="document.getElementById('delta-${safeId}').style.display = this.checked ? 'block' : 'none'">
+                    <label for="first-measurement-${safeId}" class="text-xs text-gray-600">
+                        ✨ Nová číselná řada
+                    </label>
+                </div>
+
+                <input type="number" id="delta-${safeId}"
+                    class="w-full px-3 py-2 border border-orange-300 rounded-lg mt-2 bg-orange-50"
+                    placeholder="Počet objednávek (delta)"
+                    style="display:none;">
             </div>`;
     });
     html += '</div></div>';
@@ -54,12 +69,27 @@ function renderFormFields() {
     html += '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">';
 
     ["isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk"].forEach(comp => {
+        const safeId = sanitizeId(comp);
         html += `
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">${comp}</label>
-                <input type="number" id="comp-${sanitizeId(comp)}"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            <div class="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                <label class="block text-sm font-medium text-gray-700 mb-2">${comp}</label>
+                <input type="number" id="comp-${safeId}"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg mb-2"
                     placeholder="Číslo objednávky">
+
+                <div class="flex items-center gap-2 mt-2">
+                    <input type="checkbox" id="first-measurement-${safeId}"
+                        class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        onchange="document.getElementById('delta-${safeId}').style.display = this.checked ? 'block' : 'none'">
+                    <label for="first-measurement-${safeId}" class="text-xs text-gray-600">
+                        ✨ Nová číselná řada
+                    </label>
+                </div>
+
+                <input type="number" id="delta-${safeId}"
+                    class="w-full px-3 py-2 border border-orange-300 rounded-lg mt-2 bg-orange-50"
+                    placeholder="Počet objednávek (delta)"
+                    style="display:none;">
             </div>`;
     });
     html += '</div></div>';
@@ -105,12 +135,27 @@ function renderFormFields() {
     html += '<div class="grid grid-cols-1 md:grid-cols-4 gap-3">';
 
     ["superlove.ro", "superlove.pl", "superlove.eu", "superlove.at", "superlove.hr", "superlove.it", "superlove.si", "superlove.bg", "superlove.lt", "superlove.es", "superlove.hu"].forEach(comp => {
+        const safeId = sanitizeId(comp);
         html += `
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">${comp}</label>
-                <input type="number" id="comp-${sanitizeId(comp)}"
-                    class="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm"
+            <div class="border border-gray-200 rounded-lg p-2 bg-gray-50">
+                <label class="block text-xs font-medium text-gray-700 mb-1">${comp}</label>
+                <input type="number" id="comp-${safeId}"
+                    class="w-full px-2 py-1 border border-gray-300 rounded text-sm mb-1"
                     placeholder="Č. obj.">
+
+                <div class="flex items-center gap-1">
+                    <input type="checkbox" id="first-measurement-${safeId}"
+                        class="w-3 h-3 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        onchange="document.getElementById('delta-${safeId}').style.display = this.checked ? 'block' : 'none'">
+                    <label for="first-measurement-${safeId}" class="text-xs text-gray-600">
+                        ✨ Nová řada
+                    </label>
+                </div>
+
+                <input type="number" id="delta-${safeId}"
+                    class="w-full px-2 py-1 border border-orange-300 rounded mt-1 bg-orange-50 text-sm"
+                    placeholder="Δ"
+                    style="display:none;">
             </div>`;
     });
     html += '</div></div>';
@@ -122,12 +167,27 @@ function renderFormFields() {
     html += '<div class="grid grid-cols-1 md:grid-cols-4 gap-3">';
 
     ["goldengate.hu", "padlizsan.hu", "sexshopcenter.hu", "erotikashow.hu", "szexaruhaz.hu", "szexshop.hu", "vagyaim.hu"].forEach(comp => {
+        const safeId = sanitizeId(comp);
         html += `
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">${comp}</label>
-                <input type="number" id="comp-${sanitizeId(comp)}"
-                    class="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm"
+            <div class="border border-gray-200 rounded-lg p-2 bg-gray-50">
+                <label class="block text-xs font-medium text-gray-700 mb-1">${comp}</label>
+                <input type="number" id="comp-${safeId}"
+                    class="w-full px-2 py-1 border border-gray-300 rounded text-sm mb-1"
                     placeholder="Č. obj.">
+
+                <div class="flex items-center gap-1">
+                    <input type="checkbox" id="first-measurement-${safeId}"
+                        class="w-3 h-3 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        onchange="document.getElementById('delta-${safeId}').style.display = this.checked ? 'block' : 'none'">
+                    <label for="first-measurement-${safeId}" class="text-xs text-gray-600">
+                        ✨ Nová řada
+                    </label>
+                </div>
+
+                <input type="number" id="delta-${safeId}"
+                    class="w-full px-2 py-1 border border-orange-300 rounded mt-1 bg-orange-50 text-sm"
+                    placeholder="Δ"
+                    style="display:none;">
             </div>`;
     });
     html += '</div></div>';
@@ -481,7 +541,8 @@ function handleRecordFormSubmit(e) {
     // Načíst data pro všechny e-shopy
     // Rozlišujeme vlastní e-shopy (ukládáme delty přímo) a konkurenty (ukládáme čísla objednávek)
     window.COMPETITORS.forEach(comp => {
-        const input = document.getElementById(`comp-${sanitizeId(comp)}`);
+        const safeId = sanitizeId(comp);
+        const input = document.getElementById(`comp-${safeId}`);
         const value = input && input.value ? parseInt(input.value) || 0 : 0;
 
         // Zjistit, jestli je to vlastní e-shop
@@ -495,6 +556,27 @@ function handleRecordFormSubmit(e) {
             // Konkurent: uložit číslo objednávky (delta se vypočítá později)
             record.competitors[comp] = value;
             record.deltas[comp] = 0; // Delta se přepočítá v calculateDeltas()
+
+            // Zkontrolovat checkbox "Nová číselná řada"
+            const firstMeasurementCheckbox = document.getElementById(`first-measurement-${safeId}`);
+            const deltaInput = document.getElementById(`delta-${safeId}`);
+
+            if (firstMeasurementCheckbox && firstMeasurementCheckbox.checked) {
+                // Inicializovat firstMeasurement objekt pokud neexistuje
+                if (!record.firstMeasurement) {
+                    record.firstMeasurement = {};
+                }
+
+                // Označit jako první měření
+                record.firstMeasurement[comp] = true;
+
+                // Načíst manuálně zadanou deltu
+                if (deltaInput && deltaInput.value) {
+                    record.deltas[comp] = parseInt(deltaInput.value) || 0;
+                }
+
+                console.log(`✨ ${comp}: Nová číselná řada - číslo ${value}, delta ${record.deltas[comp]}`);
+            }
         }
     });
 
@@ -545,6 +627,9 @@ function handleRecordFormSubmit(e) {
 
             // Sloučit notMeasured (nové hodnoty přepíší staré)
             record.notMeasured = { ...existingRecord.notMeasured, ...record.notMeasured };
+
+            // Sloučit firstMeasurement (nové hodnoty přepíší staré)
+            record.firstMeasurement = { ...existingRecord.firstMeasurement, ...record.firstMeasurement };
 
             // Zachovat ID a firestoreId existujícího záznamu
             record.id = existingRecord.id;
@@ -601,7 +686,8 @@ window.editTrackingRecord = function(id) {
 
     // Naplnit pole pro všechny e-shopy
     window.COMPETITORS.forEach(comp => {
-        const input = document.getElementById(`comp-${sanitizeId(comp)}`);
+        const safeId = sanitizeId(comp);
+        const input = document.getElementById(`comp-${safeId}`);
         if (input) {
             // Pro vlastní e-shopy použít DELTY, pro konkurenty čísla objednávek
             const isOwnEshop = window.OWN_ESHOPS && window.OWN_ESHOPS.includes(comp);
@@ -612,6 +698,26 @@ window.editTrackingRecord = function(id) {
             } else {
                 // Konkurent - zobrazit číslo objednávky
                 input.value = record.competitors[comp] || '';
+
+                // Načíst firstMeasurement checkbox a delta input
+                const firstMeasurementCheckbox = document.getElementById(`first-measurement-${safeId}`);
+                const deltaInput = document.getElementById(`delta-${safeId}`);
+
+                if (firstMeasurementCheckbox && deltaInput) {
+                    // Pokud je e-shop označen jako firstMeasurement, zaškrtnout checkbox
+                    const isFirstMeasurement = record.firstMeasurement && record.firstMeasurement[comp];
+                    firstMeasurementCheckbox.checked = isFirstMeasurement;
+
+                    if (isFirstMeasurement) {
+                        // Zobrazit delta input a naplnit ho hodnotou
+                        deltaInput.style.display = 'block';
+                        deltaInput.value = record.deltas && record.deltas[comp] !== undefined ? record.deltas[comp] : 0;
+                    } else {
+                        // Skrýt delta input
+                        deltaInput.style.display = 'none';
+                        deltaInput.value = '';
+                    }
+                }
             }
         }
     });
