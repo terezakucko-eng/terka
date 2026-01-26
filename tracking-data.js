@@ -1297,6 +1297,55 @@ async function loadTrackingData() {
         trackingData = [];
         window.trackingData = trackingData;
     }
+
+    // ============================================
+    // SPECIÁLNÍ FIX: hopnato.cz 12.5.2025
+    // ============================================
+    // Natvrdo opravit hopnato.cz pro datum 12.5.2025
+    // Nová číselná řada začala číslem 2615961, delta má být 0
+    const record = trackingData.find(r => r.date === '2025-05-12');
+    if (record) {
+        console.log('🔧 Aplikuji speciální fix pro hopnato.cz na 12.5.2025');
+
+        // Inicializovat objekty pokud neexistují
+        if (!record.competitors) record.competitors = {};
+        if (!record.deltas) record.deltas = {};
+        if (!record.firstMeasurement) record.firstMeasurement = {};
+        if (!record.manualDeltas) record.manualDeltas = {};
+
+        // Zkusit obě varianty názvu (s velkým i malým H)
+        const eshopVariants = ['Hopnato.cz', 'hopnato.cz'];
+        for (const eshop of eshopVariants) {
+            if (record.competitors[eshop] !== undefined || record.deltas[eshop] !== undefined) {
+                console.log(`   Nalezen e-shop: ${eshop}`);
+
+                // Nastavit nové hodnoty
+                record.competitors[eshop] = 2615961;
+                record.deltas[eshop] = 0;
+                record.firstMeasurement[eshop] = true;
+                record.manualDeltas[eshop] = 0;
+
+                console.log(`   ✅ ${eshop} opraveno: číslo=2615961, delta=0, firstMeasurement=true, manualDelta=0`);
+            }
+        }
+
+        // Přepočítat všechny delty (aby se aktualizovaly následující záznamy)
+        console.log('🔄 Přepočítávám všechny delty...');
+        calculateDeltas();
+
+        // Uložit zpět
+        localStorage.setItem('trackingData', JSON.stringify(trackingData));
+        console.log('💾 Uloženo do localStorage');
+
+        // Synchronizovat s Firestore pokud je dostupné
+        if (typeof saveTrackingDataToFirestore === 'function') {
+            saveTrackingDataToFirestore(trackingData).catch(err => {
+                console.error('❌ Chyba při synchronizaci s Firestore:', err);
+            });
+        }
+
+        console.log('🎉 Speciální fix pro hopnato.cz dokončen!');
+    }
 }
 
 // =====================================================
