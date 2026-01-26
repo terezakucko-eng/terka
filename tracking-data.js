@@ -487,6 +487,16 @@ function redistributeNotMeasuredDeltas() {
                 return; // Není označen jako nezměřeno, přeskočit
             }
 
+            // ⚠️ PRIORITA: Pokud má manualDeltas nebo firstMeasurement, PŘESKOČIT automatický přepočet
+            if (record.manualDeltas && record.manualDeltas[comp] !== undefined) {
+                console.log(`✏️ ${comp} [${formatDate(record.date)}]: Má manuální deltu - přeskakuji přepočet (notMeasured)`);
+                return;
+            }
+            if (record.firstMeasurement && record.firstMeasurement[comp]) {
+                console.log(`✨ ${comp} [${formatDate(record.date)}]: Má firstMeasurement - přeskakuji přepočet (notMeasured)`);
+                return;
+            }
+
             // Najít poslední změřený záznam před tímto
             let prevMeasuredIndex = -1;
             let prevMeasuredOrderNum = null;
@@ -545,11 +555,17 @@ function redistributeNotMeasuredDeltas() {
                 // DŮLEŽITÉ: Přepočítat deltu i pro následující změřený záznam
                 // Protože ten původně počítal deltu oproti starému číslu, ne odhadovanému
                 const nextRecord = trackingData[nextMeasuredIndex];
-                const correctedNextDelta = nextMeasuredOrderNum - estimatedCurrentOrderNum;
 
-                console.log(`  📈 ${comp} [${formatDate(nextRecord.date)}]: Přepočítána delta následujícího měření ${nextRecord.deltas[comp]} → ${correctedNextDelta}`);
-
-                nextRecord.deltas[comp] = correctedNextDelta;
+                // ⚠️ PRIORITA: Pokud má následující záznam manualDeltas nebo firstMeasurement, NEMĚNIT jeho deltu
+                if (nextRecord.manualDeltas && nextRecord.manualDeltas[comp] !== undefined) {
+                    console.log(`  ✏️ ${comp} [${formatDate(nextRecord.date)}]: Následující záznam má manuální deltu - přeskakuji přepočet`);
+                } else if (nextRecord.firstMeasurement && nextRecord.firstMeasurement[comp]) {
+                    console.log(`  ✨ ${comp} [${formatDate(nextRecord.date)}]: Následující záznam má firstMeasurement - přeskakuji přepočet`);
+                } else {
+                    const correctedNextDelta = nextMeasuredOrderNum - estimatedCurrentOrderNum;
+                    console.log(`  📈 ${comp} [${formatDate(nextRecord.date)}]: Přepočítána delta následujícího měření ${nextRecord.deltas[comp]} → ${correctedNextDelta}`);
+                    nextRecord.deltas[comp] = correctedNextDelta;
+                }
             }
         });
     });
@@ -621,6 +637,16 @@ function interpolateMissingData() {
         trackingData.forEach((record, index) => {
             // Přeskočit první a poslední záznam
             if (index === 0 || index === trackingData.length - 1) {
+                return;
+            }
+
+            // ⚠️ PRIORITA: Pokud má manualDeltas nebo firstMeasurement, PŘESKOČIT interpolaci
+            if (record.manualDeltas && record.manualDeltas[comp] !== undefined) {
+                // console.log(`✏️ ${comp} [${formatDate(record.date)}]: Má manuální deltu - přeskakuji interpolaci`);
+                return;
+            }
+            if (record.firstMeasurement && record.firstMeasurement[comp]) {
+                // console.log(`✨ ${comp} [${formatDate(record.date)}]: Má firstMeasurement - přeskakuji interpolaci`);
                 return;
             }
 
