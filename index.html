@@ -1102,12 +1102,87 @@ service cloud.firestore {
                                             <strong>Rychlá oprava pro hopnato.cz (12.5.2025):</strong>
                                         </p>
                                         <button onclick="
-                                            if (confirm('Resetovat hopnato.cz na datum 12.5.2025 s číslem 2615961?')) {
-                                                fixHopnato();
+                                            if (!confirm('Resetovat hopnato.cz na datum 12.5.2025 s číslem 2615961?\\n\\nDelta bude nastavena na 0.')) {
+                                                return;
                                             }
+
+                                            // Načíst data
+                                            const trackingDataStr = localStorage.getItem('trackingData');
+                                            if (!trackingDataStr) {
+                                                alert('❌ Žádná data v localStorage');
+                                                return;
+                                            }
+
+                                            const trackingData = JSON.parse(trackingDataStr);
+
+                                            // Najít záznam pro 12.5.2025
+                                            const record = trackingData.find(r => r.date === '2025-05-12');
+                                            if (!record) {
+                                                alert('❌ Nenalezen záznam pro 12.5.2025');
+                                                return;
+                                            }
+
+                                            console.log('🔧 Opravuji hopnato.cz pro 12.5.2025...');
+                                            console.log('Stará data:', {
+                                                competitors: record.competitors?.['hopnato.cz'],
+                                                deltas: record.deltas?.['hopnato.cz']
+                                            });
+
+                                            // Inicializovat objekty
+                                            if (!record.competitors) record.competitors = {};
+                                            if (!record.deltas) record.deltas = {};
+                                            if (!record.firstMeasurement) record.firstMeasurement = {};
+
+                                            // Nastavit nové hodnoty
+                                            record.competitors['hopnato.cz'] = 2615961;
+                                            record.deltas['hopnato.cz'] = 0;
+                                            record.firstMeasurement['hopnato.cz'] = true;
+
+                                            // Odstranit manuální delta
+                                            if (record.manualDeltas && record.manualDeltas['hopnato.cz'] !== undefined) {
+                                                delete record.manualDeltas['hopnato.cz'];
+                                            }
+
+                                            console.log('Nová data:', {
+                                                competitors: record.competitors['hopnato.cz'],
+                                                deltas: record.deltas['hopnato.cz'],
+                                                firstMeasurement: record.firstMeasurement['hopnato.cz']
+                                            });
+
+                                            // Uložit
+                                            localStorage.setItem('trackingData', JSON.stringify(trackingData));
+                                            if (window.trackingData) {
+                                                window.trackingData = trackingData;
+                                            }
+
+                                            console.log('💾 Uloženo do localStorage');
+
+                                            // Přepočítat a obnovit
+                                            if (typeof recalculateAllDeltas === 'function') {
+                                                recalculateAllDeltas();
+                                                console.log('🔄 Delty přepočítány');
+                                            }
+
+                                            if (typeof saveTrackingDataToFirestore === 'function') {
+                                                saveTrackingDataToFirestore(trackingData).then(() => {
+                                                    console.log('☁️ Synchronizováno s Firestore');
+                                                }).catch(err => {
+                                                    console.error('❌ Chyba Firestore:', err);
+                                                });
+                                            }
+
+                                            if (typeof loadTrackingData === 'function') {
+                                                loadTrackingData();
+                                            }
+                                            if (typeof renderCharts === 'function') {
+                                                renderCharts();
+                                            }
+
+                                            alert('✅ Oprava dokončena!\\n\\n12.5.2025: hopnato.cz nyní má 0 objednávek.');
+                                            console.log('✅ Oprava hopnato.cz dokončena!');
                                         "
                                             class="w-full bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition font-medium text-xs">
-                                            ⚡ Opravit hopnato.cz (12.5.2025)
+                                            ⚡ Opravit hopnato.cz (12.5.2025) → 0 objednávek
                                         </button>
                                     </div>
                                 </div>
