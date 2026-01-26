@@ -596,26 +596,35 @@ function handleRecordFormSubmit(e) {
             const deltaInput = document.getElementById(`delta-${safeId}`);
 
             if (firstMeasurementCheckbox && firstMeasurementCheckbox.checked) {
-                // Inicializovat firstMeasurement objekt pokud neexistuje
+                // Inicializovat objekty pokud neexistují
                 if (!record.firstMeasurement) {
                     record.firstMeasurement = {};
+                }
+                if (!record.manualDeltas) {
+                    record.manualDeltas = {};
                 }
 
                 // Označit jako první měření
                 record.firstMeasurement[comp] = true;
 
                 // Načíst manuálně zadanou deltu
-                if (deltaInput && deltaInput.value) {
-                    record.deltas[comp] = parseInt(deltaInput.value) || 0;
-                }
+                const deltaValue = (deltaInput && deltaInput.value) ? parseInt(deltaInput.value) || 0 : 0;
 
-                console.log(`✨ ${comp}: Nová číselná řada - číslo ${value}, delta ${record.deltas[comp]}`);
+                // DŮLEŽITÉ: Nastavit OBOJÍ - deltu I manuální deltu
+                // manualDeltas se aplikuje na konci calculateDeltas() a přepíše vše ostatní
+                record.deltas[comp] = deltaValue;
+                record.manualDeltas[comp] = deltaValue;
+
+                console.log(`✨ ${comp}: Nová číselná řada - číslo ${value}, delta ${deltaValue}, manualDelta ${deltaValue}`);
             } else {
-                // Checkbox NENÍ zaškrtnutý - odstranit firstMeasurement pokud existuje
+                // Checkbox NENÍ zaškrtnutý - odstranit firstMeasurement a manualDeltas
                 if (record.firstMeasurement && record.firstMeasurement[comp]) {
                     delete record.firstMeasurement[comp];
-                    console.log(`🔄 ${comp}: Zrušeno firstMeasurement - delta se přepočítá`);
                 }
+                if (record.manualDeltas && record.manualDeltas[comp] !== undefined) {
+                    delete record.manualDeltas[comp];
+                }
+                console.log(`🔄 ${comp}: Zrušeno firstMeasurement + manualDelta - delta se přepočítá`);
             }
         }
     });

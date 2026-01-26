@@ -335,6 +335,13 @@ function calculateDeltas() {
                     return;
                 }
 
+                // PRIORITA 2: Pokud je manualDelta nastavená, PŘESKOČIT automatický výpočet
+                // manualDelta se aplikuje na konci, ale pokud existuje, nechceme přepočítávat
+                if (record.manualDeltas && record.manualDeltas[comp] !== undefined) {
+                    console.log(`✏️ ${comp} na ${record.date}: manualDelta=${record.manualDeltas[comp]} existuje (přeskakuji přepočet)`);
+                    return;
+                }
+
                 // Pro zahraniční e-shopy VŽDY přepočítat delty (ignorovat staré hodnoty)
                 const isForeignEshop = FOREIGN_ESHOPS.includes(comp);
 
