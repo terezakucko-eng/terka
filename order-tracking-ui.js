@@ -68,7 +68,7 @@ function renderFormFields() {
     html += '<p class="text-sm text-gray-600 mb-4">Zadej číslo poslední objednávky</p>';
     html += '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">';
 
-    ["isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk"].forEach(comp => {
+    ["isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk", "erotickyshop.sk"].forEach(comp => {
         const safeId = sanitizeId(comp);
         html += `
             <div class="border border-gray-200 rounded-lg p-3 bg-gray-50">
@@ -261,7 +261,7 @@ function renderTrackingTableHead(market, competitors) {
 function renderTrackingTable() {
     // Definice e-shopů podle trhů
     const czEshops = ["Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz", "honitka.cz", "eroticke-pomucky.cz", "flagranti.cz", "sexshopik.cz", "e-kondomy.cz", "ruzovyslon.cz", "kondomshop.cz"];
-    const skEshops = ["isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk", "ruzovyslon.sk", "kondomshop.sk"];
+    const skEshops = ["isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk", "erotickyshop.sk", "ruzovyslon.sk", "kondomshop.sk"];
     const foreignEshops = ["sexyelephant.ro", "sexyelephant.hu", "sexyelephant.si", "sexyelephant.bg", "sexyelephant.hr", "superlove.ro", "superlove.pl", "superlove.eu", "superlove.at", "superlove.hr", "superlove.it", "superlove.si", "superlove.bg", "superlove.lt", "superlove.es", "superlove.hu", "goldengate.hu", "padlizsan.hu", "sexshopcenter.hu", "erotikashow.hu", "szexaruhaz.hu", "szexshop.hu", "vagyaim.hu"];
 
     // Vykreslit každou tabulku
@@ -874,7 +874,7 @@ function updateMetricsDisplay() {
 
     // SK e-shopy
     const skEshops = [
-        "isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk",
+        "isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk", "erotickyshop.sk",
         "ruzovyslon.sk", "kondomshop.sk"
     ];
 
@@ -1303,6 +1303,7 @@ window.addManualDeltaRow = function(selectedEshop = '', value = '') {
                         <option value="flagranti.sk" ${selectedEshop === 'flagranti.sk' ? 'selected' : ''}>flagranti.sk</option>
                         <option value="superlove.sk" ${selectedEshop === 'superlove.sk' ? 'selected' : ''}>superlove.sk</option>
                         <option value="eros.sk" ${selectedEshop === 'eros.sk' ? 'selected' : ''}>eros.sk</option>
+                        <option value="erotickyshop.sk" ${selectedEshop === 'erotickyshop.sk' ? 'selected' : ''}>erotickyshop.sk</option>
                         <option value="ruzovyslon.sk" ${selectedEshop === 'ruzovyslon.sk' ? 'selected' : ''}>ruzovyslon.sk</option>
                         <option value="kondomshop.sk" ${selectedEshop === 'kondomshop.sk' ? 'selected' : ''}>kondomshop.sk</option>
                     </optgroup>

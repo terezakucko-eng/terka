@@ -53,6 +53,7 @@ const COMPETITORS = [
     "flagranti.sk",
     "superlove.sk",
     "eros.sk",
+    "erotickyshop.sk",
 
     // === SK trh - Vlastní e-shopy ===
     "ruzovyslon.sk",
@@ -96,7 +97,7 @@ const CZ_ESHOPS = [
 ];
 
 const SK_ESHOPS = [
-    "isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk",
+    "isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk", "erotickyshop.sk",
     "ruzovyslon.sk", "kondomshop.sk"
 ];
 
@@ -239,7 +240,7 @@ function cleanForeignEshopsFromRecords() {
     ];
 
     const SK_ESHOPS = [
-        "isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk",
+        "isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk", "erotickyshop.sk",
         "ruzovyslon.sk", "kondomshop.sk"
     ];
 
@@ -1462,7 +1463,7 @@ function cleanupMarketData() {
     ];
 
     const SK_ESHOPS = [
-        "isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk",
+        "isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk", "erotickyshop.sk",
         "ruzovyslon.sk", "kondomshop.sk"
     ];
 
