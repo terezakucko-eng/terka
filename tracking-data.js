@@ -443,9 +443,10 @@ function calculateDeltas() {
             return sum + (record.deltas[eshop] || 0);
         }, 0);
 
-        // Podíl Růžového Slona - PŘESKOČIT POKUD NEZMĚŘENO
+        // Podíl Růžového Slona - PŘESKOČIT POKUD NEZMĚŘENO nebo FIRSTMEASUREMENT
         const slonNotMeasured = record.notMeasured && record.notMeasured["ruzovyslon.cz"];
-        const slonDelta = slonNotMeasured ? 0 : (record.deltas["ruzovyslon.cz"] || 0);
+        const slonFirstMeasurement = record.firstMeasurement && record.firstMeasurement["ruzovyslon.cz"];
+        const slonDelta = (slonNotMeasured || slonFirstMeasurement) ? 0 : (record.deltas["ruzovyslon.cz"] || 0);
         record.slonShare = record.totalOrders > 0 ? (slonDelta / record.totalOrders) * 100 : 0;
 
         // Podíly vůči jednotlivým konkurentům - PŘESKOČIT NEZMĚŘENÉ
@@ -453,9 +454,10 @@ function calculateDeltas() {
         const competitorsForShare = ["e-kondomy.cz", "flagranti.cz", "sexshop.cz", "erosstar.cz", "yoo.cz", "deeplove.cz"];
 
         competitorsForShare.forEach(comp => {
-            // Pokud je slon nebo konkurent nezměřený, nemůžeme počítat podíl
+            // Pokud je slon nebo konkurent nezměřený nebo firstMeasurement, nemůžeme počítat podíl
             const compNotMeasured = record.notMeasured && record.notMeasured[comp];
-            if (slonNotMeasured || compNotMeasured) {
+            const compFirstMeasurement = record.firstMeasurement && record.firstMeasurement[comp];
+            if (slonNotMeasured || slonFirstMeasurement || compNotMeasured || compFirstMeasurement) {
                 record.shares[comp] = 0;
                 return;
             }

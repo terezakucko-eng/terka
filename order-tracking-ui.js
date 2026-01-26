@@ -423,21 +423,30 @@ function renderMarketTable(market, eshops) {
 
         // CELKEM Δ a SLON % pouze pro CZ a SK
         if (market === 'CZ' || market === 'SK') {
-            // Vypočítat celkový delta pro tento trh (přeskočit nezměřené e-shopy)
+            // Vypočítat celkový delta pro tento trh (přeskočit nezměřené a firstMeasurement e-shopy)
             const totalDelta = eshops.reduce((sum, eshop) => {
                 // Přeskočit, pokud je e-shop označen jako nezměřeno
                 if (record.notMeasured && record.notMeasured[eshop]) {
                     console.log(`🚫 Přeskakuji nezměřený e-shop: ${eshop} v záznamu ${record.date}`);
                     return sum;
                 }
+                // Přeskočit, pokud má firstMeasurement (nová číselná řada)
+                if (record.firstMeasurement && record.firstMeasurement[eshop]) {
+                    console.log(`✨ Přeskakuji firstMeasurement e-shop: ${eshop} v záznamu ${record.date}`);
+                    return sum;
+                }
                 return sum + (record.deltas[eshop] || 0);
             }, 0);
 
-            // Vypočítat Slon % pro tento trh (přeskočit nezměřené e-shopy)
+            // Vypočítat Slon % pro tento trh (přeskočit nezměřené a firstMeasurement e-shopy)
             const ownEshops = market === 'CZ' ? ['ruzovyslon.cz', 'kondomshop.cz'] : ['ruzovyslon.sk', 'kondomshop.sk'];
             const slonDelta = ownEshops.reduce((sum, eshop) => {
                 // Přeskočit, pokud je e-shop označen jako nezměřeno
                 if (record.notMeasured && record.notMeasured[eshop]) {
+                    return sum;
+                }
+                // Přeskočit, pokud má firstMeasurement (nová číselná řada)
+                if (record.firstMeasurement && record.firstMeasurement[eshop]) {
                     return sum;
                 }
                 return sum + (record.deltas[eshop] || 0);
@@ -896,6 +905,10 @@ function updateMarketMetrics(market, eshops, latest, sorted, dateStr, ownEshops)
     eshops.forEach(eshop => {
         // Přeskočit, pokud je e-shop označen jako nezměřeno
         if (latest.notMeasured && latest.notMeasured[eshop]) {
+            return;
+        }
+        // Přeskočit, pokud má firstMeasurement (nová číselná řada)
+        if (latest.firstMeasurement && latest.firstMeasurement[eshop]) {
             return;
         }
 
