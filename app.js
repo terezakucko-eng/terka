@@ -2202,7 +2202,7 @@ window.updateWeeklyComparison = function() {
         return a.eshop.localeCompare(b.eshop, 'cs-CZ');
     });
 
-    // Vygenerovat HTML pro tabulku
+    // Vygenerovat HTML pro tabulku s oddělenými sekcemi
     const tbody = document.getElementById('weekly-comparison-tbody');
     if (!tbody) {
         console.error('❌ Element weekly-comparison-tbody nenalezen');
@@ -2210,7 +2210,33 @@ window.updateWeeklyComparison = function() {
     }
 
     let html = '';
+    let currentMarket = null;
+
+    const marketNames = {
+        'CZ': '🇨🇿 CZ Trh',
+        'SK': '🇸🇰 SK Trh',
+        'Foreign': '🌍 Zahraniční Trhy'
+    };
+
     weeklyStats.forEach(stat => {
+        // Zjistit trh
+        let market = null;
+        if (czEshops.includes(stat.eshop)) market = 'CZ';
+        else if (skEshops.includes(stat.eshop)) market = 'SK';
+        else if (foreignEshops.includes(stat.eshop)) market = 'Foreign';
+
+        // Přidat nadpis sekce pokud se změnil trh
+        if (market !== currentMarket) {
+            currentMarket = market;
+            html += `
+                <tr class="bg-gradient-to-r from-gray-800 to-gray-700">
+                    <td colspan="5" class="px-6 py-3 text-left font-bold text-white text-sm uppercase tracking-wider">
+                        ${marketNames[market] || market}
+                    </td>
+                </tr>
+            `;
+        }
+
         // Určit trend
         let trendIcon = '→';
         let trendColor = 'text-gray-500';
@@ -2385,7 +2411,7 @@ window.updateMonthlyYoYComparison = function() {
         return a.eshop.localeCompare(b.eshop, 'cs-CZ');
     });
 
-    // Vygenerovat HTML pro tabulku
+    // Vygenerovat HTML pro tabulku s oddělenými sekcemi
     const tbody = document.getElementById('monthly-yoy-comparison-tbody');
     if (!tbody) {
         console.error('❌ Element monthly-yoy-comparison-tbody nenalezen');
@@ -2395,7 +2421,33 @@ window.updateMonthlyYoYComparison = function() {
     const monthNames = ['Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen', 'Červenec', 'Srpen', 'Září', 'Říjen', 'Listopad', 'Prosinec'];
 
     let html = '';
+    let currentMarket = null;
+
+    const marketNames = {
+        'CZ': '🇨🇿 CZ Trh',
+        'SK': '🇸🇰 SK Trh',
+        'Foreign': '🌍 Zahraniční Trhy'
+    };
+
     monthlyStats.forEach(stat => {
+        // Zjistit trh
+        let market = null;
+        if (czEshops.includes(stat.eshop)) market = 'CZ';
+        else if (skEshops.includes(stat.eshop)) market = 'SK';
+        else if (foreignEshops.includes(stat.eshop)) market = 'Foreign';
+
+        // Přidat nadpis sekce pokud se změnil trh
+        if (market !== currentMarket) {
+            currentMarket = market;
+            html += `
+                <tr class="bg-gradient-to-r from-gray-800 to-gray-700">
+                    <td colspan="5" class="px-6 py-3 text-left font-bold text-white text-sm uppercase tracking-wider">
+                        ${marketNames[market] || market}
+                    </td>
+                </tr>
+            `;
+        }
+
         // Určit trend
         let trendIcon = '→';
         let trendColor = 'text-gray-500';
