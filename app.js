@@ -2712,6 +2712,9 @@ function updateAllCharts() {
     updateMarketShareChart();
 }
 
+// Exportovat pro použití z order-tracking-ui.js
+window.updateAllCharts = updateAllCharts;
+
 // =====================================================
 // ZÁLOŽKA: SLEDOVÁNÍ MKT KAMPANÍ
 // =====================================================
@@ -3072,15 +3075,8 @@ window.showIframeModal = function(url) {
 // =====================================================
 // AKTUALIZACE GRAFŮ
 // =====================================================
-
-function updateAllCharts() {
-    // Placeholder pro aktualizaci grafů
-    // V budoucnu lze přidat grafy založené na tracking datech
-    console.log('📊 Grafy budou aktualizovány v další verzi');
-}
-
-// Exportovat pro použití z order-tracking-ui.js
-window.updateAllCharts = updateAllCharts;
+// Funkce updateAllCharts() je definovaná výše v sekci GRAFY - SLEDOVÁNÍ OBJEDNÁVEK (řádek ~2708)
+// a je exportovaná tam jako window.updateAllCharts
 
 // =====================================================
 // PŘEPÍNÁNÍ ZÁLOŽEK
