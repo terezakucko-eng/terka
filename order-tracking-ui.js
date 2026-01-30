@@ -586,7 +586,14 @@ function handleRecordFormSubmit(e) {
     window.COMPETITORS.forEach(comp => {
         const safeId = sanitizeId(comp);
         const input = document.getElementById(`comp-${safeId}`);
-        const value = input && input.value ? parseInt(input.value) || 0 : 0;
+
+        // ⚠️ DŮLEŽITÉ: Pokud není zadáno, neukládat hodnotu (ponechat undefined)
+        // Tím zabráníme automatickému přidávání 0 pro všechny trhy
+        if (!input || !input.value || input.value.trim() === '') {
+            return; // Přeskočit tento e-shop, pokud není vyplněn
+        }
+
+        const value = parseInt(input.value) || 0;
 
         // Zjistit, jestli je to vlastní e-shop
         const isOwnEshop = window.OWN_ESHOPS && window.OWN_ESHOPS.includes(comp);
@@ -598,7 +605,7 @@ function handleRecordFormSubmit(e) {
         } else {
             // Konkurent: uložit číslo objednávky (delta se vypočítá později)
             record.competitors[comp] = value;
-            record.deltas[comp] = 0; // Delta se přepočítá v calculateDeltas()
+            // Nenastavovat deltas[comp] na 0 pokud není třeba - přepočítá se později
 
             // Zkontrolovat checkbox "Nová číselná řada"
             const firstMeasurementCheckbox = document.getElementById(`first-measurement-${safeId}`);

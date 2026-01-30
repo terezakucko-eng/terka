@@ -136,12 +136,24 @@ async function initializeApp() {
     const trendPeriodFilter = document.getElementById('trend-period-filter');
     const trendEshopsFilter = document.getElementById('trend-eshops-filter');
     const trendTypeFilter = document.getElementById('trend-type-filter');
+    const trendAggregationFilter = document.getElementById('trend-aggregation-filter');
+    const trendDateFrom = document.getElementById('trend-date-from');
+    const trendDateTo = document.getElementById('trend-date-to');
     const deltaMarketFilter = document.getElementById('delta-market-filter');
     const deltaEshopsFilter = document.getElementById('delta-eshops-filter');
 
-    if (trendPeriodFilter) trendPeriodFilter.addEventListener('change', updateTrendChart);
-    if (trendEshopsFilter) trendEshopsFilter.addEventListener('change', updateTrendChart);
-    if (trendTypeFilter) trendTypeFilter.addEventListener('change', updateTrendChart);
+    // Funkce pro aktualizaci grafu + uložení do localStorage
+    const updateAndSaveTrendChart = () => {
+        saveTrendChartFilters();
+        updateTrendChart();
+    };
+
+    if (trendPeriodFilter) trendPeriodFilter.addEventListener('change', updateAndSaveTrendChart);
+    if (trendEshopsFilter) trendEshopsFilter.addEventListener('change', updateAndSaveTrendChart);
+    if (trendTypeFilter) trendTypeFilter.addEventListener('change', updateAndSaveTrendChart);
+    if (trendAggregationFilter) trendAggregationFilter.addEventListener('change', updateAndSaveTrendChart);
+    if (trendDateFrom) trendDateFrom.addEventListener('change', updateAndSaveTrendChart);
+    if (trendDateTo) trendDateTo.addEventListener('change', updateAndSaveTrendChart);
 
     // Inicializovat delta e-shops filter
     if (deltaMarketFilter) {
@@ -149,6 +161,9 @@ async function initializeApp() {
     }
 
     // Event listenery pro datová pole delta grafu nejsou potřeba - uživatel klikne na tlačítko
+
+    // Inicializovat trend chart filtry s výchozími hodnotami a localStorage
+    initTrendChartFilters();
 
     // Aktualizovat všechny grafy s načtenými daty
     updateAllCharts();
@@ -1333,6 +1348,101 @@ function renderOrderTable() {
 // =====================================================
 // GRAFY - SLEDOVÁNÍ OBJEDNÁVEK
 // =====================================================
+
+/**
+ * Inicializuje trend chart filtry s výchozími hodnotami a localStorage
+ * Výchozí: aktuální + předešlý měsíc, týdny, plošný graf, všechny CZ e-shopy
+ */
+function initTrendChartFilters() {
+    const dateFromInput = document.getElementById('trend-date-from');
+    const dateToInput = document.getElementById('trend-date-to');
+    const aggregationFilter = document.getElementById('trend-aggregation-filter');
+    const typeFilter = document.getElementById('trend-type-filter');
+    const eshopsFilter = document.getElementById('trend-eshops-filter');
+
+    if (!dateFromInput || !dateToInput) {
+        console.warn('⚠️ Trend chart datové filtry nenalezeny');
+        return;
+    }
+
+    // Pokusit se načíst z localStorage
+    const savedFilters = localStorage.getItem('trendChartFilters');
+    if (savedFilters) {
+        try {
+            const filters = JSON.parse(savedFilters);
+            console.log('📦 Načítám uložené nastavení grafu z localStorage:', filters);
+
+            if (filters.dateFrom) dateFromInput.value = filters.dateFrom;
+            if (filters.dateTo) dateToInput.value = filters.dateTo;
+            if (filters.aggregation && aggregationFilter) aggregationFilter.value = filters.aggregation;
+            if (filters.type && typeFilter) typeFilter.value = filters.type;
+
+            // Načíst vybrané e-shopy
+            if (filters.eshops && eshopsFilter) {
+                Array.from(eshopsFilter.options).forEach(option => {
+                    option.selected = filters.eshops.includes(option.value);
+                });
+            }
+
+            return; // Použít uložené hodnoty
+        } catch (e) {
+            console.warn('⚠️ Chyba při načítání uložených filtrů, použiju výchozí:', e);
+        }
+    }
+
+    // Výchozí hodnoty: aktuální + předešlý měsíc
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth(); // 0-11
+
+    // Začátek předešlého měsíce
+    const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    const prevMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+    const dateFrom = new Date(prevMonthYear, prevMonth, 1);
+
+    // Konec aktuálního měsíce (poslední den)
+    const dateTo = new Date(currentYear, currentMonth + 1, 0);
+
+    // Formát YYYY-MM-DD pro input type="date"
+    const formatDate = (date) => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    };
+
+    dateFromInput.value = formatDate(dateFrom);
+    dateToInput.value = formatDate(dateTo);
+
+    console.log(`📅 Výchozí období grafu: ${formatDate(dateFrom)} až ${formatDate(dateTo)}`);
+
+    // Uložit výchozí hodnoty do localStorage
+    saveTrendChartFilters();
+}
+
+/**
+ * Uloží aktuální nastavení trend chart filtrů do localStorage
+ */
+function saveTrendChartFilters() {
+    const dateFromInput = document.getElementById('trend-date-from');
+    const dateToInput = document.getElementById('trend-date-to');
+    const aggregationFilter = document.getElementById('trend-aggregation-filter');
+    const typeFilter = document.getElementById('trend-type-filter');
+    const eshopsFilter = document.getElementById('trend-eshops-filter');
+
+    if (!dateFromInput || !dateToInput) return;
+
+    const filters = {
+        dateFrom: dateFromInput.value,
+        dateTo: dateToInput.value,
+        aggregation: aggregationFilter ? aggregationFilter.value : 'weeks',
+        type: typeFilter ? typeFilter.value : 'area',
+        eshops: eshopsFilter ? Array.from(eshopsFilter.selectedOptions).map(opt => opt.value) : []
+    };
+
+    localStorage.setItem('trendChartFilters', JSON.stringify(filters));
+    console.log('💾 Uloženo nastavení grafu do localStorage');
+}
 
 function initTrendChart() {
     const canvas = document.getElementById('trendChart');
