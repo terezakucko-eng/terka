@@ -2074,10 +2074,17 @@ window.updateWeeklyComparison = function() {
         return;
     }
 
-    // Získat CZ a SK e-shopy
+    // Získat CZ, SK a Foreign e-shopy
     const czEshops = ["Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz", "honitka.cz", "eroticke-pomucky.cz", "flagranti.cz", "sexshopik.cz", "e-kondomy.cz", "ruzovyslon.cz", "kondomshop.cz"];
-    const skEshops = ["isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk", "ruzovyslon.sk", "kondomshop.sk"];
-    const allEshops = [...czEshops, ...skEshops];
+    const skEshops = ["isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk", "erotickyshop.sk", "ruzovyslon.sk", "kondomshop.sk"];
+    const foreignEshops = [
+        "sexyelephant.ro", "sexyelephant.hu", "sexyelephant.si", "sexyelephant.bg", "sexyelephant.hr",
+        "superlove.ro", "superlove.pl", "superlove.eu", "superlove.at", "superlove.hr",
+        "superlove.it", "superlove.si", "superlove.bg", "superlove.lt", "superlove.es", "superlove.hu",
+        "goldengate.hu", "padlizsan.hu", "sexshopcenter.hu", "erotikashow.hu",
+        "szexaruhaz.hu", "szexshop.hu", "vagyaim.hu"
+    ];
+    const allEshops = [...czEshops, ...skEshops, ...foreignEshops];
 
     // Seřadit data podle data (nejnovější první)
     const sortedData = [...window.trackingData].sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -2156,16 +2163,42 @@ window.updateWeeklyComparison = function() {
         });
     });
 
-    // Seřadit abecedně - nejdříve CZ, pak SK
+    // Speciální řazení - CZ, SK, Foreign
+    // V rámci každé sekce: 1) Růžový Slon/Sexy Elephant, 2) Kondomshop, 3) e-kondomy/superlove, 4) zbytek abecedně
     weeklyStats.sort((a, b) => {
         const aIsCZ = czEshops.includes(a.eshop);
         const bIsCZ = czEshops.includes(b.eshop);
+        const aIsSK = skEshops.includes(a.eshop);
+        const bIsSK = skEshops.includes(b.eshop);
+        const aIsForeign = foreignEshops.includes(a.eshop);
+        const bIsForeign = foreignEshops.includes(b.eshop);
 
-        // CZ před SK
+        // 1. Trhy: CZ před SK před Foreign
         if (aIsCZ && !bIsCZ) return -1;
         if (!aIsCZ && bIsCZ) return 1;
+        if (aIsSK && !bIsSK && !bIsCZ) return -1;
+        if (!aIsSK && bIsSK && !aIsCZ) return 1;
 
-        // V rámci stejného trhu - abecedně
+        // 2. V rámci stejného trhu - speciální řazení
+        const getPriority = (eshop) => {
+            // Růžový Slon / Sexy Elephant - priorita 1
+            if (eshop.includes('ruzovyslon') || eshop.includes('sexyelephant')) return 1;
+            // Kondomshop - priorita 2
+            if (eshop.includes('kondomshop')) return 2;
+            // Hlavní konkurent (e-kondomy, superlove) - priorita 3
+            if (eshop === 'e-kondomy.cz' || eshop.startsWith('superlove.')) return 3;
+            // Zbytek - priorita 4 (abecedně)
+            return 4;
+        };
+
+        const aPriority = getPriority(a.eshop);
+        const bPriority = getPriority(b.eshop);
+
+        if (aPriority !== bPriority) {
+            return aPriority - bPriority;
+        }
+
+        // V rámci stejné priority - abecedně
         return a.eshop.localeCompare(b.eshop, 'cs-CZ');
     });
 
@@ -2232,10 +2265,17 @@ window.updateMonthlyYoYComparison = function() {
         return;
     }
 
-    // Získat CZ a SK e-shopy
+    // Získat CZ, SK a Foreign e-shopy
     const czEshops = ["Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz", "honitka.cz", "eroticke-pomucky.cz", "flagranti.cz", "sexshopik.cz", "e-kondomy.cz", "ruzovyslon.cz", "kondomshop.cz"];
-    const skEshops = ["isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk", "ruzovyslon.sk", "kondomshop.sk"];
-    const allEshops = [...czEshops, ...skEshops];
+    const skEshops = ["isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk", "erotickyshop.sk", "ruzovyslon.sk", "kondomshop.sk"];
+    const foreignEshops = [
+        "sexyelephant.ro", "sexyelephant.hu", "sexyelephant.si", "sexyelephant.bg", "sexyelephant.hr",
+        "superlove.ro", "superlove.pl", "superlove.eu", "superlove.at", "superlove.hr",
+        "superlove.it", "superlove.si", "superlove.bg", "superlove.lt", "superlove.es", "superlove.hu",
+        "goldengate.hu", "padlizsan.hu", "sexshopcenter.hu", "erotikashow.hu",
+        "szexaruhaz.hu", "szexshop.hu", "vagyaim.hu"
+    ];
+    const allEshops = [...czEshops, ...skEshops, ...foreignEshops];
 
     // Seřadit data podle data
     const sortedData = [...window.trackingData].sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -2306,16 +2346,42 @@ window.updateMonthlyYoYComparison = function() {
         });
     });
 
-    // Seřadit abecedně - nejdříve CZ, pak SK
+    // Speciální řazení - CZ, SK, Foreign
+    // V rámci každé sekce: 1) Růžový Slon/Sexy Elephant, 2) Kondomshop, 3) e-kondomy/superlove, 4) zbytek abecedně
     monthlyStats.sort((a, b) => {
         const aIsCZ = czEshops.includes(a.eshop);
         const bIsCZ = czEshops.includes(b.eshop);
+        const aIsSK = skEshops.includes(a.eshop);
+        const bIsSK = skEshops.includes(b.eshop);
+        const aIsForeign = foreignEshops.includes(a.eshop);
+        const bIsForeign = foreignEshops.includes(b.eshop);
 
-        // CZ před SK
+        // 1. Trhy: CZ před SK před Foreign
         if (aIsCZ && !bIsCZ) return -1;
         if (!aIsCZ && bIsCZ) return 1;
+        if (aIsSK && !bIsSK && !bIsCZ) return -1;
+        if (!aIsSK && bIsSK && !aIsCZ) return 1;
 
-        // V rámci stejného trhu - abecedně
+        // 2. V rámci stejného trhu - speciální řazení
+        const getPriority = (eshop) => {
+            // Růžový Slon / Sexy Elephant - priorita 1
+            if (eshop.includes('ruzovyslon') || eshop.includes('sexyelephant')) return 1;
+            // Kondomshop - priorita 2
+            if (eshop.includes('kondomshop')) return 2;
+            // Hlavní konkurent (e-kondomy, superlove) - priorita 3
+            if (eshop === 'e-kondomy.cz' || eshop.startsWith('superlove.')) return 3;
+            // Zbytek - priorita 4 (abecedně)
+            return 4;
+        };
+
+        const aPriority = getPriority(a.eshop);
+        const bPriority = getPriority(b.eshop);
+
+        if (aPriority !== bPriority) {
+            return aPriority - bPriority;
+        }
+
+        // V rámci stejné priority - abecedně
         return a.eshop.localeCompare(b.eshop, 'cs-CZ');
     });
 
