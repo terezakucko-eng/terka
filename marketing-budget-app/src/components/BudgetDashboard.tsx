@@ -171,7 +171,6 @@ const BudgetDashboard: React.FC = () => {
               return (
                 <div key={category.id} className="flex items-center gap-4">
                   <div className="w-48 flex items-center gap-2">
-                    <span className="text-xl">{category.icon}</span>
                     <span className="text-sm font-medium text-slate-700 truncate">{category.name.replace('MARKETING - ', '')}</span>
                   </div>
                   <div className="flex-1">
@@ -338,7 +337,6 @@ const BudgetDashboard: React.FC = () => {
                             ) : (
                               <ChevronRight className="w-5 h-5 text-slate-400" />
                             )}
-                            <span className="text-xl">{category.icon}</span>
                             <span className="font-semibold text-slate-800">{category.name}</span>
                           </div>
                         </td>

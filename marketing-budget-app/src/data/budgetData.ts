@@ -30,7 +30,7 @@ export const budgetData: BudgetCategory[] = [
     id: 'darky',
     name: 'MARKETING - DÁRKY',
     color: '#ec4899',
-    icon: '🎁',
+    icon: '',
     total: 2980335,
     percentage: 0.93,
     items: [
@@ -56,7 +56,7 @@ export const budgetData: BudgetCategory[] = [
     id: 'tv-radio',
     name: 'MARKETING - TV + RÁDIO, billboardy',
     color: '#8b5cf6',
-    icon: '📺',
+    icon: '',
     total: 24220000,
     percentage: 7.52,
     items: [
@@ -104,7 +104,7 @@ export const budgetData: BudgetCategory[] = [
     id: 'ppc',
     name: 'MARKETING - PPC + výkonnostní MKG',
     color: '#3b82f6',
-    icon: '🚀',
+    icon: '',
     total: 28143393,
     percentage: 8.74,
     items: [
@@ -184,7 +184,7 @@ export const budgetData: BudgetCategory[] = [
     id: 'ostatni',
     name: 'MARKETING - ostatní',
     color: '#10b981',
-    icon: '📋',
+    icon: '',
     total: 2465659,
     percentage: 0.77,
     items: [
@@ -241,7 +241,7 @@ export const budgetData: BudgetCategory[] = [
     id: 'externi',
     name: 'EXTERNÍ SLUŽBY',
     color: '#f59e0b',
-    icon: '👥',
+    icon: '',
     total: 2359500,
     percentage: 0.73,
     items: [
@@ -305,7 +305,7 @@ export const budgetData: BudgetCategory[] = [
     id: 'it',
     name: 'IT',
     color: '#6366f1',
-    icon: '💻',
+    icon: '',
     total: 51970,
     percentage: 0.02,
     items: [
@@ -323,7 +323,7 @@ export const budgetData: BudgetCategory[] = [
     id: 'sluzby',
     name: 'SLUŽBY, REŽIJNÍ NÁKLADY',
     color: '#14b8a6',
-    icon: '🛠️',
+    icon: '',
     total: 188545,
     percentage: 0.06,
     items: [
@@ -364,7 +364,7 @@ export const budgetData: BudgetCategory[] = [
     id: 'mzdy',
     name: 'MZDY',
     color: '#ef4444',
-    icon: '💰',
+    icon: '',
     total: 4529736,
     percentage: 1.41,
     items: [
