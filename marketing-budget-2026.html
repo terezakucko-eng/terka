@@ -1,0 +1,1548 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Náklady MKT 2026 - Marketingový rozpočet</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-dark: #1d4ed8;
+            --success-color: #16a34a;
+            --warning-color: #d97706;
+            --danger-color: #dc2626;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-600: #4b5563;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--gray-800);
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            color: var(--gray-900);
+            margin-bottom: 10px;
+        }
+
+        header p {
+            color: var(--gray-600);
+            font-size: 1.1rem;
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .summary-card h3 {
+            color: var(--gray-600);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+
+        .summary-card .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .summary-card .change {
+            font-size: 0.9rem;
+            margin-top: 8px;
+        }
+
+        .positive { color: var(--success-color); }
+        .negative { color: var(--danger-color); }
+
+        .category-section {
+            background: white;
+            border-radius: 16px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        .category-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            padding: 20px 25px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.3s ease;
+        }
+
+        .category-header:hover {
+            background: linear-gradient(135deg, var(--primary-dark), #1e40af);
+        }
+
+        .category-header h2 {
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .category-header .total {
+            font-size: 1.1rem;
+            font-weight: 600;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 8px;
+        }
+
+        .category-header .toggle-icon {
+            font-size: 1.5rem;
+            transition: transform 0.3s ease;
+        }
+
+        .category-content {
+            padding: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease, padding 0.3s ease;
+        }
+
+        .category-content.active {
+            max-height: 2000px;
+            padding: 25px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .data-table th {
+            background: var(--gray-100);
+            padding: 14px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--gray-700);
+            border-bottom: 2px solid var(--gray-200);
+            position: sticky;
+            top: 0;
+        }
+
+        .data-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--gray-100);
+            vertical-align: middle;
+        }
+
+        .data-table tr:hover {
+            background: var(--gray-50);
+        }
+
+        .data-table .country-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .country-cz { background: #dbeafe; color: #1e40af; }
+        .country-sk { background: #fef3c7; color: #92400e; }
+        .country-hu { background: #d1fae5; color: #065f46; }
+        .country-ro { background: #fce7f3; color: #9d174d; }
+        .country-si { background: #e0e7ff; color: #3730a3; }
+        .country-hr { background: #fee2e2; color: #991b1b; }
+        .country-bg { background: #f3e8ff; color: #6b21a8; }
+        .country-x { background: var(--gray-200); color: var(--gray-700); }
+
+        .amount {
+            font-family: 'Consolas', 'Monaco', monospace;
+            text-align: right;
+            font-weight: 500;
+        }
+
+        .amount.yoy { color: var(--gray-600); }
+        .amount.plan { color: var(--primary-color); font-weight: 600; }
+        .amount.real { color: var(--success-color); font-weight: 600; }
+
+        .account-code {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background: var(--gray-100);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .subcategory {
+            background: var(--gray-50);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .subcategory h4 {
+            color: var(--gray-700);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .nav-tab {
+            padding: 10px 20px;
+            background: var(--gray-100);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .nav-tab:hover {
+            background: var(--gray-200);
+        }
+
+        .nav-tab.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .chart-placeholder {
+            background: linear-gradient(135deg, var(--gray-100), var(--gray-50));
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            color: var(--gray-600);
+            margin-top: 20px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px;
+            color: white;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8rem;
+            }
+
+            .category-header {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+
+            .data-table {
+                font-size: 0.8rem;
+            }
+
+            .data-table th, .data-table td {
+                padding: 8px 6px;
+            }
+        }
+
+        .filter-bar {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-bar label {
+            font-weight: 500;
+            color: var(--gray-700);
+        }
+
+        .filter-bar select, .filter-bar input {
+            padding: 10px 15px;
+            border: 2px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .filter-bar select:focus, .filter-bar input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--gray-200);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-bar .fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--gray-600);
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Náklady MKT 2026</h1>
+            <p>Komplexní přehled marketingového rozpočtu pro rok 2026</p>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: var(--gray-500);"></div>
+                    <span>YOY 2025</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: var(--primary-color);"></div>
+                    <span>PLAN 2026</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: var(--success-color);"></div>
+                    <span>REAL 2026</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+            <div class="summary-card">
+                <h3>Celkový rozpočet 2026</h3>
+                <div class="value">~95.5 mil. Kč</div>
+                <div class="change positive">+8.2% oproti 2025</div>
+            </div>
+            <div class="summary-card">
+                <h3>TV & Rádio</h3>
+                <div class="value">~25.7 mil. Kč</div>
+                <div class="change negative">-12.4% oproti 2025</div>
+            </div>
+            <div class="summary-card">
+                <h3>Performance Marketing</h3>
+                <div class="value">~32.4 mil. Kč</div>
+                <div class="change positive">+15.3% oproti 2025</div>
+            </div>
+            <div class="summary-card">
+                <h3>Aktivní země</h3>
+                <div class="value">7 trhů</div>
+                <div class="change">CZ, SK, HU, RO, SI, HR, BG</div>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <label>Filtr země:</label>
+            <select id="countryFilter" onchange="filterByCountry(this.value)">
+                <option value="all">Všechny země</option>
+                <option value="CZ">Česká republika (CZ)</option>
+                <option value="SK">Slovensko (SK)</option>
+                <option value="HU">Maďarsko (HU)</option>
+                <option value="RO">Rumunsko (RO)</option>
+                <option value="SI">Slovinsko (SI)</option>
+                <option value="HR">Chorvatsko (HR)</option>
+                <option value="BG">Bulharsko (BG)</option>
+            </select>
+            <label>Hledat:</label>
+            <input type="text" id="searchInput" placeholder="Hledat v položkách..." onkeyup="searchTable(this.value)">
+        </div>
+
+        <!-- Category 1: Dárky -->
+        <section class="category-section">
+            <div class="category-header" onclick="toggleCategory(this)">
+                <h2>🎁 MKT_Dárky</h2>
+                <div class="total">Celkem: 4,741,429 Kč</div>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="category-content">
+                <div class="subcategory">
+                    <h4>Poskytnuté dárky - neslíbené (Účet 50402)</h4>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Země</th>
+                                <th>Popis</th>
+                                <th class="amount">YOY 2025</th>
+                                <th class="amount">PLAN 2026</th>
+                                <th class="amount">REAL 2026</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr data-country="X">
+                                <td><span class="country-badge country-x">X</span></td>
+                                <td>Dárky - obecné</td>
+                                <td class="amount yoy">1,753,214 Kč</td>
+                                <td class="amount plan">1,875,146 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr data-country="CZ">
+                                <td><span class="country-badge country-cz">CZ</span></td>
+                                <td>Dárky pro maloobchodníky</td>
+                                <td class="amount yoy">350,227 Kč</td>
+                                <td class="amount plan">350,000 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr data-country="SK">
+                                <td><span class="country-badge country-sk">SK</span></td>
+                                <td>Dárky SK</td>
+                                <td class="amount yoy">0 Kč</td>
+                                <td class="amount plan">0 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr data-country="HU">
+                                <td><span class="country-badge country-hu">HU</span></td>
+                                <td>Dárky HU</td>
+                                <td class="amount yoy">0 Kč</td>
+                                <td class="amount plan">0 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr data-country="RO">
+                                <td><span class="country-badge country-ro">RO</span></td>
+                                <td>Dárky RO</td>
+                                <td class="amount yoy">0 Kč</td>
+                                <td class="amount plan">0 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr data-country="SI">
+                                <td><span class="country-badge country-si">SI</span></td>
+                                <td>Dárky SI</td>
+                                <td class="amount yoy">0 Kč</td>
+                                <td class="amount plan">0 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr data-country="HR">
+                                <td><span class="country-badge country-hr">HR</span></td>
+                                <td>Dárky HR</td>
+                                <td class="amount yoy">0 Kč</td>
+                                <td class="amount plan">0 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr data-country="BG">
+                                <td><span class="country-badge country-bg">BG</span></td>
+                                <td>Dárky BG</td>
+                                <td class="amount yoy">0 Kč</td>
+                                <td class="amount plan">0 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="subcategory">
+                    <h4>Poskytnuté dárky - slíbené (Účet 50403)</h4>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Země</th>
+                                <th>Popis</th>
+                                <th class="amount">YOY 2025</th>
+                                <th class="amount">PLAN 2026</th>
+                                <th class="amount">REAL 2026</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr data-country="X">
+                                <td><span class="country-badge country-x">X</span></td>
+                                <td>Slíbené dárky</td>
+                                <td class="amount yoy">800,004 Kč</td>
+                                <td class="amount plan">800,004 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="subcategory">
+                    <h4>Dary, reprezentace a sponzoring (Účet 51303)</h4>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Země</th>
+                                <th>Popis</th>
+                                <th class="amount">YOY 2025</th>
+                                <th class="amount">PLAN 2026</th>
+                                <th class="amount">REAL 2026</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr data-country="X">
+                                <td><span class="country-badge country-x">X</span></td>
+                                <td>Reprezentace a sponzoring</td>
+                                <td class="amount yoy">1,676,838 Kč</td>
+                                <td class="amount plan">1,555,279 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="subcategory">
+                    <h4>Finanční dary (Účet 54300)</h4>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Země</th>
+                                <th>Popis</th>
+                                <th class="amount">YOY 2025</th>
+                                <th class="amount">PLAN 2026</th>
+                                <th class="amount">REAL 2026</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr data-country="X">
+                                <td><span class="country-badge country-x">X</span></td>
+                                <td>Finanční dary</td>
+                                <td class="amount yoy">161,000 Kč</td>
+                                <td class="amount plan">161,000 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Category 2: Služby a režie -->
+        <section class="category-section">
+            <div class="category-header" onclick="toggleCategory(this)">
+                <h2>🛠️ MKT_Služby, režie</h2>
+                <div class="total">Celkem: 400,482 Kč</div>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="category-content">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Účet</th>
+                            <th>Popis</th>
+                            <th class="amount">YOY 2025</th>
+                            <th class="amount">PLAN 2026</th>
+                            <th class="amount">REAL 2026</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="account-code">51201</span></td>
+                            <td>Cestovné</td>
+                            <td class="amount yoy">118,731 Kč</td>
+                            <td class="amount plan">98,347 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td><span class="account-code">50110</span></td>
+                            <td>PHM a provozní kapaliny</td>
+                            <td class="amount yoy">0 Kč</td>
+                            <td class="amount plan">12,000 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td><span class="account-code">50130</span></td>
+                            <td>Spotřební materiál</td>
+                            <td class="amount yoy">93,137 Kč</td>
+                            <td class="amount plan">93,137 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td><span class="account-code">51800</span></td>
+                            <td>Operativní leasing - PHM</td>
+                            <td class="amount yoy">42,000 Kč</td>
+                            <td class="amount plan">42,000 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td><span class="account-code">51800</span></td>
+                            <td>Operativní leasing - údržba</td>
+                            <td class="amount yoy">84,000 Kč</td>
+                            <td class="amount plan">84,000 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td><span class="account-code">51301</span></td>
+                            <td>Konference, školení a kurzy</td>
+                            <td class="amount yoy">34,800 Kč</td>
+                            <td class="amount plan">36,198 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td><span class="account-code">51809</span></td>
+                            <td>Ostatní služby</td>
+                            <td class="amount yoy">34,800 Kč</td>
+                            <td class="amount plan">34,800 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Category 3: TV, Rádio, Outdoor -->
+        <section class="category-section">
+            <div class="category-header" onclick="toggleCategory(this)">
+                <h2>📺 MKT_TV, rádio, Outdoor</h2>
+                <div class="total">Celkem: 25,721,784 Kč</div>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="category-content">
+                <div class="subcategory">
+                    <h4>Televize</h4>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Země</th>
+                                <th>Kanál/Popis</th>
+                                <th class="amount">YOY 2025</th>
+                                <th class="amount">PLAN 2026</th>
+                                <th class="amount">REAL 2026</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr data-country="CZ">
+                                <td><span class="country-badge country-cz">CZ</span></td>
+                                <td>TV Nova</td>
+                                <td class="amount yoy">13,517,931 Kč</td>
+                                <td class="amount plan">10,973,040 Kč</td>
+                                <td class="amount real">1,982,610 Kč</td>
+                            </tr>
+                            <tr data-country="CZ">
+                                <td><span class="country-badge country-cz">CZ</span></td>
+                                <td>TV Prima/Polar</td>
+                                <td class="amount yoy">45,880 Kč</td>
+                                <td class="amount plan">0 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr data-country="SK">
+                                <td><span class="country-badge country-sk">SK</span></td>
+                                <td>TV Markíza</td>
+                                <td class="amount yoy">5,220,368 Kč</td>
+                                <td class="amount plan">3,399,996 Kč</td>
+                                <td class="amount real">267,714 Kč</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="subcategory">
+                    <h4>Rádio</h4>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Země</th>
+                                <th>Stanice/Popis</th>
+                                <th class="amount">YOY 2025</th>
+                                <th class="amount">PLAN 2026</th>
+                                <th class="amount">REAL 2026</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr data-country="X">
+                                <td><span class="country-badge country-x">X</span></td>
+                                <td>Rádio - obecný rozpočet</td>
+                                <td class="amount yoy">0 Kč</td>
+                                <td class="amount plan">9,000,000 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr data-country="CZ">
+                                <td><span class="country-badge country-cz">CZ</span></td>
+                                <td>Mediaclub</td>
+                                <td class="amount yoy">0 Kč</td>
+                                <td class="amount plan">0 Kč</td>
+                                <td class="amount real">760,601 Kč</td>
+                            </tr>
+                            <tr data-country="CZ">
+                                <td><span class="country-badge country-cz">CZ</span></td>
+                                <td>Radiohouse</td>
+                                <td class="amount yoy">0 Kč</td>
+                                <td class="amount plan">0 Kč</td>
+                                <td class="amount real">650,098 Kč</td>
+                            </tr>
+                            <tr data-country="CZ">
+                                <td><span class="country-badge country-cz">CZ</span></td>
+                                <td>Fresh</td>
+                                <td class="amount yoy">77,000 Kč</td>
+                                <td class="amount plan">0 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr data-country="CZ">
+                                <td><span class="country-badge country-cz">CZ</span></td>
+                                <td>Express (Seznam)</td>
+                                <td class="amount yoy">0 Kč</td>
+                                <td class="amount plan">0 Kč</td>
+                                <td class="amount real">15,000 Kč</td>
+                            </tr>
+                            <tr data-country="SK">
+                                <td><span class="country-badge country-sk">SK</span></td>
+                                <td>Rádio SK</td>
+                                <td class="amount yoy">344,939 Kč</td>
+                                <td class="amount plan">0 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr data-country="X">
+                                <td><span class="country-badge country-x">X</span></td>
+                                <td>Produkce spotů</td>
+                                <td class="amount yoy">9,900 Kč</td>
+                                <td class="amount plan">0 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="subcategory">
+                    <h4>TV Produkce a licence</h4>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Popis</th>
+                                <th class="amount">YOY 2025</th>
+                                <th class="amount">PLAN 2026</th>
+                                <th class="amount">REAL 2026</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Produkční náklady</td>
+                                <td class="amount yoy">0 Kč</td>
+                                <td class="amount plan">300,000 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr>
+                                <td>Licence</td>
+                                <td class="amount yoy">334,234 Kč</td>
+                                <td class="amount plan">0 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr>
+                                <td>Kreativní služby</td>
+                                <td class="amount yoy">715,735 Kč</td>
+                                <td class="amount plan">0 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr>
+                                <td>Provoz</td>
+                                <td class="amount yoy">59,102 Kč</td>
+                                <td class="amount plan">0 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="subcategory">
+                    <h4>Outdoor (Billboardy)</h4>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Země</th>
+                                <th>Popis</th>
+                                <th class="amount">YOY 2025</th>
+                                <th class="amount">PLAN 2026</th>
+                                <th class="amount">REAL 2026</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr data-country="CZ">
+                                <td><span class="country-badge country-cz">CZ</span></td>
+                                <td>Billboardy CZ</td>
+                                <td class="amount yoy">1,675,961 Kč</td>
+                                <td class="amount plan">1,320,000 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Category 4: Performance Marketing -->
+        <section class="category-section">
+            <div class="category-header" onclick="toggleCategory(this)">
+                <h2>🚀 MKT_Performance</h2>
+                <div class="total">Celkem: 32,416,000 Kč</div>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="category-content">
+                <div class="subcategory">
+                    <h4>PPC Google</h4>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Země</th>
+                                <th>Popis</th>
+                                <th class="amount">YOY 2025</th>
+                                <th class="amount">PLAN 2026</th>
+                                <th class="amount">REAL 2026</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr data-country="CZ">
+                                <td><span class="country-badge country-cz">CZ</span></td>
+                                <td>Google Ads CZ</td>
+                                <td class="amount yoy">18,349,922 Kč</td>
+                                <td class="amount plan">17,346,844 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr data-country="CZ">
+                                <td><span class="country-badge country-cz">CZ</span></td>
+                                <td>Google Ads Kondomshop CZ</td>
+                                <td class="amount yoy">0 Kč</td>
+                                <td class="amount plan">248,382 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr data-country="SK">
+                                <td><span class="country-badge country-sk">SK</span></td>
+                                <td>Google Ads SK</td>
+                                <td class="amount yoy">1,648,386 Kč</td>
+                                <td class="amount plan">3,547,809 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr data-country="SK">
+                                <td><span class="country-badge country-sk">SK</span></td>
+                                <td>Google Ads Kondomshop SK</td>
+                                <td class="amount yoy">0 Kč</td>
+                                <td class="amount plan">709,562 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr data-country="HU">
+                                <td><span class="country-badge country-hu">HU</span></td>
+                                <td>Google Ads HU</td>
+                                <td class="amount yoy">474,535 Kč</td>
+                                <td class="amount plan">956,498 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr data-country="RO">
+                                <td><span class="country-badge country-ro">RO</span></td>
+                                <td>Google Ads RO</td>
+                                <td class="amount yoy">777,800 Kč</td>
+                                <td class="amount plan">264,584 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr data-country="HR">
+                                <td><span class="country-badge country-hr">HR</span></td>
+                                <td>Google Ads HR</td>
+                                <td class="amount yoy">806,003 Kč</td>
+                                <td class="amount plan">244,254 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr data-country="SI">
+                                <td><span class="country-badge country-si">SI</span></td>
+                                <td>Google Ads SI</td>
+                                <td class="amount yoy">226,241 Kč</td>
+                                <td class="amount plan">117,669 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr data-country="BG">
+                                <td><span class="country-badge country-bg">BG</span></td>
+                                <td>Google Ads BG</td>
+                                <td class="amount yoy">1,172,745 Kč</td>
+                                <td class="amount plan">341,795 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="subcategory">
+                    <h4>Srovnávače cen</h4>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Země</th>
+                                <th>Platforma</th>
+                                <th class="amount">YOY 2025</th>
+                                <th class="amount">PLAN 2026</th>
+                                <th class="amount">REAL 2026</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr data-country="CZ">
+                                <td><span class="country-badge country-cz">CZ</span></td>
+                                <td>Heureka PPC CZ</td>
+                                <td class="amount yoy">1,055,003 Kč</td>
+                                <td class="amount plan">1,000,000 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr data-country="SK">
+                                <td><span class="country-badge country-sk">SK</span></td>
+                                <td>Heureka PPC SK</td>
+                                <td class="amount yoy">160,229 Kč</td>
+                                <td class="amount plan">150,000 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr data-country="HU">
+                                <td><span class="country-badge country-hu">HU</span></td>
+                                <td>Arukereso</td>
+                                <td class="amount yoy">59,744 Kč</td>
+                                <td class="amount plan">50,000 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr data-country="CZ">
+                                <td><span class="country-badge country-cz">CZ</span></td>
+                                <td>SROVNAME</td>
+                                <td class="amount yoy">0 Kč</td>
+                                <td class="amount plan">150,000 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr data-country="X">
+                                <td><span class="country-badge country-x">X</span></td>
+                                <td>Srovnávací služby - ostatní</td>
+                                <td class="amount yoy">35,446 Kč</td>
+                                <td class="amount plan">23,961 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="subcategory">
+                    <h4>Email a SMS</h4>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Typ</th>
+                                <th>Popis</th>
+                                <th class="amount">YOY 2025</th>
+                                <th class="amount">PLAN 2026</th>
+                                <th class="amount">REAL 2026</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>PPC služby</td>
+                                <td>Externí PPC služby</td>
+                                <td class="amount yoy">795,600 Kč</td>
+                                <td class="amount plan">748,800 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr>
+                                <td>SMS</td>
+                                <td>SMS kampaně</td>
+                                <td class="amount yoy">1,965,384 Kč</td>
+                                <td class="amount plan">1,377,684 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr>
+                                <td>Display</td>
+                                <td>Display media</td>
+                                <td class="amount yoy">1,199,291 Kč</td>
+                                <td class="amount plan">120,000 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr>
+                                <td>Email</td>
+                                <td>Targito</td>
+                                <td class="amount yoy">736,615 Kč</td>
+                                <td class="amount plan">660,000 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr>
+                                <td>Email</td>
+                                <td>Vaculík</td>
+                                <td class="amount yoy">265,961 Kč</td>
+                                <td class="amount plan">51,608 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr>
+                                <td>Email</td>
+                                <td>INT</td>
+                                <td class="amount yoy">600,000 Kč</td>
+                                <td class="amount plan">150,000 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="subcategory">
+                    <h4>Sociální sítě a influenceři</h4>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Země</th>
+                                <th>Typ</th>
+                                <th class="amount">YOY 2025</th>
+                                <th class="amount">PLAN 2026</th>
+                                <th class="amount">REAL 2026</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr data-country="CZ">
+                                <td><span class="country-badge country-cz">CZ</span></td>
+                                <td>META sociální sítě</td>
+                                <td class="amount yoy">94,186 Kč</td>
+                                <td class="amount plan">10,000 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr data-country="CZ">
+                                <td><span class="country-badge country-cz">CZ</span></td>
+                                <td>Influenceři</td>
+                                <td class="amount yoy">638,918 Kč</td>
+                                <td class="amount plan">1,200,000 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr data-country="SK">
+                                <td><span class="country-badge country-sk">SK</span></td>
+                                <td>Influenceři Kondomshop</td>
+                                <td class="amount yoy">0 Kč</td>
+                                <td class="amount plan">366,900 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="subcategory">
+                    <h4>Affiliate programy</h4>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Země</th>
+                                <th>Popis</th>
+                                <th class="amount">YOY 2025</th>
+                                <th class="amount">PLAN 2026</th>
+                                <th class="amount">REAL 2026</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr data-country="CZ">
+                                <td><span class="country-badge country-cz">CZ</span></td>
+                                <td>Affiliate CZ</td>
+                                <td class="amount yoy">1,446,247 Kč</td>
+                                <td class="amount plan">1,200,000 Kč</td>
+                                <td class="amount real">54,084 Kč</td>
+                            </tr>
+                            <tr data-country="SK">
+                                <td><span class="country-badge country-sk">SK</span></td>
+                                <td>Affiliate SK</td>
+                                <td class="amount yoy">339,546 Kč</td>
+                                <td class="amount plan">300,000 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr data-country="HU">
+                                <td><span class="country-badge country-hu">HU</span></td>
+                                <td>Affiliate HU</td>
+                                <td class="amount yoy">38,202 Kč</td>
+                                <td class="amount plan">50,000 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                            <tr data-country="X">
+                                <td><span class="country-badge country-x">X</span></td>
+                                <td>Affiliate - obecný rozpočet</td>
+                                <td class="amount yoy">0 Kč</td>
+                                <td class="amount plan">1,706,695 Kč</td>
+                                <td class="amount real">0 Kč</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Category 5: Ostatní marketing -->
+        <section class="category-section">
+            <div class="category-header" onclick="toggleCategory(this)">
+                <h2>📋 MKT_Ostatní</h2>
+                <div class="total">Celkem: 3,505,670 Kč</div>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="category-content">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Typ</th>
+                            <th>Popis</th>
+                            <th class="amount">YOY 2025</th>
+                            <th class="amount">PLAN 2026</th>
+                            <th class="amount">REAL 2026</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Reklama</td>
+                            <td>Obecná reklama</td>
+                            <td class="amount yoy">110,622 Kč</td>
+                            <td class="amount plan">100,000 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td>PR</td>
+                            <td>PR služby (Lenka Školková)</td>
+                            <td class="amount yoy">1,068,432 Kč</td>
+                            <td class="amount plan">360,000 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td>Eventy</td>
+                            <td>Konference a eventy - poplatky</td>
+                            <td class="amount yoy">472,500 Kč</td>
+                            <td class="amount plan">600,000 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td>Eventy</td>
+                            <td>Eventové služby</td>
+                            <td class="amount yoy">67,577 Kč</td>
+                            <td class="amount plan">50,000 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td>Eventy</td>
+                            <td>Materiály na eventy</td>
+                            <td class="amount yoy">302,390 Kč</td>
+                            <td class="amount plan">300,000 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td>Ostatní</td>
+                            <td>Různé</td>
+                            <td class="amount yoy">0 Kč</td>
+                            <td class="amount plan">114,797 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td>Ostatní</td>
+                            <td>Kondomshop ostatní</td>
+                            <td class="amount yoy">24,250 Kč</td>
+                            <td class="amount plan">24,250 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td>Tisk</td>
+                            <td>Tiskoviny</td>
+                            <td class="amount yoy">195,102 Kč</td>
+                            <td class="amount plan">144,000 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Category 6: Externí služby -->
+        <section class="category-section">
+            <div class="category-header" onclick="toggleCategory(this)">
+                <h2>👥 MKT_Externí služby</h2>
+                <div class="total">Celkem: 3,382,997 Kč</div>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="category-content">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Služba</th>
+                            <th>Dodavatel/Popis</th>
+                            <th class="amount">YOY 2025</th>
+                            <th class="amount">PLAN 2026</th>
+                            <th class="amount">REAL 2026</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Zpracování dat</td>
+                            <td>Mamata</td>
+                            <td class="amount yoy">720,000 Kč</td>
+                            <td class="amount plan">720,000 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td>Grafika</td>
+                            <td>Mirek Mito</td>
+                            <td class="amount yoy">374,500 Kč</td>
+                            <td class="amount plan">135,000 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td>Grafika</td>
+                            <td>Ostatní grafické služby</td>
+                            <td class="amount yoy">13,150 Kč</td>
+                            <td class="amount plan">15,000 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td>SEO</td>
+                            <td>Jakub Rejnuš</td>
+                            <td class="amount yoy">167,700 Kč</td>
+                            <td class="amount plan">600,000 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td>SEO</td>
+                            <td>Nákup odkazů</td>
+                            <td class="amount yoy">5,100 Kč</td>
+                            <td class="amount plan">10,000 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td>Překlady</td>
+                            <td>Překlady a korektury</td>
+                            <td class="amount yoy">68,247 Kč</td>
+                            <td class="amount plan">72,000 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td>Fotografie</td>
+                            <td>Fotografické služby</td>
+                            <td class="amount yoy">0 Kč</td>
+                            <td class="amount plan">0 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td>Brand</td>
+                            <td>Karel Novotný</td>
+                            <td class="amount yoy">606,000 Kč</td>
+                            <td class="amount plan">690,000 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td>Kontraktoři</td>
+                            <td>Externí spolupracovníci</td>
+                            <td class="amount yoy">120,000 Kč</td>
+                            <td class="amount plan">120,000 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td>Průzkumy</td>
+                            <td>Marketingové průzkumy</td>
+                            <td class="amount yoy">0 Kč</td>
+                            <td class="amount plan">730,000 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Category 7: IT služby -->
+        <section class="category-section">
+            <div class="category-header" onclick="toggleCategory(this)">
+                <h2>💻 MKT_IT</h2>
+                <div class="total">Celkem: 541,234 Kč</div>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="category-content">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Nástroj/Služba</th>
+                            <th>Popis</th>
+                            <th class="amount">YOY 2025</th>
+                            <th class="amount">PLAN 2026</th>
+                            <th class="amount">REAL 2026</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>META Verified</td>
+                            <td>Ověření META účtů</td>
+                            <td class="amount yoy">3,290 Kč</td>
+                            <td class="amount plan">3,500 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td>Countdown</td>
+                            <td>Odpočítávací nástroj</td>
+                            <td class="amount yoy">2,056 Kč</td>
+                            <td class="amount plan">2,056 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td>Retino</td>
+                            <td>Retino platforma</td>
+                            <td class="amount yoy">42,189 Kč</td>
+                            <td class="amount plan">42,189 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td>Affiliate</td>
+                            <td>Licence a podíl na odměnách</td>
+                            <td class="amount yoy">71,897 Kč</td>
+                            <td class="amount plan">75,000 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td>Mergado</td>
+                            <td>Licence Mergado</td>
+                            <td class="amount yoy">100,066 Kč</td>
+                            <td class="amount plan">50,000 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td>Mergado</td>
+                            <td>Mergado Kondomshop</td>
+                            <td class="amount yoy">1,384 Kč</td>
+                            <td class="amount plan">1,500 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td>Canva</td>
+                            <td>Grafický editor</td>
+                            <td class="amount yoy">2,758 Kč</td>
+                            <td class="amount plan">3,000 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td>Webnode</td>
+                            <td>Webová platforma</td>
+                            <td class="amount yoy">4,783 Kč</td>
+                            <td class="amount plan">5,000 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td>Office</td>
+                            <td>Microsoft Office</td>
+                            <td class="amount yoy">752 Kč</td>
+                            <td class="amount plan">800 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td>Targito</td>
+                            <td>Licence Targito</td>
+                            <td class="amount yoy">153,882 Kč</td>
+                            <td class="amount plan">155,000 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td>Photo Editor</td>
+                            <td>Editor fotografií</td>
+                            <td class="amount yoy">1,197 Kč</td>
+                            <td class="amount plan">1,200 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                        <tr>
+                            <td>Ostatní IT</td>
+                            <td>Další IT nástroje</td>
+                            <td class="amount yoy">0 Kč</td>
+                            <td class="amount plan">51,970 Kč</td>
+                            <td class="amount real">0 Kč</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Category 8: Mzdy -->
+        <section class="category-section">
+            <div class="category-header" onclick="toggleCategory(this)">
+                <h2>💰 MKT_Mzdy</h2>
+                <div class="total">Celkem: 4,910,296 Kč</div>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="category-content">
+                <div class="subcategory">
+                    <h4>Mzdové náklady - HPP (Účet 52100)</h4>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Měsíc</th>
+                                <th class="amount">PLAN 2026</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Leden</td>
+                                <td class="amount plan">398,516 Kč</td>
+                            </tr>
+                            <tr>
+                                <td>Únor</td>
+                                <td class="amount plan">398,516 Kč</td>
+                            </tr>
+                            <tr>
+                                <td>Březen</td>
+                                <td class="amount plan">398,516 Kč</td>
+                            </tr>
+                            <tr>
+                                <td>Duben</td>
+                                <td class="amount plan">414,060 Kč</td>
+                            </tr>
+                            <tr>
+                                <td>Květen</td>
+                                <td class="amount plan">414,060 Kč</td>
+                            </tr>
+                            <tr>
+                                <td>Červen</td>
+                                <td class="amount plan">414,060 Kč</td>
+                            </tr>
+                            <tr>
+                                <td>Červenec</td>
+                                <td class="amount plan">414,060 Kč</td>
+                            </tr>
+                            <tr>
+                                <td>Srpen</td>
+                                <td class="amount plan">414,060 Kč</td>
+                            </tr>
+                            <tr>
+                                <td>Září</td>
+                                <td class="amount plan">414,060 Kč</td>
+                            </tr>
+                            <tr>
+                                <td>Říjen</td>
+                                <td class="amount plan">414,060 Kč</td>
+                            </tr>
+                            <tr>
+                                <td>Listopad</td>
+                                <td class="amount plan">414,060 Kč</td>
+                            </tr>
+                            <tr>
+                                <td>Prosinec</td>
+                                <td class="amount plan">414,060 Kč</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr style="background: var(--gray-100); font-weight: 700;">
+                                <td>CELKEM</td>
+                                <td class="amount plan">4,922,088 Kč</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <div class="chart-placeholder">
+                    <p>📊 Grafické znázornění měsíčních mzdových nákladů</p>
+                    <div class="progress-bar" style="margin-top: 20px;">
+                        <div class="fill" style="width: 100%; background: linear-gradient(90deg, var(--primary-color), var(--success-color));"></div>
+                    </div>
+                    <p style="margin-top: 10px; font-size: 0.85rem;">Průměrné měsíční náklady: ~410,174 Kč</p>
+                </div>
+            </div>
+        </section>
+
+        <footer>
+            <p>Náklady MKT 2026 | Marketingový rozpočet | Vygenerováno z Google Sheets</p>
+            <p style="margin-top: 10px; font-size: 0.8rem;">Poslední aktualizace: Únor 2026</p>
+        </footer>
+    </div>
+
+    <script>
+        // Toggle category sections
+        function toggleCategory(header) {
+            const content = header.nextElementSibling;
+            const icon = header.querySelector('.toggle-icon');
+
+            if (content.classList.contains('active')) {
+                content.classList.remove('active');
+                icon.style.transform = 'rotate(0deg)';
+            } else {
+                content.classList.add('active');
+                icon.style.transform = 'rotate(180deg)';
+            }
+        }
+
+        // Filter by country
+        function filterByCountry(country) {
+            const rows = document.querySelectorAll('tbody tr[data-country]');
+
+            rows.forEach(row => {
+                if (country === 'all' || row.dataset.country === country) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        // Search functionality
+        function searchTable(query) {
+            const rows = document.querySelectorAll('tbody tr');
+            const lowerQuery = query.toLowerCase();
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(lowerQuery)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        // Open first category by default
+        document.addEventListener('DOMContentLoaded', function() {
+            const firstHeader = document.querySelector('.category-header');
+            if (firstHeader) {
+                toggleCategory(firstHeader);
+            }
+        });
+
+        // Format numbers with thousand separators
+        function formatNumber(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+        }
+    </script>
+</body>
+</html>
