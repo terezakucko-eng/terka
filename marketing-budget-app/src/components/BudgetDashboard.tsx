@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronDown, ChevronRight, Download, Search, TrendingUp, BarChart3, Table } from 'lucide-react';
-import { budgetData, grandTotal, months } from '../data/budgetData';
+import { ChevronDown, ChevronRight, Download, Search, TrendingUp, BarChart3, Table, RefreshCw, AlertCircle, Loader2 } from 'lucide-react';
+import { months } from '../data/budgetData';
 import type { BudgetCategory } from '../data/budgetData';
+import { useGoogleSheetData } from '../hooks/useGoogleSheetData';
 
 const formatCurrency = (value: number): string => {
   return new Intl.NumberFormat('cs-CZ', {
@@ -17,7 +18,9 @@ const formatNumber = (value: number): string => {
 };
 
 const BudgetDashboard: React.FC = () => {
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['ppc']));
+  const { budgetData, grandTotal, loading, error, lastUpdated, refetch } = useGoogleSheetData();
+
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'chart'>('table');
@@ -56,7 +59,7 @@ const BudgetDashboard: React.FC = () => {
       category.items.length > 0 ||
       category.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [searchTerm]);
+  }, [searchTerm, budgetData]);
 
   const exportToCSV = () => {
     const headers = ['Kategorie', 'Účet', 'Název', 'Poznámka', ...months, 'CELKEM 2026'];
@@ -91,12 +94,46 @@ const BudgetDashboard: React.FC = () => {
   };
 
   const getCategoryMonthlyTotal = (category: BudgetCategory, monthIndex: number): number => {
-    return category.items.reduce((sum, item) => sum + item.monthly[monthIndex], 0);
+    return category.items.reduce((sum, item) => sum + (item.monthly[monthIndex] || 0), 0);
   };
 
   const getMaxMonthValue = (): number => {
-    return Math.max(...grandTotal.monthly);
+    const max = Math.max(...grandTotal.monthly);
+    return max > 0 ? max : 1;
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+        <div className="bg-white rounded-xl p-8 shadow-lg text-center">
+          <Loader2 className="w-12 h-12 text-indigo-600 animate-spin mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-slate-900">Načítám data z Google Sheets...</h2>
+          <p className="text-slate-500 mt-2">Prosím vyčkejte</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+        <div className="bg-white rounded-xl p-8 shadow-lg text-center max-w-md">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-slate-900">Chyba při načítání dat</h2>
+          <p className="text-slate-500 mt-2">{error}</p>
+          <button
+            onClick={refetch}
+            className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 mx-auto"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Zkusit znovu
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -106,9 +143,24 @@ const BudgetDashboard: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-slate-900">Náklady MKT 2026</h1>
-              <p className="text-slate-500 text-sm mt-1">Marketingový rozpočet - roční přehled</p>
+              <p className="text-slate-500 text-sm mt-1">
+                Marketingový rozpočet - roční přehled
+                {lastUpdated && (
+                  <span className="ml-2 text-emerald-600">
+                    • Aktualizováno: {lastUpdated.toLocaleTimeString('cs-CZ')}
+                  </span>
+                )}
+              </p>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={refetch}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
+                title="Obnovit data z Google Sheets"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Obnovit
+              </button>
               <button
                 onClick={exportToCSV}
                 className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
@@ -129,7 +181,7 @@ const BudgetDashboard: React.FC = () => {
             <div className="text-2xl font-bold text-slate-900 mt-1">{formatCurrency(grandTotal.total)}</div>
             <div className="flex items-center gap-1 mt-2 text-emerald-600 text-sm">
               <TrendingUp className="w-4 h-4" />
-              <span>{grandTotal.percentage.toFixed(2)}% z tržeb</span>
+              <span>Live data z tabulky</span>
             </div>
           </div>
 
@@ -142,17 +194,17 @@ const BudgetDashboard: React.FC = () => {
           <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
             <div className="text-slate-500 text-sm font-medium">Nejvyšší měsíc</div>
             <div className="text-2xl font-bold text-slate-900 mt-1">
-              {months[grandTotal.monthly.indexOf(Math.max(...grandTotal.monthly))]}
+              {grandTotal.monthly.length > 0 ? months[grandTotal.monthly.indexOf(Math.max(...grandTotal.monthly))] : '-'}
             </div>
-            <div className="text-slate-400 text-sm mt-2">{formatCurrency(Math.max(...grandTotal.monthly))}</div>
+            <div className="text-slate-400 text-sm mt-2">{formatCurrency(Math.max(...grandTotal.monthly, 0))}</div>
           </div>
 
           <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
             <div className="text-slate-500 text-sm font-medium">Nejnižší měsíc</div>
             <div className="text-2xl font-bold text-slate-900 mt-1">
-              {months[grandTotal.monthly.indexOf(Math.min(...grandTotal.monthly))]}
+              {grandTotal.monthly.length > 0 ? months[grandTotal.monthly.indexOf(Math.min(...grandTotal.monthly.filter(v => v > 0)))] : '-'}
             </div>
-            <div className="text-slate-400 text-sm mt-2">{formatCurrency(Math.min(...grandTotal.monthly))}</div>
+            <div className="text-slate-400 text-sm mt-2">{formatCurrency(Math.min(...grandTotal.monthly.filter(v => v > 0), 0))}</div>
           </div>
 
           <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
@@ -163,67 +215,71 @@ const BudgetDashboard: React.FC = () => {
         </div>
 
         {/* Category Overview Chart */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 mb-6">
-          <h3 className="text-lg font-semibold text-slate-900 mb-4">Rozložení rozpočtu podle kategorií</h3>
-          <div className="space-y-3">
-            {budgetData.sort((a, b) => b.total - a.total).map(category => {
-              const percentage = (category.total / grandTotal.total) * 100;
-              return (
-                <div key={category.id} className="flex items-center gap-4">
-                  <div className="w-48 flex items-center gap-2">
-                    <span className="text-sm font-medium text-slate-700 truncate">{category.name.replace('MARKETING - ', '')}</span>
-                  </div>
-                  <div className="flex-1">
-                    <div className="h-8 bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{
-                          width: `${percentage}%`,
-                          backgroundColor: category.color,
-                        }}
-                      />
+        {budgetData.length > 0 && (
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 mb-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">Rozložení rozpočtu podle kategorií</h3>
+            <div className="space-y-3">
+              {[...budgetData].sort((a, b) => b.total - a.total).map(category => {
+                const percentage = grandTotal.total > 0 ? (category.total / grandTotal.total) * 100 : 0;
+                return (
+                  <div key={category.id} className="flex items-center gap-4">
+                    <div className="w-48 flex items-center gap-2">
+                      <span className="text-sm font-medium text-slate-700 truncate">{category.name.replace('MARKETING - ', '')}</span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="h-8 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${percentage}%`,
+                            backgroundColor: category.color,
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div className="w-32 text-right">
+                      <div className="text-sm font-semibold text-slate-900">{formatCurrency(category.total)}</div>
+                      <div className="text-xs text-slate-500">{percentage.toFixed(1)}%</div>
                     </div>
                   </div>
-                  <div className="w-32 text-right">
-                    <div className="text-sm font-semibold text-slate-900">{formatCurrency(category.total)}</div>
-                    <div className="text-xs text-slate-500">{percentage.toFixed(1)}%</div>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Monthly Overview Chart */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 mb-6">
-          <h3 className="text-lg font-semibold text-slate-900 mb-4">Měsíční přehled nákladů</h3>
-          <div className="flex items-end gap-2 h-48">
-            {grandTotal.monthly.map((value, index) => {
-              const height = (value / getMaxMonthValue()) * 100;
-              const isSelected = selectedMonth === index;
-              return (
-                <div
-                  key={index}
-                  className="flex-1 flex flex-col items-center cursor-pointer group"
-                  onClick={() => setSelectedMonth(isSelected ? null : index)}
-                >
-                  <div className="text-xs text-slate-500 mb-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {formatCurrency(value)}
-                  </div>
+        {grandTotal.monthly.some(v => v > 0) && (
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 mb-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">Měsíční přehled nákladů</h3>
+            <div className="flex items-end gap-2 h-48">
+              {grandTotal.monthly.map((value, index) => {
+                const height = (value / getMaxMonthValue()) * 100;
+                const isSelected = selectedMonth === index;
+                return (
                   <div
-                    className={`w-full rounded-t-lg transition-all duration-300 ${
-                      isSelected ? 'bg-indigo-600' : 'bg-indigo-400 hover:bg-indigo-500'
-                    }`}
-                    style={{ height: `${height}%` }}
-                  />
-                  <div className={`text-xs mt-2 font-medium ${isSelected ? 'text-indigo-600' : 'text-slate-600'}`}>
-                    {months[index].substring(0, 3)}
+                    key={index}
+                    className="flex-1 flex flex-col items-center cursor-pointer group"
+                    onClick={() => setSelectedMonth(isSelected ? null : index)}
+                  >
+                    <div className="text-xs text-slate-500 mb-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {formatCurrency(value)}
+                    </div>
+                    <div
+                      className={`w-full rounded-t-lg transition-all duration-300 ${
+                        isSelected ? 'bg-indigo-600' : 'bg-indigo-400 hover:bg-indigo-500'
+                      }`}
+                      style={{ height: `${height}%`, minHeight: value > 0 ? '4px' : '0' }}
+                    />
+                    <div className={`text-xs mt-2 font-medium ${isSelected ? 'text-indigo-600' : 'text-slate-600'}`}>
+                      {months[index].substring(0, 3)}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Toolbar */}
         <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 mb-6">
@@ -305,7 +361,7 @@ const BudgetDashboard: React.FC = () => {
                 {/* Grand Total Row */}
                 <tr className="bg-indigo-600 text-white font-bold">
                   <td className="p-4 sticky left-0 bg-indigo-600 z-10">
-                    <span className="text-lg">◾ CELKEM</span>
+                    <span className="text-lg">CELKEM</span>
                   </td>
                   <td className="p-4"></td>
                   {grandTotal.monthly.map((value, index) => (
@@ -317,7 +373,7 @@ const BudgetDashboard: React.FC = () => {
                     </td>
                   ))}
                   <td className="text-right p-4 font-mono bg-indigo-700">{formatNumber(grandTotal.total)}</td>
-                  <td className="text-right p-4">{grandTotal.percentage.toFixed(2)}%</td>
+                  <td className="text-right p-4">100%</td>
                 </tr>
 
                 {/* Categories */}
@@ -341,7 +397,7 @@ const BudgetDashboard: React.FC = () => {
                           </div>
                         </td>
                         <td className="p-4"></td>
-                        {category.items[0]?.monthly.map((_, index) => {
+                        {months.map((_, index) => {
                           const monthTotal = getCategoryMonthlyTotal(category, index);
                           return (
                             <td
@@ -399,7 +455,7 @@ const BudgetDashboard: React.FC = () => {
                               {formatNumber(item.total)}
                             </td>
                             <td className="text-right p-4 text-slate-400 text-xs">
-                              {((item.total / grandTotal.total) * 100).toFixed(2)}%
+                              {grandTotal.total > 0 ? ((item.total / grandTotal.total) * 100).toFixed(2) : '0.00'}%
                             </td>
                           </tr>
                         ))}
@@ -422,13 +478,13 @@ const BudgetDashboard: React.FC = () => {
               <div className="h-10 w-px bg-slate-200" />
               <div>
                 <div className="text-sm text-slate-500">Celkové náklady</div>
-                <div className="text-lg font-bold text-slate-900">{formatCurrency(grandTotal.monthly[selectedMonth])}</div>
+                <div className="text-lg font-bold text-slate-900">{formatCurrency(grandTotal.monthly[selectedMonth] || 0)}</div>
               </div>
               <div className="h-10 w-px bg-slate-200" />
               <div>
                 <div className="text-sm text-slate-500">Podíl na roce</div>
                 <div className="text-lg font-bold text-slate-900">
-                  {((grandTotal.monthly[selectedMonth] / grandTotal.total) * 100).toFixed(1)}%
+                  {grandTotal.total > 0 ? (((grandTotal.monthly[selectedMonth] || 0) / grandTotal.total) * 100).toFixed(1) : '0.0'}%
                 </div>
               </div>
               <button
@@ -445,7 +501,7 @@ const BudgetDashboard: React.FC = () => {
       {/* Footer */}
       <footer className="bg-white border-t border-slate-200 mt-12">
         <div className="max-w-[1800px] mx-auto px-6 py-4 text-center text-slate-500 text-sm">
-          Náklady MKT 2026 | Marketingový rozpočet | Vygenerováno {new Date().toLocaleDateString('cs-CZ')}
+          Náklady MKT 2026 | Data z Google Sheets | Aktualizováno {new Date().toLocaleDateString('cs-CZ')}
         </div>
       </footer>
     </div>
