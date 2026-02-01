@@ -1,8 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { ChevronDown, ChevronRight, Download, Search, TrendingUp, BarChart3, Table, RefreshCw, AlertCircle, Loader2 } from 'lucide-react';
 import { months } from '../data/budgetData';
-import type { BudgetCategory } from '../data/budgetData';
+import type { BudgetCategory, DataViewType } from '../data/budgetData';
 import { useGoogleSheetData } from '../hooks/useGoogleSheetData';
+
+const dataViewLabels: Record<DataViewType, string> = {
+  yoy: 'YOY 2025',
+  plan: 'PLAN 2026',
+  real: 'REAL 2026',
+};
 
 const formatCurrency = (value: number): string => {
   return new Intl.NumberFormat('cs-CZ', {
@@ -18,7 +24,7 @@ const formatNumber = (value: number): string => {
 };
 
 const BudgetDashboard: React.FC = () => {
-  const { budgetData, grandTotal, loading, error, lastUpdated, refetch } = useGoogleSheetData();
+  const { budgetData, grandTotal, loading, error, lastUpdated, refetch, dataView, setDataView, hasMultipleViews } = useGoogleSheetData();
 
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
@@ -62,14 +68,16 @@ const BudgetDashboard: React.FC = () => {
   }, [searchTerm, budgetData]);
 
   const exportToCSV = () => {
-    const headers = ['Kategorie', 'Účet', 'Název', 'Poznámka', ...months, 'CELKEM 2026'];
+    const headers = ['Kategorie', 'Projekt', 'Země', 'Účet', 'Popis', 'Poznámka', ...months, 'CELKEM 2026'];
     const rows: string[][] = [];
 
     budgetData.forEach(category => {
-      rows.push([category.name, '', '', '', ...category.items[0]?.monthly.map(() => '') || [], formatNumber(category.total)]);
+      rows.push([category.name, '', '', '', '', '', ...category.items[0]?.monthly.map(() => '') || [], formatNumber(category.total)]);
       category.items.forEach(item => {
         rows.push([
           '',
+          item.project || '',
+          item.country || '',
           item.accountCode,
           item.name,
           item.note || '',
@@ -79,7 +87,7 @@ const BudgetDashboard: React.FC = () => {
       });
     });
 
-    rows.push(['CELKEM', '', '', '', ...grandTotal.monthly.map(v => formatNumber(v)), formatNumber(grandTotal.total)]);
+    rows.push(['CELKEM', '', '', '', '', '', ...grandTotal.monthly.map(v => formatNumber(v)), formatNumber(grandTotal.total)]);
 
     const csvContent = [
       headers.join(';'),
@@ -326,54 +334,79 @@ const BudgetDashboard: React.FC = () => {
                 <BarChart3 className="w-5 h-5" />
               </button>
             </div>
+
+            {/* Data View Toggle - YOY / PLAN / REAL */}
+            {hasMultipleViews && (
+              <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
+                <span className="text-sm text-slate-500 mr-1">Zobrazení:</span>
+                {(['yoy', 'plan', 'real'] as DataViewType[]).map((view) => (
+                  <button
+                    key={view}
+                    onClick={() => setDataView(view)}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                      dataView === view
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {dataViewLabels[view]}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Main Table */}
+        {/* Main Table - Compact Layout */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-xs">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="text-left p-4 font-semibold text-slate-700 sticky left-0 bg-slate-50 z-10 min-w-[300px]">
-                    Položka
+                  <th className="text-left px-2 py-2 font-semibold text-slate-700 sticky left-0 bg-slate-50 z-10 w-20">
+                    Projekt
                   </th>
-                  <th className="text-left p-4 font-semibold text-slate-700 w-20">Účet</th>
+                  <th className="text-left px-2 py-2 font-semibold text-slate-700 w-12">
+                    Země
+                  </th>
+                  <th className="text-left px-2 py-2 font-semibold text-slate-700 w-16">
+                    Účet
+                  </th>
+                  <th className="text-left px-2 py-2 font-semibold text-slate-700 min-w-[180px]">
+                    Popis
+                  </th>
                   {months.map((month, index) => (
                     <th
                       key={month}
-                      className={`text-right p-4 font-semibold text-slate-700 min-w-[100px] cursor-pointer hover:bg-slate-100 transition-colors ${
+                      className={`text-right px-1 py-2 font-semibold text-slate-700 w-[70px] cursor-pointer hover:bg-slate-100 transition-colors ${
                         selectedMonth === index ? 'bg-indigo-50 text-indigo-700' : ''
                       }`}
                       onClick={() => setSelectedMonth(selectedMonth === index ? null : index)}
+                      title={month}
                     >
-                      {index + 1}
-                      <div className="text-xs font-normal text-slate-500">{month}</div>
+                      {month.substring(0, 3)}
                     </th>
                   ))}
-                  <th className="text-right p-4 font-bold text-slate-900 min-w-[130px] bg-slate-100">
-                    CELKEM 2026
+                  <th className="text-right px-2 py-2 font-bold text-slate-900 w-[90px] bg-slate-100">
+                    CELKEM
                   </th>
-                  <th className="text-right p-4 font-semibold text-slate-700 w-20">%</th>
                 </tr>
               </thead>
               <tbody>
                 {/* Grand Total Row */}
-                <tr className="bg-indigo-600 text-white font-bold">
-                  <td className="p-4 sticky left-0 bg-indigo-600 z-10">
-                    <span className="text-lg">CELKEM</span>
+                <tr className="bg-indigo-600 text-white font-bold text-xs">
+                  <td className="px-2 py-2 sticky left-0 bg-indigo-600 z-10" colSpan={4}>
+                    <span className="font-bold">CELKEM</span>
                   </td>
-                  <td className="p-4"></td>
                   {grandTotal.monthly.map((value, index) => (
                     <td
                       key={index}
-                      className={`text-right p-4 font-mono ${selectedMonth === index ? 'bg-indigo-500' : ''}`}
+                      className={`text-right px-1 py-2 font-mono ${selectedMonth === index ? 'bg-indigo-500' : ''}`}
                     >
                       {formatNumber(value)}
                     </td>
                   ))}
-                  <td className="text-right p-4 font-mono bg-indigo-700">{formatNumber(grandTotal.total)}</td>
-                  <td className="text-right p-4">100%</td>
+                  <td className="text-right px-2 py-2 font-mono bg-indigo-700">{formatNumber(grandTotal.total)}</td>
                 </tr>
 
                 {/* Categories */}
@@ -383,26 +416,25 @@ const BudgetDashboard: React.FC = () => {
                     <React.Fragment key={category.id}>
                       {/* Category Header */}
                       <tr
-                        className="bg-slate-50 hover:bg-slate-100 cursor-pointer border-t-2 border-slate-200"
+                        className="bg-slate-50 hover:bg-slate-100 cursor-pointer border-t border-slate-200"
                         onClick={() => toggleCategory(category.id)}
                       >
-                        <td className="p-4 sticky left-0 bg-slate-50 hover:bg-slate-100 z-10">
-                          <div className="flex items-center gap-3">
+                        <td className="px-2 py-2 sticky left-0 bg-slate-50 hover:bg-slate-100 z-10" colSpan={4}>
+                          <div className="flex items-center gap-2">
                             {isExpanded ? (
-                              <ChevronDown className="w-5 h-5 text-slate-400" />
+                              <ChevronDown className="w-4 h-4 text-slate-400 flex-shrink-0" />
                             ) : (
-                              <ChevronRight className="w-5 h-5 text-slate-400" />
+                              <ChevronRight className="w-4 h-4 text-slate-400 flex-shrink-0" />
                             )}
-                            <span className="font-semibold text-slate-800">{category.name}</span>
+                            <span className="font-semibold text-slate-800 text-xs">{category.name}</span>
                           </div>
                         </td>
-                        <td className="p-4"></td>
                         {months.map((_, index) => {
                           const monthTotal = getCategoryMonthlyTotal(category, index);
                           return (
                             <td
                               key={index}
-                              className={`text-right p-4 font-mono font-semibold text-slate-700 ${
+                              className={`text-right px-1 py-2 font-mono font-semibold text-slate-700 ${
                                 selectedMonth === index ? 'bg-indigo-50' : ''
                               }`}
                             >
@@ -411,13 +443,10 @@ const BudgetDashboard: React.FC = () => {
                           );
                         })}
                         <td
-                          className="text-right p-4 font-mono font-bold text-slate-900 bg-slate-100"
+                          className="text-right px-2 py-2 font-mono font-bold bg-slate-100"
                           style={{ color: category.color }}
                         >
                           {formatNumber(category.total)}
-                        </td>
-                        <td className="text-right p-4 font-semibold" style={{ color: category.color }}>
-                          {category.percentage.toFixed(2)}%
                         </td>
                       </tr>
 
@@ -428,34 +457,37 @@ const BudgetDashboard: React.FC = () => {
                             key={item.id}
                             className={`${itemIndex % 2 === 0 ? 'bg-white' : 'bg-slate-25'} hover:bg-blue-50 transition-colors`}
                           >
-                            <td className="p-4 pl-14 sticky left-0 bg-inherit z-10">
+                            <td className="px-2 py-1.5 sticky left-0 bg-inherit z-10 text-slate-600">
+                              {item.project || '-'}
+                            </td>
+                            <td className="px-2 py-1.5 text-slate-600">
+                              {item.country || '-'}
+                            </td>
+                            <td className="px-2 py-1.5">
+                              <span className="px-1 py-0.5 bg-slate-100 rounded text-xs font-mono text-slate-600">
+                                {item.accountCode || '-'}
+                              </span>
+                            </td>
+                            <td className="px-2 py-1.5">
                               <div>
                                 <span className="text-slate-800">{item.name}</span>
                                 {item.note && (
-                                  <div className="text-xs text-slate-400 mt-1 italic">{item.note}</div>
+                                  <span className="text-slate-400 ml-1 italic">({item.note})</span>
                                 )}
                               </div>
-                            </td>
-                            <td className="p-4">
-                              <span className="px-2 py-1 bg-slate-100 rounded text-xs font-mono text-slate-600">
-                                {item.accountCode}
-                              </span>
                             </td>
                             {item.monthly.map((value, index) => (
                               <td
                                 key={index}
-                                className={`text-right p-4 font-mono text-slate-600 ${
+                                className={`text-right px-1 py-1.5 font-mono text-slate-600 ${
                                   selectedMonth === index ? 'bg-indigo-50 font-semibold text-indigo-700' : ''
                                 } ${value === 0 ? 'text-slate-300' : ''}`}
                               >
                                 {value === 0 ? '-' : formatNumber(value)}
                               </td>
                             ))}
-                            <td className="text-right p-4 font-mono font-semibold text-slate-900 bg-slate-50">
+                            <td className="text-right px-2 py-1.5 font-mono font-semibold text-slate-900 bg-slate-50">
                               {formatNumber(item.total)}
-                            </td>
-                            <td className="text-right p-4 text-slate-400 text-xs">
-                              {grandTotal.total > 0 ? ((item.total / grandTotal.total) * 100).toFixed(2) : '0.00'}%
                             </td>
                           </tr>
                         ))}

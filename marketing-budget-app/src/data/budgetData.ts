@@ -1,10 +1,24 @@
+export type DataViewType = 'yoy' | 'plan' | 'real';
+
+export interface MonthlyData {
+  yoy: number[];    // Year over Year (previous year actuals)
+  plan: number[];   // Planned values for 2026
+  real: number[];   // Actual values for 2026
+}
+
 export interface BudgetItem {
   id: string;
-  accountCode: string;
-  name: string;
+  project?: string;            // Projekt
+  country?: string;            // Země
+  accountCode: string;         // Účet
+  name: string;                // Popis
   note?: string;
-  monthly: number[];
+  monthly: number[];           // Default/current view
+  monthlyData?: MonthlyData;   // All three data types
   total: number;
+  totalYoy?: number;
+  totalPlan?: number;
+  totalReal?: number;
   percentage?: number;
   isCategory?: boolean;
   isSubItem?: boolean;
