@@ -165,6 +165,10 @@ async function initializeApp() {
     // Inicializovat trend chart filtry s výchozími hodnotami a localStorage
     initTrendChartFilters();
 
+    // Inicializovat filtry srovnání (týdenní + meziroční)
+    initWeeklyComparisonFilter();
+    initYoYComparisonFilter();
+
     // Aktualizovat všechny grafy s načtenými daty
     updateAllCharts();
 
@@ -2237,45 +2241,60 @@ window.updateWeeklyComparison = function() {
     ];
     const allEshops = [...czEshops, ...skEshops, ...foreignEshops];
 
-    // Seřadit data podle data (nejnovější první)
     const sortedData = [...window.trackingData].sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    // Získat poslední 14 dní dat
-    const today = new Date();
-    const fourteenDaysAgo = new Date(today);
-    fourteenDaysAgo.setDate(today.getDate() - 14);
+    // Číslo konečného data z filtru (default = poslední neděle)
+    const endDateInput = document.getElementById('weekly-end-date');
+    let endDate;
+    if (endDateInput && endDateInput.value) {
+        const [y, m, d] = endDateInput.value.split('-').map(Number);
+        endDate = new Date(y, m - 1, d);
+    } else {
+        endDate = getDefaultWeeklyEndDate();
+    }
 
-    const last14Days = sortedData.filter(record => {
-        const recordDate = new Date(record.date);
-        return recordDate >= fourteenDaysAgo && recordDate <= today;
+    // Vybraný týden (Period B): [endDate − 6, endDate]
+    const periodBStart = new Date(endDate);
+    periodBStart.setDate(endDate.getDate() - 6);
+
+    // Předchozí týden (Period A): [endDate − 13, endDate − 7]
+    const periodAStart = new Date(endDate);
+    periodAStart.setDate(endDate.getDate() - 13);
+    const periodAEnd = new Date(endDate);
+    periodAEnd.setDate(endDate.getDate() - 7);
+
+    const parseRecordDate = (dateStr) => {
+        const [ry, rm, rd] = dateStr.split('-').map(Number);
+        return new Date(ry, rm - 1, rd);
+    };
+
+    const thisWeekData = sortedData.filter(r => {
+        const rd = parseRecordDate(r.date);
+        return rd >= periodBStart && rd <= endDate;
     });
 
-    if (last14Days.length === 0) {
-        console.warn('⚠️ Nedostatek dat pro mezitýdenní srovnání');
+    const lastWeekData = sortedData.filter(r => {
+        const rd = parseRecordDate(r.date);
+        return rd >= periodAStart && rd <= periodAEnd;
+    });
+
+    // Aktualizace nadpis kolonnů
+    const fmtD = (d) => `${d.getDate()}.${d.getMonth() + 1}.`;
+    const colPrev = document.getElementById('weekly-col-prev');
+    const colCurr = document.getElementById('weekly-col-curr');
+    if (colPrev) colPrev.textContent = `${fmtD(periodAStart)} – ${fmtD(periodAEnd)}`;
+    if (colCurr) colCurr.textContent = `${fmtD(periodBStart)} – ${fmtD(endDate)}`;
+
+    if (thisWeekData.length === 0 && lastWeekData.length === 0) {
+        console.warn('⚠️ Nedostatek dat pro vybrané týdny');
         const tbody = document.getElementById('weekly-comparison-tbody');
         if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Nedostatek dat (potřeba alespoň 14 dní)</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Nedostatek dat pro vybrané období</td></tr>';
         }
         return;
     }
 
-    // Rozdělit na tento týden (poslední 7 dní) a minulý týden (dny 8-14)
-    const sevenDaysAgo = new Date(today);
-    sevenDaysAgo.setDate(today.getDate() - 7);
-
-    const thisWeekData = sortedData.filter(record => {
-        const recordDate = new Date(record.date);
-        return recordDate >= sevenDaysAgo && recordDate <= today;
-    });
-
-    const lastWeekData = sortedData.filter(record => {
-        const recordDate = new Date(record.date);
-        const fourteenDaysAgo = new Date(today);
-        fourteenDaysAgo.setDate(today.getDate() - 14);
-        return recordDate >= fourteenDaysAgo && recordDate < sevenDaysAgo;
-    });
-
-    console.log(`📊 Tento týden: ${thisWeekData.length} záznamů, Minulý týden: ${lastWeekData.length} záznamů`);
+    console.log(`📊 Vybraný týden: ${thisWeekData.length} záznamů, Předchozí týden: ${lastWeekData.length} záznamů`);
 
     // Vypočítat součty pro každý e-shop
     const weeklyStats = [];
@@ -2457,34 +2476,48 @@ window.updateMonthlyYoYComparison = function() {
     // Seřadit data podle data
     const sortedData = [...window.trackingData].sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    // Zjistit aktuální měsíc a rok
-    const today = new Date();
-    const currentYear = today.getFullYear();
-    const currentMonth = today.getMonth(); // 0-11
+    // Čist vybraný měsíc z select (default = předchozí měsíc)
+    const monthSelect = document.getElementById('yoy-month-select');
+    let selectedYear, selectedMonth; // selectedMonth je 0-indexed
+    if (monthSelect && monthSelect.value) {
+        const [y, m] = monthSelect.value.split('-').map(Number);
+        selectedYear = y;
+        selectedMonth = m - 1;
+    } else {
+        const today = new Date();
+        selectedYear = today.getFullYear();
+        selectedMonth = today.getMonth() - 1;
+        if (selectedMonth < 0) { selectedMonth = 11; selectedYear--; }
+    }
 
-    // Najít data pro aktuální měsíc letošního roku
     const thisYearData = sortedData.filter(record => {
         const recordDate = new Date(record.date);
-        return recordDate.getFullYear() === currentYear && recordDate.getMonth() === currentMonth;
+        return recordDate.getFullYear() === selectedYear && recordDate.getMonth() === selectedMonth;
     });
 
-    // Najít data pro stejný měsíc předchozího roku
     const lastYearData = sortedData.filter(record => {
         const recordDate = new Date(record.date);
-        return recordDate.getFullYear() === (currentYear - 1) && recordDate.getMonth() === currentMonth;
+        return recordDate.getFullYear() === (selectedYear - 1) && recordDate.getMonth() === selectedMonth;
     });
+
+    // Aktualizace nadpisů kolonnů
+    const monthNamesGen = ['Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen', 'Červenec', 'Srpen', 'Září', 'Říjen', 'Listopad', 'Prosinec'];
+    const yoyColPrev = document.getElementById('yoy-col-prev');
+    const yoyColCurr = document.getElementById('yoy-col-curr');
+    if (yoyColPrev) yoyColPrev.textContent = `${monthNamesGen[selectedMonth]} ${selectedYear - 1}`;
+    if (yoyColCurr) yoyColCurr.textContent = `${monthNamesGen[selectedMonth]} ${selectedYear}`;
 
     if (thisYearData.length === 0 && lastYearData.length === 0) {
         console.warn('⚠️ Nedostatek dat pro meziroční srovnání');
         const tbody = document.getElementById('monthly-yoy-comparison-tbody');
         if (tbody) {
-            const monthNames = ['ledna', 'února', 'března', 'dubna', 'května', 'června', 'července', 'srpna', 'září', 'října', 'listopadu', 'prosince'];
-            tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Nedostatek dat pro ${monthNames[currentMonth]} (potřeba data z ${currentYear} i ${currentYear - 1})</td></tr>`;
+            const monthNamesGen2 = ['ledna', 'února', 'března', 'dubna', 'května', 'června', 'července', 'srpna', 'září', 'října', 'listopadu', 'prosince'];
+            tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Nedostatek dat pro ${monthNamesGen2[selectedMonth]} (potřeba data z ${selectedYear} i ${selectedYear - 1})</td></tr>`;
         }
         return;
     }
 
-    console.log(`📊 Letošní rok (${currentMonth + 1}/${currentYear}): ${thisYearData.length} záznamů, Minulý rok (${currentMonth + 1}/${currentYear - 1}): ${lastYearData.length} záznamů`);
+    console.log(`📊 ${monthNamesGen[selectedMonth]} ${selectedYear}: ${thisYearData.length} záznamů, ${monthNamesGen[selectedMonth]} ${selectedYear - 1}: ${lastYearData.length} záznamů`);
 
     // Vypočítat součty pro každý e-shop
     const monthlyStats = [];
@@ -2625,11 +2658,11 @@ window.updateMonthlyYoYComparison = function() {
                 <td class="px-6 py-4 font-medium text-gray-900">${stat.eshop}</td>
                 <td class="px-6 py-4 text-right text-gray-700">
                     ${stat.lastYear.toLocaleString('cs-CZ')}
-                    <span class="text-xs text-gray-500 block">${monthNames[currentMonth]} ${currentYear - 1}</span>
+                    <span class="text-xs text-gray-500 block">${monthNames[selectedMonth]} ${selectedYear - 1}</span>
                 </td>
                 <td class="px-6 py-4 text-right font-semibold text-gray-900">
                     ${stat.thisYear.toLocaleString('cs-CZ')}
-                    <span class="text-xs text-gray-500 block">${monthNames[currentMonth]} ${currentYear}</span>
+                    <span class="text-xs text-gray-500 block">${monthNames[selectedMonth]} ${selectedYear}</span>
                 </td>
                 <td class="px-6 py-4 text-center ${changeColor} font-medium">
                     ${changeText}
@@ -2906,6 +2939,56 @@ function updateMarketShareChart() {
     }
 
     charts.marketShare.update();
+}
+
+// ─── Helpers & init pro comparison filters ─────────────────────
+
+/** Vrátí poslední neděli (konec předchozího týdne) jako Date */
+function getDefaultWeeklyEndDate() {
+    const today = new Date();
+    const dow = today.getDay(); // 0 = neděle
+    const lastSunday = new Date(today);
+    lastSunday.setDate(today.getDate() - (dow === 0 ? 7 : dow));
+    return lastSunday;
+}
+
+/** Nastaví default + event listener pro weekly date input */
+function initWeeklyComparisonFilter() {
+    const input = document.getElementById('weekly-end-date');
+    if (!input) return;
+
+    // Default = poslední neděle (konec předchozího týdne)
+    const def = getDefaultWeeklyEndDate();
+    const yyyy = def.getFullYear();
+    const mm = String(def.getMonth() + 1).padStart(2, '0');
+    const dd = String(def.getDate()).padStart(2, '0');
+    input.value = `${yyyy}-${mm}-${dd}`;
+
+    input.addEventListener('change', () => updateWeeklyComparison());
+}
+
+/** Naplní select měsíců + nastaví default na předchozí měsíc + event listener */
+function initYoYComparisonFilter() {
+    const sel = document.getElementById('yoy-month-select');
+    if (!sel) return;
+
+    const monthNames = ['Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen', 'Červenec', 'Srpen', 'Září', 'Říjen', 'Listopad', 'Prosinec'];
+    const today = new Date();
+
+    // Generovat poslední 13 měsíců (od předchozího měsíce dozadu)
+    let optionsHtml = '';
+    for (let i = 1; i <= 13; i++) {
+        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const y = d.getFullYear();
+        const m = d.getMonth(); // 0-indexed
+        const value = `${y}-${String(m + 1).padStart(2, '0')}`;
+        const label = `${monthNames[m]} ${y}`;
+        const selected = (i === 1) ? ' selected' : ''; // default = předchozí měsíc
+        optionsHtml += `<option value="${value}"${selected}>${label}</option>`;
+    }
+    sel.innerHTML = optionsHtml;
+
+    sel.addEventListener('change', () => updateMonthlyYoYComparison());
 }
 
 function updateAllCharts() {

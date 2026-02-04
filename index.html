@@ -523,14 +523,20 @@
                         </button>
                     </div>
 
+                    <!-- Filtr období -->
+                    <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                        <label class="text-sm text-gray-600 font-medium">Srovnání do:</label>
+                        <input type="date" id="weekly-end-date" class="px-2 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-purple-300 focus:border-purple-400 transition">
+                    </div>
+
                     <!-- Tabulka mezitýdenního srovnání -->
                     <div class="bg-white rounded-xl sm:rounded-2xl border border-gray-100 overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200 text-sm sm:text-base">
                             <thead class="bg-gray-800 text-white">
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider">E-shop</th>
-                                    <th class="px-6 py-3 text-right text-xs font-bold uppercase tracking-wider">Minulý týden</th>
-                                    <th class="px-6 py-3 text-right text-xs font-bold uppercase tracking-wider">Tento týden</th>
+                                    <th id="weekly-col-prev" class="px-6 py-3 text-right text-xs font-bold uppercase tracking-wider">Předchozí týden</th>
+                                    <th id="weekly-col-curr" class="px-6 py-3 text-right text-xs font-bold uppercase tracking-wider">Vybraný týden</th>
                                     <th class="px-6 py-3 text-center text-xs font-bold uppercase tracking-wider">Změna</th>
                                     <th class="px-6 py-3 text-center text-xs font-bold uppercase tracking-wider">Trend</th>
                                 </tr>
@@ -556,14 +562,22 @@
                         </button>
                     </div>
 
+                    <!-- Filtr měsíce -->
+                    <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                        <label class="text-sm text-gray-600 font-medium">Měsíc:</label>
+                        <select id="yoy-month-select" class="px-2 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-purple-300 focus:border-purple-400 transition">
+                            <!-- Naplní se dynamicky -->
+                        </select>
+                    </div>
+
                     <!-- Tabulka meziročního srovnání -->
                     <div class="bg-white rounded-xl sm:rounded-2xl border border-gray-100 overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200 text-sm sm:text-base">
                             <thead class="bg-gray-800 text-white">
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider">E-shop</th>
-                                    <th class="px-6 py-3 text-right text-xs font-bold uppercase tracking-wider">Předchozí rok</th>
-                                    <th class="px-6 py-3 text-right text-xs font-bold uppercase tracking-wider">Letošní rok</th>
+                                    <th id="yoy-col-prev" class="px-6 py-3 text-right text-xs font-bold uppercase tracking-wider">Předchozí rok</th>
+                                    <th id="yoy-col-curr" class="px-6 py-3 text-right text-xs font-bold uppercase tracking-wider">Letošní rok</th>
                                     <th class="px-6 py-3 text-center text-xs font-bold uppercase tracking-wider">Změna</th>
                                     <th class="px-6 py-3 text-center text-xs font-bold uppercase tracking-wider">Trend</th>
                                 </tr>
