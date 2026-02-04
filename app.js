@@ -1609,6 +1609,7 @@ function updateTrendChart() {
         charts.trend.data.labels = [];
         charts.trend.data.datasets = [];
         charts.trend.update();
+        generateTrendCommentary([], [], [], 'weeks');
         return;
     }
 
@@ -1654,6 +1655,7 @@ function updateTrendChart() {
         charts.trend.data.labels = [];
         charts.trend.data.datasets = [];
         charts.trend.update();
+        generateTrendCommentary([], selectedEshops, [], aggregation);
         return;
     }
 
@@ -1782,6 +1784,155 @@ function updateTrendChart() {
     charts.trend.data.labels = labels;
     charts.trend.data.datasets = datasets;
     charts.trend.update();
+
+    // Vygenerovat komentář ke grafu
+    generateTrendCommentary(processedData, selectedEshops, labels, aggregation);
+}
+
+/**
+ * Vygeneruje slovní komentář ke grafu vývoje objednávek.
+ * Analýza zahrnuje: celkový trend, týdenní/měsíční změny, největší růstek/pokles,
+ * podíly e-shopů a klíčové pozorování.
+ */
+function generateTrendCommentary(processedData, selectedEshops, labels, aggregation) {
+    const container = document.getElementById('trend-commentary-text');
+    const timestampEl = document.getElementById('trend-commentary-timestamp');
+    if (!container) return;
+
+    if (!processedData || processedData.length < 2) {
+        container.innerHTML = '<span class="text-gray-400 italic">Nedostatečné množství dat pro analýzu (potřebuji alespoň 2 období).</span>';
+        if (timestampEl) timestampEl.textContent = '';
+        return;
+    }
+
+    const periodLabel = aggregation === 'months' ? 'měsíc' : 'týden';
+    const periodLabelPlural = aggregation === 'months' ? 'měsíců' : 'týdnů';
+
+    // --- Výpočet statistik ---
+
+    // Celkové objednávky na each period
+    const periodTotals = processedData.map(record => {
+        let sum = 0;
+        selectedEshops.forEach(eshop => {
+            sum += (record.totals && record.totals[eshop]) ? record.totals[eshop] : 0;
+        });
+        return sum;
+    });
+
+    const firstPeriodTotal = periodTotals[0];
+    const lastPeriodTotal = periodTotals[periodTotals.length - 1];
+    const prevPeriodTotal = periodTotals[periodTotals.length - 2];
+
+    // Celkem za celé období
+    const grandTotal = periodTotals.reduce((a, b) => a + b, 0);
+
+    // Průměr na období
+    const avgPerPeriod = grandTotal / periodTotals.length;
+
+    // Poslední změna (posledník vs předposlední)
+    const lastChange = lastPeriodTotal - prevPeriodTotal;
+    const lastChangePercent = prevPeriodTotal !== 0 ? ((lastChange / prevPeriodTotal) * 100) : 0;
+
+    // Celkový trend: první vs poslední
+    const overallChange = lastPeriodTotal - firstPeriodTotal;
+    const overallChangePercent = firstPeriodTotal !== 0 ? ((overallChange / firstPeriodTotal) * 100) : 0;
+
+    // Maximum a minimum
+    const maxTotal = Math.max(...periodTotals);
+    const minTotal = Math.min(...periodTotals);
+    const maxIndex = periodTotals.indexOf(maxTotal);
+    const minIndex = periodTotals.indexOf(minTotal);
+
+    // Per-eshop statistiky: celkem, poslední, předposlední, max, trend
+    const eshopStats = selectedEshops.map(eshop => {
+        const values = processedData.map(r => (r.totals && r.totals[eshop]) ? r.totals[eshop] : 0);
+        const total = values.reduce((a, b) => a + b, 0);
+        const last = values[values.length - 1];
+        const prev = values[values.length - 2];
+        const change = last - prev;
+        const changePercent = prev !== 0 ? ((change / prev) * 100) : (last > 0 ? 100 : 0);
+        const max = Math.max(...values);
+        const maxIdx = values.indexOf(max);
+        return { eshop, values, total, last, prev, change, changePercent, max, maxIdx };
+    });
+
+    // Největší růstek a pokles v posledním období
+    const sortedByChange = [...eshopStats].sort((a, b) => b.change - a.change);
+    const biggestGrower = sortedByChange[0];
+    const biggestDecliner = sortedByChange[sortedByChange.length - 1];
+
+    // Největší e-shop celkem
+    const sortedByTotal = [...eshopStats].sort((a, b) => b.total - a.total);
+    const topEshop = sortedByTotal[0];
+
+    // Podíl top e-shopu
+    const topShare = grandTotal > 0 ? ((topEshop.total / grandTotal) * 100) : 0;
+
+    // Konzistentnost: kolik weeeks/months above average
+    const aboveAvgCount = periodTotals.filter(t => t > avgPerPeriod).length;
+
+    // Detectovat trend (rostoucí / klesající / stabilní)
+    // Porovnat průměr první poloviny vs druhé poloviny
+    const half = Math.floor(periodTotals.length / 2);
+    const firstHalfAvg = periodTotals.slice(0, half).reduce((a, b) => a + b, 0) / half;
+    const secondHalfAvg = periodTotals.slice(half).reduce((a, b) => a + b, 0) / (periodTotals.length - half);
+    const halfTrendChange = secondHalfAvg - firstHalfAvg;
+    const halfTrendPercent = firstHalfAvg !== 0 ? ((halfTrendChange / firstHalfAvg) * 100) : 0;
+
+    // --- Sestavení textu komentáře ---
+    const parts = [];
+
+    // 1. Celkový přehled
+    const totalStr = grandTotal.toLocaleString('cs-CZ');
+    const periodsStr = processedData.length;
+    parts.push(`Za sledované období (${periodsStr} ${periodsStr === 1 ? periodLabel : periodLabelPlural}) bylo celkem zaznamenáno <strong>${totalStr}</strong> objednávek`
+        + (selectedEshops.length > 1 ? ` ve <strong>${selectedEshops.length}</strong> e-shopech` : ` na e-shope <strong>${selectedEshops[0]}</strong>`)
+        + `, průměr <strong>${Math.round(avgPerPeriod).toLocaleString('cs-CZ')}</strong> objednávek na ${periodLabel}.`);
+
+    // 2. Celkový trend (první vs poslední polovina)
+    if (periodTotals.length >= 3) {
+        if (halfTrendPercent > 10) {
+            parts.push(`Celkem patrný <strong style="color:#16a34a">rostoucí trend</strong> — průměr druhé poloviny období je o <strong>${Math.abs(Math.round(halfTrendPercent))} %</strong> vyšší než v první polovině.`);
+        } else if (halfTrendPercent < -10) {
+            parts.push(`Celkem patrný <strong style="color:#dc2626">klesající trend</strong> — průměr druhé poloviny období je o <strong>${Math.abs(Math.round(halfTrendPercent))} %</strong> nižší než v první polovině.`);
+        } else {
+            parts.push(`Celkem trend <strong style="color:#9333ea">stabilní</strong> — průměr druhé poloviny období se liší o méně než 10 % oproti první polovině.`);
+        }
+    }
+
+    // 3. Poslední změna
+    if (lastChange > 0) {
+        parts.push(`V posledním ${periodLabel} objednávky <strong style="color:#16a34a">vzrostly o ${lastChange.toLocaleString('cs-CZ')} (${lastChangePercent > 0 ? '+' : ''}${Math.round(lastChangePercent)} %)</strong> oproti předchozému ${periodLabel}.`);
+    } else if (lastChange < 0) {
+        parts.push(`V posledním ${periodLabel} objednávky <strong style="color:#dc2626">klesly o ${Math.abs(lastChange).toLocaleString('cs-CZ')} (${Math.round(lastChangePercent)} %)</strong> oproti předchozému ${periodLabel}.`);
+    } else {
+        parts.push(`V posledním ${periodLabel} počet objednávek <strong style="color:#9333ea">zůstal na stejné úrovni</strong> jako v předchozím ${periodLabel}.`);
+    }
+
+    // 4. Peak a minimum
+    if (periodTotals.length >= 3) {
+        parts.push(`Nejlepší ${periodLabel} byl <strong>${labels[maxIndex]}</strong> s <strong>${maxTotal.toLocaleString('cs-CZ')}</strong> objednávkami, nejslabší <strong>${labels[minIndex]}</strong> s <strong>${minTotal.toLocaleString('cs-CZ')}</strong>.`);
+    }
+
+    // 5. Top e-shop (jen pokud je více než jeden)
+    if (selectedEshops.length > 1) {
+        parts.push(`Nejvíce objednávek generoval <strong>${topEshop.eshop}</strong> — celkem <strong>${topEshop.total.toLocaleString('cs-CZ')}</strong>, tedy <strong>${Math.round(topShare)} %</strong> z celku.`);
+
+        // 6. Největší změna v posledním období (jen pokud se liší)
+        if (biggestGrower.change > 0 && biggestGrower.eshop !== biggestDecliner.eshop) {
+            parts.push(`V posledním ${periodLabel} nejvíce rostl <strong style="color:#16a34a">${biggestGrower.eshop} (+${biggestGrower.change.toLocaleString('cs-CZ')})</strong>`
+                + (biggestDecliner.change < 0 ? `, nejvíce klesl <strong style="color:#dc2626">${biggestDecliner.eshop} (${biggestDecliner.change.toLocaleString('cs-CZ')})</strong>.` : '.'));
+        } else if (biggestDecliner.change < 0) {
+            parts.push(`V posledním ${periodLabel} nejvíce klesl <strong style="color:#dc2626">${biggestDecliner.eshop} (${biggestDecliner.change.toLocaleString('cs-CZ')})</strong>.`);
+        }
+    }
+
+    // --- Render ---
+    container.innerHTML = parts.join(' ');
+    if (timestampEl) {
+        const now = new Date();
+        timestampEl.textContent = `Aktuální k ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+    }
 }
 
 function initDeltaChart() {
