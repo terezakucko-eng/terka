@@ -2306,6 +2306,10 @@ window.updateWeeklyComparison = function() {
             if (record.notMeasured && record.notMeasured[eshop]) {
                 return sum;
             }
+            // Přeskočit první měření (nezapočítává se)
+            if (record.firstMeasurement && record.firstMeasurement[eshop]) {
+                return sum;
+            }
             const delta = (record.deltas && record.deltas[eshop]) ? record.deltas[eshop] : 0;
             return sum + delta;
         }, 0);
@@ -2314,6 +2318,10 @@ window.updateWeeklyComparison = function() {
         const lastWeekTotal = lastWeekData.reduce((sum, record) => {
             // Přeskočit nezměřené e-shopy
             if (record.notMeasured && record.notMeasured[eshop]) {
+                return sum;
+            }
+            // Přeskočit první měření (nezapočítává se)
+            if (record.firstMeasurement && record.firstMeasurement[eshop]) {
                 return sum;
             }
             const delta = (record.deltas && record.deltas[eshop]) ? record.deltas[eshop] : 0;
@@ -2529,6 +2537,10 @@ window.updateMonthlyYoYComparison = function() {
             if (record.notMeasured && record.notMeasured[eshop]) {
                 return sum;
             }
+            // Přeskočit první měření (nezapočítává se)
+            if (record.firstMeasurement && record.firstMeasurement[eshop]) {
+                return sum;
+            }
             const delta = (record.deltas && record.deltas[eshop]) ? record.deltas[eshop] : 0;
             return sum + delta;
         }, 0);
@@ -2537,6 +2549,10 @@ window.updateMonthlyYoYComparison = function() {
         const lastYearTotal = lastYearData.reduce((sum, record) => {
             // Přeskočit nezměřené e-shopy
             if (record.notMeasured && record.notMeasured[eshop]) {
+                return sum;
+            }
+            // Přeskočit první měření (nezapočítává se)
+            if (record.firstMeasurement && record.firstMeasurement[eshop]) {
                 return sum;
             }
             const delta = (record.deltas && record.deltas[eshop]) ? record.deltas[eshop] : 0;
