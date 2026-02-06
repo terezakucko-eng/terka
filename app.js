@@ -1501,10 +1501,17 @@ function aggregateByWeeks(data, eshops) {
         const weekKey = `${recordDate.getFullYear()}-W${String(weekNumber).padStart(2, '0')}`;
 
         if (!weeklyData[weekKey]) {
+            // Vypočítat začátek a konec ISO týdne
+            const weekStart = getWeekStartDate(recordDate);
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+
             weeklyData[weekKey] = {
                 date: weekKey,
                 year: recordDate.getFullYear(),
                 week: weekNumber,
+                weekStart: weekStart,
+                weekEnd: weekEnd,
                 totals: {}
             };
             eshops.forEach(eshop => {
@@ -1577,6 +1584,14 @@ function getWeekNumber(date) {
     d.setUTCDate(d.getUTCDate() + 4 - dayNum);
     const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
     return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
+// Pomocná funkce pro získání pondělí daného ISO týdne
+function getWeekStartDate(date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Posunout na pondělí
+    return new Date(d.setDate(diff));
 }
 
 function updateTrendChart() {
@@ -1669,7 +1684,13 @@ function updateTrendChart() {
     if (aggregation === 'weeks') {
         const aggregatedData = aggregateByWeeks(sortedData, selectedEshops);
         processedData = aggregatedData;
-        labels = aggregatedData.map(d => d.date);
+        labels = aggregatedData.map(d => {
+            const start = d.weekStart;
+            const end = d.weekEnd;
+            const fmtStart = `${start.getDate()}.${start.getMonth() + 1}.`;
+            const fmtEnd = `${end.getDate()}.${end.getMonth() + 1}.`;
+            return `${fmtStart} - ${fmtEnd}`;
+        });
     } else if (aggregation === 'months') {
         const aggregatedData = aggregateByMonths(sortedData, selectedEshops);
         processedData = aggregatedData;
@@ -1682,7 +1703,13 @@ function updateTrendChart() {
         // Výchozí je týdny
         const aggregatedData = aggregateByWeeks(sortedData, selectedEshops);
         processedData = aggregatedData;
-        labels = aggregatedData.map(d => d.date);
+        labels = aggregatedData.map(d => {
+            const start = d.weekStart;
+            const end = d.weekEnd;
+            const fmtStart = `${start.getDate()}.${start.getMonth() + 1}.`;
+            const fmtEnd = `${end.getDate()}.${end.getMonth() + 1}.`;
+            return `${fmtStart} - ${fmtEnd}`;
+        });
     }
 
     // Příprava datasetů pro vybrané e-shopy
