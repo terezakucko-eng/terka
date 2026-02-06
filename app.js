@@ -148,12 +148,29 @@ async function initializeApp() {
         updateTrendChart();
     };
 
-    if (trendPeriodFilter) trendPeriodFilter.addEventListener('change', updateAndSaveTrendChart);
+    // Handler pro přednastavené období - vymaže vlastní data
+    const handlePeriodChange = () => {
+        if (trendPeriodFilter && trendPeriodFilter.value !== '') {
+            if (trendDateFrom) trendDateFrom.value = '';
+            if (trendDateTo) trendDateTo.value = '';
+        }
+        updateAndSaveTrendChart();
+    };
+
+    // Handler pro vlastní data - vymaže přednastavené období
+    const handleCustomDateChange = () => {
+        if (trendPeriodFilter && (trendDateFrom.value || trendDateTo.value)) {
+            trendPeriodFilter.value = '';
+        }
+        updateAndSaveTrendChart();
+    };
+
+    if (trendPeriodFilter) trendPeriodFilter.addEventListener('change', handlePeriodChange);
     if (trendEshopsFilter) trendEshopsFilter.addEventListener('change', updateAndSaveTrendChart);
     if (trendTypeFilter) trendTypeFilter.addEventListener('change', updateAndSaveTrendChart);
     if (trendAggregationFilter) trendAggregationFilter.addEventListener('change', updateAndSaveTrendChart);
-    if (trendDateFrom) trendDateFrom.addEventListener('change', updateAndSaveTrendChart);
-    if (trendDateTo) trendDateTo.addEventListener('change', updateAndSaveTrendChart);
+    if (trendDateFrom) trendDateFrom.addEventListener('change', handleCustomDateChange);
+    if (trendDateTo) trendDateTo.addEventListener('change', handleCustomDateChange);
 
     // Inicializovat delta e-shops filter
     if (deltaMarketFilter) {
@@ -1360,6 +1377,7 @@ function renderOrderTable() {
 function initTrendChartFilters() {
     const dateFromInput = document.getElementById('trend-date-from');
     const dateToInput = document.getElementById('trend-date-to');
+    const periodFilter = document.getElementById('trend-period-filter');
     const aggregationFilter = document.getElementById('trend-aggregation-filter');
     const typeFilter = document.getElementById('trend-type-filter');
     const eshopsFilter = document.getElementById('trend-eshops-filter');
@@ -1378,6 +1396,7 @@ function initTrendChartFilters() {
 
             if (filters.dateFrom) dateFromInput.value = filters.dateFrom;
             if (filters.dateTo) dateToInput.value = filters.dateTo;
+            if (filters.period !== undefined && periodFilter) periodFilter.value = filters.period;
             if (filters.aggregation && aggregationFilter) aggregationFilter.value = filters.aggregation;
             if (filters.type && typeFilter) typeFilter.value = filters.type;
 
@@ -1417,6 +1436,7 @@ function initTrendChartFilters() {
 
     dateFromInput.value = formatDate(dateFrom);
     dateToInput.value = formatDate(dateTo);
+    if (periodFilter) periodFilter.value = ''; // Vymazat přednastavené období, používáme custom datumy
 
     console.log(`📅 Výchozí období grafu: ${formatDate(dateFrom)} až ${formatDate(dateTo)}`);
 
@@ -1430,6 +1450,7 @@ function initTrendChartFilters() {
 function saveTrendChartFilters() {
     const dateFromInput = document.getElementById('trend-date-from');
     const dateToInput = document.getElementById('trend-date-to');
+    const periodFilter = document.getElementById('trend-period-filter');
     const aggregationFilter = document.getElementById('trend-aggregation-filter');
     const typeFilter = document.getElementById('trend-type-filter');
     const eshopsFilter = document.getElementById('trend-eshops-filter');
@@ -1439,6 +1460,7 @@ function saveTrendChartFilters() {
     const filters = {
         dateFrom: dateFromInput.value,
         dateTo: dateToInput.value,
+        period: periodFilter ? periodFilter.value : '',
         aggregation: aggregationFilter ? aggregationFilter.value : 'weeks',
         type: typeFilter ? typeFilter.value : 'area',
         eshops: eshopsFilter ? Array.from(eshopsFilter.selectedOptions).map(opt => opt.value) : []
@@ -1653,6 +1675,21 @@ function updateTrendChart() {
             const previousYear = today.getFullYear() - 1;
             const fromDate = new Date(previousYear, 0, 1); // 1. ledna minulého roku
             const toDate = new Date(previousYear, 11, 31); // 31. prosince minulého roku
+
+            sortedData = sortedData.filter(r => {
+                const recordDate = new Date(r.date);
+                return recordDate >= fromDate && recordDate <= toDate;
+            });
+        } else if (periodValue === '30') {
+            // Minulý měsíc - celý předchozí měsíc
+            const today = new Date();
+            const currentYear = today.getFullYear();
+            const currentMonth = today.getMonth(); // 0-11
+            const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+            const prevMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+            const fromDate = new Date(prevMonthYear, prevMonth, 1); // 1. den minulého měsíce
+            const toDate = new Date(prevMonthYear, prevMonth + 1, 0); // Poslední den minulého měsíce
 
             sortedData = sortedData.filter(r => {
                 const recordDate = new Date(r.date);
