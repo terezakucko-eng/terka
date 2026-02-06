@@ -20,3 +20,5 @@ Thumbs.db
 
 # Diagnostic tools
 check-firstmeasurement.html
+debug-slon-prosinec.html
+inject-debug.js
