@@ -2562,14 +2562,17 @@ window.updateMonthlyYoYComparison = function() {
         if (selectedMonth < 0) { selectedMonth = 11; selectedYear--; }
     }
 
+    // Filtrovat data pro vybraný měsíc - explicitní parsování bez UTC issues
     const thisYearData = sortedData.filter(record => {
-        const recordDate = new Date(record.date);
-        return recordDate.getFullYear() === selectedYear && recordDate.getMonth() === selectedMonth;
+        if (!record.date) return false;
+        const [year, month] = record.date.split('-').map(Number);
+        return year === selectedYear && month === (selectedMonth + 1); // selectedMonth je 0-indexed, date string je 1-indexed
     });
 
     const lastYearData = sortedData.filter(record => {
-        const recordDate = new Date(record.date);
-        return recordDate.getFullYear() === (selectedYear - 1) && recordDate.getMonth() === selectedMonth;
+        if (!record.date) return false;
+        const [year, month] = record.date.split('-').map(Number);
+        return year === (selectedYear - 1) && month === (selectedMonth + 1);
     });
 
     // Aktualizace nadpisů kolonnů
@@ -2590,6 +2593,18 @@ window.updateMonthlyYoYComparison = function() {
     }
 
     console.log(`📊 ${monthNamesGen[selectedMonth]} ${selectedYear}: ${thisYearData.length} záznamů, ${monthNamesGen[selectedMonth]} ${selectedYear - 1}: ${lastYearData.length} záznamů`);
+
+    // Debug: ukázat rozmezí dat
+    if (thisYearData.length > 0) {
+        const firstDate = thisYearData[0].date;
+        const lastDate = thisYearData[thisYearData.length - 1].date;
+        console.log(`  → ${selectedYear}: ${firstDate} až ${lastDate}`);
+    }
+    if (lastYearData.length > 0) {
+        const firstDate = lastYearData[0].date;
+        const lastDate = lastYearData[lastYearData.length - 1].date;
+        console.log(`  → ${selectedYear - 1}: ${firstDate} až ${lastDate}`);
+    }
 
     // Vypočítat součty pro každý e-shop
     const monthlyStats = [];
