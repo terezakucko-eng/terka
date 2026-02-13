@@ -1,0 +1,1651 @@
+// =====================================================
+// DATA MODEL PRO ČÍSLA OBJEDNÁVEK
+// =====================================================
+
+// Struktura jednoho záznamu sledování (jeden řádek z tabulky)
+/*
+{
+    id: timestamp,
+    date: "2024-01-15",
+    competitors: {
+        "Hopnato.cz": 2300812,
+        "erosstar.cz": 124011015,
+        "deeplove.cz": 224042369,
+        "yoo.cz": 2024000322,
+        "sexshop.cz": 20248649,
+        "honitka.cz": 19606574,
+        "sexshop.cz": 20248649,
+        "eroticke-pomucky.cz": 400071,
+        "flagranti.cz": 276820,
+        "sexshopik.cz": 2806117,
+        "e-kondomy.cz": 8260,
+        "ruzovyslon.cz": 1704754427,
+        "kondomshop.cz": 52449014
+    },
+    deltas: {
+        "Hopnato.cz": 26,
+        "erosstar.cz": 1015,
+        // ... automaticky vypočítané
+    },
+    notes: ""
+}
+*/
+
+// Seznam všech konkurentů (organizováno podle trhů)
+const COMPETITORS = [
+    // === CZ trh - Konkurence ===
+    "Hopnato.cz",
+    "erosstar.cz",
+    "deeplove.cz",
+    "yoo.cz",
+    "honitka.cz",
+    "eroticke-pomucky.cz",
+    "flagranti.cz",
+    "sexshopik.cz",
+    "e-kondomy.cz",
+
+    // === CZ trh - Vlastní e-shopy ===
+    "ruzovyslon.cz",
+    "kondomshop.cz",
+
+    // === SK trh - Konkurence ===
+    "isexshop.sk",
+    "flagranti.sk",
+    "superlove.sk",
+    "eros.sk",
+    "erotickyshop.sk",
+
+    // === SK trh - Vlastní e-shopy ===
+    "ruzovyslon.sk",
+    "kondomshop.sk",
+
+    // === Ostatní trhy - Vlastní e-shopy (Sexy Elephant) ===
+    "sexyelephant.ro",
+    "sexyelephant.hu",
+    "sexyelephant.si",
+    "sexyelephant.bg",
+    "sexyelephant.hr",
+
+    // === Ostatní trhy - Konkurence (Superlove) ===
+    "superlove.ro",
+    "superlove.pl",
+    "superlove.eu",
+    "superlove.at",
+    "superlove.hr",
+    "superlove.it",
+    "superlove.si",
+    "superlove.bg",
+    "superlove.lt",
+    "superlove.es",
+    "superlove.hu",
+
+    // === Maďarsko - Konkurence ===
+    "goldengate.hu",
+    "padlizsan.hu",
+    "sexshopcenter.hu",
+    "erotikashow.hu",
+    "szexaruhaz.hu",
+    "szexshop.hu",
+    "vagyaim.hu"
+];
+
+// E-shopy podle trhů
+const CZ_ESHOPS = [
+    "Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz", "honitka.cz",
+    "eroticke-pomucky.cz", "flagranti.cz", "sexshopik.cz", "e-kondomy.cz",
+    "ruzovyslon.cz", "kondomshop.cz"
+];
+
+const SK_ESHOPS = [
+    "isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk", "erotickyshop.sk",
+    "ruzovyslon.sk", "kondomshop.sk"
+];
+
+const FOREIGN_ESHOPS = [
+    "sexyelephant.ro", "sexyelephant.hu", "sexyelephant.si", "sexyelephant.bg", "sexyelephant.hr",
+    "superlove.ro", "superlove.pl", "superlove.eu", "superlove.at", "superlove.hr",
+    "superlove.it", "superlove.si", "superlove.bg", "superlove.lt", "superlove.es", "superlove.hu",
+    "goldengate.hu", "padlizsan.hu", "sexshopcenter.hu", "erotikashow.hu",
+    "szexaruhaz.hu", "szexshop.hu", "vagyaim.hu"
+];
+
+// Vlastní e-shopy - zadává se počet objednávek (delty) přímo, ne číslo objednávky
+const OWN_ESHOPS = [
+    "ruzovyslon.cz",
+    "ruzovyslon.sk",
+    "kondomshop.cz",
+    "kondomshop.sk",
+    "sexyelephant.ro",
+    "sexyelephant.hu",
+    "sexyelephant.si",
+    "sexyelephant.bg",
+    "sexyelephant.hr"
+];
+
+// Globální data
+let trackingData = []; // Pole záznamů sledování
+
+// =====================================================
+// VÝPOČET DELT A METRIK
+// =====================================================
+
+// Konkurenti s měsíčním resetem číselné řady
+const MONTHLY_RESET_COMPETITORS = ["erosstar.cz", "deeplove.cz"];
+
+/**
+ * Vypočítá deltu pro konkurenty s měsíčním resetem číselné řady
+ * Formát: 1YYMMSSSS kde 1=prefix, YY=rok, MM=měsíc, SSSS=pořadové číslo v měsíci
+ * Např.: 125010687 = 1-25-01-0687 (rok 2025, leden, 687. objednávka)
+ *
+ * Při změně měsíce: Delta = (konec_měsíce - předchozí_měření) + nový_měsíc
+ * Např.: (14721 - 13986) + 326 = 735 + 326 = 1061
+ *
+ * AUTOMATICKÉ HLEDÁNÍ: Když detekuje změnu měsíce, automaticky najde poslední
+ * záznam z předchozího měsíce v databázi a použije ho jako "konec měsíce".
+ */
+function calculateDeltaWithMonthlyReset(current, previous, competitorName, record, prevRecord, allRecords, currentIndex) {
+    if (current === 0 || previous === 0) {
+        return current - previous;
+    }
+
+    // Převést na stringy
+    const currentStr = String(current).padStart(10, '0');
+    const previousStr = String(previous).padStart(10, '0');
+
+    // Extrahovat části: 1YYMMSSSS
+    // Index:           0123456789
+    const currentYear = currentStr.substring(1, 3);   // YY
+    const currentMonth = currentStr.substring(3, 5);  // MM
+    const currentOrder = parseInt(currentStr.substring(5)) || 0; // SSSS
+
+    const previousYear = previousStr.substring(1, 3);
+    const previousMonth = previousStr.substring(3, 5);
+    const previousOrder = parseInt(previousStr.substring(5)) || 0;
+
+    // Stejný měsíc = normální výpočet
+    if (currentYear === previousYear && currentMonth === previousMonth) {
+        return currentOrder - previousOrder;
+    }
+
+    // ZMĚNA MĚSÍCE - automaticky najít poslední záznam předchozího měsíce
+    console.log(`🔄 ${competitorName}: Detekována změna měsíce ${previousYear}-${previousMonth} → ${currentYear}-${currentMonth}`);
+
+    // Hledat v celé databázi poslední záznam z předchozího měsíce
+    let monthEndValue = null;
+    let monthEndSource = 'neznámý';
+
+    // 1. Pokusit se najít poslední záznam předchozího měsíce v databázi
+    for (let i = currentIndex - 1; i >= 0; i--) {
+        const checkRecord = allRecords[i];
+        const checkValue = checkRecord.competitors[competitorName] || 0;
+
+        if (checkValue === 0) continue;
+
+        const checkStr = String(checkValue).padStart(10, '0');
+        const checkYear = checkStr.substring(1, 3);
+        const checkMonth = checkStr.substring(3, 5);
+
+        // Pokud jsme našli záznam z předchozího měsíce
+        if (checkYear === previousYear && checkMonth === previousMonth) {
+            monthEndValue = checkValue;
+            monthEndSource = `automaticky (záznam z ${checkRecord.date})`;
+            break;
+        }
+
+        // Pokud jsme už v ještě starším měsíci, můžeme přestat hledat
+        if (checkYear < previousYear || (checkYear === previousYear && checkMonth < previousMonth)) {
+            break;
+        }
+    }
+
+    // 2. Pokud nenajdeme automaticky, zkusit monthEndValues z předchozího záznamu
+    if (!monthEndValue && prevRecord.monthEndValues && prevRecord.monthEndValues[competitorName]) {
+        monthEndValue = prevRecord.monthEndValues[competitorName];
+        monthEndSource = 'manuálně zadaná hodnota';
+    }
+
+    if (monthEndValue) {
+        // Máme koncové číslo měsíce - použij správný vzorec
+        const monthEndStr = String(monthEndValue).padStart(10, '0');
+        const monthEndOrder = parseInt(monthEndStr.substring(5)) || 0;
+
+        const delta = (monthEndOrder - previousOrder) + currentOrder;
+
+        console.log(`✅ ${competitorName}: Použit konec měsíce (${monthEndSource})`);
+        console.log(`   Výpočet: (${monthEndOrder} - ${previousOrder}) + ${currentOrder} = ${delta}`);
+
+        return delta;
+    }
+
+    // Nemáme koncové číslo - použij zjednodušený výpočet (jen nový měsíc)
+    console.warn(`⚠️ ${competitorName}: Změna měsíce bez koncového čísla!`);
+    console.warn(`   Měsíc: ${previousYear}-${previousMonth} → ${currentYear}-${currentMonth}`);
+    console.warn(`   Použit zjednodušený výpočet (jen nový měsíc): ${currentOrder}`);
+    console.warn(`   💡 Přidej záznam z konce předchozího měsíce pro přesný výpočet!`);
+
+    return currentOrder;
+}
+
+/**
+ * Vyčistí záznamy od zahraničních e-shopů, které do nich nepatří
+ * Maže zahraniční e-shopy z záznamů, které jsou určeny pro CZ/SK trhy
+ */
+function cleanForeignEshopsFromRecords() {
+    console.log('🧹 Čištění zahraničních e-shopů ze záznamů...');
+
+    const CZ_ESHOPS = [
+        "Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz", "honitka.cz",
+        "eroticke-pomucky.cz", "flagranti.cz", "sexshopik.cz", "e-kondomy.cz",
+        "ruzovyslon.cz", "kondomshop.cz"
+    ];
+
+    const SK_ESHOPS = [
+        "isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk", "erotickyshop.sk",
+        "ruzovyslon.sk", "kondomshop.sk"
+    ];
+
+    const FOREIGN_ESHOPS = [
+        "sexyelephant.hr", "sexyelephant.ro", "sexyelephant.hu", "sexyelephant.si", "sexyelephant.bg",
+        "superlove.ro", "superlove.pl", "superlove.eu", "superlove.at", "superlove.hr",
+        "superlove.it", "superlove.si", "superlove.bg", "superlove.lt", "superlove.es", "superlove.hu",
+        "goldengate.hu", "padlizsan.hu", "sexshopcenter.hu", "erotikashow.hu", "szexaruhaz.hu", "szexshop.hu", "vagyaim.hu"
+    ];
+
+    trackingData.forEach(record => {
+        // Zjistit, jestli má záznam CZ nebo SK data
+        const hasCzData = CZ_ESHOPS.some(eshop => {
+            const value = record.competitors[eshop];
+            return value !== undefined && value !== 0;
+        });
+
+        const hasSkData = SK_ESHOPS.some(eshop => {
+            const value = record.competitors[eshop];
+            return value !== undefined && value !== 0;
+        });
+
+        // Pokud má CZ nebo SK data, odstranit všechny zahraniční e-shopy
+        if (hasCzData || hasSkData) {
+            let removedCount = 0;
+            FOREIGN_ESHOPS.forEach(eshop => {
+                if (record.competitors[eshop] !== undefined) {
+                    delete record.competitors[eshop];
+                    removedCount++;
+                }
+                if (record.deltas && record.deltas[eshop] !== undefined) {
+                    delete record.deltas[eshop];
+                }
+            });
+
+            if (removedCount > 0) {
+                console.log(`  🗑️ ${formatDate(record.date)}: Odstraněno ${removedCount} zahraničních e-shopů (záznam má CZ/SK data)`);
+            }
+        }
+    });
+
+    console.log('✅ Čištění dokončeno');
+}
+
+function calculateDeltas() {
+    // Seřadit data podle data
+    trackingData.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Pro každý záznam vypočítat delty
+    trackingData.forEach((record, index) => {
+        // Zachovat existující delty (z importu vlastních e-shopů)
+        const existingDeltas = record.deltas || {};
+
+        if (index === 0) {
+            // První záznam nemá delty (kromě importovaných)
+            record.deltas = existingDeltas;
+            record.firstMeasurement = {}; // Inicializovat pro první záznam
+
+            COMPETITORS.forEach(comp => {
+                // Inicializovat pouze e-shopy, které mají číslo objednávky nebo deltu
+                const hasOrderNumber = record.competitors[comp] !== undefined && record.competitors[comp] !== 0;
+                const hasDelta = record.deltas[comp] !== undefined && record.deltas[comp] !== 0;
+
+                if (hasOrderNumber || hasDelta) {
+                    // E-shop má data, inicializovat na 0 pokud není nastaveno (importovaná delta)
+                    if (record.deltas[comp] === undefined) {
+                        record.deltas[comp] = 0;
+                        // Označit jako první měření (není z čeho počítat)
+                        record.firstMeasurement[comp] = true;
+                    } else if (record.deltas[comp] === 0) {
+                        // Delta je 0 - také první měření
+                        record.firstMeasurement[comp] = true;
+                    }
+                    // Pokud je delta naimportovaná a nenulová, NENÍ to první měření
+                    // (byla importovaná z "Objednáno kusů" sloupce)
+                }
+                // Pokud e-shop nemá data, NENASTAVOVAT na 0 - nechat undefined
+            });
+        } else {
+            // Vypočítat delta oproti předchozímu záznamu
+            const prevRecord = trackingData[index - 1];
+
+            COMPETITORS.forEach(comp => {
+                // PRIORITA 1: Pokud je firstMeasurement už nastavené z formuláře, PŘESKOČIT automatický výpočet
+                // Toto znamená, že uživatel ručně označil toto jako novou číselnou řadu
+                if (record.firstMeasurement && record.firstMeasurement[comp]) {
+                    // Zachovat deltu, která je už nastavená z formuláře
+                    // DŮLEŽITÉ: Neinicializovat deltu, pokud není nastavená
+                    if (record.deltas[comp] === undefined) {
+                        record.deltas[comp] = 0;
+                    }
+                    console.log(`🔧 ${comp} na ${record.date}: firstMeasurement=true, delta=${record.deltas[comp]} (přeskakuji přepočet)`);
+                    return;
+                }
+
+                // PRIORITA 2: Pokud je manualDelta nastavená, PŘESKOČIT automatický výpočet
+                // manualDelta se aplikuje na konci, ale pokud existuje, nechceme přepočítávat
+                if (record.manualDeltas && record.manualDeltas[comp] !== undefined) {
+                    console.log(`✏️ ${comp} na ${record.date}: manualDelta=${record.manualDeltas[comp]} existuje (přeskakuji přepočet)`);
+                    return;
+                }
+
+                // Pro zahraniční e-shopy VŽDY přepočítat delty (ignorovat staré hodnoty)
+                const isForeignEshop = FOREIGN_ESHOPS.includes(comp);
+
+                // Pokud je delta už nastavená (z importu "Objednáno kusů"), nech ji být
+                // ALE: pro zahraniční e-shopy přepočítat vždy (mají často staré špatné delty)
+                if (!isForeignEshop && existingDeltas[comp] !== undefined && existingDeltas[comp] !== 0) {
+                    // Delta už je importovaná pro CZ/SK e-shop, přeskočit výpočet
+                    return;
+                }
+
+                // Pokud e-shop nemá data v aktuálním záznamu, přeskočit
+                // (nechceme vytvářet delty pro e-shopy, které v tomto záznamu nemají data)
+                // VÝJIMKA: pokud je nastavená manuální delta, tak ji použít
+                // OPRAVA: Nekontrolovat record.deltas[comp] - to je vypočítaná hodnota,
+                // kontrolovat pouze skutečně zadaná data (competitors nebo manualDeltas)
+                const hasCurrentData = (record.competitors && record.competitors[comp] !== undefined) ||
+                                      (record.manualDeltas && record.manualDeltas[comp] !== undefined);
+
+                if (!hasCurrentData) {
+                    // Aktuální záznam nemá data pro tento e-shop - přeskočit
+                    // DŮLEŽITÉ: Nesmazat existující deltu, jen ji přeskočit (pro případ že byla nastavená dříve)
+                    return;
+                }
+
+                const current = record.competitors[comp] || 0;
+
+                // Najít poslední záznam, kde byl e-shop skutečně změřen (nenulová hodnota)
+                let previous = 0;
+                let foundPrevious = false;
+                for (let i = index - 1; i >= 0; i--) {
+                    const prevRec = trackingData[i];
+                    const prevValue = prevRec.competitors[comp];
+
+                    // Považovat za "měřeno" pouze pokud je hodnota definovaná A nenulová
+                    // Nula znamená "neměřeno" nebo "placeholder"
+                    if (prevValue !== undefined && prevValue !== 0) {
+                        previous = prevValue;
+                        foundPrevious = true;
+                        break;
+                    }
+                }
+
+                // Pokud nebyl nalezen předchozí záznam, delta = 0 (první měření)
+                // OZNAČIT jako první měření - nebude se započítávat do totalOrders
+                if (!foundPrevious) {
+                    record.deltas[comp] = 0;
+
+                    // Označit jako první měření
+                    if (!record.firstMeasurement) {
+                        record.firstMeasurement = {};
+                    }
+                    record.firstMeasurement[comp] = true;
+                } else if (MONTHLY_RESET_COMPETITORS.includes(comp)) {
+                    // Speciální logika pro konkurenty s měsíčním resetem
+                    // Najít záznam pro calculateDeltaWithMonthlyReset
+                    let actualPrevRecord = null;
+                    for (let i = index - 1; i >= 0; i--) {
+                        if (trackingData[i].competitors[comp] !== undefined) {
+                            actualPrevRecord = trackingData[i];
+                            break;
+                        }
+                    }
+                    record.deltas[comp] = calculateDeltaWithMonthlyReset(current, previous, comp, record, actualPrevRecord || prevRecord, trackingData, index);
+                } else {
+                    record.deltas[comp] = current - previous;
+                }
+            });
+        }
+
+        // PŘEPSÁNÍ AUTOMATICKÉHO VÝPOČTU MANUÁLNÍMI DELTAMI
+        // Pokud uživatel zadal manuální hodnotu, použij ji místo automatické
+        if (record.manualDeltas) {
+            Object.keys(record.manualDeltas).forEach(eshop => {
+                const manualValue = record.manualDeltas[eshop];
+                if (manualValue !== undefined && manualValue !== null) {
+                    console.log(`✏️ Přepsání automatické delty pro ${eshop}: ${record.deltas[eshop]} → ${manualValue}`);
+                    record.deltas[eshop] = manualValue;
+                }
+            });
+        }
+    });
+
+    // Vypočítat agregované metriky pro každý záznam
+    trackingData.forEach(record => {
+        // Celkem objednávek (suma delt všech konkurentů)
+        // PŘESKOČIT: nezměřené e-shopy a e-shopy s prvním měřením
+        record.totalOrders = Object.keys(record.deltas).reduce((sum, eshop) => {
+            // Přeskočit nezměřené e-shopy
+            if (record.notMeasured && record.notMeasured[eshop]) {
+                return sum;
+            }
+
+            // Přeskočit e-shopy s prvním měřením (není z čeho počítat rozdíl)
+            if (record.firstMeasurement && record.firstMeasurement[eshop]) {
+                return sum;
+            }
+
+            return sum + (record.deltas[eshop] || 0);
+        }, 0);
+
+        // Podíl Růžového Slona - PŘESKOČIT POKUD NEZMĚŘENO nebo FIRSTMEASUREMENT
+        const slonNotMeasured = record.notMeasured && record.notMeasured["ruzovyslon.cz"];
+        const slonFirstMeasurement = record.firstMeasurement && record.firstMeasurement["ruzovyslon.cz"];
+        const slonDelta = (slonNotMeasured || slonFirstMeasurement) ? 0 : (record.deltas["ruzovyslon.cz"] || 0);
+        record.slonShare = record.totalOrders > 0 ? (slonDelta / record.totalOrders) * 100 : 0;
+
+        // Podíly vůči jednotlivým konkurentům - PŘESKOČIT NEZMĚŘENÉ
+        record.shares = {};
+        const competitorsForShare = ["e-kondomy.cz", "flagranti.cz", "sexshop.cz", "erosstar.cz", "yoo.cz", "deeplove.cz"];
+
+        competitorsForShare.forEach(comp => {
+            // Pokud je slon nebo konkurent nezměřený nebo firstMeasurement, nemůžeme počítat podíl
+            const compNotMeasured = record.notMeasured && record.notMeasured[comp];
+            const compFirstMeasurement = record.firstMeasurement && record.firstMeasurement[comp];
+            if (slonNotMeasured || slonFirstMeasurement || compNotMeasured || compFirstMeasurement) {
+                record.shares[comp] = 0;
+                return;
+            }
+
+            const compDelta = record.deltas[comp] || 0;
+            const total = slonDelta + compDelta;
+            record.shares[comp] = total > 0 ? (slonDelta / total) * 100 : 0;
+        });
+    });
+
+    // AUTOMATICKÉ DOPLNĚNÍ CHYBĚJÍCÍCH DAT INTERPOLACÍ
+    interpolateMissingData();
+
+    // PŘEPOČÍTÁNÍ DELT PRO NEZMĚŘENÉ E-SHOPY
+    redistributeNotMeasuredDeltas();
+}
+
+/**
+ * Přepočítá delty pro e-shopy označené jako "nezměřeno"
+ * Rozpočítá objednávky mezi posledním a dalším měřeným datem proporcionálně podle počtu dní
+ */
+function redistributeNotMeasuredDeltas() {
+    console.log('📊 Přepočítávám delty pro nezměřené e-shopy...');
+
+    // Pro každý e-shop
+    COMPETITORS.forEach(comp => {
+        // Najít všechny nezměřené záznamy pro tento e-shop
+        trackingData.forEach((record, index) => {
+            if (!record.notMeasured || !record.notMeasured[comp]) {
+                return; // Není označen jako nezměřeno, přeskočit
+            }
+
+            // ⚠️ PRIORITA: Pokud má manualDeltas nebo firstMeasurement, PŘESKOČIT automatický přepočet
+            if (record.manualDeltas && record.manualDeltas[comp] !== undefined) {
+                console.log(`✏️ ${comp} [${formatDate(record.date)}]: Má manuální deltu - přeskakuji přepočet (notMeasured)`);
+                return;
+            }
+            if (record.firstMeasurement && record.firstMeasurement[comp]) {
+                console.log(`✨ ${comp} [${formatDate(record.date)}]: Má firstMeasurement - přeskakuji přepočet (notMeasured)`);
+                return;
+            }
+
+            // Najít poslední změřený záznam před tímto
+            let prevMeasuredIndex = -1;
+            let prevMeasuredOrderNum = null;
+            for (let i = index - 1; i >= 0; i--) {
+                const rec = trackingData[i];
+                if (rec.competitors[comp] !== undefined &&
+                    (!rec.notMeasured || !rec.notMeasured[comp])) {
+                    prevMeasuredIndex = i;
+                    prevMeasuredOrderNum = rec.competitors[comp];
+                    break;
+                }
+            }
+
+            // Najít první změřený záznam po tomto
+            let nextMeasuredIndex = -1;
+            let nextMeasuredOrderNum = null;
+            for (let i = index + 1; i < trackingData.length; i++) {
+                const rec = trackingData[i];
+                if (rec.competitors[comp] !== undefined &&
+                    (!rec.notMeasured || !rec.notMeasured[comp])) {
+                    nextMeasuredIndex = i;
+                    nextMeasuredOrderNum = rec.competitors[comp];
+                    break;
+                }
+            }
+
+            // Pokud máme obě hranice, přepočítat
+            if (prevMeasuredIndex !== -1 && nextMeasuredIndex !== -1) {
+                const prevDate = new Date(trackingData[prevMeasuredIndex].date);
+                const nextDate = new Date(trackingData[nextMeasuredIndex].date);
+                const currentDate = new Date(record.date);
+
+                // Vypočítat počet dní (kalendářních)
+                const totalDays = Math.round((nextDate - prevDate) / (1000 * 60 * 60 * 24));
+                const daysFromPrev = Math.round((currentDate - prevDate) / (1000 * 60 * 60 * 24));
+
+                const totalDelta = nextMeasuredOrderNum - prevMeasuredOrderNum;
+                const avgDeltaPerDay = totalDelta / totalDays;
+
+                // Vypočítat deltu pro tento nezměřený záznam (kumulativně od prev)
+                const estimatedCumulativeDelta = Math.round(avgDeltaPerDay * daysFromPrev);
+
+                // Delta pro tento konkrétní den (rozdíl oproti předchozímu záznamu)
+                const prevRecordOrderNum = trackingData[index - 1].competitors[comp] || prevMeasuredOrderNum;
+                const estimatedCurrentOrderNum = prevMeasuredOrderNum + estimatedCumulativeDelta;
+                const dailyDelta = estimatedCurrentOrderNum - prevRecordOrderNum;
+
+                console.log(`  📈 ${comp} [${formatDate(record.date)}]: Nezměřeno - přepočítána delta ${dailyDelta} (celkem ${totalDelta} obj. / ${totalDays} dní, ${daysFromPrev} dní od posledního měření)`);
+
+                // Nastavit přepočítanou deltu pro tento den
+                record.deltas[comp] = dailyDelta;
+
+                // Dopočítat číslo objednávky pro tento záznam
+                record.competitors[comp] = estimatedCurrentOrderNum;
+
+                // DŮLEŽITÉ: Přepočítat deltu i pro následující změřený záznam
+                // Protože ten původně počítal deltu oproti starému číslu, ne odhadovanému
+                const nextRecord = trackingData[nextMeasuredIndex];
+
+                // ⚠️ PRIORITA: Pokud má následující záznam manualDeltas nebo firstMeasurement, NEMĚNIT jeho deltu
+                if (nextRecord.manualDeltas && nextRecord.manualDeltas[comp] !== undefined) {
+                    console.log(`  ✏️ ${comp} [${formatDate(nextRecord.date)}]: Následující záznam má manuální deltu - přeskakuji přepočet`);
+                } else if (nextRecord.firstMeasurement && nextRecord.firstMeasurement[comp]) {
+                    console.log(`  ✨ ${comp} [${formatDate(nextRecord.date)}]: Následující záznam má firstMeasurement - přeskakuji přepočet`);
+                } else {
+                    const correctedNextDelta = nextMeasuredOrderNum - estimatedCurrentOrderNum;
+                    console.log(`  📈 ${comp} [${formatDate(nextRecord.date)}]: Přepočítána delta následujícího měření ${nextRecord.deltas[comp]} → ${correctedNextDelta}`);
+                    nextRecord.deltas[comp] = correctedNextDelta;
+                }
+            }
+        });
+    });
+}
+
+/**
+ * Přepočítá všechny delty
+ */
+function recalculateAllDeltas() {
+    console.log('🔄 Přepočítávám všechny delty...');
+
+    // Zavolat calculateDeltas
+    calculateDeltas();
+
+    // Uložit do databáze
+    saveTrackingData();
+
+    // Obnovit UI
+    renderTrackingTable();
+
+    alert('✅ Delty byly úspěšně přepočítány!');
+
+    console.log('✅ Přepočet dokončen');
+}
+
+/**
+ * Vyčistí zahraniční e-shopy ze záznamů s CZ/SK daty (jen pro opravu chybných dat)
+ */
+function cleanAndRecalculate() {
+    console.log('🧹 Čištění a přepočet...');
+
+    // Vyčistit zahraniční e-shopy ze záznamů s CZ/SK daty
+    cleanForeignEshopsFromRecords();
+
+    // Přepočítat delty
+    calculateDeltas();
+
+    // Uložit do databáze
+    saveTrackingData();
+
+    // Obnovit UI
+    renderTrackingTable();
+
+    alert('✅ Záznamy byly vyčištěny a delty přepočítány!');
+
+    console.log('✅ Čištění a přepočet dokončen');
+}
+
+/**
+ * Automaticky doplní chybějící data (kde je 0) pomocí interpolace
+ * Najde nejbližší předchozí a následující nenulovou hodnotu a spočítá průměr
+ */
+function interpolateMissingData() {
+    if (trackingData.length < 3) {
+        // Interpolace má smysl jen když máme alespoň 3 záznamy
+        return;
+    }
+
+    console.log('🔧 Interpolace chybějících dat...');
+    let interpolatedCount = 0;
+
+    // Pro každý e-shop zkontroluj všechny záznamy
+    COMPETITORS.forEach(comp => {
+        // Přeskočit vlastní e-shopy - ty mají delty zadané přímo uživatelem
+        if (OWN_ESHOPS.includes(comp)) {
+            return;
+        }
+
+        trackingData.forEach((record, index) => {
+            // Přeskočit první a poslední záznam
+            if (index === 0 || index === trackingData.length - 1) {
+                return;
+            }
+
+            // ⚠️ PRIORITA: Pokud má manualDeltas nebo firstMeasurement, PŘESKOČIT interpolaci
+            if (record.manualDeltas && record.manualDeltas[comp] !== undefined) {
+                // console.log(`✏️ ${comp} [${formatDate(record.date)}]: Má manuální deltu - přeskakuji interpolaci`);
+                return;
+            }
+            if (record.firstMeasurement && record.firstMeasurement[comp]) {
+                // console.log(`✨ ${comp} [${formatDate(record.date)}]: Má firstMeasurement - přeskakuji interpolaci`);
+                return;
+            }
+
+            // Pokud e-shop v tomto záznamu VŮBEC NEMÁ DATA (undefined), přeskočit
+            // Nechceme interpolovat e-shopy, které do tohoto záznamu nepatří (jiný trh)
+            const currentValue = record.competitors[comp];
+            if (currentValue === undefined) {
+                return; // E-shop není v tomto záznamu, neinterpolovat
+            }
+
+            // Interpolovat pouze pokud má e-shop explicitně hodnotu 0 (chybějící měření)
+            if (currentValue === 0) {
+                // Najít předchozí nenulovou hodnotu
+                let prevValue = null;
+                let prevIndex = -1;
+                for (let i = index - 1; i >= 0; i--) {
+                    const val = trackingData[i].competitors[comp] || 0;
+                    if (val !== 0) {
+                        prevValue = val;
+                        prevIndex = i;
+                        break;
+                    }
+                }
+
+                // Najít následující nenulovou hodnotu
+                let nextValue = null;
+                let nextIndex = -1;
+                for (let i = index + 1; i < trackingData.length; i++) {
+                    const val = trackingData[i].competitors[comp] || 0;
+                    if (val !== 0) {
+                        nextValue = val;
+                        nextIndex = i;
+                        break;
+                    }
+                }
+
+                // Pokud máme obě hodnoty, spočítat interpolaci
+                if (prevValue !== null && nextValue !== null) {
+                    // Lineární interpolace podle vzdálenosti
+                    const totalDistance = nextIndex - prevIndex;
+                    const currentDistance = index - prevIndex;
+                    const ratio = currentDistance / totalDistance;
+
+                    const interpolatedValue = Math.round(prevValue + (nextValue - prevValue) * ratio);
+
+                    console.log(`  📊 ${comp} [${formatDate(record.date)}]: Interpolace ${prevValue} → ${interpolatedValue} → ${nextValue}`);
+
+                    // Uložit interpolovanou hodnotu
+                    record.competitors[comp] = interpolatedValue;
+
+                    // Přepočítat deltu pro tento záznam
+                    if (index > 0) {
+                        const prevRecord = trackingData[index - 1];
+                        const prevOrderNum = prevRecord.competitors[comp] || 0;
+
+                        if (MONTHLY_RESET_COMPETITORS.includes(comp)) {
+                            record.deltas[comp] = calculateDeltaWithMonthlyReset(
+                                interpolatedValue,
+                                prevOrderNum,
+                                comp,
+                                record,
+                                prevRecord,
+                                trackingData,
+                                index
+                            );
+                        } else {
+                            record.deltas[comp] = interpolatedValue - prevOrderNum;
+                        }
+                    }
+
+                    interpolatedCount++;
+                }
+            }
+        });
+    });
+
+    if (interpolatedCount > 0) {
+        console.log(`✅ Interpolováno ${interpolatedCount} chybějících hodnot`);
+    }
+}
+
+// =====================================================
+// IMPORT Z GOOGLE SHEETS
+// =====================================================
+
+async function importFromGoogleSheetsCustomFormat() {
+    try {
+        const urlInput = document.getElementById('google-sheets-url');
+        const statusDiv = document.getElementById('import-status');
+
+        // Ošetření případu, kdy element neexistuje
+        if (!urlInput) {
+            console.error('❌ Element google-sheets-url nebyl nalezen v DOM');
+            console.error('Zkontrolujte, že modal "dataManagementModal" je správně načten');
+            alert('Chyba: Formulář pro import nebyl správně načten. Zkuste obnovit stránku (Ctrl+F5).');
+            return;
+        }
+
+        const url = urlInput.value.trim();
+
+        function showStatus(message, type = 'info') {
+            if (!statusDiv) {
+                console.warn('Status div nebyl nalezen, vypíšu do console:', message);
+                return;
+            }
+            statusDiv.classList.remove('hidden', 'bg-blue-50', 'bg-green-50', 'bg-red-50', 'text-blue-800', 'text-green-800', 'text-red-800');
+
+            if (type === 'success') {
+                statusDiv.classList.add('bg-green-50', 'text-green-800');
+            } else if (type === 'error') {
+                statusDiv.classList.add('bg-red-50', 'text-red-800');
+            } else {
+                statusDiv.classList.add('bg-blue-50', 'text-blue-800');
+            }
+
+            statusDiv.classList.add('p-3', 'rounded-lg', 'text-sm');
+            statusDiv.innerHTML = message;
+        }
+
+        if (!url) {
+            showStatus('⚠️ Zadejte URL Google Sheets tabulky', 'error');
+            return;
+        }
+
+        // Extrahování Spreadsheet ID
+        const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+        if (!match) {
+            showStatus('⚠️ Neplatná URL Google Sheets', 'error');
+            return;
+        }
+
+        const spreadsheetId = match[1];
+
+        // Získat vybraný list
+        const sheetSelector = document.getElementById('sheet-selector');
+        const sheetName = sheetSelector && sheetSelector.value ? sheetSelector.value : "List1";
+
+        // Získat režim importu (merge nebo replace)
+        const importModeRadio = document.querySelector('input[name="import-mode"]:checked');
+        const importMode = importModeRadio ? importModeRadio.value : 'merge';
+
+        console.log(`Import začíná: ${sheetName} z ${spreadsheetId} (režim: ${importMode})`);
+
+        showStatus(`Načítám data z listu "${sheetName}"...`, 'info');
+
+        const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+
+        const response = await fetch(csvUrl);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const csvText = await response.text();
+
+        showStatus('Parsování dat...', 'info');
+        parseCustomCSV(csvText, importMode);
+
+        if (trackingData.length === 0) {
+            throw new Error('Nebyly načteny žádné záznamy. Zkontroluj strukturu tabulky.');
+        }
+
+        showStatus('⏳ Výpočet delt...', 'info');
+        calculateDeltas();
+
+        showStatus('⏳ Ukládám data...', 'info');
+
+        // Uložit do localStorage
+        await saveTrackingData();
+
+        // Uložit všechny záznamy do Firestore (pokud je aktivní)
+        if (typeof saveAllTrackingDataToFirestore === 'function') {
+            await saveAllTrackingDataToFirestore(trackingData);
+        }
+
+        renderTrackingTable();
+        if (typeof updateMetricsDisplay === 'function') {
+            updateMetricsDisplay();
+        }
+        if (typeof updateAllCharts === 'function') {
+            updateAllCharts();
+        }
+
+        // Spočítat importované konkurenty a vlastní e-shopy
+        const sampleRecord = trackingData[0] || { competitors: {}, deltas: {} };
+        const importedCompetitors = Object.keys(sampleRecord.competitors).filter(k => sampleRecord.competitors[k] > 0).length;
+        const importedOwnShops = Object.keys(sampleRecord.deltas).filter(k =>
+            ['ruzovyslon.cz', 'sexyelephant.cz', 'e-kondomy.cz'].includes(k) && sampleRecord.deltas[k] !== undefined
+        ).length;
+
+        showStatus(`✅ Úspěšně importováno <strong>${trackingData.length} záznamů</strong>!<br>` +
+            `<small>📊 Konkurenti: ${importedCompetitors} e-shopů (absolutní čísla)</small><br>` +
+            `<small>🏪 Vlastní e-shopy: ${importedOwnShops} e-shopů (delty z "Objednáno kusů")</small>`, 'success');
+
+        setTimeout(() => {
+            if (typeof closeDataManagementModal === 'function') {
+                closeDataManagementModal();
+            }
+        }, 2000);
+
+    } catch (error) {
+        console.error('❌ Chyba při importu:', error);
+        console.error('Stack trace:', error.stack);
+
+        const statusDiv = document.getElementById('import-status');
+        if (statusDiv) {
+            statusDiv.classList.remove('hidden', 'bg-blue-50', 'bg-green-50', 'bg-red-50', 'text-blue-800', 'text-green-800', 'text-red-800');
+            statusDiv.classList.add('bg-red-50', 'text-red-800', 'p-3', 'rounded-lg', 'text-sm');
+            statusDiv.innerHTML = `❌ Chyba při importu: ${error.message}<br><small>Zkontroluj konzoli (F12) pro více informací</small>`;
+        } else {
+            alert(`Chyba při importu: ${error.message}\n\nOtevři konzoli (F12) pro více informací.`);
+        }
+    }
+}
+
+/**
+ * Parser pro VERTIKÁLNÍ formát
+ * Struktura: E-SHOP | Datum | Číslo obj. | Počet obj.
+ *
+ * Příklad:
+ * deeplove.cz | 6.1.2025  | 225010673 | 859
+ * erosstar.cz | 6.1.2025  | 125010687 | 687
+ * deeplove.cz | 13.1.2025 | 225011646 | 973
+ */
+function parseVerticalCSV(lines, importMode = 'replace') {
+    const header = parseCSVLine(lines[0]);
+
+    // Najít indexy sloupců
+    let eshopIndex = -1;
+    let dateIndex = -1;
+    let orderNumIndex = -1;
+    let countIndex = -1;
+
+    header.forEach((col, index) => {
+        const colLower = col.toLowerCase().trim();
+        if (colLower.includes('e-shop') || colLower.includes('eshop')) {
+            eshopIndex = index;
+        } else if (colLower.includes('datum') || colLower.includes('date')) {
+            dateIndex = index;
+        } else if (colLower.includes('číslo') || colLower.includes('cislo')) {
+            orderNumIndex = index;
+        } else if (colLower.includes('počet') || colLower.includes('pocet') || colLower.includes('count')) {
+            countIndex = index;
+        }
+    });
+
+    console.log(`📍 Indexy sloupců: E-SHOP=${eshopIndex}, Datum=${dateIndex}, Číslo obj.=${orderNumIndex}, Počet obj.=${countIndex}`);
+
+    if (eshopIndex === -1 || dateIndex === -1) {
+        console.error('❌ Nepodařilo se najít povinné sloupce');
+        throw new Error('Nenalezeny požadované sloupce (E-SHOP, Datum)');
+    }
+
+    // Číslo obj. a Počet obj. jsou nepovinné
+    if (orderNumIndex === -1 && countIndex === -1) {
+        console.error('❌ Musí být alespoň jeden sloupec: Číslo obj. nebo Počet obj.');
+        throw new Error('Nenalezen žádný sloupec s daty objednávek');
+    }
+
+    // Seskupit řádky podle data
+    const recordsByDate = {};
+
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        const columns = parseCSVLine(line);
+        if (columns.length < 3) continue;
+
+        const eshop = columns[eshopIndex]?.trim();
+        const dateStr = columns[dateIndex]?.trim();
+        const orderNum = columns[orderNumIndex]?.trim();
+        const count = countIndex !== -1 ? columns[countIndex]?.trim() : '';
+
+        if (!eshop || !dateStr) continue;
+
+        // Konverze data
+        const formattedDate = formatDateForStorage(dateStr);
+        if (!formattedDate) {
+            console.warn(`⚠️ Neplatné datum: "${dateStr}"`);
+            continue;
+        }
+
+        // Inicializovat záznam pro toto datum
+        if (!recordsByDate[formattedDate]) {
+            recordsByDate[formattedDate] = {
+                date: formattedDate,
+                competitors: {},
+                deltas: {}
+            };
+        }
+
+        // Přidat data e-shopu - POUZE pokud jsou v CSV přítomná
+        if (orderNum && orderNum.trim() !== '') {
+            const parsed = parseInt(orderNum);
+            if (!isNaN(parsed) && parsed !== 0) {
+                recordsByDate[formattedDate].competitors[eshop] = parsed;
+            }
+        }
+
+        if (count && count.trim() !== '') {
+            const parsed = parseInt(count);
+            if (!isNaN(parsed)) {
+                recordsByDate[formattedDate].deltas[eshop] = parsed;
+            }
+        }
+    }
+
+    // Zachovat existující data pokud je režim 'merge'
+    const existingData = importMode === 'merge' ? [...trackingData] : [];
+
+    // Převést na pole a seřadit podle data
+    trackingData = Object.values(recordsByDate)
+        .sort((a, b) => new Date(a.date) - new Date(b.date))
+        .map((record, index) => ({
+            id: Date.now() + index,
+            date: record.date,
+            competitors: record.competitors,
+            deltas: record.deltas,
+            cellNotes: {},
+            monthEndValues: {},
+            notes: ''
+        }));
+
+    // Sloučit s existujícími daty pokud je režim 'merge'
+    if (importMode === 'merge' && existingData.length > 0) {
+        console.log(`🔄 Slučuji s ${existingData.length} existujícími záznamy...`);
+
+        // Vytvořit mapu nových záznamů podle data pro rychlé vyhledávání
+        const newRecordsByDate = {};
+        trackingData.forEach(record => {
+            newRecordsByDate[record.date] = record;
+        });
+
+        // Projít existující záznamy a sloučit je s novými
+        existingData.forEach(existingRecord => {
+            const newRecord = newRecordsByDate[existingRecord.date];
+
+            if (newRecord) {
+                // Záznam s tímto datem existuje v nových datech - sloučit
+                newRecord.competitors = { ...existingRecord.competitors, ...newRecord.competitors };
+                newRecord.deltas = { ...existingRecord.deltas, ...newRecord.deltas };
+                newRecord.manualDeltas = { ...existingRecord.manualDeltas, ...newRecord.manualDeltas };
+                newRecord.notMeasured = { ...existingRecord.notMeasured, ...newRecord.notMeasured };
+                newRecord.notes = existingRecord.notes && newRecord.notes
+                    ? existingRecord.notes + '\n' + newRecord.notes
+                    : existingRecord.notes || newRecord.notes;
+
+                // Zachovat původní ID a firestoreId
+                newRecord.id = existingRecord.id;
+                newRecord.firestoreId = existingRecord.firestoreId;
+            } else {
+                // Záznam neexistuje v nových datech - zachovat existující
+                trackingData.push(existingRecord);
+            }
+        });
+
+        console.log(`✅ Sloučeno: ${trackingData.length} celkem záznamů`);
+    }
+
+    console.log(`✅ Načteno ${trackingData.length} záznamů z vertikálního CSV`);
+    if (trackingData.length > 0) {
+        console.log('📅 První záznam:', trackingData[0].date);
+        console.log('📅 Poslední záznam:', trackingData[trackingData.length - 1].date);
+        console.log('📊 E-shopy v prvním záznamu:', Object.keys(trackingData[0].competitors).join(', '));
+    }
+
+    window.trackingData = trackingData;
+}
+
+function parseCustomCSV(csvText, importMode = 'replace') {
+    const lines = csvText.split('\n');
+    if (lines.length < 2) {
+        console.error('CSV nemá dostatek řádků');
+        return;
+    }
+
+    // Parsovat záhlaví
+    const header = parseCSVLine(lines[0]);
+    console.log('📋 Načtených sloupců:', header.length);
+    console.log('📋 Sloupce:', header.join(' | '));
+    console.log(`📋 Režim importu: ${importMode === 'merge' ? '✨ Doplnit data' : '🔄 Přepsat vše'}`);
+
+    // Detekovat formát tabulky (vertikální vs horizontální)
+    const hasEshopColumn = header.some(col =>
+        col.toLowerCase().includes('e-shop') ||
+        col.toLowerCase().includes('eshop')
+    );
+
+    if (hasEshopColumn) {
+        console.log('🔄 Detekován VERTIKÁLNÍ formát (jeden e-shop na řádek)');
+        parseVerticalCSV(lines, importMode);
+        return;
+    }
+
+    console.log('🔄 Detekován HORIZONTÁLNÍ formát (e-shopy jako sloupce)');
+
+    // HORIZONTÁLNÍ PARSER (původní kód)
+    // columnMap = čísla objednávek (absolutní) pro konkurenty
+    // deltaMap = "Objednáno kusů" (delty) pro vlastní e-shopy
+    const columnMap = {};
+    const deltaMap = {};
+
+    header.forEach((col, index) => {
+        const colLower = col.toLowerCase().trim();
+        // Normalizovat diakritiku pro lepší detekci
+        const colNormalized = colLower
+            .replace(/á/g, 'a')
+            .replace(/í/g, 'i')
+            .replace(/é/g, 'e')
+            .replace(/ů/g, 'u')
+            .replace(/ú/g, 'u')
+            .replace(/č/g, 'c')
+            .replace(/š/g, 's')
+            .replace(/ž/g, 'z')
+            .replace(/ý/g, 'y')
+            .replace(/ň/g, 'n');
+
+        const isOrderedPiecesColumn = colLower.includes('objednáno kusů') ||
+                                       colNormalized.includes('objednano kusu') ||
+                                       colLower.includes('obj. kusů') ||
+                                       colNormalized.includes('obj. kusu');
+
+        // Detekce vlastních e-shopů v "Objednáno kusů" sloupcích
+        if (isOrderedPiecesColumn) {
+            if (colNormalized.includes('ruzovy slon') ||
+                colNormalized.includes('r.slon') ||
+                colNormalized.includes('rslon')) {
+                deltaMap['ruzovyslon.cz'] = index;
+                console.log(`✅ Detekován delta sloupec: Růžový Slon (${col}, index ${index})`);
+            }
+            else if (colLower.includes('sexy elephant') ||
+                     colNormalized.includes('sexyelephant') ||
+                     colNormalized.includes('s.elephant')) {
+                deltaMap['sexyelephant.cz'] = index;
+                console.log(`✅ Detekován delta sloupec: Sexy Elephant (${col}, index ${index})`);
+            }
+            else if (colLower.includes('e-kondomy') ||
+                     colNormalized.includes('ekondomy') ||
+                     colNormalized.includes('e-kond')) {
+                deltaMap['e-kondomy.cz'] = index;
+                console.log(`✅ Detekován delta sloupec: e-kondomy.cz (${col}, index ${index})`);
+            }
+        }
+        // Mapování sloupců konkurentů (číslo objednávky, ne delta)
+        else {
+            if (colLower.includes('hopnato')) columnMap['Hopnato.cz'] = index;
+            else if (colLower.includes('erosstar')) columnMap['erosstar.cz'] = index;
+            else if (colLower.includes('deeplove')) columnMap['deeplove.cz'] = index;
+            else if (colLower.includes('yoo.cz') || colLower === 'yoo') columnMap['yoo.cz'] = index;
+            else if (colLower.includes('sexicek')) columnMap['sexicekshop.cz'] = index;
+            else if (colLower.includes('honitka')) columnMap['honitka.cz'] = index;
+            else if (colLower.includes('sexshop.cz')) columnMap['sexshop.cz'] = index;
+            else if (colLower.includes('eroticke')) columnMap['eroticke-pomucky.cz'] = index;
+            else if (colLower.includes('flagranti')) columnMap['flagranti.cz'] = index;
+            else if (colLower.includes('sexshopik')) columnMap['sexshopik.cz'] = index;
+            else if (colLower.includes('sex-shop69')) columnMap['sex-shop69.cz'] = index;
+            else if (colLower.includes('eroticcity')) columnMap['eroticcity.cz'] = index;
+            else if (colLower.includes('kondomshop')) columnMap['kondomshop.cz'] = index;
+        }
+    });
+
+    console.log('🎯 Nalezené sloupce (absolutní čísla):', Object.keys(columnMap).length);
+    console.log('🎯 Mapované konkurenty:', Object.keys(columnMap));
+    console.log('🎯 Nalezené sloupce (delty):', Object.keys(deltaMap).length);
+    console.log('🎯 Mapované vlastní e-shopy:', Object.keys(deltaMap));
+
+    // Parsovat data
+    // V režimu 'replace' smazat všechna data, v režimu 'merge' zachovat existující
+    const existingData = importMode === 'merge' ? [...trackingData] : [];
+    trackingData = [];
+
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        const columns = parseCSVLine(line);
+        if (columns.length < 2) continue;
+
+        const dateStr = columns[0];
+        if (!dateStr) continue;
+
+        // Konverze data
+        const formattedDate = formatDateForStorage(dateStr);
+        if (!formattedDate) continue;
+
+        // Vytvoření záznamu
+        const record = {
+            id: Date.now() + i,
+            date: formattedDate,
+            competitors: {},
+            deltas: {},
+            notes: ''
+        };
+
+        // Načtení čísel objednávek pro konkurenty (absolutní čísla)
+        Object.keys(columnMap).forEach(competitor => {
+            const colIndex = columnMap[competitor];
+            const value = columns[colIndex];
+            // Nastavit hodnotu pouze pokud je v CSV přítomná a nenulová
+            if (value && value.trim() !== '') {
+                const parsed = parseInt(value);
+                if (!isNaN(parsed) && parsed !== 0) {
+                    record.competitors[competitor] = parsed;
+                }
+            }
+            // Pokud není přítomná, zůstane undefined (nebudeme nastavovat na 0)
+        });
+
+        // Načtení delt pro vlastní e-shopy (přímo z "Objednáno kusů")
+        Object.keys(deltaMap).forEach(eshop => {
+            const colIndex = deltaMap[eshop];
+            const value = columns[colIndex];
+
+            // Nastavit deltu pouze pokud je v CSV přítomná
+            if (value && value.trim() !== '') {
+                const parsed = parseInt(value);
+                if (!isNaN(parsed)) {
+                    // Pro vlastní e-shopy uložíme deltu přímo (může být i 0)
+                    record.deltas[eshop] = parsed;
+                    // A také nastavíme competitors na 0 (nebudeme počítat deltu znovu)
+                    record.competitors[eshop] = 0;
+                }
+            }
+            // Pokud není přítomná, zůstane undefined
+        });
+
+        trackingData.push(record);
+    }
+
+    // Sloučit s existujícími daty pokud je režim 'merge'
+    if (importMode === 'merge' && existingData.length > 0) {
+        console.log(`🔄 Slučuji s ${existingData.length} existujícími záznamy...`);
+
+        // Vytvořit mapu nových záznamů podle data pro rychlé vyhledávání
+        const newRecordsByDate = {};
+        trackingData.forEach(record => {
+            newRecordsByDate[record.date] = record;
+        });
+
+        // Projít existující záznamy a sloučit je s novými
+        existingData.forEach(existingRecord => {
+            const newRecord = newRecordsByDate[existingRecord.date];
+
+            if (newRecord) {
+                // Záznam s tímto datem existuje v nových datech - sloučit
+                newRecord.competitors = { ...existingRecord.competitors, ...newRecord.competitors };
+                newRecord.deltas = { ...existingRecord.deltas, ...newRecord.deltas };
+                newRecord.manualDeltas = { ...existingRecord.manualDeltas, ...newRecord.manualDeltas };
+                newRecord.notMeasured = { ...existingRecord.notMeasured, ...newRecord.notMeasured };
+                newRecord.notes = existingRecord.notes && newRecord.notes
+                    ? existingRecord.notes + '\n' + newRecord.notes
+                    : existingRecord.notes || newRecord.notes;
+
+                // Zachovat původní ID a firestoreId
+                newRecord.id = existingRecord.id;
+                newRecord.firestoreId = existingRecord.firestoreId;
+            } else {
+                // Záznam neexistuje v nových datech - zachovat existující
+                trackingData.push(existingRecord);
+            }
+        });
+
+        console.log(`✅ Sloučeno: ${trackingData.length} celkem záznamů`);
+    }
+
+    console.log(`✅ Načteno ${trackingData.length} záznamů z CSV`);
+    if (trackingData.length > 0) {
+        console.log('📅 První záznam:', trackingData[0].date);
+        console.log('📅 Poslední záznam:', trackingData[trackingData.length - 1].date);
+    }
+}
+
+function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+
+        if (char === '"') {
+            inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+            result.push(current.trim());
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+
+    result.push(current.trim());
+    return result;
+}
+
+function formatDateForStorage(dateStr) {
+    // Zkusí parsovat různé formáty data
+    const formats = [
+        /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/, // DD.MM.YYYY
+        /^(\d{4})-(\d{1,2})-(\d{1,2})$/, // YYYY-MM-DD
+        /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/ // DD/MM/YYYY
+    ];
+
+    for (let format of formats) {
+        const match = dateStr.match(format);
+        if (match) {
+            let year, month, day;
+
+            if (format.source.startsWith('^(\\d{4})')) {
+                // YYYY-MM-DD
+                year = match[1];
+                month = match[2].padStart(2, '0');
+                day = match[3].padStart(2, '0');
+            } else {
+                // DD.MM.YYYY nebo DD/MM/YYYY
+                day = match[1].padStart(2, '0');
+                month = match[2].padStart(2, '0');
+                year = match[3];
+            }
+
+            return `${year}-${month}-${day}`;
+        }
+    }
+
+    return null;
+}
+
+// =====================================================
+// ULOŽENÍ A NAČTENÍ DAT
+// =====================================================
+
+async function saveTrackingData() {
+    try {
+        if (typeof window.useFirestore === 'function' && window.useFirestore()) {
+            // Firestore je aktivní - realtime sync se postará o synchronizaci
+            // Neukládáme celé pole, jen notifikujeme o změně
+            localStorage.setItem('trackingData', JSON.stringify(trackingData));
+        } else {
+            // Fallback na LocalStorage
+            localStorage.setItem('trackingData', JSON.stringify(trackingData));
+        }
+    } catch (e) {
+        console.error('Chyba při ukládání:', e);
+        localStorage.setItem('trackingData', JSON.stringify(trackingData));
+    }
+}
+
+async function loadTrackingData() {
+    try {
+        if (typeof loadTrackingDataFromFirestore === 'function') {
+            const data = await loadTrackingDataFromFirestore();
+            // Pokud Firestore vrátilo data (i prázdné pole), použij je a synchronizuj localStorage
+            if (data !== null && data !== undefined) {
+                trackingData = data;
+                window.trackingData = trackingData;
+
+                // Synchronizovat localStorage s Firestore
+                if (data.length === 0) {
+                    localStorage.removeItem('trackingData');
+                } else {
+                    localStorage.setItem('trackingData', JSON.stringify(data));
+                }
+                return;
+            }
+        }
+
+        // Fallback na LocalStorage pouze pokud Firestore není dostupný
+        const saved = localStorage.getItem('trackingData');
+        if (saved) {
+            trackingData = JSON.parse(saved);
+            window.trackingData = trackingData;
+        }
+    } catch (e) {
+        console.error('Chyba při načítání:', e);
+        trackingData = [];
+        window.trackingData = trackingData;
+    }
+
+    // ============================================
+    // SPECIÁLNÍ FIX: hopnato.cz 12.5.2025
+    // ============================================
+    // Natvrdo opravit hopnato.cz pro datum 12.5.2025
+    // Nová číselná řada začala číslem 2615961, delta má být 0
+    const record = trackingData.find(r => r.date === '2025-05-12');
+    if (record) {
+        console.log('🔧 Aplikuji speciální fix pro hopnato.cz na 12.5.2025');
+
+        // Inicializovat objekty pokud neexistují
+        if (!record.competitors) record.competitors = {};
+        if (!record.deltas) record.deltas = {};
+        if (!record.firstMeasurement) record.firstMeasurement = {};
+        if (!record.manualDeltas) record.manualDeltas = {};
+
+        // Zkusit obě varianty názvu (s velkým i malým H)
+        const eshopVariants = ['Hopnato.cz', 'hopnato.cz'];
+        for (const eshop of eshopVariants) {
+            if (record.competitors[eshop] !== undefined || record.deltas[eshop] !== undefined) {
+                console.log(`   Nalezen e-shop: ${eshop}`);
+
+                // Nastavit nové hodnoty
+                record.competitors[eshop] = 2615961;
+                record.deltas[eshop] = 0;
+                record.firstMeasurement[eshop] = true;
+                record.manualDeltas[eshop] = 0;
+
+                console.log(`   ✅ ${eshop} opraveno: číslo=2615961, delta=0, firstMeasurement=true, manualDelta=0`);
+            }
+        }
+
+        // Přepočítat všechny delty (aby se aktualizovaly následující záznamy)
+        console.log('🔄 Přepočítávám všechny delty...');
+        calculateDeltas();
+
+        // Uložit zpět
+        localStorage.setItem('trackingData', JSON.stringify(trackingData));
+        console.log('💾 Uloženo do localStorage');
+
+        // Synchronizovat s Firestore pokud je dostupné
+        if (typeof saveTrackingDataToFirestore === 'function') {
+            saveTrackingDataToFirestore(trackingData).catch(err => {
+                console.error('❌ Chyba při synchronizaci s Firestore:', err);
+            });
+        }
+
+        console.log('🎉 Speciální fix pro hopnato.cz dokončen!');
+    }
+}
+
+// =====================================================
+// EXPORT DO EXCELU (CSV)
+// =====================================================
+
+/**
+ * Exportuje všechna data ze Sledování objednávek do CSV formátu (pro Excel)
+ * Struktura: Datum | erosstar.cz | deeplove.cz | ... (všechny e-shopy)
+ * Druhý řádek pro každé datum: Delta pro každý e-shop
+ */
+function exportTrackingToExcel() {
+    if (!window.trackingData || window.trackingData.length === 0) {
+        alert('Nejsou k dispozici žádná data pro export.');
+        return;
+    }
+
+    console.log('📥 Export sledování objednávek do CSV...');
+
+    // Seřadit podle data (nejstarší první)
+    const sortedData = [...window.trackingData].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Vytvořit hlavičku CSV
+    let csv = 'Datum';
+
+    // Přidat všechny e-shopy jako sloupce
+    COMPETITORS.forEach(comp => {
+        csv += `,${comp}`;
+    });
+    csv += '\n';
+
+    // Pro každý záznam vytvoř dva řádky: čísla objednávek a delty
+    sortedData.forEach(record => {
+        // Formátovat datum pro Excel (DD.MM.YYYY)
+        const dateParts = record.date.split('-'); // YYYY-MM-DD
+        const excelDate = `${dateParts[2]}.${dateParts[1]}.${dateParts[0]}`;
+
+        // Řádek 1: Čísla objednávek (označit nezměřené jako N/A)
+        let row1 = `"${excelDate}"`;
+        COMPETITORS.forEach(comp => {
+            const isNotMeasured = record.notMeasured && record.notMeasured[comp];
+            if (isNotMeasured) {
+                row1 += `,N/A`;
+            } else {
+                const orderNum = record.competitors[comp] || 0;
+                row1 += `,${orderNum}`;
+            }
+        });
+        csv += row1 + '\n';
+
+        // Řádek 2: Deltas (označit nezměřené jako N/A)
+        let row2 = `"  Δ ${excelDate}"`;
+        COMPETITORS.forEach(comp => {
+            const isNotMeasured = record.notMeasured && record.notMeasured[comp];
+            if (isNotMeasured) {
+                row2 += `,N/A`;
+            } else {
+                const delta = record.deltas[comp] || 0;
+                row2 += `,${delta}`;
+            }
+        });
+        csv += row2 + '\n';
+    });
+
+    // Stáhnout CSV soubor
+    const BOM = '\uFEFF'; // Byte Order Mark pro správné zobrazení diakritiky v Excelu
+    const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sledovani-objednavek-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    console.log(`✅ Exportováno ${sortedData.length} záznamů do CSV`);
+}
+
+/**
+ * Vyčistí stará data - odstraní hodnoty pro e-shopy, které do daného záznamu nepatří
+ * Používá se pro opravu dat, která byla vytvořena před opravou nezávislosti trhů
+ */
+function cleanupMarketData() {
+    // Definice e-shopů podle trhů
+    const CZ_ESHOPS = [
+        "Hopnato.cz", "erosstar.cz", "deeplove.cz", "yoo.cz", "honitka.cz",
+        "eroticke-pomucky.cz", "flagranti.cz", "sexshopik.cz", "e-kondomy.cz",
+        "ruzovyslon.cz", "kondomshop.cz"
+    ];
+
+    const SK_ESHOPS = [
+        "isexshop.sk", "flagranti.sk", "superlove.sk", "eros.sk", "erotickyshop.sk",
+        "ruzovyslon.sk", "kondomshop.sk"
+    ];
+
+    const FOREIGN_ESHOPS = [
+        "sexyelephant.ro", "sexyelephant.hu", "sexyelephant.si", "sexyelephant.bg", "sexyelephant.hr",
+        "superlove.ro", "superlove.pl", "superlove.eu", "superlove.at", "superlove.hr",
+        "superlove.it", "superlove.si", "superlove.bg", "superlove.lt", "superlove.es", "superlove.hu",
+        "goldengate.hu", "padlizsan.hu", "sexshopcenter.hu", "erotikashow.hu", "szexaruhaz.hu", "szexshop.hu", "vagyaim.hu"
+    ];
+
+    let cleanedCount = 0;
+
+    trackingData.forEach(record => {
+        // Zjistit, které trhy mají v tomto záznamu nenulové hodnoty
+        const hasCzData = CZ_ESHOPS.some(eshop =>
+            (record.competitors[eshop] !== undefined && record.competitors[eshop] !== 0) ||
+            (record.deltas[eshop] !== undefined && record.deltas[eshop] !== 0)
+        );
+
+        const hasSkData = SK_ESHOPS.some(eshop =>
+            (record.competitors[eshop] !== undefined && record.competitors[eshop] !== 0) ||
+            (record.deltas[eshop] !== undefined && record.deltas[eshop] !== 0)
+        );
+
+        const hasForeignData = FOREIGN_ESHOPS.some(eshop =>
+            (record.competitors[eshop] !== undefined && record.competitors[eshop] !== 0) ||
+            (record.deltas[eshop] !== undefined && record.deltas[eshop] !== 0)
+        );
+
+        // Vyčistit e-shopy, které nepatří do trhů s daty
+        let eshopsToClean = [];
+
+        if (!hasCzData) {
+            eshopsToClean = eshopsToClean.concat(CZ_ESHOPS);
+        }
+        if (!hasSkData) {
+            eshopsToClean = eshopsToClean.concat(SK_ESHOPS);
+        }
+        if (!hasForeignData) {
+            eshopsToClean = eshopsToClean.concat(FOREIGN_ESHOPS);
+        }
+
+        // Odstranit hodnoty pro e-shopy, které do tohoto záznamu nepatří
+        eshopsToClean.forEach(eshop => {
+            if (record.competitors[eshop] !== undefined || record.deltas[eshop] !== undefined) {
+                delete record.competitors[eshop];
+                delete record.deltas[eshop];
+                cleanedCount++;
+            }
+        });
+    });
+
+    console.log(`🧹 Vyčištěno ${cleanedCount} hodnot z ${trackingData.length} záznamů`);
+
+    // Uložit vyčištěná data
+    saveTrackingData();
+
+    // Uložit do Firestore
+    if (typeof saveAllTrackingRecordsToFirestore === 'function') {
+        saveAllTrackingRecordsToFirestore(trackingData);
+    }
+
+    // Překreslit tabulky
+    if (typeof renderTrackingTable === 'function') {
+        renderTrackingTable();
+    }
+
+    alert(`✅ Data vyčištěna! Odstraněno ${cleanedCount} hodnot z ${trackingData.length} záznamů.`);
+}
+
+// =====================================================
+// ZÁLOHOVÁNÍ A OBNOVA DAT
+// =====================================================
+
+/**
+ * Zálohuje všechna tracking data do JSON souboru
+ */
+function backupTrackingData() {
+    if (!window.trackingData || window.trackingData.length === 0) {
+        alert('Nejsou k dispozici žádná data pro zálohování.');
+        return;
+    }
+
+    const backup = {
+        version: '1.0',
+        timestamp: new Date().toISOString(),
+        dataCount: window.trackingData.length,
+        data: window.trackingData
+    };
+
+    const json = JSON.stringify(backup, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tracking-data-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+
+    URL.revokeObjectURL(url);
+
+    console.log(`✅ Záloha vytvořena: ${window.trackingData.length} záznamů`);
+    alert(`✅ Záloha úspěšně vytvořena!\n\nZálohováno ${window.trackingData.length} záznamů.`);
+}
+
+/**
+ * Obnoví tracking data ze záložního JSON souboru
+ */
+function restoreTrackingData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!confirm('Opravdu chceš obnovit data ze zálohy?\n\nStávající data budou PŘEPSÁNA!')) {
+        event.target.value = ''; // Reset input
+        return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        try {
+            const backup = JSON.parse(e.target.result);
+
+            // Validace zálohy
+            if (!backup.data || !Array.isArray(backup.data)) {
+                throw new Error('Neplatný formát zálohy - chybí pole "data"');
+            }
+
+            // Obnovit data
+            window.trackingData = backup.data;
+
+            // Přepočítat delty
+            calculateDeltas();
+
+            // Uložit do localStorage
+            saveTrackingData();
+
+            // Uložit do Firestore
+            if (typeof saveAllTrackingDataToFirestore === 'function') {
+                saveAllTrackingDataToFirestore(window.trackingData);
+            }
+
+            // Překreslit tabulky a metriky
+            if (typeof renderTrackingTable === 'function') {
+                renderTrackingTable();
+            }
+            if (typeof updateMetricsDisplay === 'function') {
+                updateMetricsDisplay();
+            }
+            if (typeof updateAllCharts === 'function') {
+                updateAllCharts();
+            }
+
+            console.log(`✅ Data obnovena ze zálohy: ${window.trackingData.length} záznamů`);
+            alert(`✅ Data úspěšně obnovena!\n\nObnoveno ${window.trackingData.length} záznamů.\nZáloha z: ${new Date(backup.timestamp).toLocaleString('cs-CZ')}`);
+
+        } catch (error) {
+            console.error('❌ Chyba při obnově ze zálohy:', error);
+            alert(`❌ Chyba při obnově ze zálohy:\n\n${error.message}`);
+        }
+
+        // Reset input
+        event.target.value = '';
+    };
+
+    reader.readAsText(file);
+}
+
+// Export funkcí
+window.importFromGoogleSheetsCustomFormat = importFromGoogleSheetsCustomFormat;
+window.exportTrackingToExcel = exportTrackingToExcel;
+window.backupTrackingData = backupTrackingData;
+window.restoreTrackingData = restoreTrackingData;
+window.calculateDeltas = calculateDeltas;
+window.saveTrackingData = saveTrackingData;
+window.loadTrackingData = loadTrackingData;
+window.cleanupMarketData = cleanupMarketData;
+window.trackingData = trackingData;
+window.COMPETITORS = COMPETITORS;
+window.OWN_ESHOPS = OWN_ESHOPS;
+window.CZ_ESHOPS = CZ_ESHOPS;
+window.SK_ESHOPS = SK_ESHOPS;
+window.FOREIGN_ESHOPS = FOREIGN_ESHOPS;

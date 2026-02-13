@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sledování konkurence - Růžový Slon</title>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+    <!-- Ostatní knihovny -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@3.0.0/index.min.js"></script>
+    <style>
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 250px;
+            max-height: 400px;
+        }
+        @media (min-width: 640px) {
+            .chart-container {
+                height: 300px;
+            }
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        @media (min-width: 1024px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+
+        .large-chart-container {
+            position: relative;
+            width: 100%;
+            height: 450px;
+        }
+
+        #campaign-table-body td:nth-child(1) { min-width: 130px; }
+        #campaign-table-body td:nth-child(2) { min-width: 100px; }
+        #campaign-table-body td:nth-child(3) { min-width: 120px; }
+        #campaign-table-body td:nth-child(4) { min-width: 200px; max-width: 350px; white-space: normal;}
+        #campaign-table-body td:nth-child(5) { min-width: 100px; }
+        #campaign-table-body td:nth-child(6) { min-width: 80px; }
+        #campaign-table-body td:nth-child(7) { min-width: 150px; max-width: 250px; white-space: normal;}
+        #campaign-table-body td:nth-child(8) { min-width: 160px; }
+
+        #order-table-body td:nth-child(5) { min-width: 100px; }
+        #order-table-body td:nth-child(6) { min-width: 120px; }
+        #order-table-body td:nth-child(7) {
+            min-width: 200px;
+            max-width: 300px;
+            white-space: normal;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            border-radius: 8px;
+            width: 90%;
+            height: 90%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .modal-header {
+            padding: 10px 16px;
+            background-color: #f1f1f1;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-body {
+            flex-grow: 1;
+            padding: 20px;
+            overflow: auto;
+        }
+        .modal-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .close-button {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #ffc9e0 0%, #ffb3d9 100%);
+            border-radius: 12px;
+            padding: 12px;
+            color: #4a4a4a;
+            box-shadow: 0 4px 12px rgba(255, 179, 217, 0.3);
+        }
+
+        @media (min-width: 640px) {
+            .metric-card {
+                padding: 16px;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .metric-card {
+                padding: 20px;
+            }
+        }
+
+        .metric-card.green {
+            background: linear-gradient(135deg, #ffd9e6 0%, #ffc9e0 100%);
+            box-shadow: 0 4px 12px rgba(255, 201, 224, 0.3);
+            color: #4a4a4a;
+        }
+
+        .metric-card.red {
+            background: linear-gradient(135deg, #ffcce0 0%, #ffb3d9 100%);
+            color: #4a4a4a;
+        }
+
+        .metric-card.blue {
+            background: linear-gradient(135deg, #b3d9ff 0%, #99ccff 100%);
+            box-shadow: 0 4px 12px rgba(179, 217, 255, 0.3);
+            color: #4a4a4a;
+        }
+
+        .metric-card.orange {
+            background: linear-gradient(135deg, #d4b3f0 0%, #c9a3e8 100%);
+            box-shadow: 0 4px 12px rgba(212, 179, 240, 0.3);
+            color: #4a4a4a;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans text-gray-800 antialiased">
+
+    <div class="bg-white shadow-md">
+        <div class="container mx-auto px-3 sm:px-4 lg:px-8">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center py-3 sm:py-4 gap-3">
+                <h1 class="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
+                    <span class="hidden sm:inline">Sledování konkurence - Růžový Slon</span>
+                    <span class="sm:hidden">Růžový Slon</span>
+                </h1>
+                <button onclick="showDataManagementModal()" class="bg-[#b3d9ff] text-gray-700 px-3 sm:px-4 py-2 rounded-lg hover:bg-[#99ccff] transition shadow-md text-sm sm:text-base whitespace-nowrap">
+                    ⚙️ <span class="hidden xs:inline">Správa dat</span><span class="xs:hidden">Správa</span>
+                </button>
+            </div>
+            <nav class="flex space-x-2 sm:space-x-4 overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
+                <button id="tab-orders" class="py-3 px-3 sm:px-6 font-medium text-[#ff6b9d] border-b-2 border-[#ffb3d9] text-sm sm:text-base whitespace-nowrap" onclick="showTab('order-tracking')">
+                    <span class="hidden sm:inline">Sledování objednávek</span>
+                    <span class="sm:hidden">Objednávky</span>
+                </button>
+                <button id="tab-mkt" class="py-3 px-3 sm:px-6 font-medium text-gray-500 hover:text-gray-700 text-sm sm:text-base whitespace-nowrap" onclick="showTab('mkt-tracking')">
+                    <span class="hidden sm:inline">Sledování MKT kampaní</span>
+                    <span class="sm:hidden">MKT kampaně</span>
+                </button>
+            </nav>
+        </div>
+    </div>
+
+    <div class="container mx-auto p-4 md:p-8">
+
+        <!-- ZÁLOŽKA: Sledování objednávek -->
+        <div id="order-tracking" class="tab-content" style="display: block;">
+
+            <!-- Přehledové metriky podle trhů -->
+            <section class="space-y-8 mb-8">
+
+                <!-- CZ TRH -->
+                <div>
+                    <h2 class="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-0">
+                        <span>CZ - Český trh</span>
+                        <span class="sm:ml-2 text-xs sm:text-sm font-normal text-gray-500" id="metric-cz-period">-</span>
+                    </h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+                        <div class="metric-card blue">
+                            <h3 class="text-xs sm:text-sm font-medium opacity-90 mb-1">Celkem objednávek</h3>
+                            <p class="text-2xl sm:text-3xl font-bold" id="metric-cz-total">-</p>
+                            <p class="text-xs mt-1 sm:mt-2 opacity-75">Všechny CZ e-shopy</p>
+                        </div>
+                        <div class="metric-card green">
+                            <h3 class="text-xs sm:text-sm font-medium opacity-90 mb-1">Růžový Slon CZ</h3>
+                            <p class="text-2xl sm:text-3xl font-bold" id="metric-cz-slon">-</p>
+                            <p class="text-xs mt-1 sm:mt-2 opacity-75" id="metric-cz-slon-share">Podíl: -</p>
+                        </div>
+                        <div class="metric-card green">
+                            <h3 class="text-xs sm:text-sm font-medium opacity-90 mb-1">Kondomshop CZ</h3>
+                            <p class="text-2xl sm:text-3xl font-bold" id="metric-cz-kondomshop">-</p>
+                            <p class="text-xs mt-1 sm:mt-2 opacity-75" id="metric-cz-kondomshop-share">Podíl: -</p>
+                        </div>
+                        <div class="metric-card orange">
+                            <h3 class="text-xs sm:text-sm font-medium opacity-90 mb-1">Top konkurent</h3>
+                            <p class="text-base sm:text-lg font-bold" id="metric-cz-top-name">-</p>
+                            <p class="text-xl sm:text-2xl font-bold" id="metric-cz-top-orders">-</p>
+                        </div>
+                        <div class="metric-card purple">
+                            <h3 class="text-xs sm:text-sm font-medium opacity-90 mb-1">Slon vs. e-kondomy.cz</h3>
+                            <p class="text-xs sm:text-sm font-semibold opacity-90" id="metric-cz-comparison-label">Náskok Slona:</p>
+                            <p class="text-2xl sm:text-3xl font-bold" id="metric-cz-comparison-value">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SK TRH -->
+                <div>
+                    <h2 class="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-0">
+                        <span>SK - Slovenský trh</span>
+                        <span class="sm:ml-2 text-xs sm:text-sm font-normal text-gray-500" id="metric-sk-period">-</span>
+                    </h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+                        <div class="metric-card blue">
+                            <h3 class="text-xs sm:text-sm font-medium opacity-90 mb-1">Celkem objednávek</h3>
+                            <p class="text-2xl sm:text-3xl font-bold" id="metric-sk-total">-</p>
+                            <p class="text-xs mt-1 sm:mt-2 opacity-75">Všechny SK e-shopy</p>
+                        </div>
+                        <div class="metric-card green">
+                            <h3 class="text-xs sm:text-sm font-medium opacity-90 mb-1">Růžový Slon SK</h3>
+                            <p class="text-2xl sm:text-3xl font-bold" id="metric-sk-slon">-</p>
+                            <p class="text-xs mt-1 sm:mt-2 opacity-75" id="metric-sk-slon-share">Podíl: -</p>
+                        </div>
+                        <div class="metric-card green">
+                            <h3 class="text-xs sm:text-sm font-medium opacity-90 mb-1">Kondomshop SK</h3>
+                            <p class="text-2xl sm:text-3xl font-bold" id="metric-sk-kondomshop">-</p>
+                            <p class="text-xs mt-1 sm:mt-2 opacity-75" id="metric-sk-kondomshop-share">Podíl: -</p>
+                        </div>
+                        <div class="metric-card orange">
+                            <h3 class="text-xs sm:text-sm font-medium opacity-90 mb-1">Top konkurent</h3>
+                            <p class="text-base sm:text-lg font-bold" id="metric-sk-top-name">-</p>
+                            <p class="text-xl sm:text-2xl font-bold" id="metric-sk-top-orders">-</p>
+                        </div>
+                        <div class="metric-card purple">
+                            <h3 class="text-xs sm:text-sm font-medium opacity-90 mb-1">Slon vs. superlove.sk</h3>
+                            <p class="text-xs sm:text-sm font-semibold opacity-90" id="metric-sk-comparison-label">Náskok Slona:</p>
+                            <p class="text-2xl sm:text-3xl font-bold" id="metric-sk-comparison-value">-</p>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- Přehledná tabulka sledování objednávek -->
+            <section class="space-y-6 sm:space-y-8 mb-6 sm:mb-8">
+                <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-lg">
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-3">
+                        <h2 class="text-xl sm:text-2xl font-semibold text-gray-900">Sledování objednávek</h2>
+                        <button onclick="showAddRecordForm()" class="bg-[#ffb3d9] text-gray-700 px-4 sm:px-6 py-2 rounded-lg hover:bg-[#ffc9e0] transition font-medium shadow-md text-sm sm:text-base w-full sm:w-auto">
+                            + Přidat záznam
+                        </button>
+                    </div>
+
+                    <!-- TABULKA CZ TRH -->
+                    <div class="mb-6">
+                        <h3 class="text-base sm:text-xl font-semibold text-gray-800 mb-2 sm:mb-3 flex items-center gap-2">
+                            <span>CZ - Český trh</span>
+                            <span class="text-sm sm:text-base font-normal text-gray-500">(11 e-shopů)</span>
+                        </h3>
+                        <div class="text-xs text-gray-500 mb-2 sm:hidden">
+                            💡 Posuňte tabulku vodorovně pro zobrazení všech sloupců
+                        </div>
+                        <div class="rounded-lg border-2 border-gray-300 overflow-x-auto" style="max-height: 500px; overflow-y: auto;">
+                            <table class="min-w-full divide-y divide-gray-200 text-sm sm:text-base">
+                                <thead id="tracking-table-head-cz" class="bg-gray-800 text-white sticky top-0 z-10">
+                                    <!-- Generováno JavaScriptem -->
+                                </thead>
+                                <tbody id="tracking-table-body-cz" class="bg-white divide-y divide-gray-200">
+                                    <!-- Generováno JavaScriptem -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- TABULKA SK TRH -->
+                    <div class="mb-6">
+                        <h3 class="text-base sm:text-xl font-semibold text-gray-800 mb-2 sm:mb-3 flex items-center gap-2">
+                            <span>SK - Slovenský trh</span>
+                            <span class="text-sm sm:text-base font-normal text-gray-500">(6 e-shopů)</span>
+                        </h3>
+                        <div class="text-xs text-gray-500 mb-2 sm:hidden">
+                            💡 Posuňte tabulku vodorovně pro zobrazení všech sloupců
+                        </div>
+                        <div class="rounded-lg border-2 border-gray-300 overflow-x-auto" style="max-height: 500px; overflow-y: auto;">
+                            <table class="min-w-full divide-y divide-gray-200 text-sm sm:text-base">
+                                <thead id="tracking-table-head-sk" class="bg-gray-800 text-white sticky top-0 z-10">
+                                    <!-- Generováno JavaScriptem -->
+                                </thead>
+                                <tbody id="tracking-table-body-sk" class="bg-white divide-y divide-gray-200">
+                                    <!-- Generováno JavaScriptem -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- TABULKA ZAHRANIČNÍ TRH -->
+                    <div class="mb-6">
+                        <h3 class="text-base sm:text-xl font-semibold text-gray-800 mb-2 sm:mb-3 flex items-center gap-2">
+                            <span>Zahraniční trhy</span>
+                            <span class="text-sm sm:text-base font-normal text-gray-500">(29 e-shopů)</span>
+                        </h3>
+                        <div class="text-xs text-gray-500 mb-2 sm:hidden">
+                            💡 Posuňte tabulku vodorovně pro zobrazení všech sloupců
+                        </div>
+                        <div class="rounded-lg border-2 border-gray-300 overflow-x-auto" style="max-height: 500px; overflow-y: auto;">
+                            <table class="min-w-full divide-y divide-gray-200 text-sm sm:text-base">
+                                <thead id="tracking-table-head-foreign" class="bg-gray-800 text-white sticky top-0 z-10">
+                                    <!-- Generováno JavaScriptem -->
+                                </thead>
+                                <tbody id="tracking-table-body-foreign" class="bg-white divide-y divide-gray-200">
+                                    <!-- Generováno JavaScriptem -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 text-xs sm:text-sm text-gray-600 px-2 sm:px-0">
+                        <p><strong>Legenda:</strong> Každá buňka zobrazuje číslo objednávky a pod ním růst (delta) od posledního měření.</p>
+                        <p class="mt-1">Růžový Slon (zvýrazněno zeleně) | Δ = Celkový růst objednávek | % = Podíl Růžového Slona</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Pokročilé grafy -->
+            <section class="space-y-6 mb-6 sm:mb-8">
+                <!-- Graf vývoje v čase -->
+                <div class="bg-gradient-to-br from-white to-gray-50 p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl shadow-xl border border-gray-100">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
+                        <div>
+                            <h2 class="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+                                Vývoj objednávek v čase
+                            </h2>
+                            <p class="text-xs sm:text-sm text-gray-500 mt-1">Sledujte trend absolutních čísel objednávek</p>
+                        </div>
+                    </div>
+
+                    <!-- Filtry -->
+                    <div class="space-y-4 mb-6 p-4 bg-white rounded-xl border border-gray-200">
+                        <!-- Řádek 1: Období Od-Do -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Od:</label>
+                                <input type="date" id="trend-date-from"
+                                       class="w-full h-10 px-3 text-sm border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Do:</label>
+                                <input type="date" id="trend-date-to"
+                                       class="w-full h-10 px-3 text-sm border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                            </div>
+                        </div>
+
+                        <!-- Řádek 2: Přednastavené období -->
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Nebo vyberte přednastavené:</label>
+                            <select id="trend-period-filter" class="w-full h-10 px-3 text-sm border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                <option value="">-- vyberte období --</option>
+                                <option value="7">Poslední týden</option>
+                                <option value="30" selected>Minulý měsíc</option>
+                                <option value="90">Poslední 3 měsíce</option>
+                                <option value="180">Poslední půlrok</option>
+                                <option value="365">Poslední rok</option>
+                                <option value="previous-year">Minulý rok</option>
+                                <option value="all">Vše</option>
+                            </select>
+                        </div>
+
+                        <!-- Řádek 3: Zobrazit podle -->
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Zobrazit podle</label>
+                            <select id="trend-aggregation-filter" class="w-full h-10 px-3 text-sm border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                <option value="weeks" selected>Týdny</option>
+                                <option value="months">Měsíce</option>
+                            </select>
+                        </div>
+
+                        <!-- Řádek 4: E-shopy -->
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">E-shopy (multi)</label>
+                            <select id="trend-eshops-filter" class="w-full h-10 px-3 text-sm border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" multiple size="1">
+                                <optgroup label="CZ - Vlastní">
+                                    <option value="ruzovyslon.cz" selected>Růžový Slon CZ</option>
+                                    <option value="kondomshop.cz" selected>Kondomshop CZ</option>
+                                </optgroup>
+                                <optgroup label="CZ - Konkurence">
+                                    <option value="Hopnato.cz" selected>Hopnato.cz</option>
+                                    <option value="erosstar.cz" selected>erosstar.cz</option>
+                                    <option value="deeplove.cz" selected>deeplove.cz</option>
+                                    <option value="yoo.cz" selected>yoo.cz</option>
+                                    <option value="honitka.cz" selected>honitka.cz</option>
+                                    <option value="eroticke-pomucky.cz" selected>eroticke-pomucky.cz</option>
+                                    <option value="flagranti.cz" selected>flagranti.cz</option>
+                                    <option value="sexshopik.cz" selected>sexshopik.cz</option>
+                                    <option value="e-kondomy.cz" selected>e-kondomy.cz</option>
+                                </optgroup>
+                                <optgroup label="SK - Vlastní">
+                                    <option value="ruzovyslon.sk">Růžový Slon SK</option>
+                                    <option value="kondomshop.sk">Kondomshop SK</option>
+                                </optgroup>
+                                <optgroup label="SK - Konkurence">
+                                    <option value="isexshop.sk">isexshop.sk</option>
+                                    <option value="flagranti.sk">flagranti.sk</option>
+                                    <option value="superlove.sk">superlove.sk</option>
+                                    <option value="eros.sk">eros.sk</option>
+                                </optgroup>
+                                <optgroup label="Sexy Elephant - Vlastní">
+                                    <option value="sexyelephant.ro">sexyelephant.ro</option>
+                                    <option value="sexyelephant.hu">sexyelephant.hu</option>
+                                    <option value="sexyelephant.si">sexyelephant.si</option>
+                                    <option value="sexyelephant.bg">sexyelephant.bg</option>
+                                    <option value="sexyelephant.hr">sexyelephant.hr</option>
+                                </optgroup>
+                                <optgroup label="Foreign - Konkurence">
+                                    <option value="superlove.ro">superlove.ro</option>
+                                    <option value="superlove.pl">superlove.pl</option>
+                                    <option value="superlove.eu">superlove.eu</option>
+                                    <option value="superlove.at">superlove.at</option>
+                                    <option value="superlove.hr">superlove.hr</option>
+                                    <option value="superlove.it">superlove.it</option>
+                                    <option value="superlove.si">superlove.si</option>
+                                    <option value="superlove.bg">superlove.bg</option>
+                                    <option value="superlove.lt">superlove.lt</option>
+                                    <option value="superlove.es">superlove.es</option>
+                                    <option value="superlove.hu">superlove.hu</option>
+                                    <option value="goldengate.hu">goldengate.hu</option>
+                                    <option value="padlizsan.hu">padlizsan.hu</option>
+                                    <option value="sexshopcenter.hu">sexshopcenter.hu</option>
+                                    <option value="erotikashow.hu">erotikashow.hu</option>
+                                    <option value="szexaruhaz.hu">szexaruhaz.hu</option>
+                                    <option value="szexshop.hu">szexshop.hu</option>
+                                    <option value="vagyaim.hu">vagyaim.hu</option>
+                                </optgroup>
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">Ctrl/Cmd + klik pro vícenásobný výběr • <strong>Celkem 46 e-shopů</strong></p>
+                        </div>
+
+                        <!-- Řádek 5: Typ grafu -->
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Typ grafu</label>
+                            <select id="trend-type-filter" class="w-full h-10 px-3 text-sm border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                <option value="line">Čárový</option>
+                                <option value="bar">Sloupcový</option>
+                                <option value="area" selected>Plošný</option>
+                            </select>
+                        </div>
+
+                        <!-- Řádek 6: Tlačítko Aktualizovat -->
+                        <div>
+                            <button onclick="updateTrendChart()" class="w-full h-10 px-4 text-sm bg-gradient-to-r from-[#ffb3d9] to-[#ffc9e0] text-gray-700 rounded-lg hover:from-[#ffc9e0] hover:to-[#ffd9e6] transition font-semibold shadow-lg shadow-pink-200">
+                                📊 Aktualizovat graf
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Meziroční srovnání -->
+                    <div class="mb-4 sm:mb-6 p-3 sm:p-4 bg-white rounded-xl sm:rounded-2xl border border-gray-200">
+                        <label class="flex items-start sm:items-center gap-2 sm:gap-3 cursor-pointer">
+                            <input type="checkbox" id="trend-yoy-comparison" class="w-4 h-4 sm:w-5 sm:h-5 mt-0.5 sm:mt-0 text-blue-600 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 transition flex-shrink-0">
+                            <span class="text-xs sm:text-sm font-semibold text-gray-700">
+                                Zobrazit meziroční srovnání (Year-over-Year)
+                                <span class="block text-xs text-gray-500 font-normal mt-0.5">Porovná data s předchozím rokem ve stejném období</span>
+                            </span>
+                        </label>
+                    </div>
+
+                    <div class="bg-white rounded-xl sm:rounded-2xl p-2 sm:p-4 border border-gray-100" style="height: 300px;">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+
+                    <!-- AI komentář ke grafu -->
+                    <div id="trend-commentary-box" class="mt-3 bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl sm:rounded-2xl border border-purple-100 p-3 sm:p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg">🤖</span>
+                                <span class="text-sm font-semibold text-purple-700">Analýza grafu</span>
+                            </div>
+                            <span id="trend-commentary-timestamp" class="text-xs text-gray-400"></span>
+                        </div>
+                        <div id="trend-commentary-text" class="text-sm text-gray-700 leading-relaxed">
+                            <span class="text-gray-400 italic">Analýza se načítá...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mezitýdenní srovnání -->
+                <div class="bg-gradient-to-br from-white to-gray-50 p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl shadow-xl border border-gray-100">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
+                        <div>
+                            <h2 class="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+                                Mezitýdenní srovnání
+                            </h2>
+                            <p class="text-xs sm:text-sm text-gray-500 mt-1">Porovnání výkonnosti všech e-shopů (CZ, SK, Foreign) za poslední dva týdny</p>
+                        </div>
+                        <button onclick="updateWeeklyComparison()" class="px-4 sm:px-6 py-2 sm:py-2.5 text-sm sm:text-base bg-gradient-to-r from-[#d4b3f0] to-[#e0c9ff] text-gray-700 rounded-lg sm:rounded-xl hover:from-[#e0c9ff] hover:to-[#d9b3ff] transition font-semibold shadow-lg shadow-purple-200 w-full sm:w-auto">
+                            Obnovit data
+                        </button>
+                    </div>
+
+                    <!-- Filtr období -->
+                    <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                        <label class="text-sm text-gray-600 font-medium">Srovnání do:</label>
+                        <input type="date" id="weekly-end-date" class="px-2 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-purple-300 focus:border-purple-400 transition">
+                    </div>
+
+                    <!-- Tabulka mezitýdenního srovnání -->
+                    <div class="bg-white rounded-xl sm:rounded-2xl border border-gray-100 overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 text-sm sm:text-base">
+                            <thead class="bg-gray-800 text-white">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider">E-shop</th>
+                                    <th id="weekly-col-prev" class="px-6 py-3 text-right text-xs font-bold uppercase tracking-wider">Předchozí týden</th>
+                                    <th id="weekly-col-curr" class="px-6 py-3 text-right text-xs font-bold uppercase tracking-wider">Vybraný týden</th>
+                                    <th class="px-6 py-3 text-center text-xs font-bold uppercase tracking-wider">Změna</th>
+                                    <th class="px-6 py-3 text-center text-xs font-bold uppercase tracking-wider">Trend</th>
+                                </tr>
+                            </thead>
+                            <tbody id="weekly-comparison-tbody" class="bg-white divide-y divide-gray-200">
+                                <!-- Naplní se dynamicky -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Meziroční srovnání měsíců -->
+                <div class="bg-gradient-to-br from-white to-gray-50 p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl shadow-xl border border-gray-100">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
+                        <div>
+                            <h2 class="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+                                Meziroční srovnání měsíců
+                            </h2>
+                            <p class="text-xs sm:text-sm text-gray-500 mt-1">Porovnání stejných měsíců mezi roky pro všechny e-shopy (např. leden 2025 vs. leden 2024)</p>
+                        </div>
+                        <button onclick="updateMonthlyYoYComparison()" class="px-4 sm:px-6 py-2 sm:py-2.5 text-sm sm:text-base bg-gradient-to-r from-[#d4b3f0] to-[#e0c9ff] text-gray-700 rounded-lg sm:rounded-xl hover:from-[#e0c9ff] hover:to-[#d9b3ff] transition font-semibold shadow-lg shadow-purple-200 w-full sm:w-auto">
+                            Obnovit data
+                        </button>
+                    </div>
+
+                    <!-- Filtr měsíce -->
+                    <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                        <label class="text-sm text-gray-600 font-medium">Měsíc:</label>
+                        <select id="yoy-month-select" class="px-2 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-purple-300 focus:border-purple-400 transition">
+                            <!-- Naplní se dynamicky -->
+                        </select>
+                    </div>
+
+                    <!-- Tabulka meziročního srovnání -->
+                    <div class="bg-white rounded-xl sm:rounded-2xl border border-gray-100 overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 text-sm sm:text-base">
+                            <thead class="bg-gray-800 text-white">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider">E-shop</th>
+                                    <th id="yoy-col-prev" class="px-6 py-3 text-right text-xs font-bold uppercase tracking-wider">Předchozí rok</th>
+                                    <th id="yoy-col-curr" class="px-6 py-3 text-right text-xs font-bold uppercase tracking-wider">Letošní rok</th>
+                                    <th class="px-6 py-3 text-center text-xs font-bold uppercase tracking-wider">Změna</th>
+                                    <th class="px-6 py-3 text-center text-xs font-bold uppercase tracking-wider">Trend</th>
+                                </tr>
+                            </thead>
+                            <tbody id="monthly-yoy-comparison-tbody" class="bg-white divide-y divide-gray-200">
+                                <!-- Naplní se dynamicky -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Modal pro přidání/editaci záznamu -->
+        <div id="record-form-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2 sm:p-4">
+            <div class="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+                <div class="sticky top-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center rounded-t-xl sm:rounded-t-2xl">
+                    <h3 id="form-title-record" class="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">Přidat nový záznam</h3>
+                    <button onclick="hideRecordForm()" class="text-gray-400 hover:text-gray-600 text-2xl sm:text-3xl font-bold">&times;</button>
+                </div>
+
+                <form id="tracking-record-form" onsubmit="handleRecordFormSubmit(event)" class="p-4 sm:p-6">
+                    <input type="hidden" id="record-id">
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
+                        <div>
+                            <label for="record-date" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Datum měření (Povinné)</label>
+                            <input type="date" id="record-date" required class="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label for="record-notes" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Poznámky</label>
+                            <input type="text" id="record-notes" class="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Volitelné poznámky...">
+                        </div>
+                    </div>
+
+                    <!-- Dynamicky generovaná pole pro e-shopy -->
+                    <div id="competitor-fields-container"></div>
+
+                    <!-- Ruční úprava delt - univerzální systém -->
+                    <div class="mb-4 sm:mb-6 border-t pt-4 sm:pt-6">
+                        <div class="bg-blue-50 border-l-4 border-blue-500 p-3 sm:p-4 mb-3 sm:mb-4">
+                            <div class="flex gap-2 sm:gap-3">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h4 class="text-xs sm:text-sm font-medium text-blue-800">🔧 Pokročilé: Ruční úprava delt</h4>
+                                    <p class="mt-1 text-xs text-blue-700">
+                                        Použij, když potřebuješ přepsat automatický výpočet (např. reset číselné řady, oprava chyby).
+                                        <strong>Nechej prázdné</strong> pro automatický výpočet.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="manual-deltas-container" class="space-y-3">
+                            <!-- Dynamicky generované řádky pro ruční delty -->
+                        </div>
+
+                        <button type="button" onclick="addManualDeltaRow()" class="mt-3 w-full sm:w-auto px-4 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition border-2 border-blue-300 font-medium">
+                            + Přidat e-shop pro ruční úpravu
+                        </button>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                        <button type="submit" class="flex-1 bg-[#ffb3d9] text-gray-700 font-bold py-2.5 sm:py-3 px-4 sm:px-6 text-sm sm:text-base rounded-lg hover:bg-[#ffc9e0] transition shadow-md order-2 sm:order-1">
+                            Uložit záznam
+                        </button>
+                        <button type="button" onclick="hideRecordForm()" class="flex-1 bg-gray-600 text-white font-bold py-2.5 sm:py-3 px-4 sm:px-6 text-sm sm:text-base rounded-lg hover:bg-gray-700 transition order-1 sm:order-2">
+                            Zrušit
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ZÁLOŽKA: Sledování MKT kampaní -->
+        <div id="mkt-tracking" class="tab-content" style="display: none;">
+            <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <aside class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-lg h-fit">
+                    <h2 id="form-title-mkt" class="text-2xl font-semibold mb-4 text-gray-900">Přidat MKT kampaň</h2>
+                    <form id="campaign-form" class="space-y-4">
+                        <input type="hidden" id="campaign-id" name="id" value="">
+                        <div>
+                            <label for="competitor-mkt" class="block text-sm font-medium text-gray-700 mb-1">Konkurent/Web</label>
+                            <select id="competitor-mkt" name="competitor" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                <option value="">Vyberte konkurenta</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="discoveryDate-mkt" class="block text-sm font-medium text-gray-700 mb-1">Datum zjištění (Povinné)</label>
+                            <input type="date" id="discoveryDate-mkt" name="discoveryDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" required>
+                        </div>
+                        <div class="space-y-2 border border-gray-200 p-3 rounded-lg">
+                            <p class="text-sm font-medium text-gray-700">Rozsah trvání kampaně (Volitelné)</p>
+                            <div class="space-y-3">
+                                <div>
+                                    <label for="startDate-mkt" class="block text-xs text-gray-600 mb-1">Od (Začátek)</label>
+                                    <input type="date" id="startDate-mkt" name="startDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                </div>
+                                <div>
+                                    <label for="endDate-mkt" class="block text-xs text-gray-600 mb-1">Do (Konec)</label>
+                                    <input type="date" id="endDate-mkt" name="endDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="description-mkt" class="block text-sm font-medium text-gray-700 mb-1">Popis kampaně / Zjištění (Povinné)</label>
+                            <input type="text" id="description-mkt" name="description" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Např. 'Valentýnská sleva 20 %'" required>
+                        </div>
+                        <div>
+                            <label for="channel-mkt" class="block text-sm font-medium text-gray-700 mb-1">Kanál (Povinné)</label>
+                            <select id="channel-mkt" name="channel" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" required>
+                                <option value="">Vyberte kanál</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="screenshotUrl-mkt" class="block text-sm font-medium text-gray-700 mb-1">Screenshot (URL)</label>
+                            <input type="url" id="screenshotUrl-mkt" name="screenshotUrl" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="https://prnt.sc/...">
+                        </div>
+                        <div>
+                            <label for="notes-mkt" class="block text-sm font-medium text-gray-700 mb-1">Poznámky</label>
+                            <textarea id="notes-mkt" name="notes" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Např. 'Cíleno na nové zákazníky', 'Kód: VALENTYN20'"></textarea>
+                        </div>
+                        <button type="submit" id="submit-button-mkt" class="w-full bg-[#ffb3d9] text-gray-700 font-bold py-3 px-4 rounded-lg shadow-md hover:bg-[#ffc9e0] transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:ring-offset-2">
+                            Přidat kampaň
+                        </button>
+                        <button type="button" id="cancel-edit-mkt-button" class="w-full bg-gray-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-700 focus:ring-offset-2 hidden">
+                            Zrušit úpravu
+                        </button>
+                        <p id="form-error-mkt" class="text-red-600 text-sm mt-2 hidden"></p>
+                    </form>
+                </aside>
+
+                <section class="lg:col-span-2 space-y-8">
+                    <div class="bg-white p-6 rounded-2xl shadow-lg">
+                        <h2 class="text-2xl font-semibold mb-2 text-gray-900">Přehled aktivity kampaní</h2>
+                        <div class="flex flex-col sm:flex-row gap-4 mb-6">
+                            <div class="flex-1">
+                                <label for="chart-filter-competitor-mkt" class="block text-sm font-medium text-gray-700 mb-1">Filtrovat graf dle konkurenta</label>
+                                <select id="chart-filter-competitor-mkt" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                    <option value="all">Všichni konkurenti</option>
+                                </select>
+                            </div>
+                            <div class="flex-1">
+                                <label for="chart-filter-channel-mkt" class="block text-sm font-medium text-gray-700 mb-1">Filtrovat graf dle kanálu</label>
+                                <select id="chart-filter-channel-mkt" class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                    <option value="all">Všechny kanály</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="competitorChart"></canvas>
+                        </div>
+                    </div>
+                </section>
+            </main>
+
+            <section class="space-y-8 mt-8">
+                <div class="bg-white p-6 rounded-2xl shadow-lg">
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-4">
+                        <h2 class="text-2xl font-semibold text-gray-900 mb-2 sm:mb-0">Zaznamenané kampaně</h2>
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <div>
+                                <label for="filter-competitor-mkt" class="block text-sm font-medium text-gray-700 mb-1">Filtrovat tabulku dle konkurenta</label>
+                                <select id="filter-competitor-mkt" class="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                    <option value="all">Všichni konkurenti</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="filter-channel-mkt" class="block text-sm font-medium text-gray-700 mb-1">Filtrovat tabulku dle kanálu</label>
+                                <select id="filter-channel-mkt" class="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                    <option value="all">Všechny kanály</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="rounded-lg border border-gray-200 overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Konkurent</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Datum zjištění</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Trvání (Od-Do)</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Popis</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Kanál</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Screenshot</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Poznámky</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Akce</th>
+                                </tr>
+                            </thead>
+                            <tbody id="campaign-table-body" class="bg-white divide-y divide-gray-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Modal pro správu dat -->
+    <div id="dataManagementModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="text-lg font-semibold text-gray-900">Správa dat</h3>
+                <span class="close-button" onclick="closeDataManagementModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="space-y-1">
+                    <!-- ============================================ -->
+                    <!-- IMPORT -->
+                    <!-- ============================================ -->
+                    <details open class="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                        <summary class="cursor-pointer font-bold text-lg text-blue-900 hover:text-blue-700 flex items-center gap-2 mb-4">
+                            📥 IMPORT DAT
+                            <span class="text-xs font-normal text-blue-600">(klikni pro sbalení/rozbalení)</span>
+                        </summary>
+
+                        <!-- Import z Google Sheets -->
+                        <div class="bg-white rounded-lg p-4 mb-4 border border-blue-100">
+                        <h5 class="font-semibold mb-3 text-gray-800">Google Sheets</h5>
+                        <div class="space-y-3">
+                            <div>
+                                <label for="google-sheets-url" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Google Sheets URL
+                                </label>
+                                <div class="flex gap-2 mb-2">
+                                    <input type="text" id="google-sheets-url"
+                                        placeholder="https://docs.google.com/spreadsheets/d/..."
+                                        value=""
+                                        class="flex-1 px-3 py-2 border border-gray-300 rounded-lg">
+                                </div>
+                            </div>
+                            <div>
+                                <label for="sheet-selector" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Název listu
+                                </label>
+                                <input type="text" id="sheet-selector"
+                                    placeholder="Název listu (např. 'List1', 'Data', ...)"
+                                    value=""
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+
+                            <!-- Režim importu -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Režim importu
+                                </label>
+                                <div class="space-y-2">
+                                    <label class="flex items-start gap-2 p-3 border-2 border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition">
+                                        <input type="radio" name="import-mode" value="merge" checked class="mt-0.5">
+                                        <div class="flex-1">
+                                            <div class="font-medium text-gray-900">✨ Doplnit data</div>
+                                            <div class="text-xs text-gray-600 mt-1">
+                                                Sloučí nová data s existujícími. Záznamy se stejným datem budou aktualizovány.
+                                            </div>
+                                        </div>
+                                    </label>
+                                    <label class="flex items-start gap-2 p-3 border-2 border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition">
+                                        <input type="radio" name="import-mode" value="replace" class="mt-0.5">
+                                        <div class="flex-1">
+                                            <div class="font-medium text-gray-900">🔄 Přepsat vše</div>
+                                            <div class="text-xs text-gray-600 mt-1">
+                                                Smaže všechna stávající data a nahradí je importovanými daty.
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="bg-blue-50 border-l-4 border-blue-500 p-3">
+                                <p class="text-xs text-blue-800">
+                                    <strong>Konkurence:</strong> Importuje čísla objednávek a vypočítá delty<br>
+                                    <strong>Vlastní e-shopy:</strong> Importuje sloupec "Objednáno kusů" (delty přímo)
+                                </p>
+                            </div>
+
+                            <div class="flex gap-2">
+                                <button onclick="importFromGoogleSheetsCustomFormat()"
+                                    class="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition font-medium">
+                                    Importovat data z Google Sheets
+                                </button>
+                            </div>
+                            <div id="import-status" class="mt-3 hidden"></div>
+                        </div>
+                        </div>
+
+                        <!-- Import JSON -->
+                        <div class="bg-white rounded-lg p-4 mb-4 border border-blue-100">
+                            <h5 class="font-semibold mb-3 text-gray-800">JSON soubor</h5>
+                            <input type="file" id="json-file-input" accept=".json"
+                                class="block w-full text-sm text-gray-500
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-lg file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-blue-50 file:text-blue-700
+                                hover:file:bg-blue-100 mb-2">
+                            <button onclick="importFromJSON()"
+                                class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium">
+                                📥 Importovat JSON
+                            </button>
+                        </div>
+
+                        <!-- Hromadné vložení dat -->
+                        <div class="bg-white rounded-lg p-4 border border-blue-100">
+                        <h5 class="font-semibold mb-3 text-gray-800">Hromadné vložení dat</h5>
+                        <p class="text-sm text-gray-600 mb-3">
+                            Přidejte záznamy pro sledování objednávek pomocí tabulky níže. Můžete také vložit data z Excelu (Ctrl+V).
+                        </p>
+
+                        <div class="mb-3">
+                            <button onclick="addBulkRow()" class="bg-[#ffb3d9] text-gray-700 px-3 py-1.5 rounded-lg hover:bg-[#ffc9e0] transition text-sm font-medium shadow-sm">
+                                + Přidat řádek
+                            </button>
+                            <button onclick="importBulkData()" class="bg-[#32cd32] text-white px-3 py-1.5 rounded-lg hover:bg-[#2eb82e] transition text-sm font-medium shadow-sm ml-2">
+                                Importovat do aplikace
+                            </button>
+                            <button onclick="clearBulkTable()" class="bg-gray-500 text-white px-3 py-1.5 rounded-lg hover:bg-gray-600 transition text-sm font-medium shadow-sm ml-2">
+                                Vymazat tabulku
+                            </button>
+                        </div>
+
+                        <div class="overflow-x-auto border rounded-lg">
+                            <table id="bulk-data-table" class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">E-shop</th>
+                                        <th class="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Datum</th>
+                                        <th class="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Číslo obj.</th>
+                                        <th class="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Počet obj.</th>
+                                        <th class="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Akce</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bulk-data-tbody" class="bg-white divide-y divide-gray-200">
+                                    <!-- Řádky budou přidány JavaScriptem -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="mt-2 text-xs text-gray-500">
+                            💡 Tip: Můžete zkopírovat data z Excelu a vložit je přímo do tabulky (Ctrl+C v Excelu, kliknutí do první buňky, Ctrl+V)
+                        </div>
+                        </div>
+                    </details>
+
+                    <!-- ============================================ -->
+                    <!-- EXPORT -->
+                    <!-- ============================================ -->
+                    <details class="bg-green-50 border-2 border-green-200 rounded-xl p-4">
+                        <summary class="cursor-pointer font-bold text-lg text-green-900 hover:text-green-700 flex items-center gap-2 mb-4">
+                            📤 EXPORT DAT
+                            <span class="text-xs font-normal text-green-600">(klikni pro rozbalení)</span>
+                        </summary>
+
+                        <div class="space-y-3">
+                            <!-- Export sledování konkurence -->
+                            <div class="bg-white rounded-lg p-4 border border-green-100">
+                                <div class="flex items-start gap-3 mb-3">
+                                    <div class="text-2xl">📊</div>
+                                    <div class="flex-1">
+                                        <h5 class="font-semibold text-gray-900 mb-1">Sledování konkurence</h5>
+                                        <p class="text-xs text-gray-600">
+                                            Exportuje data o objednávkách konkurence (datum, e-shop, počet objednávek, delty)
+                                        </p>
+                                    </div>
+                                </div>
+                                <button onclick="exportCompetitorDataToCSV()"
+                                    class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium text-sm">
+                                    📥 Stáhnout CSV - Konkurence
+                                </button>
+                            </div>
+
+                            <!-- Export MKT kampaní -->
+                            <div class="bg-white rounded-lg p-4 border border-green-100">
+                                <div class="flex items-start gap-3 mb-3">
+                                    <div class="text-2xl">📢</div>
+                                    <div class="flex-1">
+                                        <h5 class="font-semibold text-gray-900 mb-1">Sledování MKT kampaní</h5>
+                                        <p class="text-xs text-gray-600">
+                                            Exportuje data o marketingových kampaních (název, typ, období, zdroj, rozpočet, CPO atd.)
+                                        </p>
+                                    </div>
+                                </div>
+                                <button onclick="exportMKTCampaignsToCSV()"
+                                    class="w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition font-medium text-sm">
+                                    📥 Stáhnout CSV - MKT kampaně
+                                </button>
+                            </div>
+
+                            <div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
+                                <p class="text-xs text-blue-800">
+                                    <strong>💡 Tip:</strong> CSV soubory můžete otevřít v Excelu, importovat do Google Sheets nebo použít pro analýzu dat.
+                                </p>
+                            </div>
+                        </div>
+                    </details>
+
+                    <!-- ============================================ -->
+                    <!-- ZÁLOHA -->
+                    <!-- ============================================ -->
+                    <details class="bg-purple-50 border-2 border-purple-200 rounded-xl p-4">
+                        <summary class="cursor-pointer font-bold text-lg text-purple-900 hover:text-purple-700 flex items-center gap-2 mb-4">
+                            💾 ZÁLOHA DAT
+                            <span class="text-xs font-normal text-purple-600">(klikni pro rozbalení)</span>
+                        </summary>
+                        <div class="space-y-3">
+                            <p class="text-sm text-gray-600 mb-3">
+                                Zálohuj všechna data do JSON souboru nebo obnov data ze zálohy.
+                            </p>
+                            <button onclick="backupTrackingData()"
+                                class="w-full bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition font-medium shadow-md">
+                                💾 Zálohovat data (JSON)
+                            </button>
+                            <div>
+                                <input type="file" id="restore-file-input" accept=".json" class="hidden" onchange="restoreTrackingData(event)">
+                                <button onclick="document.getElementById('restore-file-input').click()"
+                                    class="w-full bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 transition font-medium shadow-md">
+                                    📂 Obnovit ze zálohy
+                                </button>
+                            </div>
+                        </div>
+                    </details>
+
+                    <!-- ============================================ -->
+                    <!-- POKROČILÉ NASTAVENÍ -->
+                    <!-- ============================================ -->
+                    <details class="bg-gray-50 border-2 border-gray-300 rounded-xl p-4">
+                        <summary class="cursor-pointer font-bold text-lg text-gray-900 hover:text-gray-700 flex items-center gap-2 mb-4">
+                            ⚙️ POKROČILÉ NASTAVENÍ
+                            <span class="text-xs font-normal text-gray-600">(klikni pro rozbalení)</span>
+                        </summary>
+
+                        <div class="space-y-4">
+                            <!-- Firestore synchronizace -->
+                            <div class="bg-white rounded-lg p-4 border border-gray-200">
+                                <h5 class="font-semibold mb-3 text-gray-800">☁️ Firestore synchronizace</h5>
+                                <div class="space-y-3">
+                                    <!-- Status Firestore -->
+                                    <div id="firestore-status-container" class="p-4 rounded-lg border-2">
+                                        <div class="flex items-center gap-3">
+                                            <div id="firestore-status-icon" class="text-xl">🔄</div>
+                                            <div class="flex-1">
+                                                <div id="firestore-status-text" class="font-medium text-sm">Kontroluji připojení...</div>
+                                                <div id="firestore-status-detail" class="text-xs text-gray-600 mt-1"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Tlačítka pro správu -->
+                                    <div class="flex gap-2">
+                                        <button onclick="checkFirestoreStatus()"
+                                            class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium text-sm">
+                                            🔄 Zkontrolovat
+                                        </button>
+                                        <button onclick="syncToFirestore()"
+                                            class="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition font-medium text-sm">
+                                            ☁️ Nahrát do cloudu
+                                        </button>
+                                    </div>
+
+                                    <!-- Nápověda -->
+                                    <details class="text-xs">
+                                        <summary class="cursor-pointer font-medium text-gray-700 hover:text-gray-900">
+                                            💡 Co je Firestore?
+                                        </summary>
+                                        <div class="mt-2 p-3 bg-blue-50 border-l-4 border-blue-500 rounded text-blue-800 space-y-1">
+                                            <p>Cloudová databáze pro sdílení dat mezi prohlížeči a zařízeními.</p>
+                                            <p><strong>✅ Připojeno:</strong> Automatická synchronizace</p>
+                                            <p><strong>⚠️ Nepřipojeno:</strong> Data jen v tomto prohlížeči</p>
+                                        </div>
+                                    </details>
+
+                                    <!-- Instrukce pro nastavení pravidel -->
+                                    <details class="text-xs">
+                                        <summary class="cursor-pointer font-medium text-gray-700 hover:text-gray-900">
+                                            📋 Jak nastavit Firestore pravidla
+                                        </summary>
+                                        <div class="mt-2 p-3 bg-gray-50 rounded border text-gray-700 space-y-2">
+                                            <p>1. Otevři <a href="https://console.firebase.google.com" target="_blank" class="text-blue-600 hover:underline">Firebase Console</a></p>
+                                            <p>2. Vyber projekt: <strong>rs-sledovani-konkurence</strong></p>
+                                            <p>3. V levém menu klikni na <strong>Firestore Database</strong></p>
+                                            <p>4. Přejdi na záložku <strong>Rules</strong></p>
+                                            <p>5. Nahraď pravidla těmito:</p>
+                                            <pre class="bg-gray-800 text-green-400 p-2 rounded text-xs overflow-x-auto mt-2">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}</pre>
+                                            <p class="text-orange-700 font-medium">⚠️ Umožňuje přístup všem! Pro produkci použij autentizaci.</p>
+                                            <p>6. Klikni na <strong>Publish</strong></p>
+                                        </div>
+                                    </details>
+                                </div>
+                            </div>
+
+                            <!-- Vymazat data -->
+                            <div class="bg-white rounded-lg p-4 border border-red-200">
+                                <h5 class="font-semibold mb-3 text-red-700">🗑️ Vymazat všechna data</h5>
+                                <p class="text-sm text-gray-600 mb-3">
+                                    Vymaže všechna data z prohlížeče i Firestore. <strong>Tato akce je nevratná!</strong>
+                                </p>
+                                <button onclick="clearAllData()"
+                                    class="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">
+                                    🗑️ Vymazat všechna data
+                                </button>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal pro zobrazení screenshotů -->
+    <div id="iframeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalHeaderTitle" class="text-lg font-semibold text-gray-900"></h3>
+                <span id="closeModalButton" class="close-button">&times;</span>
+            </div>
+            <div id="modalBody" class="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- Modal pro editaci buňky -->
+    <div id="cellEditModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2 sm:p-4">
+        <div class="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-md w-full mx-2 sm:mx-0">
+            <div class="sticky top-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center rounded-t-xl sm:rounded-t-2xl">
+                <h3 id="cellEditTitle" class="text-lg sm:text-xl font-bold text-gray-900">Editace buňky</h3>
+                <button onclick="closeCellEditModal()" class="text-gray-400 hover:text-gray-600 text-2xl sm:text-3xl font-bold">&times;</button>
+            </div>
+
+            <div class="p-4 sm:p-6">
+                <div class="mb-4">
+                    <label for="cellNote" class="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Poznámka</label>
+                    <textarea id="cellNote" rows="3" class="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="např. 'Akce 20%', 'Black Friday', 'Email kampaň'"></textarea>
+                </div>
+
+                <div class="mb-4 sm:mb-6">
+                    <label class="flex items-start sm:items-center gap-2 sm:gap-3 cursor-pointer p-3 bg-red-50 border-2 border-red-200 rounded-lg hover:bg-red-100 transition">
+                        <input type="checkbox" id="cellNotMeasured" class="w-4 h-4 sm:w-5 sm:h-5 mt-0.5 sm:mt-0 text-red-600 border-2 border-red-300 rounded focus:ring-2 focus:ring-red-500 flex-shrink-0">
+                        <div>
+                            <span class="text-xs sm:text-sm font-semibold text-red-900">Nezměřeno v tento den</span>
+                            <span class="block text-xs text-red-700 mt-0.5">Hodnota se nezapočítá do celkových součtů</span>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                    <button onclick="saveCellEdit()" class="flex-1 bg-[#ffb3d9] text-gray-700 font-bold py-2 sm:py-2.5 px-4 text-sm sm:text-base rounded-lg hover:bg-[#ffc9e0] transition shadow-md order-2 sm:order-1">
+                        Uložit
+                    </button>
+                    <button onclick="closeCellEditModal()" class="flex-1 bg-gray-600 text-white font-bold py-2 sm:py-2.5 px-4 text-sm sm:text-base rounded-lg hover:bg-gray-700 transition order-1 sm:order-2">
+                        Zrušit
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase konfigurace a integrace -->
+    <script src="firebase-config.js"></script>
+    <script src="firestore-tracking.js"></script>
+
+    <!-- Datový model a UI pro sledování objednávek -->
+    <script src="tracking-data.js"></script>
+    <script src="order-tracking-ui.js"></script>
+
+    <!-- Hlavní aplikace -->
+    <script src="app.js"></script>
+</body>
+</html>
