@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { RefreshCw, ExternalLink, CheckCircle2, Circle, ChevronDown, ChevronRight, AlertCircle, Clock, Calendar, Inbox, Bell, Plus, Trash2, CheckSquare, Square, Link } from 'lucide-react'
+import { RefreshCw, ExternalLink, CheckCircle2, Circle, ChevronDown, ChevronRight, AlertCircle, Clock, Calendar, Inbox, Bell, Plus, Trash2, CheckSquare, Square, Link, Pencil, X } from 'lucide-react'
 
 const IS_LOCAL = typeof window !== 'undefined' && window.location.hostname === 'localhost'
 const TEREZA_ID = 43838310
@@ -98,31 +98,43 @@ function PrivateTodosTab() {
   const [due, setDue] = useState('')
   const [link, setLink] = useState('')
   const [note, setNote] = useState('')
+  const [editId, setEditId] = useState(null)
   const [showDone, setShowDone] = useState(false)
 
   const persist = (next) => { setItems(next); savePrivate(next) }
+
+  const clearForm = () => { setTitle(''); setDue(''); setLink(''); setNote(''); setEditId(null) }
+
   const add = () => {
     const text = title.trim()
     if (!text) return
     const url = link.trim()
-    persist([{
-      id: Date.now(),
-      text,
-      due: due || null,
-      link: url ? (url.startsWith('http') ? url : 'https://' + url) : null,
-      note: note.trim() || null,
-      done: false,
-    }, ...items])
-    setTitle(''); setDue(''); setLink(''); setNote('')
+    const normalized = url ? (url.startsWith('http') ? url : 'https://' + url) : null
+    if (editId !== null) {
+      persist(items.map(i => i.id === editId ? { ...i, text, due: due || null, link: normalized, note: note.trim() || null } : i))
+    } else {
+      persist([{ id: Date.now(), text, due: due || null, link: normalized, note: note.trim() || null, done: false }, ...items])
+    }
+    clearForm()
   }
+
+  const startEdit = (item) => {
+    setEditId(item.id)
+    setTitle(item.text)
+    setDue(item.due || '')
+    setLink(item.link || '')
+    setNote(item.note || '')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   const toggle = (id) => persist(items.map(i => i.id === id ? { ...i, done: !i.done } : i))
-  const remove = (id) => persist(items.filter(i => i.id !== id))
+  const remove = (id) => { persist(items.filter(i => i.id !== id)); if (editId === id) clearForm() }
 
   const open = items.filter(i => !i.done)
   const done = items.filter(i => i.done)
 
   const ItemRow = ({ item, faded = false }) => (
-    <div className={`flex items-start gap-3 px-4 py-3 group hover:bg-gray-50 ${faded ? 'opacity-60' : ''}`}>
+    <div className={`flex items-start gap-3 px-4 py-3 group hover:bg-gray-50 ${faded ? 'opacity-60' : ''} ${editId === item.id ? 'bg-indigo-50' : ''}`}>
       <button onClick={() => toggle(item.id)} className={`mt-0.5 flex-shrink-0 ${faded ? 'text-indigo-400 hover:text-indigo-600' : 'text-gray-300 hover:text-indigo-500'}`}>
         {faded ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
       </button>
@@ -145,16 +157,23 @@ function PrivateTodosTab() {
           )}
         </div>
       </div>
-      <button onClick={() => remove(item.id)} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 flex-shrink-0 mt-0.5">
-        <Trash2 className="w-3.5 h-3.5" />
-      </button>
+      <div className="flex gap-1 opacity-0 group-hover:opacity-100 flex-shrink-0 mt-0.5">
+        {!faded && (
+          <button onClick={() => startEdit(item)} className="text-gray-300 hover:text-indigo-500 p-0.5">
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
+        )}
+        <button onClick={() => remove(item.id)} className="text-gray-300 hover:text-red-500 p-0.5">
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
     </div>
   )
 
   return (
     <div>
       {/* Formulář */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 mb-5">
+      <div className={`bg-white rounded-xl border p-4 mb-5 ${editId !== null ? 'border-indigo-300 ring-2 ring-indigo-100' : 'border-gray-200'}`}>
         <div className="flex gap-2 mb-3">
           <input
             type="text" value={title}
@@ -165,8 +184,13 @@ function PrivateTodosTab() {
           />
           <button onClick={add} disabled={!title.trim()}
             className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-40 text-sm font-medium">
-            <Plus className="w-4 h-4" /> Přidat
+            {editId !== null ? <><Pencil className="w-4 h-4" /> Uložit</> : <><Plus className="w-4 h-4" /> Přidat</>}
           </button>
+          {editId !== null && (
+            <button onClick={clearForm} className="px-3 py-2 text-gray-400 hover:text-gray-600 border border-gray-200 rounded-lg">
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
         <textarea
           value={note}
