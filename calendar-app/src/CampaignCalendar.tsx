@@ -69,7 +69,7 @@ const CampaignCalendar = () => {
   ]);
   const [showModal, setShowModal] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState(null);
-  const [viewMode, setViewMode] = useState('calendar');
+  const [viewMode, setViewMode] = useState('todos');
   const [searchTerm, setSearchTerm] = useState('');
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
