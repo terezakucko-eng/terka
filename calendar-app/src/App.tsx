@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { db } from './firebase'
+import { doc, onSnapshot, setDoc } from 'firebase/firestore'
 import { RefreshCw, ExternalLink, CheckCircle2, Circle, ChevronDown, ChevronRight, AlertCircle, Clock, Calendar, Inbox, Bell, Plus, Trash2, CheckSquare, Square, Link, Pencil, X } from 'lucide-react'
 
 const IS_LOCAL = typeof window !== 'undefined' && window.location.hostname === 'localhost'
@@ -87,13 +89,11 @@ const NOTIF_LABELS = {
 
 // ── Soukromé úkoly ──────────────────────────────────────────────────────────
 const STORAGE_KEY = 'terka_private_todos'
-function loadPrivate() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') } catch { return [] }
-}
-function savePrivate(items) { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)) }
+const FIRESTORE_DOC = doc(db, 'privateTodos', 'tereza')
 
 function PrivateTodosTab() {
-  const [items, setItems] = useState(loadPrivate)
+  const [items, setItems] = useState([])
+  const [fsLoading, setFsLoading] = useState(true)
   const [title, setTitle] = useState('')
   const [due, setDue] = useState('')
   const [link, setLink] = useState('')
@@ -101,7 +101,30 @@ function PrivateTodosTab() {
   const [editId, setEditId] = useState(null)
   const [showDone, setShowDone] = useState(false)
 
-  const persist = (next) => { setItems(next); savePrivate(next) }
+  const migratedRef = useRef(false)
+
+  useEffect(() => {
+    const unsub = onSnapshot(FIRESTORE_DOC, (snap) => {
+      if (snap.exists()) {
+        setItems(snap.data().items || [])
+      } else if (!migratedRef.current) {
+        migratedRef.current = true
+        // Migruj z localStorage pokud tam něco je
+        try {
+          const local = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+          setDoc(FIRESTORE_DOC, { items: local })
+          if (local.length > 0) localStorage.removeItem(STORAGE_KEY)
+        } catch { setDoc(FIRESTORE_DOC, { items: [] }) }
+      }
+      setFsLoading(false)
+    }, () => setFsLoading(false))
+    return () => unsub()
+  }, [])
+
+  const persist = (next) => {
+    setItems(next) // optimistická aktualizace
+    setDoc(FIRESTORE_DOC, { items: next })
+  }
 
   const clearForm = () => { setTitle(''); setDue(''); setLink(''); setNote(''); setEditId(null) }
 
@@ -129,6 +152,13 @@ function PrivateTodosTab() {
 
   const toggle = (id) => persist(items.map(i => i.id === id ? { ...i, done: !i.done } : i))
   const remove = (id) => { persist(items.filter(i => i.id !== id)); if (editId === id) clearForm() }
+
+  if (fsLoading) return (
+    <div className="text-center py-20 text-gray-400">
+      <RefreshCw className="w-8 h-8 mx-auto mb-3 animate-spin opacity-40" />
+      <p className="text-sm">Načítám z Firestore…</p>
+    </div>
+  )
 
   const open = items.filter(i => !i.done)
   const done = items.filter(i => i.done)
@@ -251,7 +281,7 @@ function PrivateTodosTab() {
           )}
         </div>
       )}
-      <p className="text-xs text-gray-400 mt-4 text-center">Uloženo lokálně v prohlížeči · nikdo jiný to nevidí</p>
+      <p className="text-xs text-gray-400 mt-4 text-center">Uloženo v Firestore · synchronizováno mezi zařízeními</p>
     </div>
   )
 }
