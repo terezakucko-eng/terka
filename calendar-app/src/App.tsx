@@ -476,12 +476,14 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-        <div className="flex flex-col gap-1">
+      <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
+        <div className="flex flex-col gap-0.5">
           <div className="flex items-center gap-3">
             <img src="https://www.ruzovyslon.cz/assets/frontend/images/logo-cs.svg?v=3" alt="Růžový slon" className="h-7 w-auto" />
             <span className="text-gray-300">·</span>
-            <img src="https://logowik.com/content/uploads/images/basecamp-new3343.logowik.com.webp" alt="Basecamp" className="h-20 w-auto" />
+            <div style={{overflow:'hidden', height:'28px'}}>
+              <img src="https://logowik.com/content/uploads/images/basecamp-new3343.logowik.com.webp" alt="Basecamp" style={{height:'90px', marginTop:'-31px', width:'auto'}} />
+            </div>
           </div>
           <p className="text-xs text-gray-400">
             Tereza Kucková ·{' '}
