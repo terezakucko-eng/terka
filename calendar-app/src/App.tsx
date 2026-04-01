@@ -292,9 +292,6 @@ function NotificationsTab() {
         </div>
       )}
 
-      <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-500">
-        <strong>HEY!</strong> a <strong>Pings</strong> bohužel nejdou napojit — HEY! je samostatný produkt 37signals bez sdíleného API, Pings fungují přes WebSocket (real-time). Notifikace výše jsou z Basecampu (zmínky, komentáře, úkoly).
-      </div>
     </div>
   )
 }
