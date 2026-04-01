@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { RefreshCw, ExternalLink, CheckCircle2, Circle, ChevronDown, ChevronRight, AlertCircle, Clock, Calendar, Inbox, Bell, Plus, Trash2, CheckSquare, Square } from 'lucide-react'
+import { RefreshCw, ExternalLink, CheckCircle2, Circle, ChevronDown, ChevronRight, AlertCircle, Clock, Calendar, Inbox, Bell, Plus, Trash2, CheckSquare, Square, Link } from 'lucide-react'
 
 const IS_LOCAL = typeof window !== 'undefined' && window.location.hostname === 'localhost'
 const TEREZA_ID = 43838310
@@ -94,15 +94,24 @@ function savePrivate(items) { localStorage.setItem(STORAGE_KEY, JSON.stringify(i
 
 function PrivateTodosTab() {
   const [items, setItems] = useState(loadPrivate)
-  const [input, setInput] = useState('')
+  const [title, setTitle] = useState('')
+  const [due, setDue] = useState('')
+  const [link, setLink] = useState('')
   const [showDone, setShowDone] = useState(false)
 
   const persist = (next) => { setItems(next); savePrivate(next) }
   const add = () => {
-    const text = input.trim()
+    const text = title.trim()
     if (!text) return
-    persist([{ id: Date.now(), text, done: false }, ...items])
-    setInput('')
+    const url = link.trim()
+    persist([{
+      id: Date.now(),
+      text,
+      due: due || null,
+      link: url ? (url.startsWith('http') ? url : 'https://' + url) : null,
+      done: false,
+    }, ...items])
+    setTitle(''); setDue(''); setLink('')
   }
   const toggle = (id) => persist(items.map(i => i.id === id ? { ...i, done: !i.done } : i))
   const remove = (id) => persist(items.filter(i => i.id !== id))
@@ -110,20 +119,71 @@ function PrivateTodosTab() {
   const open = items.filter(i => !i.done)
   const done = items.filter(i => i.done)
 
+  const ItemRow = ({ item, faded = false }) => (
+    <div className={`flex items-start gap-3 px-4 py-3 group hover:bg-gray-50 ${faded ? 'opacity-60' : ''}`}>
+      <button onClick={() => toggle(item.id)} className={`mt-0.5 flex-shrink-0 ${faded ? 'text-indigo-400 hover:text-indigo-600' : 'text-gray-300 hover:text-indigo-500'}`}>
+        {faded ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+      </button>
+      <div className="flex-1 min-w-0">
+        <p className={`text-sm ${faded ? 'text-gray-500 line-through' : 'text-gray-800'}`}>{item.text}</p>
+        <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+          {item.due && (
+            <span className="text-xs text-gray-400 flex items-center gap-1">
+              <Calendar className="w-3 h-3" />
+              {new Date(item.due + 'T00:00:00').toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short' })}
+            </span>
+          )}
+          {item.link && (
+            <a href={item.link} target="_blank" rel="noreferrer"
+              className="text-xs text-indigo-500 hover:text-indigo-700 flex items-center gap-1 truncate max-w-xs">
+              <Link className="w-3 h-3 flex-shrink-0" />
+              <span className="truncate">{item.link.replace(/^https?:\/\//, '')}</span>
+            </a>
+          )}
+        </div>
+      </div>
+      <button onClick={() => remove(item.id)} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 flex-shrink-0 mt-0.5">
+        <Trash2 className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  )
+
   return (
     <div>
-      <div className="flex gap-2 mb-5">
-        <input
-          type="text" value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && add()}
-          placeholder="Nový soukromý úkol…"
-          className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
-        />
-        <button onClick={add} disabled={!input.trim()}
-          className="flex items-center gap-1.5 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-40 text-sm font-medium">
-          <Plus className="w-4 h-4" /> Přidat
-        </button>
+      {/* Formulář */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4 mb-5">
+        <div className="flex gap-2 mb-3">
+          <input
+            type="text" value={title}
+            onChange={e => setTitle(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && add()}
+            placeholder="Název úkolu…"
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+          />
+          <button onClick={add} disabled={!title.trim()}
+            className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-40 text-sm font-medium">
+            <Plus className="w-4 h-4" /> Přidat
+          </button>
+        </div>
+        <div className="flex gap-2">
+          <div className="flex items-center gap-1.5 flex-1">
+            <Calendar className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+            <input
+              type="date" value={due}
+              onChange={e => setDue(e.target.value)}
+              className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            />
+          </div>
+          <div className="flex items-center gap-1.5 flex-1">
+            <Link className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+            <input
+              type="url" value={link}
+              onChange={e => setLink(e.target.value)}
+              placeholder="https://…"
+              className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            />
+          </div>
+        </div>
       </div>
 
       {open.length === 0 && done.length === 0 && (
@@ -138,13 +198,7 @@ function PrivateTodosTab() {
         <div className="rounded-xl border border-gray-200 overflow-hidden mb-4">
           <div className="bg-gray-50 px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Otevřené · {open.length}</div>
           <div className="bg-white divide-y divide-gray-100">
-            {open.map(item => (
-              <div key={item.id} className="flex items-center gap-3 px-4 py-3 group hover:bg-gray-50">
-                <button onClick={() => toggle(item.id)} className="text-gray-300 hover:text-indigo-500 flex-shrink-0"><Square className="w-4 h-4" /></button>
-                <span className="flex-1 text-sm text-gray-800">{item.text}</span>
-                <button onClick={() => remove(item.id)} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 flex-shrink-0"><Trash2 className="w-3.5 h-3.5" /></button>
-              </div>
-            ))}
+            {open.map(item => <ItemRow key={item.id} item={item} />)}
           </div>
         </div>
       )}
@@ -158,13 +212,7 @@ function PrivateTodosTab() {
           </button>
           {showDone && (
             <div className="bg-white divide-y divide-gray-100">
-              {done.map(item => (
-                <div key={item.id} className="flex items-center gap-3 px-4 py-3 group hover:bg-gray-50 opacity-60">
-                  <button onClick={() => toggle(item.id)} className="text-indigo-400 hover:text-indigo-600 flex-shrink-0"><CheckSquare className="w-4 h-4" /></button>
-                  <span className="flex-1 text-sm text-gray-500 line-through">{item.text}</span>
-                  <button onClick={() => remove(item.id)} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 flex-shrink-0"><Trash2 className="w-3.5 h-3.5" /></button>
-                </div>
-              ))}
+              {done.map(item => <ItemRow key={item.id} item={item} faded />)}
             </div>
           )}
         </div>
