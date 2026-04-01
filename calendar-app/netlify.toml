@@ -1,0 +1,10 @@
+[build]
+  publish = "dist"
+  command = "npm run build"
+
+# /api/* → Netlify Function (zachová cestu jako path parametr)
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/basecamp/:splat"
+  status = 200
+  force = true
