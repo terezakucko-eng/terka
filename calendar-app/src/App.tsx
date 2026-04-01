@@ -476,16 +476,16 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
-        <div className="flex flex-col gap-0.5">
-          <div className="flex items-center gap-3">
-            <img src="https://www.ruzovyslon.cz/assets/frontend/images/logo-cs.svg?v=3" alt="Růžový slon" className="h-7 w-auto" />
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 flex items-center justify-between">
+        <div className="flex flex-col gap-0.5 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <img src="https://www.ruzovyslon.cz/assets/frontend/images/logo-cs.svg?v=3" alt="Růžový slon" className="h-5 sm:h-7 w-auto flex-shrink-0" />
             <span className="text-gray-300">·</span>
-            <div style={{overflow:'hidden', height:'28px'}}>
-              <img src="https://logowik.com/content/uploads/images/basecamp-new3343.logowik.com.webp" alt="Basecamp" style={{height:'90px', marginTop:'-31px', width:'auto'}} />
+            <div className="flex-shrink-0" style={{overflow:'hidden', height:'22px'}}>
+              <img src="https://logowik.com/content/uploads/images/basecamp-new3343.logowik.com.webp" alt="Basecamp" style={{height:'70px', marginTop:'-24px', width:'auto'}} />
             </div>
           </div>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-400 truncate">
             Tereza Kucková ·{' '}
             {tab === 'todos' && (lastSync ? `aktualizováno ${lastSync.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })}` : 'načítám…')}
             {tab === 'notifications' && 'notifikace'}
@@ -494,15 +494,15 @@ export default function App() {
         </div>
         {tab === 'todos' && (
           <button onClick={load} disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 text-sm font-medium">
+            className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 text-sm font-medium flex-shrink-0">
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            {loading ? 'Načítám…' : 'Aktualizovat'}
+            <span className="hidden sm:inline">{loading ? 'Načítám…' : 'Aktualizovat'}</span>
           </button>
         )}
       </div>
 
-      <div className="bg-white border-b border-gray-200 px-6">
-        <div className="flex gap-1">
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 overflow-x-auto">
+        <div className="flex gap-1 min-w-max">
           {TABS.map(t => (
             <button key={t.key} onClick={() => openTab(t.key)}
               className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${tab === t.key ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
