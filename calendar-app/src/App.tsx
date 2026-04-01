@@ -59,6 +59,7 @@ const SECTIONS = [
 export default function App() {
   const [todos, setTodos] = useState([])
   const [loading, setLoading] = useState(false)
+  const [loadingMsg, setLoadingMsg] = useState('')
   const [error, setError] = useState(null)
   const [lastSync, setLastSync] = useState(null)
   const [collapsed, setCollapsed] = useState({})
@@ -68,39 +69,68 @@ export default function App() {
     setLoading(true)
     setError(null)
     try {
+      setLoadingMsg('Načítám projekty…')
       const projects = await fetchAll('/projects.json')
+      setLoadingMsg(`Načítám úkoly z ${projects.length} projektů…`)
+
+      // Paralelně načti todosets pro všechny projekty
+      const todosetJobs = projects.flatMap(proj =>
+        (proj.dock || [])
+          .filter(d => d.name === 'todoset' && d.enabled)
+          .map(d => ({ proj, path: d.url.replace(/^https:\/\/3\.basecampapi\.com\/\d+/, '') }))
+      )
+
+      const todosetResults = await Promise.allSettled(
+        todosetJobs.map(({ path }) => apiFetch(path))
+      )
+
+      // Paralelně načti všechny todolists
+      const listJobs = todosetResults.flatMap((res, i) => {
+        if (res.status !== 'fulfilled') return []
+        const tlPath = res.value.data.todolists_url.replace(/^https:\/\/3\.basecampapi\.com\/\d+/, '')
+        return [{ proj: todosetJobs[i].proj, path: tlPath }]
+      })
+
+      const listResults = await Promise.allSettled(
+        listJobs.map(({ path }) => fetchAll(path))
+      )
+
+      // Paralelně načti todos ze všech listů
+      const todoJobs = listResults.flatMap((res, i) => {
+        if (res.status !== 'fulfilled') return []
+        return res.value.map(list => ({
+          proj: listJobs[i].proj,
+          list,
+          path: list.todos_url.replace(/^https:\/\/3\.basecampapi\.com\/\d+/, '')
+        }))
+      })
+
+      const todoResults = await Promise.allSettled(
+        todoJobs.map(({ path }) => fetchAll(path))
+      )
+
       const results = []
-      for (const proj of projects) {
-        for (const dock of (proj.dock || [])) {
-          if (dock.name !== 'todoset' || !dock.enabled) continue
-          const tsPath = dock.url.replace(/^https:\/\/3\.basecampapi\.com\/\d+/, '')
-          try {
-            const { data: todoset } = await apiFetch(tsPath)
-            const tlPath = todoset.todolists_url.replace(/^https:\/\/3\.basecampapi\.com\/\d+/, '')
-            const lists = await fetchAll(tlPath)
-            for (const list of lists) {
-              const todosPath = list.todos_url.replace(/^https:\/\/3\.basecampapi\.com\/\d+/, '')
-              const items = await fetchAll(todosPath)
-              for (const t of items) {
-                const isAssigned = (t.assignees || []).some(a => a.id === TEREZA_ID)
-                const isCreator = t.creator?.id === TEREZA_ID
-                if (isAssigned || isCreator) {
-                  results.push({
-                    id: t.id,
-                    content: t.content,
-                    completed: t.completed,
-                    due: t.due_on || null,
-                    project: proj.name,
-                    list: list.name,
-                    url: t.app_url,
-                    section: getSection(t.due_on),
-                  })
-                }
-              }
-            }
-          } catch { /* přeskočit nedostupné */ }
+      todoResults.forEach((res, i) => {
+        if (res.status !== 'fulfilled') return
+        const { proj, list } = todoJobs[i]
+        for (const t of res.value) {
+          const isAssigned = (t.assignees || []).some(a => a.id === TEREZA_ID)
+          const isCreator = t.creator?.id === TEREZA_ID
+          if (isAssigned || isCreator) {
+            results.push({
+              id: t.id,
+              content: t.content,
+              completed: t.completed,
+              due: t.due_on || null,
+              project: proj.name,
+              list: list.name,
+              url: t.app_url,
+              section: getSection(t.due_on),
+            })
+          }
         }
-      }
+      })
+
       results.sort((a, b) => {
         if (!a.due && !b.due) return 0
         if (!a.due) return 1
@@ -203,7 +233,7 @@ export default function App() {
         {loading && todos.length === 0 ? (
           <div className="text-center py-20 text-gray-400">
             <RefreshCw className="w-10 h-10 mx-auto mb-3 animate-spin opacity-40" />
-            <p>Načítám todos ze všech projektů…</p>
+            <p>{loadingMsg || 'Načítám…'}</p>
           </div>
         ) : (
           SECTIONS.map(sec => {
