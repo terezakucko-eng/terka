@@ -454,7 +454,7 @@ export default function App() {
                 {projects.map(p => (
                   <button key={p} onClick={() => setFilterProject(p)}
                     className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${filterProject === p ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-indigo-300'}`}>
-                    {p.replace(/^\[.*?\]\s*/, '')}
+                    {p}
                   </button>
                 ))}
               </div>
@@ -488,7 +488,7 @@ export default function App() {
                             <div className="flex-1 min-w-0">
                               <p className="text-sm text-gray-800 leading-snug">{todo.content}</p>
                               <p className="text-xs text-gray-400 mt-0.5 truncate">
-                                {todo.project.replace(/^\[.*?\]\s*/, '')}
+                                {todo.project}
                                 <span className="mx-1">·</span>{todo.list}
                                 {todo.due && <><span className="mx-1">·</span>{formatDate(todo.due)}</>}
                               </p>
