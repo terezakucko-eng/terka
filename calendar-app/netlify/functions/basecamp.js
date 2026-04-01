@@ -28,7 +28,8 @@ exports.handler = async (event) => {
     };
   }
 
-  const bcPath = event.path.replace(/\/?\.\.netlify\/functions\/basecamp/, '') || '/';
+  // Extrahuj cestu: /.netlify/functions/basecamp/projects.json → /projects.json
+  const bcPath = event.path.replace(/\/?\.netlify\/functions\/basecamp/, '') || '/';
   const qs = event.rawQuery ? `?${event.rawQuery}` : '';
   const targetUrl = `https://3.basecampapi.com/${account}${bcPath}${qs}`;
 

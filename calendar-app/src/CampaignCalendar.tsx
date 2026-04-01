@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Edit2, Trash2, Search, Filter, Download, Upload, BarChart3, Calendar, List, Grid, Bell, Clock, AlertTriangle, CheckCircle, X, ExternalLink, RefreshCw, Briefcase } from 'lucide-react';
 
-const BASECAMP_PROXY = 'http://localhost:3001/api';
+const BASECAMP_PROXY = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
+  ? 'http://localhost:3001/api'
+  : '/api';
 const MKT_PROJECT_ID = '45674654';
 const TEREZA_PERSON_ID = 43838310;
 
