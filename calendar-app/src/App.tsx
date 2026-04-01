@@ -1,16 +1,18 @@
 import { useState, useEffect, useCallback } from 'react'
 import { RefreshCw, ExternalLink, CheckCircle2, Circle, ChevronDown, ChevronRight, AlertCircle, Clock, Calendar, Inbox } from 'lucide-react'
 
-const PROXY = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
-  ? 'http://localhost:3001/api'
-  : '/api'
-
-const ACCOUNT = '3317373'
+const IS_LOCAL = typeof window !== 'undefined' && window.location.hostname === 'localhost'
 const TEREZA_ID = 43838310
 
 async function apiFetch(path) {
-  const res = await fetch(`${PROXY}${path}`)
-  if (!res.ok) throw new Error(`${res.status}`)
+  const url = IS_LOCAL
+    ? `http://localhost:3001/api${path}`
+    : `/.netlify/functions/basecamp?path=${encodeURIComponent(path)}`
+  const res = await fetch(url)
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(body || `${res.status}`)
+  }
   const data = await res.json()
   const link = res.headers.get('Link') || ''
   const next = link.match(/<https:\/\/3\.basecampapi\.com\/\d+([^>]*)>;\s*rel="next"/)

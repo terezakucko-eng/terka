@@ -1,8 +1,6 @@
 /**
  * Netlify Function: Basecamp API proxy
- * Nastavení: v Netlify dashboardu → Site settings → Environment variables
- *   BASECAMP_TOKEN = (hodnota access_token z ~/.config/basecamp/credentials.json)
- *   BASECAMP_ACCOUNT = 3317373
+ * Volání: /.netlify/functions/basecamp?path=/projects.json
  */
 const https = require('https');
 
@@ -24,36 +22,28 @@ exports.handler = async (event) => {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'BASECAMP_TOKEN není nastavený. Přidej ho v Netlify → Site settings → Environment variables.' }),
+      body: JSON.stringify({ error: 'BASECAMP_TOKEN není nastavený v Netlify environment variables.' }),
     };
   }
 
-  // Extrahuj cestu: /.netlify/functions/basecamp/projects.json → /projects.json
-  const bcPath = event.path.replace(/\/?\.netlify\/functions\/basecamp/, '') || '/';
-  const qs = event.rawQuery ? `?${event.rawQuery}` : '';
-  const targetUrl = `https://3.basecampapi.com/${account}${bcPath}${qs}`;
+  const bcPath = event.queryStringParameters?.path || '/';
+  const targetUrl = `https://3.basecampapi.com/${account}${bcPath}`;
 
   return new Promise((resolve) => {
-    const options = {
+    const req = https.request(targetUrl, {
       method: event.httpMethod,
       headers: {
         'Authorization': `Bearer ${token}`,
-        'User-Agent': 'Terka Campaign Calendar (tereza.kuckova@ruzovyslon.cz)',
+        'User-Agent': 'Terka Dashboard (tereza.kuckova@ruzovyslon.cz)',
         'Content-Type': 'application/json',
       },
-    };
-
-    const req = https.request(targetUrl, options, (res) => {
+    }, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
         const responseHeaders = { ...headers };
         if (res.headers['link']) responseHeaders['Link'] = res.headers['link'];
-        resolve({
-          statusCode: res.statusCode,
-          headers: responseHeaders,
-          body: data,
-        });
+        resolve({ statusCode: res.statusCode, headers: responseHeaders, body: data });
       });
     });
 
