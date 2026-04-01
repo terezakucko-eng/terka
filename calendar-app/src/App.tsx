@@ -481,7 +481,7 @@ export default function App() {
           <div className="flex items-center gap-3">
             <img src="https://www.ruzovyslon.cz/assets/frontend/images/logo-cs.svg?v=3" alt="Růžový slon" className="h-7 w-auto" />
             <span className="text-gray-300">·</span>
-            <img src="https://logowik.com/content/uploads/images/basecamp-new3343.logowik.com.webp" alt="Basecamp" className="h-10 w-auto" />
+            <img src="https://logowik.com/content/uploads/images/basecamp-new3343.logowik.com.webp" alt="Basecamp" className="h-20 w-auto" />
           </div>
           <p className="text-xs text-gray-400">
             Tereza Kucková ·{' '}
