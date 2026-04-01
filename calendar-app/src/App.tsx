@@ -257,25 +257,10 @@ function PrivateTodosTab() {
 }
 
 // ── Notifikace ──────────────────────────────────────────────────────────────
-function NotificationsTab() {
-  const [unreads, setUnreads] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [lastSync, setLastSync] = useState(null)
+const SEEN_NOTIFS_KEY = 'terka_seen_notif_ids'
 
-  const load = useCallback(async () => {
-    setLoading(true); setError(null)
-    try {
-      const { data } = await apiFetch('/my/readings.json')
-      setUnreads(data?.unreads || [])
-      setLastSync(new Date())
-    } catch (e) { setError('Chyba: ' + e.message) }
-    setLoading(false)
-  }, [])
-
-  useEffect(() => { load() }, [load])
-
-  if (loading) return (
+function NotificationsTab({ unreads, loading, error, lastSync, onRefresh }) {
+  if (loading && unreads.length === 0) return (
     <div className="text-center py-20 text-gray-400">
       <RefreshCw className="w-10 h-10 mx-auto mb-3 animate-spin opacity-40" /><p>Načítám notifikace…</p>
     </div>
@@ -292,9 +277,9 @@ function NotificationsTab() {
             : 'Vše přečteno'}
           {lastSync && <span className="ml-2 text-gray-400">· {lastSync.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })}</span>}
         </p>
-        <button onClick={load}
+        <button onClick={onRefresh}
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 hover:text-indigo-600 border border-gray-200 rounded-lg hover:border-indigo-300">
-          <RefreshCw className="w-3.5 h-3.5" /> Obnovit
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Obnovit
         </button>
       </div>
 
@@ -325,12 +310,13 @@ function NotificationsTab() {
           </div>
         </div>
       )}
-
     </div>
   )
 }
 
 // ── Hlavní app ──────────────────────────────────────────────────────────────
+const REFRESH_INTERVAL = 15 * 60 * 1000 // 15 minut
+
 export default function App() {
   const [tab, setTab] = useState('todos')
   const [todos, setTodos] = useState([])
@@ -340,6 +326,12 @@ export default function App() {
   const [lastSync, setLastSync] = useState(null)
   const [collapsed, setCollapsed] = useState({})
   const [filterProject, setFilterProject] = useState('all')
+
+  const [notifUnreads, setNotifUnreads] = useState([])
+  const [notifLoading, setNotifLoading] = useState(false)
+  const [notifError, setNotifError] = useState(null)
+  const [notifLastSync, setNotifLastSync] = useState(null)
+  const [notifBadge, setNotifBadge] = useState(0)
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
@@ -403,7 +395,33 @@ export default function App() {
     setLoading(false)
   }, [])
 
-  useEffect(() => { load() }, [load])
+  const loadNotifs = useCallback(async () => {
+    setNotifLoading(true); setNotifError(null)
+    try {
+      const { data } = await apiFetch('/my/readings.json')
+      const unreads = data?.unreads || []
+      setNotifUnreads(unreads)
+      setNotifLastSync(new Date())
+      const seenIds = new Set(JSON.parse(localStorage.getItem(SEEN_NOTIFS_KEY) || '[]'))
+      setNotifBadge(unreads.filter(n => !seenIds.has(String(n.id))).length)
+    } catch (e) { setNotifError('Chyba: ' + e.message) }
+    setNotifLoading(false)
+  }, [])
+
+  useEffect(() => {
+    load()
+    loadNotifs()
+    const id = setInterval(() => { load(); loadNotifs() }, REFRESH_INTERVAL)
+    return () => clearInterval(id)
+  }, [load, loadNotifs])
+
+  const openTab = (key) => {
+    setTab(key)
+    if (key === 'notifications') {
+      setNotifBadge(0)
+      localStorage.setItem(SEEN_NOTIFS_KEY, JSON.stringify(notifUnreads.map(n => String(n.id))))
+    }
+  }
 
   const open = todos.filter(t => !t.completed)
   const projects = [...new Set(open.map(t => t.project))].sort()
@@ -413,9 +431,9 @@ export default function App() {
   const toggle = key => setCollapsed(c => ({ ...c, [key]: !c[key] }))
 
   const TABS = [
-    { key: 'todos', label: 'Moje úkoly' },
-    { key: 'notifications', label: 'Notifikace' },
-    { key: 'private', label: 'Soukromé úkoly' },
+    { key: 'todos', label: 'Moje úkoly', badge: 0 },
+    { key: 'notifications', label: 'Notifikace', badge: notifBadge },
+    { key: 'private', label: 'Soukromé úkoly', badge: 0 },
   ]
 
   return (
@@ -442,9 +460,14 @@ export default function App() {
       <div className="bg-white border-b border-gray-200 px-6">
         <div className="flex gap-1">
           {TABS.map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${tab === t.key ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+            <button key={t.key} onClick={() => openTab(t.key)}
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${tab === t.key ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
               {t.label}
+              {t.badge > 0 && (
+                <span className="bg-orange-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                  {t.badge}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -545,7 +568,15 @@ export default function App() {
           </>
         )}
 
-        {tab === 'notifications' && <NotificationsTab />}
+        {tab === 'notifications' && (
+          <NotificationsTab
+            unreads={notifUnreads}
+            loading={notifLoading}
+            error={notifError}
+            lastSync={notifLastSync}
+            onRefresh={loadNotifs}
+          />
+        )}
         {tab === 'private' && <PrivateTodosTab />}
       </div>
     </div>
