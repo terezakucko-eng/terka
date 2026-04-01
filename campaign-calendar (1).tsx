@@ -1,5 +1,36 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Edit2, Trash2, Search, Filter, Download, Upload, BarChart3, Calendar, List, Grid, Bell, Clock, AlertTriangle, CheckCircle, X } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { ChevronLeft, ChevronRight, Plus, Edit2, Trash2, Search, Filter, Download, Upload, BarChart3, Calendar, List, Grid, Bell, Clock, AlertTriangle, CheckCircle, X, ExternalLink, RefreshCw, Briefcase } from 'lucide-react';
+
+const BASECAMP_PROXY = 'http://localhost:3001/api';
+const MKT_PROJECT_ID = '45674654';
+const TEREZA_PERSON_ID = 43838310;
+
+async function bcFetch(path, options = {}) {
+  const res = await fetch(`${BASECAMP_PROXY}${path}`, {
+    ...options,
+    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+  });
+  if (!res.ok) throw new Error(`Basecamp API ${res.status}`);
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+async function fetchAllPages(path) {
+  const results = [];
+  let url = path;
+  while (url) {
+    const res = await fetch(`${BASECAMP_PROXY}${url}`, {
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!res.ok) break;
+    const data = await res.json();
+    results.push(...(Array.isArray(data) ? data : []));
+    const link = res.headers.get('Link') || '';
+    const next = link.match(/<[^>]*\/api([^>]*)>;\s*rel="next"/);
+    url = next ? next[1] : null;
+  }
+  return results;
+}
 
 const CampaignCalendar = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(true);
@@ -42,6 +73,10 @@ const CampaignCalendar = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [draggedCampaign, setDraggedCampaign] = useState(null);
   const [draggedOver, setDraggedOver] = useState(null);
+  const [basecampTodos, setBasecampTodos] = useState([]);
+  const [basecampLoading, setBasecampLoading] = useState(false);
+  const [basecampError, setBasecampError] = useState(null);
+  const [basecampLastSync, setBasecampLastSync] = useState(null);
   const [filters, setFilters] = useState({
     status: 'all',
     country: 'all',
@@ -134,6 +169,105 @@ const CampaignCalendar = () => {
     const interval = setInterval(checkNotifications, 60000); // Kontrola každou minutu
     return () => clearInterval(interval);
   }, [campaigns]);
+
+  // Basecamp: načtení todos Terezy přes všechny projekty
+  const fetchBasecampTodos = useCallback(async () => {
+    setBasecampLoading(true);
+    setBasecampError(null);
+    try {
+      const projects = await fetchAllPages('/projects.json');
+      const results = [];
+      for (const proj of projects) {
+        for (const dock of (proj.dock || [])) {
+          if (dock.name !== 'todoset' || !dock.enabled) continue;
+          const tsPath = dock.url.replace(/^https:\/\/3\.basecampapi\.com\/3317373/, '');
+          try {
+            const todoset = await bcFetch(tsPath);
+            const tlsPath = todoset.todolists_url.replace(/^https:\/\/3\.basecampapi\.com\/3317373/, '');
+            const todolists = await fetchAllPages(tlsPath);
+            for (const tl of todolists) {
+              const todosPath = tl.todos_url.replace(/^https:\/\/3\.basecampapi\.com\/3317373/, '');
+              const todos = await fetchAllPages(todosPath);
+              for (const todo of todos) {
+                const assigneeIds = (todo.assignees || []).map(a => a.id);
+                const creatorId = todo.creator?.id;
+                if (assigneeIds.includes(TEREZA_PERSON_ID) || creatorId === TEREZA_PERSON_ID) {
+                  results.push({
+                    id: todo.id,
+                    content: todo.content,
+                    completed: todo.completed,
+                    due: todo.due_on || null,
+                    project: proj.name,
+                    projectId: proj.id,
+                    list: tl.name,
+                    url: todo.app_url,
+                    assignees: (todo.assignees || []).map(a => a.name),
+                    creator: todo.creator?.name,
+                  });
+                }
+              }
+            }
+          } catch { /* skip inaccessible todosets */ }
+        }
+      }
+      results.sort((a, b) => {
+        if (!a.due && !b.due) return 0;
+        if (!a.due) return 1;
+        if (!b.due) return -1;
+        return a.due.localeCompare(b.due);
+      });
+      setBasecampTodos(results);
+      setBasecampLastSync(new Date());
+    } catch (e) {
+      setBasecampError('Nelze se připojit k Basecamp proxy. Spusť: node basecamp-proxy.js');
+    } finally {
+      setBasecampLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBasecampTodos();
+  }, [fetchBasecampTodos]);
+
+  // Basecamp: vytvoření todolists pro kampaň v MKT projektu
+  const createBasecampTodolistForCampaign = async (campaign) => {
+    try {
+      // Get todoset ID for MKT project
+      const proj = await bcFetch(`/projects/${MKT_PROJECT_ID}.json`);
+      const todosetDock = proj.dock?.find(d => d.name === 'todoset' && d.enabled);
+      if (!todosetDock) return null;
+      const tsPath = todosetDock.url.replace(/^https:\/\/3\.basecampapi\.com\/3317373/, '');
+      const todoset = await bcFetch(tsPath);
+      const tlsPath = todoset.todolists_url.replace(/^https:\/\/3\.basecampapi\.com\/3317373/, '');
+
+      const newList = await bcFetch(tlsPath, {
+        method: 'POST',
+        body: JSON.stringify({
+          name: campaign.name,
+          description: `Kampaň: ${campaign.dateFrom} – ${campaign.dateTo} | Kanály: ${campaign.channels.join(', ')} | Země: ${campaign.countries.join(', ')}${campaign.description ? '\n\n' + campaign.description : ''}`,
+        }),
+      });
+
+      // Create default todos in the new list
+      const todosPath = newList.todos_url.replace(/^https:\/\/3\.basecampapi\.com\/3317373/, '');
+      const defaultTodos = [
+        { content: 'Příprava zadání kampaně', due_on: campaign.dateFrom },
+        { content: 'Schválení materiálů', due_on: campaign.dateFrom },
+        { content: 'Spuštění kampaně', due_on: campaign.dateFrom },
+        { content: 'Vyhodnocení výsledků', due_on: campaign.dateTo },
+      ];
+      for (const todo of defaultTodos) {
+        await bcFetch(todosPath, {
+          method: 'POST',
+          body: JSON.stringify({ ...todo, assignee_ids: [TEREZA_PERSON_ID] }),
+        });
+      }
+      return newList.app_url;
+    } catch (e) {
+      console.warn('Basecamp todo vytvoření selhalo:', e.message);
+      return null;
+    }
+  };
 
   // Export do CSV
   const exportToCSV = () => {
@@ -312,19 +446,26 @@ const CampaignCalendar = () => {
     }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.name || !formData.dateFrom || !formData.dateTo || formData.channels.length === 0) return;
-    
+
     if (editingCampaign) {
-      setCampaigns(prev => prev.map(c => 
+      setCampaigns(prev => prev.map(c =>
         c.id === editingCampaign.id ? { ...formData, id: editingCampaign.id, colorIndex: editingCampaign.colorIndex } : c
       ));
     } else {
-      setCampaigns(prev => [...prev, { 
-        ...formData, 
+      const newCampaign = {
+        ...formData,
         id: Date.now(),
-        colorIndex: prev.length % campaignColors.length
-      }]);
+        colorIndex: campaigns.length % campaignColors.length
+      };
+      // Pokud není Basecamp URL, vytvoř todolist automaticky
+      if (!newCampaign.basecampUrl) {
+        const bcUrl = await createBasecampTodolistForCampaign(newCampaign);
+        if (bcUrl) newCampaign.basecampUrl = bcUrl;
+      }
+      setCampaigns(prev => [...prev, newCampaign]);
+      setTimeout(fetchBasecampTodos, 2000); // refresh todos po vytvoření
     }
     resetForm();
   };
@@ -394,6 +535,103 @@ const CampaignCalendar = () => {
 
   const monthWeeks = getMonthWeeks(currentMonth);
   const analytics = getAnalytics();
+
+  const renderTodosView = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+    const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+
+    const overdue = basecampTodos.filter(t => !t.completed && t.due && t.due < today);
+    const dueToday = basecampTodos.filter(t => !t.completed && t.due === today);
+    const dueTomorrow = basecampTodos.filter(t => !t.completed && t.due === tomorrow);
+    const dueThisWeek = basecampTodos.filter(t => !t.completed && t.due && t.due > tomorrow && t.due <= nextWeek);
+    const later = basecampTodos.filter(t => !t.completed && (!t.due || t.due > nextWeek));
+
+    const TodoItem = ({ todo }) => (
+      <div className="flex items-start gap-3 py-2 px-3 rounded-lg hover:bg-gray-50 group">
+        <div className="mt-0.5 w-4 h-4 rounded border-2 border-gray-300 flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <span className="text-sm text-gray-800 leading-snug">{todo.content}</span>
+            <a href={todo.url} target="_blank" rel="noreferrer" className="opacity-0 group-hover:opacity-100 flex-shrink-0">
+              <ExternalLink className="w-3.5 h-3.5 text-gray-400 hover:text-purple-500" />
+            </a>
+          </div>
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className="text-xs text-gray-400 truncate">{todo.project.replace(/^\[.*?\]\s*/, '')} / {todo.list}</span>
+            {todo.due && <span className="text-xs text-gray-400">· {new Date(todo.due + 'T00:00:00').toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short' })}</span>}
+          </div>
+        </div>
+      </div>
+    );
+
+    const Section = ({ title, items, color, emptyText }) => (
+      <div className="mb-6">
+        <div className={`flex items-center gap-2 mb-2 px-3 py-1.5 rounded-lg ${color}`}>
+          <span className="font-semibold text-sm">{title}</span>
+          <span className="ml-auto text-xs font-bold">{items.length}</span>
+        </div>
+        {items.length === 0
+          ? <p className="text-xs text-gray-400 px-3">{emptyText}</p>
+          : items.map(t => <TodoItem key={t.id} todo={t} />)
+        }
+      </div>
+    );
+
+    return (
+      <div className="bg-white rounded-2xl shadow-xl p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-xl font-bold text-purple-600">Moje úkoly v Basecamp</h3>
+            {basecampLastSync && (
+              <p className="text-xs text-gray-400 mt-0.5">
+                Aktualizováno: {basecampLastSync.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={fetchBasecampTodos}
+            disabled={basecampLoading}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-700 rounded-xl hover:bg-purple-100 transition-colors text-sm font-medium disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${basecampLoading ? 'animate-spin' : ''}`} />
+            {basecampLoading ? 'Načítám…' : 'Aktualizovat'}
+          </button>
+        </div>
+
+        {basecampError && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+            <strong>Chyba připojení:</strong> {basecampError}
+            <div className="mt-2 font-mono text-xs bg-red-100 rounded p-2">node basecamp-proxy.js</div>
+          </div>
+        )}
+
+        {basecampLoading && basecampTodos.length === 0 ? (
+          <div className="text-center py-16 text-gray-400">
+            <RefreshCw className="w-10 h-10 mx-auto mb-3 animate-spin opacity-50" />
+            <p>Načítám todos z Basecampu…</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div>
+              <Section title="Prošlé termíny" items={overdue} color="bg-red-50 text-red-700" emptyText="Nic prošlého" />
+              <Section title="Dnes" items={dueToday} color="bg-orange-50 text-orange-700" emptyText="Na dnešek nemáš nic naplánováno" />
+              <Section title="Zítra" items={dueTomorrow} color="bg-yellow-50 text-yellow-700" emptyText="Zítra nic" />
+              <Section title="Tento týden" items={dueThisWeek} color="bg-blue-50 text-blue-700" emptyText="Tento týden nic dalšího" />
+            </div>
+            <div>
+              <Section title="Později / bez termínu" items={later} color="bg-gray-50 text-gray-600" emptyText="Žádné další úkoly" />
+            </div>
+          </div>
+        )}
+
+        <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
+          <span>Celkem otevřených: {basecampTodos.filter(t => !t.completed).length}</span>
+          <span>Prošlé: {overdue.length} · Dnes: {dueToday.length} · Tento týden: {dueThisWeek.length}</span>
+        </div>
+      </div>
+    );
+  };
 
   // Timeline view rendering
   const renderTimelineView = () => {
@@ -876,6 +1114,18 @@ const CampaignCalendar = () => {
             >
               <BarChart3 className="w-5 h-5" />
             </button>
+            <button
+              onClick={() => setViewMode('todos')}
+              className={`relative p-2 rounded-lg transition-colors ${viewMode === 'todos' ? 'bg-purple-100 text-purple-600' : 'hover:bg-gray-100'}`}
+              title="Moje Basecamp úkoly"
+            >
+              <Briefcase className="w-5 h-5" />
+              {basecampTodos.filter(t => !t.completed && t.due && t.due <= new Date().toISOString().split('T')[0]).length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                  {basecampTodos.filter(t => !t.completed && t.due && t.due <= new Date().toISOString().split('T')[0]).length}
+                </span>
+              )}
+            </button>
           </div>
 
           {/* Actions */}
@@ -969,8 +1219,13 @@ const CampaignCalendar = () => {
                     <h4 className="font-semibold text-sm truncate flex-1">{campaign.name}</h4>
                     <StatusIcon className="w-4 h-4 ml-2 flex-shrink-0" />
                   </div>
-                  <div className="text-xs opacity-75">
-                    {new Date(campaign.dateFrom).toLocaleDateString('cs-CZ')} - {new Date(campaign.dateTo).toLocaleDateString('cs-CZ')}
+                  <div className="text-xs opacity-75 flex items-center gap-2">
+                    <span>{new Date(campaign.dateFrom).toLocaleDateString('cs-CZ')} - {new Date(campaign.dateTo).toLocaleDateString('cs-CZ')}</span>
+                    {campaign.basecampUrl && (
+                      <a href={campaign.basecampUrl} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} title="Otevřít v Basecamp">
+                        <ExternalLink className="w-3 h-3 opacity-70 hover:opacity-100" />
+                      </a>
+                    )}
                   </div>
                   <div className="flex flex-wrap gap-1 mt-2">
                     {campaign.channels.slice(0, 2).map(channel => (
@@ -1008,6 +1263,7 @@ const CampaignCalendar = () => {
         {viewMode === 'timeline' && renderTimelineView()}
         {viewMode === 'list' && renderListView()}
         {viewMode === 'analytics' && renderAnalyticsView()}
+        {viewMode === 'todos' && renderTodosView()}
       </div>
 
       {/* Modal pro vytváření/editaci kampaní */}
