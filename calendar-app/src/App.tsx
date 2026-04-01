@@ -97,6 +97,7 @@ function PrivateTodosTab() {
   const [title, setTitle] = useState('')
   const [due, setDue] = useState('')
   const [link, setLink] = useState('')
+  const [note, setNote] = useState('')
   const [showDone, setShowDone] = useState(false)
 
   const persist = (next) => { setItems(next); savePrivate(next) }
@@ -109,9 +110,10 @@ function PrivateTodosTab() {
       text,
       due: due || null,
       link: url ? (url.startsWith('http') ? url : 'https://' + url) : null,
+      note: note.trim() || null,
       done: false,
     }, ...items])
-    setTitle(''); setDue(''); setLink('')
+    setTitle(''); setDue(''); setLink(''); setNote('')
   }
   const toggle = (id) => persist(items.map(i => i.id === id ? { ...i, done: !i.done } : i))
   const remove = (id) => persist(items.filter(i => i.id !== id))
@@ -126,6 +128,7 @@ function PrivateTodosTab() {
       </button>
       <div className="flex-1 min-w-0">
         <p className={`text-sm ${faded ? 'text-gray-500 line-through' : 'text-gray-800'}`}>{item.text}</p>
+        {item.note && !faded && <p className="text-xs text-gray-500 mt-0.5 whitespace-pre-wrap">{item.note}</p>}
         <div className="flex items-center gap-3 mt-0.5 flex-wrap">
           {item.due && (
             <span className="text-xs text-gray-400 flex items-center gap-1">
@@ -165,6 +168,13 @@ function PrivateTodosTab() {
             <Plus className="w-4 h-4" /> Přidat
           </button>
         </div>
+        <textarea
+          value={note}
+          onChange={e => setNote(e.target.value)}
+          placeholder="Poznámka… (volitelné)"
+          rows={2}
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 mb-3"
+        />
         <div className="flex gap-2">
           <div className="flex items-center gap-1.5 flex-1">
             <Calendar className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
