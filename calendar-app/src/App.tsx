@@ -468,14 +468,17 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Můj dashboard · Basecamp</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
+        <div className="flex items-center gap-4">
+          <img src="https://www.ruzovyslon.cz/assets/frontend/images/logo-cs.svg?v=3" alt="Růžový slon" className="h-8 w-auto" />
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Můj dashboard · Basecamp</h1>
+            <p className="text-sm text-gray-500 mt-0.5">
             Tereza Kucková ·{' '}
             {tab === 'todos' && (lastSync ? `aktualizováno ${lastSync.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })}` : 'načítám…')}
             {tab === 'notifications' && 'notifikace'}
             {tab === 'private' && 'soukromé úkoly'}
           </p>
+          </div>
         </div>
         {tab === 'todos' && (
           <button onClick={load} disabled={loading}
