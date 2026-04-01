@@ -30,6 +30,25 @@ async function fetchAll(path) {
   return items
 }
 
+// Vrátí todos ze seznamu + ze všech skupin uvnitř seznamu
+async function fetchTodosFromList(list) {
+  const todosPath = list.todos_url.replace(/^https:\/\/3\.basecampapi\.com\/\d+/, '')
+  const groupsPath = list.groups_url
+    ? list.groups_url.replace(/^https:\/\/3\.basecampapi\.com\/\d+/, '')
+    : todosPath.replace('/todos.json', '/groups.json')
+
+  const [directTodos, groups] = await Promise.all([
+    fetchAll(todosPath).catch(() => []),
+    fetchAll(groupsPath).catch(() => []),
+  ])
+
+  const groupTodos = await Promise.all(
+    groups.map(g => fetchAll(g.todos_url.replace(/^https:\/\/3\.basecampapi\.com\/\d+/, '')).catch(() => []))
+  )
+
+  return [...directTodos, ...groupTodos.flat()]
+}
+
 function formatDate(dateStr) {
   if (!dateStr) return null
   const d = new Date(dateStr + 'T00:00:00')
@@ -95,18 +114,17 @@ export default function App() {
         listJobs.map(({ path }) => fetchAll(path))
       )
 
-      // Paralelně načti todos ze všech listů
+      // Paralelně načti todos ze všech listů (včetně skupin uvnitř listů)
       const todoJobs = listResults.flatMap((res, i) => {
         if (res.status !== 'fulfilled') return []
         return res.value.map(list => ({
           proj: listJobs[i].proj,
           list,
-          path: list.todos_url.replace(/^https:\/\/3\.basecampapi\.com\/\d+/, '')
         }))
       })
 
       const todoResults = await Promise.allSettled(
-        todoJobs.map(({ path }) => fetchAll(path))
+        todoJobs.map(({ list }) => fetchTodosFromList(list))
       )
 
       const results = []
