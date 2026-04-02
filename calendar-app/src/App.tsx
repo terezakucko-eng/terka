@@ -418,7 +418,9 @@ export default function App() {
       setLastSync(new Date())
     } catch (e) {
       setError(e.message.includes('Failed to fetch')
-        ? 'Nelze se připojit. Spusť: node basecamp-proxy.js'
+        ? IS_LOCAL
+          ? 'Nelze se připojit. Spusť: node basecamp-proxy.js'
+          : 'Nelze se připojit k Basecamp API. Token mohl expirovat — aktualizuj BASECAMP_TOKEN v Netlify.'
         : 'Chyba načítání: ' + e.message)
     }
     setLoading(false)
