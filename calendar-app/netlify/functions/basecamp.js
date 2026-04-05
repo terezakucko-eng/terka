@@ -86,6 +86,18 @@ exports.handler = async (event) => {
     return { statusCode: 204, headers, body: '' };
   }
 
+  // Debug endpoint
+  if (event.queryStringParameters?.debug === '1') {
+    const stored = await readToken();
+    const nowS = Math.floor(Date.now() / 1000);
+    return { statusCode: 200, headers, body: JSON.stringify({
+      hasRefreshToken: !!process.env.BASECAMP_REFRESH_TOKEN,
+      hasClientSecret: !!process.env.BC_CLIENT_SECRET,
+      hasStaticToken:  !!process.env.BASECAMP_TOKEN,
+      firestoreToken:  stored ? { expires_in_h: Math.round((stored.expires_at - nowS) / 3600), valid: stored.expires_at > nowS + TOKEN_BUFFER_S } : null,
+    })};
+  }
+
   const clientSecret   = process.env.BC_CLIENT_SECRET;
   const refreshTokenEnv = process.env.BASECAMP_REFRESH_TOKEN;
   const account        = process.env.BASECAMP_ACCOUNT || '3317373';
