@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { db } from './firebase'
 import { doc, onSnapshot, setDoc } from 'firebase/firestore'
-import { RefreshCw, ExternalLink, CheckCircle2, Circle, ChevronDown, ChevronRight, AlertCircle, Clock, Calendar, Inbox, Bell, Plus, Trash2, CheckSquare, Square, Link, Pencil, X } from 'lucide-react'
+import { RefreshCw, ExternalLink, CheckCircle2, Circle, ChevronDown, ChevronRight, AlertCircle, Clock, Calendar, Inbox, Bell, Plus, Trash2, CheckSquare, Square, Link, Pencil, X, Tag } from 'lucide-react'
 
 const IS_LOCAL = typeof window !== 'undefined' && window.location.hostname === 'localhost'
 const TEREZA_ID = 43838310
@@ -91,14 +91,55 @@ const NOTIF_LABELS = {
 const STORAGE_KEY = 'terka_private_todos'
 const FIRESTORE_DOC = doc(db, 'privateTodos', 'tereza')
 
+const LABEL_COLORS = [
+  { key: 'red',    bg: 'bg-red-100',    text: 'text-red-700',    dot: 'bg-red-400'    },
+  { key: 'orange', bg: 'bg-orange-100', text: 'text-orange-700', dot: 'bg-orange-400' },
+  { key: 'yellow', bg: 'bg-yellow-100', text: 'text-yellow-700', dot: 'bg-yellow-400' },
+  { key: 'green',  bg: 'bg-green-100',  text: 'text-green-700',  dot: 'bg-green-500'  },
+  { key: 'blue',   bg: 'bg-blue-100',   text: 'text-blue-700',   dot: 'bg-blue-400'   },
+  { key: 'indigo', bg: 'bg-indigo-100', text: 'text-indigo-700', dot: 'bg-indigo-400' },
+  { key: 'purple', bg: 'bg-purple-100', text: 'text-purple-700', dot: 'bg-purple-400' },
+  { key: 'pink',   bg: 'bg-pink-100',   text: 'text-pink-700',   dot: 'bg-pink-400'   },
+]
+
+function LabelChip({ label, onRemove = null, onClick = null, active = true }) {
+  const color = LABEL_COLORS.find(c => c.key === label.color) || LABEL_COLORS[4]
+  return (
+    <span
+      onClick={onClick}
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${color.bg} ${color.text} ${onClick ? 'cursor-pointer hover:opacity-80' : ''} ${!active ? 'opacity-40' : ''}`}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full ${color.dot} flex-shrink-0`} />
+      {label.name}
+      {onRemove && (
+        <button onClick={e => { e.stopPropagation(); onRemove() }} className="ml-0.5 hover:opacity-70">
+          <X className="w-2.5 h-2.5" />
+        </button>
+      )}
+    </span>
+  )
+}
+
 function PrivateTodosTab() {
   const [items, setItems] = useState([])
+  const [labels, setLabels] = useState([])
   const [fsLoading, setFsLoading] = useState(true)
+
+  // form
   const [title, setTitle] = useState('')
   const [due, setDue] = useState('')
   const [link, setLink] = useState('')
   const [note, setNote] = useState('')
+  const [selectedLabelIds, setSelectedLabelIds] = useState([])
   const [editId, setEditId] = useState(null)
+
+  // label management
+  const [showLabelMgr, setShowLabelMgr] = useState(false)
+  const [newLabelName, setNewLabelName] = useState('')
+  const [newLabelColor, setNewLabelColor] = useState('blue')
+
+  // filter
+  const [filterLabelId, setFilterLabelId] = useState(null)
   const [showDone, setShowDone] = useState(false)
 
   const migratedRef = useRef(false)
@@ -106,27 +147,28 @@ function PrivateTodosTab() {
   useEffect(() => {
     const unsub = onSnapshot(FIRESTORE_DOC, (snap) => {
       if (snap.exists()) {
-        setItems(snap.data().items || [])
+        const data = snap.data()
+        setItems(data.items || [])
+        setLabels(data.labels || [])
       } else if (!migratedRef.current) {
         migratedRef.current = true
-        // Migruj z localStorage pokud tam něco je
         try {
           const local = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
-          setDoc(FIRESTORE_DOC, { items: local })
+          setDoc(FIRESTORE_DOC, { items: local, labels: [] })
           if (local.length > 0) localStorage.removeItem(STORAGE_KEY)
-        } catch { setDoc(FIRESTORE_DOC, { items: [] }) }
+        } catch { setDoc(FIRESTORE_DOC, { items: [], labels: [] }) }
       }
       setFsLoading(false)
     }, () => setFsLoading(false))
     return () => unsub()
   }, [])
 
-  const persist = (next) => {
-    setItems(next) // optimistická aktualizace
-    setDoc(FIRESTORE_DOC, { items: next })
+  const save = (newItems, newLabels) => {
+    setItems(newItems); setLabels(newLabels)
+    setDoc(FIRESTORE_DOC, { items: newItems, labels: newLabels })
   }
 
-  const clearForm = () => { setTitle(''); setDue(''); setLink(''); setNote(''); setEditId(null) }
+  const clearForm = () => { setTitle(''); setDue(''); setLink(''); setNote(''); setSelectedLabelIds([]); setEditId(null) }
 
   const add = () => {
     const text = title.trim()
@@ -134,24 +176,38 @@ function PrivateTodosTab() {
     const url = link.trim()
     const normalized = url ? (url.startsWith('http') ? url : 'https://' + url) : null
     if (editId !== null) {
-      persist(items.map(i => i.id === editId ? { ...i, text, due: due || null, link: normalized, note: note.trim() || null } : i))
+      save(items.map(i => i.id === editId ? { ...i, text, due: due || null, link: normalized, note: note.trim() || null, labelIds: selectedLabelIds } : i), labels)
     } else {
-      persist([{ id: Date.now(), text, due: due || null, link: normalized, note: note.trim() || null, done: false }, ...items])
+      save([{ id: Date.now(), text, due: due || null, link: normalized, note: note.trim() || null, labelIds: selectedLabelIds, done: false }, ...items], labels)
     }
     clearForm()
   }
 
   const startEdit = (item) => {
-    setEditId(item.id)
-    setTitle(item.text)
-    setDue(item.due || '')
-    setLink(item.link || '')
-    setNote(item.note || '')
+    setEditId(item.id); setTitle(item.text); setDue(item.due || '')
+    setLink(item.link || ''); setNote(item.note || '')
+    setSelectedLabelIds(item.labelIds || [])
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const toggle = (id) => persist(items.map(i => i.id === id ? { ...i, done: !i.done } : i))
-  const remove = (id) => { persist(items.filter(i => i.id !== id)); if (editId === id) clearForm() }
+  const toggle = (id) => save(items.map(i => i.id === id ? { ...i, done: !i.done } : i), labels)
+  const remove = (id) => { save(items.filter(i => i.id !== id), labels); if (editId === id) clearForm() }
+
+  const addLabel = () => {
+    const name = newLabelName.trim()
+    if (!name) return
+    save(items, [...labels, { id: Date.now(), name, color: newLabelColor }])
+    setNewLabelName('')
+  }
+  const removeLabel = (id) => {
+    save(items.map(i => ({ ...i, labelIds: (i.labelIds || []).filter(l => l !== id) })),
+         labels.filter(l => l.id !== id))
+    if (filterLabelId === id) setFilterLabelId(null)
+  }
+
+  const toggleFormLabel = (id) => setSelectedLabelIds(prev =>
+    prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+  )
 
   if (fsLoading) return (
     <div className="text-center py-20 text-gray-400">
@@ -160,56 +216,53 @@ function PrivateTodosTab() {
     </div>
   )
 
-  const open = items.filter(i => !i.done)
-  const done = items.filter(i => i.done)
+  const allOpen = items.filter(i => !i.done)
+  const allDone = items.filter(i => i.done)
+  const open = filterLabelId ? allOpen.filter(i => (i.labelIds || []).includes(filterLabelId)) : allOpen
+  const done = filterLabelId ? allDone.filter(i => (i.labelIds || []).includes(filterLabelId)) : allDone
 
-  const ItemRow = ({ item, faded = false }) => (
-    <div className={`flex items-start gap-3 px-4 py-3 group hover:bg-gray-50 ${faded ? 'opacity-60' : ''} ${editId === item.id ? 'bg-indigo-50' : ''}`}>
-      <button onClick={() => toggle(item.id)} className={`mt-0.5 flex-shrink-0 ${faded ? 'text-indigo-400 hover:text-indigo-600' : 'text-gray-300 hover:text-indigo-500'}`}>
-        {faded ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
-      </button>
-      <div className="flex-1 min-w-0">
-        <p className={`text-sm ${faded ? 'text-gray-500 line-through' : 'text-gray-800'}`}>{item.text}</p>
-        {item.note && !faded && <p className="text-xs text-gray-500 mt-0.5 whitespace-pre-wrap">{item.note}</p>}
-        <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-          {item.due && (
-            <span className="text-xs text-gray-400 flex items-center gap-1">
-              <Calendar className="w-3 h-3" />
-              {new Date(item.due + 'T00:00:00').toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short' })}
-            </span>
-          )}
-          {item.link && (
-            <a href={item.link} target="_blank" rel="noreferrer"
-              className="text-xs text-indigo-500 hover:text-indigo-700 flex items-center gap-1 truncate max-w-xs">
-              <Link className="w-3 h-3 flex-shrink-0" />
-              <span className="truncate">{item.link.replace(/^https?:\/\//, '')}</span>
-            </a>
-          )}
+  const ItemRow = ({ item, faded = false }) => {
+    const itemLabels = labels.filter(l => (item.labelIds || []).includes(l.id))
+    return (
+      <div className={`flex items-start gap-3 px-4 py-3 group hover:bg-gray-50 ${faded ? 'opacity-60' : ''} ${editId === item.id ? 'bg-indigo-50' : ''}`}>
+        <button onClick={() => toggle(item.id)} className={`mt-0.5 flex-shrink-0 ${faded ? 'text-indigo-400 hover:text-indigo-600' : 'text-gray-300 hover:text-indigo-500'}`}>
+          {faded ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+        </button>
+        <div className="flex-1 min-w-0">
+          <p className={`text-sm ${faded ? 'text-gray-500 line-through' : 'text-gray-800'}`}>{item.text}</p>
+          {item.note && !faded && <p className="text-xs text-gray-500 mt-0.5 whitespace-pre-wrap">{item.note}</p>}
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            {itemLabels.map(l => <LabelChip key={l.id} label={l} />)}
+            {item.due && (
+              <span className="text-xs text-gray-400 flex items-center gap-1">
+                <Calendar className="w-3 h-3" />
+                {new Date(item.due + 'T00:00:00').toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short' })}
+              </span>
+            )}
+            {item.link && (
+              <a href={item.link} target="_blank" rel="noreferrer"
+                className="text-xs text-indigo-500 hover:text-indigo-700 flex items-center gap-1 truncate max-w-xs">
+                <Link className="w-3 h-3 flex-shrink-0" />
+                <span className="truncate">{item.link.replace(/^https?:\/\//, '')}</span>
+              </a>
+            )}
+          </div>
+        </div>
+        <div className="flex gap-1 opacity-0 group-hover:opacity-100 flex-shrink-0 mt-0.5">
+          {!faded && <button onClick={() => startEdit(item)} className="text-gray-300 hover:text-indigo-500 p-0.5"><Pencil className="w-3.5 h-3.5" /></button>}
+          <button onClick={() => remove(item.id)} className="text-gray-300 hover:text-red-500 p-0.5"><Trash2 className="w-3.5 h-3.5" /></button>
         </div>
       </div>
-      <div className="flex gap-1 opacity-0 group-hover:opacity-100 flex-shrink-0 mt-0.5">
-        {!faded && (
-          <button onClick={() => startEdit(item)} className="text-gray-300 hover:text-indigo-500 p-0.5">
-            <Pencil className="w-3.5 h-3.5" />
-          </button>
-        )}
-        <button onClick={() => remove(item.id)} className="text-gray-300 hover:text-red-500 p-0.5">
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
-      </div>
-    </div>
-  )
+    )
+  }
 
   return (
     <div>
       {/* Formulář */}
-      <div className={`bg-white rounded-xl border p-4 mb-5 ${editId !== null ? 'border-indigo-300 ring-2 ring-indigo-100' : 'border-gray-200'}`}>
+      <div className={`bg-white rounded-xl border p-4 mb-4 ${editId !== null ? 'border-indigo-300 ring-2 ring-indigo-100' : 'border-gray-200'}`}>
         <div className="flex gap-2 mb-3">
-          <input
-            type="text" value={title}
-            onChange={e => setTitle(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && add()}
-            placeholder="Název úkolu…"
+          <input type="text" value={title} onChange={e => setTitle(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && add()} placeholder="Název úkolu…"
             className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
           />
           <button onClick={add} disabled={!title.trim()}
@@ -222,33 +275,88 @@ function PrivateTodosTab() {
             </button>
           )}
         </div>
-        <textarea
-          value={note}
-          onChange={e => setNote(e.target.value)}
-          placeholder="Poznámka… (volitelné)"
-          rows={2}
+        <textarea value={note} onChange={e => setNote(e.target.value)}
+          placeholder="Poznámka… (volitelné)" rows={2}
           className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 mb-3"
         />
-        <div className="flex gap-2">
+        <div className="flex gap-2 mb-3">
           <div className="flex items-center gap-1.5 flex-1">
             <Calendar className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-            <input
-              type="date" value={due}
-              onChange={e => setDue(e.target.value)}
+            <input type="date" value={due} onChange={e => setDue(e.target.value)}
               className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400"
             />
           </div>
           <div className="flex items-center gap-1.5 flex-1">
             <Link className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-            <input
-              type="url" value={link}
-              onChange={e => setLink(e.target.value)}
-              placeholder="https://…"
+            <input type="url" value={link} onChange={e => setLink(e.target.value)} placeholder="https://…"
               className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400"
             />
           </div>
         </div>
+        {/* Štítky ve formuláři */}
+        {labels.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <Tag className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+            {labels.map(l => (
+              <LabelChip key={l.id} label={l} active={selectedLabelIds.includes(l.id)}
+                onClick={() => toggleFormLabel(l.id)}
+              />
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* Správa štítků */}
+      <div className="mb-4">
+        <button onClick={() => setShowLabelMgr(v => !v)}
+          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-indigo-600 mb-2">
+          <Tag className="w-3.5 h-3.5" />
+          {showLabelMgr ? 'Skrýt správu štítků' : 'Spravovat štítky'}
+        </button>
+        {showLabelMgr && (
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <div className="flex gap-2 mb-3">
+              <input type="text" value={newLabelName} onChange={e => setNewLabelName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addLabel()} placeholder="Název štítku…"
+                className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              />
+              <div className="flex gap-1">
+                {LABEL_COLORS.map(c => (
+                  <button key={c.key} onClick={() => setNewLabelColor(c.key)}
+                    className={`w-5 h-5 rounded-full ${c.dot} ${newLabelColor === c.key ? 'ring-2 ring-offset-1 ring-gray-400' : ''}`}
+                  />
+                ))}
+              </div>
+              <button onClick={addLabel} disabled={!newLabelName.trim()}
+                className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 disabled:opacity-40">
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+            {labels.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {labels.map(l => <LabelChip key={l.id} label={l} onRemove={() => removeLabel(l.id)} />)}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400">Zatím žádné štítky</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Filtr podle štítku */}
+      {labels.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap mb-4">
+          <button onClick={() => setFilterLabelId(null)}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${filterLabelId === null ? 'bg-indigo-600 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:border-indigo-300'}`}>
+            Vše
+          </button>
+          {labels.map(l => (
+            <LabelChip key={l.id} label={l} active={filterLabelId === l.id || filterLabelId === null}
+              onClick={() => setFilterLabelId(filterLabelId === l.id ? null : l.id)}
+            />
+          ))}
+        </div>
+      )}
 
       {open.length === 0 && done.length === 0 && (
         <div className="text-center py-16 text-gray-400">
