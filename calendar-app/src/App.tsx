@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { db } from './firebase'
 import { doc, onSnapshot, setDoc } from 'firebase/firestore'
-import { RefreshCw, ExternalLink, CheckCircle2, Circle, ChevronDown, ChevronRight, AlertCircle, Clock, Calendar, Inbox, Bell, Plus, Trash2, CheckSquare, Square, Link, Pencil, X, Tag } from 'lucide-react'
+import { RefreshCw, ExternalLink, CheckCircle2, Circle, ChevronDown, ChevronRight, AlertCircle, Clock, Calendar, Inbox, Bell, Plus, Trash2, CheckSquare, Square, Link, Pencil, X, Tag, Repeat2 } from 'lucide-react'
 
 const IS_LOCAL = typeof window !== 'undefined' && window.location.hostname === 'localhost'
 const TEREZA_ID = 43838310
@@ -130,6 +130,7 @@ function PrivateTodosTab() {
   const [due, setDue] = useState('')
   const [link, setLink] = useState('')
   const [note, setNote] = useState('')
+  const [repeat, setRepeat] = useState('')
   const [selectedLabelIds, setSelectedLabelIds] = useState([])
   const [editId, setEditId] = useState(null)
 
@@ -168,7 +169,7 @@ function PrivateTodosTab() {
     setDoc(FIRESTORE_DOC, { items: newItems, labels: newLabels })
   }
 
-  const clearForm = () => { setTitle(''); setDue(''); setLink(''); setNote(''); setSelectedLabelIds([]); setEditId(null) }
+  const clearForm = () => { setTitle(''); setDue(''); setLink(''); setNote(''); setRepeat(''); setSelectedLabelIds([]); setEditId(null) }
 
   const add = () => {
     const text = title.trim()
@@ -176,21 +177,36 @@ function PrivateTodosTab() {
     const url = link.trim()
     const normalized = url ? (url.startsWith('http') ? url : 'https://' + url) : null
     if (editId !== null) {
-      save(items.map(i => i.id === editId ? { ...i, text, due: due || null, link: normalized, note: note.trim() || null, labelIds: selectedLabelIds } : i), labels)
+      save(items.map(i => i.id === editId ? { ...i, text, due: due || null, link: normalized, note: note.trim() || null, repeat: repeat || null, labelIds: selectedLabelIds } : i), labels)
     } else {
-      save([{ id: Date.now(), text, due: due || null, link: normalized, note: note.trim() || null, labelIds: selectedLabelIds, done: false }, ...items], labels)
+      save([{ id: Date.now(), text, due: due || null, link: normalized, note: note.trim() || null, repeat: repeat || null, labelIds: selectedLabelIds, done: false }, ...items], labels)
     }
     clearForm()
   }
 
   const startEdit = (item) => {
     setEditId(item.id); setTitle(item.text); setDue(item.due || '')
-    setLink(item.link || ''); setNote(item.note || '')
+    setLink(item.link || ''); setNote(item.note || ''); setRepeat(item.repeat || '')
     setSelectedLabelIds(item.labelIds || [])
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const toggle = (id) => save(items.map(i => i.id === id ? { ...i, done: !i.done } : i), labels)
+  const toggle = (id) => {
+    save(items.map(i => {
+      if (i.id !== id) return i
+      const markingDone = !i.done
+      if (markingDone && i.repeat) {
+        const base = i.due ? new Date(i.due + 'T00:00:00') : new Date()
+        if (i.repeat === 'daily')   base.setDate(base.getDate() + 1)
+        if (i.repeat === 'weekly')  base.setDate(base.getDate() + 7)
+        if (i.repeat === 'monthly') base.setMonth(base.getMonth() + 1)
+        if (i.repeat === 'yearly')  base.setFullYear(base.getFullYear() + 1)
+        const nextDue = base.toISOString().split('T')[0]
+        return { ...i, done: false, due: nextDue }
+      }
+      return { ...i, done: markingDone }
+    }), labels)
+  }
   const remove = (id) => { save(items.filter(i => i.id !== id), labels); if (editId === id) clearForm() }
 
   const addLabel = () => {
@@ -233,6 +249,12 @@ function PrivateTodosTab() {
           {item.note && !faded && <p className="text-xs text-gray-500 mt-0.5 whitespace-pre-wrap">{item.note}</p>}
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             {itemLabels.map(l => <LabelChip key={l.id} label={l} />)}
+            {item.repeat && (
+              <span className="text-xs text-gray-400 flex items-center gap-1">
+                <Repeat2 className="w-3 h-3" />
+                {{ daily: 'denně', weekly: 'týdně', monthly: 'měsíčně', yearly: 'ročně' }[item.repeat]}
+              </span>
+            )}
             {item.due && (
               <span className="text-xs text-gray-400 flex items-center gap-1">
                 <Calendar className="w-3 h-3" />
@@ -287,11 +309,22 @@ function PrivateTodosTab() {
             />
           </div>
           <div className="flex items-center gap-1.5 flex-1">
-            <Link className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-            <input type="url" value={link} onChange={e => setLink(e.target.value)} placeholder="https://…"
-              className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            />
+            <Repeat2 className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+            <select value={repeat} onChange={e => setRepeat(e.target.value)}
+              className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
+              <option value="">Neopakovat</option>
+              <option value="daily">Denně</option>
+              <option value="weekly">Týdně</option>
+              <option value="monthly">Měsíčně</option>
+              <option value="yearly">Ročně</option>
+            </select>
           </div>
+        </div>
+        <div className="flex items-center gap-1.5 mb-3">
+          <Link className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+          <input type="url" value={link} onChange={e => setLink(e.target.value)} placeholder="https://…"
+            className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          />
         </div>
         {/* Štítky ve formuláři */}
         {labels.length > 0 && (
