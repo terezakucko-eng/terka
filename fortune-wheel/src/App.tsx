@@ -260,7 +260,7 @@ function App() {
 
   return (
     <div className="min-h-screen min-h-[100dvh] flex flex-col overflow-x-hidden"
-      style={{ background: 'linear-gradient(160deg, #fff5f8 0%, #ffffff 40%, #fef0f5 100%)' }}>
+      style={{ background: 'linear-gradient(180deg, #fce4ec 0%, #f8bbd0 25%, #ffffff 55%, #fce4ec 85%, #f48fb1 100%)' }}>
 
       {/* Confetti */}
       {showConfetti && confettiPieces.map((piece, i) => (
@@ -350,7 +350,7 @@ function App() {
 
           {/* Winner */}
           {winner && (
-            <div className="winner-animate mb-5 w-full">
+            <div className="winner-animate mb-8 w-full">
               <div className="bg-white rounded-2xl shadow-lg shadow-slon-primary/10 p-4 border border-slon-pink-200 text-center relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-slon-pink-100/40 to-transparent" />
                 <div className="relative">
@@ -366,7 +366,7 @@ function App() {
           )}
 
           {/* Wheel */}
-          <div className="relative w-full flex justify-center mb-6">
+          <div className="relative w-full flex justify-center my-10 sm:my-14">
             <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 z-10 drop-shadow-md">
               <svg width="24" height="28" viewBox="0 0 32 36">
                 <defs>
@@ -387,7 +387,7 @@ function App() {
           <button
             onClick={spin}
             disabled={isSpinning || names.length === 0}
-            className={`mb-3 w-full max-w-[220px] py-3 text-sm font-black text-white rounded-full
+            className={`mb-5 w-full max-w-[220px] py-3 text-sm font-black text-white rounded-full
               transition-all transform hover:scale-[1.03] active:scale-95
               disabled:opacity-30 disabled:cursor-not-allowed disabled:transform-none
               ${!isSpinning && names.length > 0
@@ -399,7 +399,7 @@ function App() {
           </button>
 
           {/* Options */}
-          <label className="flex items-center gap-2 cursor-pointer select-none mb-6">
+          <label className="flex items-center gap-2 cursor-pointer select-none mb-10 sm:mb-14">
             <input type="checkbox" checked={removeWinners} onChange={(e) => setRemoveWinners(e.target.checked)}
               className="w-3.5 h-3.5 accent-slon-primary rounded" />
             <span className="text-xs text-gray-400">Odebrat výherce po vylosování</span>
