@@ -54,45 +54,18 @@ function createConfetti(): ConfettiPiece[] {
   })
 }
 
-// Elephant mascot SVG component
-function ElephantMascot({ className }: { className?: string }) {
+// Logo component matching Růžový Slon brand
+function Logo({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* Body */}
-      <ellipse cx="100" cy="120" rx="55" ry="50" fill="#f48fb1" />
-      {/* Head */}
-      <circle cx="100" cy="75" r="40" fill="#f8bbd0" />
-      {/* Left ear */}
-      <ellipse cx="55" cy="65" rx="25" ry="30" fill="#f48fb1" />
-      <ellipse cx="55" cy="65" rx="16" ry="20" fill="#fce4ec" />
-      {/* Right ear */}
-      <ellipse cx="145" cy="65" rx="25" ry="30" fill="#f48fb1" />
-      <ellipse cx="145" cy="65" rx="16" ry="20" fill="#fce4ec" />
-      {/* Eyes */}
-      <circle cx="85" cy="70" r="6" fill="#333" />
-      <circle cx="115" cy="70" r="6" fill="#333" />
-      <circle cx="87" cy="68" r="2" fill="#fff" />
-      <circle cx="117" cy="68" r="2" fill="#fff" />
-      {/* Trunk */}
-      <path d="M100 85 Q100 110 85 120 Q80 123 82 118 Q88 108 90 95 Q92 88 100 85Z" fill="#f8bbd0" stroke="#f48fb1" strokeWidth="1.5" />
-      {/* Cheeks */}
-      <circle cx="78" cy="82" r="6" fill="#f48fb1" opacity="0.5" />
-      <circle cx="122" cy="82" r="6" fill="#f48fb1" opacity="0.5" />
-      {/* Smile */}
-      <path d="M92 88 Q100 95 108 88" stroke="#dc004e" strokeWidth="2" fill="none" strokeLinecap="round" />
-      {/* Sunglasses */}
-      <rect x="73" y="63" width="22" height="14" rx="4" fill="#333" opacity="0.85" />
-      <rect x="105" y="63" width="22" height="14" rx="4" fill="#333" opacity="0.85" />
-      <line x1="95" y1="70" x2="105" y2="70" stroke="#333" strokeWidth="2" />
-      <line x1="73" y1="70" x2="55" y2="62" stroke="#333" strokeWidth="2" />
-      <line x1="127" y1="70" x2="145" y2="62" stroke="#333" strokeWidth="2" />
-      {/* Legs */}
-      <ellipse cx="75" cy="165" rx="14" ry="18" fill="#f48fb1" />
-      <ellipse cx="125" cy="165" rx="14" ry="18" fill="#f48fb1" />
-      {/* Feet */}
-      <ellipse cx="75" cy="180" rx="16" ry="8" fill="#f8bbd0" />
-      <ellipse cx="125" cy="180" rx="16" ry="8" fill="#f8bbd0" />
-    </svg>
+    <div className={className} style={{ lineHeight: 0.9, fontFamily: "'Nunito', sans-serif" }}>
+      <span style={{ fontSize: '1.4em', fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
+        Růžový
+      </span>
+      <br />
+      <span style={{ fontSize: '1.6em', fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em', fontStyle: 'italic' }}>
+        Slon
+      </span>
+    </div>
   )
 }
 
@@ -430,14 +403,12 @@ function App() {
       {/* Header */}
       <header className="bg-slon-primary text-white py-4 px-6 shadow-lg">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <ElephantMascot className="w-12 h-12 hidden sm:block" />
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">
-                Kolo Štěstí
-              </h1>
-              <p className="text-slon-pink-300 text-sm font-semibold">Růžový Slon</p>
-            </div>
+          <div className="flex items-center gap-4">
+            <Logo className="text-sm hidden sm:block" />
+            <div className="hidden sm:block w-px h-10 bg-white/30" />
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">
+              Kolo Štěstí
+            </h1>
           </div>
           <div className="flex items-center gap-3">
             {names.length > 0 && (
@@ -594,6 +565,15 @@ function App() {
           </div>
         </div>
       </main>
+
+      {/* Elephant mascot */}
+      <div className="flex justify-center pb-4 px-4">
+        <img
+          src="/elephant.png"
+          alt="Růžový Slon maskot"
+          className="w-full max-w-md rounded-2xl shadow-lg"
+        />
+      </div>
 
       {/* Footer */}
       <footer className="bg-slon-primary/5 border-t border-slon-pink-200 py-4 px-6 text-center">
