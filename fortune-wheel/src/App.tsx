@@ -54,18 +54,15 @@ function createConfetti(): ConfettiPiece[] {
   })
 }
 
-// Logo component matching Růžový Slon brand
-function Logo({ className }: { className?: string }) {
+// Růžový Slon brand logo (S in eye shape)
+function SlonLogo({ className }: { className?: string }) {
   return (
-    <div className={className} style={{ lineHeight: 0.9, fontFamily: "'Nunito', sans-serif" }}>
-      <span style={{ fontSize: '1.4em', fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>
-        Růžový
-      </span>
-      <br />
-      <span style={{ fontSize: '1.6em', fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em', fontStyle: 'italic' }}>
-        Slon
-      </span>
-    </div>
+    <img
+      src="/slon-logo.svg"
+      alt="Růžový Slon"
+      className={className}
+      style={{ filter: 'brightness(0) invert(1)' }}
+    />
   )
 }
 
@@ -404,7 +401,7 @@ function App() {
       <header className="bg-slon-primary text-white py-4 px-6 shadow-lg">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Logo className="text-sm hidden sm:block" />
+            <SlonLogo className="h-10 hidden sm:block" />
             <div className="hidden sm:block w-px h-10 bg-white/30" />
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">
               Kolo Štěstí
@@ -567,11 +564,11 @@ function App() {
       </main>
 
       {/* Elephant mascot */}
-      <div className="flex justify-center pb-4 px-4">
+      <div className="flex justify-center pb-6 px-4">
         <img
-          src="/elephant.png"
+          src="/elephant.jpg"
           alt="Růžový Slon maskot"
-          className="w-full max-w-md rounded-2xl shadow-lg"
+          className="w-full max-w-lg rounded-2xl shadow-lg"
         />
       </div>
 
