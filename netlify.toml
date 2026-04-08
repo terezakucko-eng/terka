@@ -1,10 +1,4 @@
-[build]
-  base = "calendar-app"
-  publish = "dist"
-  command = "npm run build"
-
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/basecamp/:splat"
-  status = 200
-  force = true
+# Root netlify.toml je prázdný — každý projekt má vlastní:
+# - calendar-app/netlify.toml
+# - fortune-wheel/netlify.toml
+# Base directory se nastavuje v Netlify UI per-site.
