@@ -240,7 +240,9 @@ function App() {
     const updateSize = () => {
       const container = canvas.parentElement
       if (!container) return
-      const size = Math.min(container.getBoundingClientRect().width, 400)
+      // Subtract padding (32px total) and leave extra breathing room
+      const available = container.getBoundingClientRect().width - 32
+      const size = Math.min(available, 360)
       const dpr = window.devicePixelRatio || 1
       canvas.width = size * dpr; canvas.height = size * dpr
       canvas.style.width = size + 'px'; canvas.style.height = size + 'px'
@@ -290,7 +292,7 @@ function App() {
       </header>
 
       {/* Main content - centered on page */}
-      <main className="flex-1 flex items-start sm:items-center justify-center px-5 py-8 sm:py-12">
+      <main className="flex-1 flex items-start sm:items-center justify-center px-6 sm:px-8 py-8 sm:py-12">
         <div className="w-full max-w-md flex flex-col items-center">
 
           {/* Input Panel */}
@@ -376,8 +378,8 @@ function App() {
                 <polygon points="16,34 2,4 30,4" fill="url(#ptr)" stroke="#880030" strokeWidth="1.5" strokeLinejoin="round" />
               </svg>
             </div>
-            <div className="w-full max-w-[400px] mx-auto drop-shadow-xl px-2">
-              <canvas ref={canvasRef} className="w-full" />
+            <div className="w-full max-w-[360px] mx-auto drop-shadow-xl">
+              <canvas ref={canvasRef} className="block mx-auto" />
             </div>
           </div>
 
