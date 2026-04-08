@@ -20,87 +20,45 @@
 
 body {
   font-family: 'Nunito', sans-serif;
-  background: linear-gradient(135deg, #fff0f5 0%, #fce4ec 50%, #fff0f5 100%);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
   min-height: 100vh;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-}
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #f48fb1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #ec407a; }
 
-::-webkit-scrollbar-track {
-  background: #fce4ec;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #f48fb1;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #ec407a;
-}
-
-/* Spin button pulse animation */
+/* Spin button pulse */
 @keyframes pulse-pink {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(220, 0, 78, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 0 15px rgba(220, 0, 78, 0);
-  }
+  0%, 100% { box-shadow: 0 8px 24px -4px rgba(220, 0, 78, 0.3); }
+  50% { box-shadow: 0 8px 32px -2px rgba(220, 0, 78, 0.5); }
 }
+.btn-spin { animation: pulse-pink 2s ease-in-out infinite; }
+.btn-spin:hover { animation: none; box-shadow: 0 8px 32px -2px rgba(220, 0, 78, 0.5); }
 
-.btn-spin {
-  animation: pulse-pink 2s infinite;
-}
-
-.btn-spin:hover {
-  animation: none;
-}
-
-/* Winner animation */
+/* Winner pop-in */
 @keyframes winner-pop {
-  0% {
-    transform: scale(0.5);
-    opacity: 0;
-  }
-  50% {
-    transform: scale(1.1);
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+  0% { transform: scale(0.8) translateY(10px); opacity: 0; }
+  60% { transform: scale(1.03); }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
 }
+.winner-animate { animation: winner-pop 0.5s ease-out forwards; }
 
-.winner-animate {
-  animation: winner-pop 0.6s ease-out forwards;
-}
-
-/* Confetti animation */
+/* Confetti */
 @keyframes confetti-fall {
-  0% {
-    transform: translateY(-100vh) rotate(0deg);
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(100vh) rotate(720deg);
-    opacity: 0;
-  }
+  0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
 }
-
 .confetti-piece {
   position: fixed;
   top: 0;
-  width: 10px;
-  height: 10px;
   animation: confetti-fall linear forwards;
   z-index: 100;
   pointer-events: none;
