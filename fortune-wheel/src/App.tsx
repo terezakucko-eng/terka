@@ -69,6 +69,7 @@ function App() {
   const [removeWinners, setRemoveWinners] = useState(false)
   const [inputCount, setInputCount] = useState(0)
 
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rotationRef = useRef(0)
   const animationRef = useRef<number>(0)
@@ -109,6 +110,19 @@ function App() {
     setWinner(null)
     setWinnerHistory([])
     setShowInput(true)
+  }, [])
+
+  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string
+      if (text) setInputText(text)
+    }
+    reader.readAsText(file)
+    // Reset so the same file can be selected again
+    e.target.value = ''
   }, [])
 
   const getDisplayNames = useCallback((): string[] => {
@@ -337,7 +351,7 @@ function App() {
       const container = canvas.parentElement
       if (!container) return
       const rect = container.getBoundingClientRect()
-      const size = Math.min(rect.width, 420)
+      const size = Math.min(rect.width, 380)
       const dpr = window.devicePixelRatio || 1
       canvas.width = size * dpr
       canvas.height = size * dpr
@@ -361,7 +375,7 @@ function App() {
   }, [])
 
   return (
-    <div className="min-h-screen min-h-[100dvh] flex flex-col bg-gradient-to-br from-slon-pink-100 via-white to-slon-pink-200">
+    <div className="min-h-screen min-h-[100dvh] flex flex-col bg-gradient-to-br from-slon-pink-100 via-white to-slon-pink-200 overflow-x-hidden">
       {/* Confetti */}
       {showConfetti && confettiPieces.map((piece, i) => (
         <div
@@ -413,19 +427,36 @@ function App() {
           <div className="w-full mb-6 bg-white rounded-2xl shadow-sm border border-slon-pink-200/60 p-4 sm:p-5">
             <h2 className="text-base font-extrabold text-gray-800 mb-0.5">Seznam jmen</h2>
             <p className="text-gray-400 text-xs sm:text-sm mb-3">
-              Každé jméno na nový řádek, nebo kopie sloupce z Excelu (max 20 000)
+              Každé jméno na nový řádek, kopie sloupce z Excelu, nebo nahrajte .txt soubor
             </p>
 
             <textarea
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               placeholder={"Jan Novák\nPetra Svobodová\nMartin Dvořák\n..."}
-              className="w-full h-44 sm:h-56 p-3 sm:p-4 border border-gray-200 rounded-xl text-sm
+              className="w-full h-40 sm:h-52 p-3 sm:p-4 border border-gray-200 rounded-xl text-sm
                 text-gray-700 resize-none focus:outline-none focus:border-slon-primary
                 focus:ring-2 focus:ring-slon-primary/10 transition-all placeholder:text-gray-300
                 bg-gray-50/50"
               spellCheck={false}
             />
+
+            {/* File upload */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".txt,.csv,.tsv,text/plain"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="mt-2 w-full py-2 border-2 border-dashed border-slon-pink-300 rounded-xl
+                text-xs sm:text-sm font-semibold text-slon-pink-400 hover:border-slon-primary
+                hover:text-slon-primary hover:bg-slon-pink-100/50 transition-all"
+            >
+              Nahrát .txt soubor
+            </button>
 
             <div className="flex items-center justify-between mt-2.5 gap-2">
               <span className="text-xs text-gray-400 font-semibold whitespace-nowrap">
@@ -470,7 +501,7 @@ function App() {
         )}
 
         {/* Wheel */}
-        <div className="relative w-full flex justify-center mb-5">
+        <div className="relative w-full flex justify-center mb-5 px-4 sm:px-6">
           {/* Pointer */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 z-10 drop-shadow-md">
             <svg width="28" height="32" viewBox="0 0 32 36">
@@ -484,7 +515,7 @@ function App() {
             </svg>
           </div>
 
-          <div className="w-full max-w-[min(100%,420px)] drop-shadow-xl">
+          <div className="w-full max-w-[380px] drop-shadow-xl">
             <canvas ref={canvasRef} className="w-full" />
           </div>
         </div>
