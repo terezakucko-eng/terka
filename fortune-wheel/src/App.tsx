@@ -1,441 +1,324 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 
-const SEGMENT_COLORS = [
-  '#dc004e', '#ffffff', '#f8bbd0', '#dc004e', '#fce4ec', '#ec407a',
-  '#ffffff', '#f48fb1', '#dc004e', '#fce4ec', '#ff4081', '#ffffff',
-  '#dc004e', '#f8bbd0', '#ec407a', '#fce4ec',
-]
-const MAX_VISIBLE_SEGMENTS = 16
+const MAX_VISIBLE = 20
 
-function getSegmentColor(i: number) { return SEGMENT_COLORS[i % SEGMENT_COLORS.length] }
-function getTextColor(bg: string) {
-  return ['#fff0f5','#fce4ec','#f8bbd0','#f48fb1','#ffffff'].includes(bg) ? '#b0003a' : '#ffffff'
+// Pastel pink palette for segments
+const COLORS = [
+  '#dc004e', '#f9e2ea', '#f06292', '#fce4ec',
+  '#ec407a', '#f8bbd0', '#d81b60', '#fff0f5',
+  '#e91e63', '#fce4ec', '#f48fb1', '#fff5f8',
+  '#c2185b', '#f8bbd0', '#ff4081', '#fce4ec',
+  '#ad1457', '#f9e2ea', '#e91e63', '#fff0f5',
+]
+
+function segColor(i: number) { return COLORS[i % COLORS.length] }
+function textColor(bg: string) {
+  return ['#fce4ec','#f8bbd0','#fff0f5','#f9e2ea','#fff5f8'].includes(bg) ? '#c2185b' : '#ffffff'
 }
 
-interface ConfettiPiece { left: string; bg: string; delay: string; duration: string; borderRadius: string; width: string; height: string }
-function createConfetti(): ConfettiPiece[] {
-  const c = ['#dc004e','#ff4081','#ec407a','#f48fb1','#ffcd35','#4182e3','#8c65d4']
-  return Array.from({ length: 50 }, () => {
-    const s = Math.random() * 10 + 6
-    return { left: Math.random()*100+'%', bg: c[Math.floor(Math.random()*c.length)], delay: Math.random()*2+'s', duration: (Math.random()*2+2)+'s', borderRadius: Math.random()>.5?'50%':'2px', width: s+'px', height: s+'px' }
+interface Confetti { left: string; bg: string; delay: string; dur: string; r: string; w: string; h: string }
+function makeConfetti(): Confetti[] {
+  const c = ['#dc004e','#ff4081','#ec407a','#f48fb1','#ffcd35','#fff']
+  return Array.from({ length: 60 }, () => {
+    const s = Math.random() * 8 + 4
+    return { left: Math.random()*100+'%', bg: c[Math.floor(Math.random()*c.length)], delay: Math.random()*2+'s', dur: (Math.random()*2+2)+'s', r: Math.random()>.5?'50%':'0', w: s+'px', h: s+'px' }
   })
 }
 
-function App() {
+export default function App() {
   const [names, setNames] = useState<string[]>([])
-  const [inputText, setInputText] = useState('')
-  const [isSpinning, setIsSpinning] = useState(false)
+  const [input, setInput] = useState('')
+  const [spinning, setSpinning] = useState(false)
   const [winner, setWinner] = useState<string | null>(null)
-  const [winnerHistory, setWinnerHistory] = useState<string[]>([])
+  const [history, setHistory] = useState<string[]>([])
+  const [confetti, setConfetti] = useState<Confetti[]>([])
   const [showConfetti, setShowConfetti] = useState(false)
-  const [confettiPieces, setConfettiPieces] = useState<ConfettiPiece[]>([])
-  const [showInput, setShowInput] = useState(true)
-  const [removeWinners, setRemoveWinners] = useState(false)
-  const [inputCount, setInputCount] = useState(0)
+  const [panel, setPanel] = useState(true)
+  const [remove, setRemove] = useState(false)
+  const [count, setCount] = useState(0)
 
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const rotationRef = useRef(0)
-  const animationRef = useRef<number>(0)
-  const namesForWheel = useRef<string[]>([])
+  const rot = useRef(0)
+  const anim = useRef(0)
+  const wheelNames = useRef<string[]>([])
 
-  const parseNames = useCallback((text: string): string[] => {
-    return text.split(/[\n\r\t]+/).map(n => n.trim()).filter(n => n.length > 0)
+  const parse = useCallback((t: string) => t.split(/[\n\r\t]+/).map(s => s.trim()).filter(Boolean), [])
+
+  useEffect(() => { const t = setTimeout(() => setCount(parse(input).length), 100); return () => clearTimeout(t) }, [input, parse])
+
+  const load = useCallback(() => {
+    let p = parse(input)
+    if (p.length > 20000) { alert('Max 20 000 jmen. Načteno prvních 20 000.'); p = p.slice(0, 20000) }
+    setNames(p)
+    if (p.length) { setPanel(false); setWinner(null); setHistory([]) }
+  }, [input, parse])
+
+  const clear = useCallback(() => { setNames([]); setInput(''); setWinner(null); setHistory([]); setPanel(true) }, [])
+
+  const onFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]; if (!f) return
+    const r = new FileReader()
+    r.onload = ev => { const t = ev.target?.result as string; if (t) setInput(t) }
+    r.readAsText(f); e.target.value = ''
   }, [])
 
-  useEffect(() => {
-    const t = setTimeout(() => setInputCount(parseNames(inputText).length), 150)
-    return () => clearTimeout(t)
-  }, [inputText, parseNames])
-
-  const handleLoadNames = useCallback(() => {
-    const parsed = parseNames(inputText)
-    if (parsed.length > 20000) {
-      alert('Maximální počet jmen je 20 000. Načteno prvních 20 000.')
-      setNames(parsed.slice(0, 20000))
-    } else {
-      setNames(parsed)
-    }
-    if (parsed.length > 0) { setShowInput(false); setWinner(null); setWinnerHistory([]) }
-  }, [inputText, parseNames])
-
-  const handleClear = useCallback(() => {
-    setNames([]); setInputText(''); setWinner(null); setWinnerHistory([]); setShowInput(true)
-  }, [])
-
-  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = (ev) => { const t = ev.target?.result as string; if (t) setInputText(t) }
-    reader.readAsText(file)
-    e.target.value = ''
-  }, [])
-
-  const getDisplayNames = useCallback((): string[] => {
-    if (names.length <= MAX_VISIBLE_SEGMENTS) return names
-    const step = Math.floor(names.length / MAX_VISIBLE_SEGMENTS)
-    return Array.from({ length: MAX_VISIBLE_SEGMENTS }, (_, i) => names[i * step])
+  const getDisplay = useCallback((): string[] => {
+    if (names.length <= MAX_VISIBLE) return names
+    const step = Math.floor(names.length / MAX_VISIBLE)
+    return Array.from({ length: MAX_VISIBLE }, (_, i) => names[i * step])
   }, [names])
 
-  const drawWheel = useCallback((rotation: number) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    const size = parseInt(canvas.style.width) || canvas.width
-    const center = size / 2
-    const outerRadius = center - 6
-    const radius = outerRadius - 18
+  const draw = useCallback((rotation: number) => {
+    const cv = canvasRef.current; if (!cv) return
+    const ctx = cv.getContext('2d'); if (!ctx) return
+    const size = parseInt(cv.style.width) || cv.width
+    const cx = size / 2, cy = size / 2
+    const R = size / 2 - 4
 
     ctx.clearRect(0, 0, size, size)
 
-    const displayNames = namesForWheel.current.length > 0 ? namesForWheel.current : getDisplayNames()
-    const segmentCount = displayNames.length
-
-    // Outer ring
+    // Outer shadow ring
     ctx.beginPath()
-    ctx.arc(center, center, outerRadius, 0, Math.PI * 2)
-    ctx.fillStyle = '#dc004e'
+    ctx.arc(cx, cy, R + 2, 0, Math.PI * 2)
+    ctx.fillStyle = 'rgba(220, 0, 78, 0.08)'
     ctx.fill()
 
-    // Pegs
-    const pegCount = Math.max(segmentCount, 24)
-    for (let i = 0; i < pegCount; i++) {
-      const a = (Math.PI * 2 * i) / pegCount
-      ctx.beginPath()
-      ctx.arc(center + Math.cos(a) * (outerRadius - 9), center + Math.sin(a) * (outerRadius - 9), 3, 0, Math.PI * 2)
-      ctx.fillStyle = i % 2 === 0 ? '#ffffff' : '#ffcd35'
-      ctx.fill()
-    }
+    const dn = wheelNames.current.length ? wheelNames.current : getDisplay()
+    const n = dn.length
 
-    if (segmentCount === 0) {
+    if (!n) {
       ctx.beginPath()
-      ctx.arc(center, center, radius, 0, Math.PI * 2)
+      ctx.arc(cx, cy, R, 0, Math.PI * 2)
       ctx.fillStyle = '#fce4ec'
       ctx.fill()
       ctx.fillStyle = '#dc004e'
-      ctx.font = 'bold 16px Nunito, sans-serif'
+      ctx.font = '600 14px Nunito, sans-serif'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillText('Vložte jména', center, center - 8)
-      ctx.font = '13px Nunito, sans-serif'
-      ctx.fillStyle = '#999'
-      ctx.fillText('a točte kolem', center, center + 10)
+      ctx.fillText('Vložte jména', cx, cy)
       return
     }
 
-    const anglePerSegment = (Math.PI * 2) / segmentCount
+    const seg = (Math.PI * 2) / n
 
-    for (let i = 0; i < segmentCount; i++) {
-      const startAngle = rotation + i * anglePerSegment
+    // Draw segments
+    for (let i = 0; i < n; i++) {
+      const a = rotation + i * seg
       ctx.beginPath()
-      ctx.moveTo(center, center)
-      ctx.arc(center, center, radius, startAngle, startAngle + anglePerSegment)
+      ctx.moveTo(cx, cy)
+      ctx.arc(cx, cy, R, a, a + seg)
       ctx.closePath()
-      const color = getSegmentColor(i)
-      ctx.fillStyle = color
+      ctx.fillStyle = segColor(i)
       ctx.fill()
-      ctx.strokeStyle = 'rgba(176, 0, 58, 0.15)'
-      ctx.lineWidth = 1
+
+      // Thin white separator
+      ctx.beginPath()
+      ctx.moveTo(cx, cy)
+      ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R)
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)'
+      ctx.lineWidth = 1.5
       ctx.stroke()
 
-      if (segmentCount <= MAX_VISIBLE_SEGMENTS) {
+      // Text
+      if (n <= MAX_VISIBLE) {
         ctx.save()
-        ctx.translate(center, center)
-        ctx.rotate(startAngle + anglePerSegment / 2)
-        ctx.fillStyle = getTextColor(color)
-        const fs = segmentCount <= 4 ? 15 : segmentCount <= 8 ? 13 : segmentCount <= 12 ? 11 : 9
-        ctx.font = `bold ${fs}px Nunito, sans-serif`
+        ctx.translate(cx, cy)
+        ctx.rotate(a + seg / 2)
+        ctx.fillStyle = textColor(segColor(i))
+        const fs = n <= 4 ? 14 : n <= 8 ? 12 : n <= 14 ? 10 : 8
+        ctx.font = `700 ${fs}px Nunito, sans-serif`
         ctx.textAlign = 'right'
         ctx.textBaseline = 'middle'
-        const name = displayNames[i]
-        const ml = segmentCount <= 6 ? 18 : segmentCount <= 10 ? 15 : 12
-        ctx.fillText(name.length > ml ? name.substring(0, ml) + '…' : name, radius - 12, 0)
+        const name = dn[i]
+        const ml = n <= 6 ? 16 : n <= 12 ? 12 : 10
+        ctx.fillText(name.length > ml ? name.slice(0, ml) + '…' : name, R - 14, 0)
         ctx.restore()
       }
     }
 
-    // Inner ring
+    // Outer ring
     ctx.beginPath()
-    ctx.arc(center, center, radius, 0, Math.PI * 2)
-    ctx.strokeStyle = 'rgba(176, 0, 58, 0.2)'
+    ctx.arc(cx, cy, R, 0, Math.PI * 2)
+    ctx.strokeStyle = 'rgba(220, 0, 78, 0.15)'
     ctx.lineWidth = 2
     ctx.stroke()
 
-    // Hub
-    const hr = segmentCount <= 6 ? 32 : 22
+    // Center button
+    const hr = n <= 6 ? 28 : 20
     ctx.beginPath()
-    ctx.arc(center, center + 2, hr + 2, 0, Math.PI * 2)
-    ctx.fillStyle = 'rgba(0,0,0,0.15)'
+    ctx.arc(cx, cy, hr, 0, Math.PI * 2)
+    ctx.fillStyle = '#1a1a2e'
     ctx.fill()
-    ctx.beginPath()
-    ctx.arc(center, center, hr, 0, Math.PI * 2)
-    const g = ctx.createRadialGradient(center - 4, center - 4, 0, center, center, hr)
-    g.addColorStop(0, '#ff4081')
-    g.addColorStop(1, '#b0003a')
-    ctx.fillStyle = g
-    ctx.fill()
-    ctx.strokeStyle = '#880030'
-    ctx.lineWidth = 2
-    ctx.stroke()
-    ctx.beginPath()
-    ctx.arc(center - 4, center - 4, hr * 0.4, 0, Math.PI * 2)
-    ctx.fillStyle = 'rgba(255,255,255,0.25)'
-    ctx.fill()
-
-    if (names.length > MAX_VISIBLE_SEGMENTS) {
-      ctx.fillStyle = '#fff'
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.font = 'bold 11px Nunito, sans-serif'
-      ctx.fillText(`${names.length.toLocaleString('cs-CZ')}`, center, center - 3)
-      ctx.font = '8px Nunito, sans-serif'
-      ctx.fillText('jmen', center, center + 7)
-    }
-  }, [getDisplayNames, names.length])
+    ctx.fillStyle = '#fff'
+    ctx.font = '800 11px Nunito, sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText('Spin', cx, cy)
+  }, [getDisplay, names.length])
 
   const spin = useCallback(() => {
-    if (isSpinning || names.length === 0) return
-    setIsSpinning(true); setWinner(null); setShowConfetti(false)
-    namesForWheel.current = getDisplayNames()
-    const winnerIndex = Math.floor(Math.random() * names.length)
-    const selectedWinner = names[winnerIndex]
-    const dn = namesForWheel.current
-    const sc = dn.length
-    const aps = (Math.PI * 2) / sc
-    let tsi = dn.indexOf(selectedWinner)
-    if (tsi === -1) tsi = Math.floor(Math.random() * sc)
-    const ta = -Math.PI / 2 - (tsi * aps + aps / 2)
-    const fs = 5 + Math.floor(Math.random() * 5)
-    const tr = fs * Math.PI * 2 + (ta - rotationRef.current % (Math.PI * 2))
-    const sr = rotationRef.current
-    const dur = 4000 + Math.random() * 2000
-    const st = performance.now()
+    if (spinning || !names.length) return
+    setSpinning(true); setWinner(null); setShowConfetti(false)
+    wheelNames.current = getDisplay()
+    const wi = Math.floor(Math.random() * names.length)
+    const w = names[wi]
+    const dn = wheelNames.current, sc = dn.length, seg = (Math.PI * 2) / sc
+    let ti = dn.indexOf(w); if (ti < 0) ti = Math.floor(Math.random() * sc)
+    const ta = -Math.PI / 2 - (ti * seg + seg / 2)
+    const spins = 6 + Math.floor(Math.random() * 4)
+    const total = spins * Math.PI * 2 + (ta - rot.current % (Math.PI * 2))
+    const sr = rot.current, dur = 4500 + Math.random() * 1500, st = performance.now()
 
-    const animate = (ct: number) => {
-      const p = Math.min((ct - st) / dur, 1)
-      rotationRef.current = sr + tr * (1 - Math.pow(1 - p, 3))
-      drawWheel(rotationRef.current)
-      if (p < 1) { animationRef.current = requestAnimationFrame(animate) }
+    const animate = (t: number) => {
+      const p = Math.min((t - st) / dur, 1)
+      rot.current = sr + total * (1 - Math.pow(1 - p, 4))
+      draw(rot.current)
+      if (p < 1) anim.current = requestAnimationFrame(animate)
       else {
-        setIsSpinning(false); setWinner(selectedWinner); setShowConfetti(true)
-        setConfettiPieces(createConfetti())
-        setWinnerHistory(prev => [selectedWinner, ...prev])
-        if (removeWinners) {
-          setNames(prev => { const idx = prev.indexOf(selectedWinner); if (idx !== -1) { const n = [...prev]; n.splice(idx, 1); return n }; return prev })
-        }
+        setSpinning(false); setWinner(w); setShowConfetti(true); setConfetti(makeConfetti())
+        setHistory(h => [w, ...h])
+        if (remove) setNames(prev => { const i = prev.indexOf(w); if (i >= 0) { const n = [...prev]; n.splice(i, 1); return n } return prev })
         setTimeout(() => setShowConfetti(false), 4000)
       }
     }
-    animationRef.current = requestAnimationFrame(animate)
-  }, [isSpinning, names, getDisplayNames, drawWheel, removeWinners])
+    anim.current = requestAnimationFrame(animate)
+  }, [spinning, names, getDisplay, draw, remove])
 
-  useEffect(() => { namesForWheel.current = getDisplayNames(); drawWheel(rotationRef.current) }, [names, drawWheel, getDisplayNames])
+  useEffect(() => { wheelNames.current = getDisplay(); draw(rot.current) }, [names, draw, getDisplay])
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const updateSize = () => {
-      const container = canvas.parentElement
-      if (!container) return
-      // Subtract padding (32px total) and leave extra breathing room
-      const available = container.getBoundingClientRect().width
-      const size = Math.min(available, 300)
-      const dpr = window.devicePixelRatio || 1
-      canvas.width = size * dpr; canvas.height = size * dpr
-      canvas.style.width = size + 'px'; canvas.style.height = size + 'px'
-      const ctx = canvas.getContext('2d')
-      if (ctx) ctx.scale(dpr, dpr)
-      namesForWheel.current = getDisplayNames()
-      drawWheel(rotationRef.current)
+    const cv = canvasRef.current; if (!cv) return
+    const resize = () => {
+      const el = cv.parentElement; if (!el) return
+      const s = Math.min(el.getBoundingClientRect().width, 320)
+      const d = window.devicePixelRatio || 1
+      cv.width = s * d; cv.height = s * d
+      cv.style.width = s + 'px'; cv.style.height = s + 'px'
+      cv.getContext('2d')?.scale(d, d)
+      wheelNames.current = getDisplay(); draw(rot.current)
     }
-    updateSize()
-    window.addEventListener('resize', updateSize)
-    return () => window.removeEventListener('resize', updateSize)
-  }, [drawWheel, getDisplayNames])
+    resize(); window.addEventListener('resize', resize)
+    return () => window.removeEventListener('resize', resize)
+  }, [draw, getDisplay])
 
-  useEffect(() => { return () => { if (animationRef.current) cancelAnimationFrame(animationRef.current) } }, [])
+  useEffect(() => () => { if (anim.current) cancelAnimationFrame(anim.current) }, [])
 
   return (
-    <div className="min-h-screen min-h-[100dvh] flex flex-col overflow-x-hidden"
-      style={{ background: 'linear-gradient(180deg, #fce4ec 0%, #f8bbd0 25%, #ffffff 55%, #fce4ec 85%, #f48fb1 100%)' }}>
+    <div className="min-h-screen min-h-[100dvh] flex flex-col overflow-x-hidden bg-slon-primary">
 
-      {/* Confetti */}
-      {showConfetti && confettiPieces.map((piece, i) => (
-        <div key={i} className="confetti-piece" style={{ left: piece.left, backgroundColor: piece.bg, animationDelay: piece.delay, animationDuration: piece.duration, borderRadius: piece.borderRadius, width: piece.width, height: piece.height }} />
+      {showConfetti && confetti.map((c, i) => (
+        <div key={i} className="confetti-piece" style={{ left: c.left, backgroundColor: c.bg, animationDelay: c.delay, animationDuration: c.dur, borderRadius: c.r, width: c.w, height: c.h }} />
       ))}
 
-      {/* Header - full width */}
-      <header className="w-full bg-white/70 backdrop-blur-md border-b border-gray-100 sticky top-0 z-20">
-        <div className="max-w-screen-xl mx-auto flex items-center justify-between px-4 sm:px-6 py-2.5">
-          <div className="flex items-center gap-2">
-            <img src="/slon-logo.svg" alt="Růžový Slon" className="h-6" />
-            <div className="w-px h-5 bg-gray-200" />
-            <h1 className="text-sm font-black text-slon-primary tracking-tight">Kolo Štěstí</h1>
+      {/* Centered content */}
+      <main className="flex-1 flex flex-col items-center justify-center px-6 py-8 sm:py-12">
+
+        {/* Title */}
+        <div className="text-center mb-6 sm:mb-8">
+          <img src="/slon-logo.svg" alt="" className="h-8 mx-auto mb-3 brightness-0 invert opacity-60" />
+          <h1 className="text-white text-xl sm:text-2xl font-black tracking-tight">Kolo Štěstí</h1>
+        </div>
+
+        {/* Winner */}
+        {winner && (
+          <div className="winner-animate mb-6 sm:mb-8 text-center max-w-xs w-full">
+            <p className="text-white/50 text-[10px] uppercase tracking-[0.25em] font-bold mb-1">Výherce</p>
+            <p className="text-white text-2xl sm:text-3xl font-black break-words leading-tight">{winner}</p>
           </div>
-          <div className="flex items-center gap-2">
-            {names.length > 0 && (
-              <span className="bg-slon-primary/10 text-slon-primary px-2 py-0.5 rounded-full text-[10px] font-bold hidden sm:inline-flex">
-                {names.length.toLocaleString('cs-CZ')} jmen
-              </span>
-            )}
-            <button
-              onClick={() => setShowInput(!showInput)}
-              className="text-xs font-semibold text-slon-primary hover:bg-slon-pink-100 px-2.5 py-1 rounded-lg transition-colors"
-            >
-              {showInput ? 'Skrýt' : 'Seznam'}
-            </button>
+        )}
+
+        {/* Wheel */}
+        <div className="relative mb-8 sm:mb-10">
+          {/* Pointer */}
+          <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+            <div className="w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[16px] border-t-white drop-shadow-md" />
+          </div>
+          <div className="max-w-[280px] sm:max-w-[320px] mx-auto">
+            <canvas ref={canvasRef} className="block mx-auto rounded-full" />
           </div>
         </div>
-      </header>
 
-      {/* Main content - centered on page */}
-      <main className="flex-1 flex items-start sm:items-center justify-center px-4 py-6 sm:py-12">
-        <div className="w-full max-w-sm flex flex-col items-center">
+        {/* Spin button */}
+        <button
+          onClick={spin}
+          disabled={spinning || !names.length}
+          className={`mb-4 px-10 py-3 text-sm font-black rounded-full transition-all
+            transform hover:scale-105 active:scale-95
+            disabled:opacity-30 disabled:cursor-not-allowed disabled:transform-none
+            ${spinning || !names.length ? 'bg-white/20 text-white/50' : 'bg-white text-slon-primary shadow-lg btn-spin'}
+          `}
+        >
+          {spinning ? 'Točí se...' : !names.length ? 'Nahrajte jména' : 'TOČIT!'}
+        </button>
 
-          {/* Input Panel */}
-          {showInput && (
-            <div className="w-full mb-6 bg-white rounded-2xl shadow-lg shadow-gray-200/50 border border-gray-100 p-4 sm:p-6">
-              <h2 className="text-sm font-extrabold text-gray-800 mb-0.5">Seznam jmen</h2>
-              <p className="text-gray-400 text-xs mb-3">
-                Vložte jména na řádky, zkopírujte z Excelu, nebo nahrajte soubor.
-              </p>
+        {/* Options */}
+        <label className="flex items-center gap-2 cursor-pointer select-none mb-6 sm:mb-8">
+          <input type="checkbox" checked={remove} onChange={e => setRemove(e.target.checked)}
+            className="w-3.5 h-3.5 accent-white rounded" />
+          <span className="text-xs text-white/50">Odebrat výherce po vylosování</span>
+        </label>
 
-              <textarea
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                placeholder={"Jan Novák\nPetra Svobodová\nMartin Dvořák\n..."}
-                className="w-full h-32 sm:h-40 p-3 border border-gray-200 rounded-xl text-xs
-                  text-gray-700 resize-none focus:outline-none focus:border-slon-primary
-                  focus:ring-3 focus:ring-slon-primary/10 transition-all placeholder:text-gray-300
-                  bg-gray-50/50"
-                spellCheck={false}
-              />
+        {/* Toggle input panel */}
+        <button
+          onClick={() => setPanel(!panel)}
+          className="text-xs font-semibold text-white/60 hover:text-white transition-colors mb-4"
+        >
+          {panel ? 'Skrýt seznam' : names.length ? 'Upravit seznam' : 'Nahrát jména'}
+          {names.length > 0 && !panel && <span className="ml-1.5 bg-white/20 px-2 py-0.5 rounded-full text-[10px]">{names.length.toLocaleString('cs-CZ')}</span>}
+        </button>
 
-              <input ref={fileInputRef} type="file" accept=".txt,.csv,.tsv,text/plain" onChange={handleFileUpload} className="hidden" />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="mt-2 w-full py-2 border-2 border-dashed border-gray-200 rounded-xl
-                  text-xs font-semibold text-gray-400 hover:border-slon-primary
-                  hover:text-slon-primary hover:bg-slon-pink-100/30 transition-all"
-              >
-                Nahrát .txt soubor
+        {/* Input panel */}
+        {panel && (
+          <div className="w-full max-w-sm bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/10">
+            <textarea
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              placeholder={"Jan Novák\nPetra Svobodová\nMartin Dvořák"}
+              className="w-full h-32 p-3 bg-white/10 border border-white/10 rounded-xl text-sm
+                text-white placeholder:text-white/30 resize-none focus:outline-none
+                focus:border-white/30 transition-all"
+              spellCheck={false}
+            />
+
+            <input ref={fileRef} type="file" accept=".txt,.csv,.tsv,text/plain" onChange={onFile} className="hidden" />
+
+            <div className="flex gap-2 mt-3">
+              <button onClick={() => fileRef.current?.click()}
+                className="flex-1 py-2 border border-dashed border-white/20 rounded-xl text-xs font-semibold text-white/50 hover:border-white/40 hover:text-white/70 transition-all">
+                Nahrát .txt
               </button>
-
-              <div className="flex items-center justify-between mt-3 gap-2">
-                <span className="text-[11px] text-gray-400 font-medium">
-                  {inputCount.toLocaleString('cs-CZ')} jmen
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleClear}
-                    className="px-3 py-1.5 text-xs font-semibold text-gray-400 hover:text-slon-primary rounded-lg transition-colors"
-                  >
-                    Smazat
-                  </button>
-                  <button
-                    onClick={handleLoadNames}
-                    disabled={inputCount === 0}
-                    className="px-4 py-1.5 bg-slon-primary text-white font-bold rounded-lg text-xs
-                      hover:bg-slon-dark transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    Načíst jména
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Winner */}
-          {winner && (
-            <div className="winner-animate mb-8 w-full">
-              <div className="bg-white rounded-2xl shadow-lg shadow-slon-primary/10 p-4 border border-slon-pink-200 text-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-slon-pink-100/40 to-transparent" />
-                <div className="relative">
-                  <p className="text-[10px] font-bold text-slon-pink-400 uppercase tracking-[0.2em] mb-1">
-                    Vylosovaný výherce
-                  </p>
-                  <p className="text-xl sm:text-2xl font-black text-slon-primary break-words leading-tight">
-                    {winner}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Wheel */}
-          <div className="relative w-full flex justify-center my-10 sm:my-14">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 z-10 drop-shadow-md">
-              <svg width="24" height="28" viewBox="0 0 32 36">
-                <defs>
-                  <linearGradient id="ptr" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#ff4081" />
-                    <stop offset="100%" stopColor="#b0003a" />
-                  </linearGradient>
-                </defs>
-                <polygon points="16,34 2,4 30,4" fill="url(#ptr)" stroke="#880030" strokeWidth="1.5" strokeLinejoin="round" />
-              </svg>
-            </div>
-            <div className="w-full max-w-[280px] sm:max-w-[320px] mx-auto drop-shadow-xl">
-              <canvas ref={canvasRef} className="block mx-auto" />
+              <button onClick={clear}
+                className="py-2 px-4 text-xs font-semibold text-white/40 hover:text-white/70 rounded-xl transition-colors">
+                Smazat
+              </button>
+              <button onClick={load} disabled={!count}
+                className="py-2 px-5 bg-white text-slon-primary font-bold rounded-xl text-xs disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+                Načíst ({count.toLocaleString('cs-CZ')})
+              </button>
             </div>
           </div>
+        )}
 
-          {/* Spin button */}
-          <button
-            onClick={spin}
-            disabled={isSpinning || names.length === 0}
-            className={`mb-5 w-full max-w-[220px] py-3 text-sm font-black text-white rounded-full
-              transition-all transform hover:scale-[1.03] active:scale-95
-              disabled:opacity-30 disabled:cursor-not-allowed disabled:transform-none
-              ${!isSpinning && names.length > 0
-                ? 'bg-gradient-to-r from-slon-primary to-slon-light shadow-xl shadow-slon-primary/25 btn-spin'
-                : 'bg-gray-300 shadow-none'}
-            `}
-          >
-            {isSpinning ? 'Točí se...' : names.length === 0 ? 'Nahrajte jména' : 'TOČIT!'}
-          </button>
-
-          {/* Options */}
-          <label className="flex items-center gap-2 cursor-pointer select-none mb-10 sm:mb-14">
-            <input type="checkbox" checked={removeWinners} onChange={(e) => setRemoveWinners(e.target.checked)}
-              className="w-3.5 h-3.5 accent-slon-primary rounded" />
-            <span className="text-xs text-gray-400">Odebrat výherce po vylosování</span>
-          </label>
-
-          {/* History */}
-          {winnerHistory.length > 0 && (
-            <div className="w-full bg-white rounded-2xl shadow-lg shadow-gray-200/50 p-4 border border-gray-100">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                  Historie ({winnerHistory.length})
-                </h3>
-                <button onClick={() => setWinnerHistory([])}
-                  className="text-[10px] text-gray-400 hover:text-slon-primary transition-colors">Vymazat</button>
-              </div>
-              <ol className="space-y-1 max-h-32 overflow-y-auto">
-                {winnerHistory.map((w, i) => (
-                  <li key={i} className="flex items-center gap-2 py-0.5 text-xs">
-                    <span className="w-5 h-5 flex items-center justify-center bg-slon-pink-100
-                      text-slon-primary font-bold rounded-full text-[9px] flex-shrink-0">{i + 1}</span>
-                    <span className="font-medium text-gray-600 truncate">{w}</span>
-                  </li>
-                ))}
-              </ol>
+        {/* History */}
+        {history.length > 0 && (
+          <div className="w-full max-w-xs mt-6 sm:mt-8">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] font-bold text-white/30 uppercase tracking-wider">Historie ({history.length})</p>
+              <button onClick={() => setHistory([])} className="text-[10px] text-white/30 hover:text-white/60 transition-colors">Vymazat</button>
             </div>
-          )}
-        </div>
-      </main>
+            <div className="space-y-1 max-h-28 overflow-y-auto">
+              {history.map((w, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs">
+                  <span className="w-4 h-4 flex items-center justify-center bg-white/10 rounded-full text-[9px] text-white/50 font-bold flex-shrink-0">{i+1}</span>
+                  <span className="text-white/60 truncate">{w}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
-      {/* Footer */}
-      <footer className="py-6 text-center">
-        <img src="/slon-logo.svg" alt="" className="h-5 opacity-20 mx-auto mb-1.5" />
-        <p className="text-[10px] text-gray-300 font-medium">{new Date().getFullYear()} Růžový Slon</p>
-      </footer>
+      </main>
     </div>
   )
 }
-
-export default App
