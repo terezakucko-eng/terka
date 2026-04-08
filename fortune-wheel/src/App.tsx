@@ -337,7 +337,7 @@ function App() {
       const container = canvas.parentElement
       if (!container) return
       const rect = container.getBoundingClientRect()
-      const size = Math.min(rect.width, 460)
+      const size = Math.min(rect.width, 420)
       const dpr = window.devicePixelRatio || 1
       canvas.width = size * dpr
       canvas.height = size * dpr
@@ -361,7 +361,7 @@ function App() {
   }, [])
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slon-pink-100 via-white to-slon-pink-200">
+    <div className="min-h-screen min-h-[100dvh] flex flex-col bg-gradient-to-br from-slon-pink-100 via-white to-slon-pink-200">
       {/* Confetti */}
       {showConfetti && confettiPieces.map((piece, i) => (
         <div
@@ -381,78 +381,69 @@ function App() {
 
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-slon-pink-200 sticky top-0 z-20">
-        <div className="max-w-5xl mx-auto flex items-center justify-between px-4 sm:px-6 py-3">
-          <div className="flex items-center gap-3">
-            <img
-              src="/slon-logo.svg"
-              alt="Růžový Slon"
-              className="h-8 sm:h-9"
-            />
-            <div className="w-px h-7 bg-slon-pink-300 hidden sm:block" />
-            <h1 className="text-lg sm:text-xl font-black text-slon-primary tracking-tight">
+        <div className="w-full max-w-lg mx-auto flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-2.5">
+            <img src="/slon-logo.svg" alt="Růžový Slon" className="h-7 sm:h-8" />
+            <div className="w-px h-6 bg-slon-pink-300" />
+            <h1 className="text-base sm:text-lg font-black text-slon-primary tracking-tight">
               Kolo Štěstí
             </h1>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2">
             {names.length > 0 && (
-              <span className="bg-slon-primary/10 text-slon-primary px-3 py-1 rounded-full text-xs sm:text-sm font-bold">
-                {names.length.toLocaleString('cs-CZ')} jmen
+              <span className="bg-slon-primary/10 text-slon-primary px-2.5 py-0.5 rounded-full text-xs font-bold">
+                {names.length.toLocaleString('cs-CZ')}
               </span>
             )}
             <button
               onClick={() => setShowInput(!showInput)}
-              className="text-sm font-bold text-slon-primary hover:bg-slon-pink-100 px-3 py-1.5 rounded-lg transition-colors"
+              className="text-xs sm:text-sm font-bold text-slon-primary hover:bg-slon-pink-100 px-2.5 py-1.5 rounded-lg transition-colors"
             >
-              {showInput ? 'Skrýt' : 'Upravit seznam'}
+              {showInput ? 'Skrýt' : 'Seznam'}
             </button>
           </div>
         </div>
       </header>
 
-      {/* Main */}
-      <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-10">
+      {/* Main - everything centered in a narrow column */}
+      <main className="flex-1 w-full max-w-lg mx-auto px-4 py-5 sm:py-8 flex flex-col items-center">
 
-        {/* Input Panel - collapsible */}
+        {/* Input Panel */}
         {showInput && (
-          <div className="mb-8 bg-white rounded-2xl shadow-sm border border-slon-pink-200/60 p-5 sm:p-6 max-w-2xl mx-auto">
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <h2 className="text-lg font-extrabold text-gray-800">Seznam jmen</h2>
-                <p className="text-gray-400 text-sm mt-0.5">
-                  Každé jméno na nový řádek, nebo kopie sloupce z Excelu (max 20 000)
-                </p>
-              </div>
-              <img src="/elephant.jpg" alt="" className="w-16 h-16 rounded-xl object-cover hidden sm:block shadow-sm" />
-            </div>
+          <div className="w-full mb-6 bg-white rounded-2xl shadow-sm border border-slon-pink-200/60 p-4 sm:p-5">
+            <h2 className="text-base font-extrabold text-gray-800 mb-0.5">Seznam jmen</h2>
+            <p className="text-gray-400 text-xs sm:text-sm mb-3">
+              Každé jméno na nový řádek, nebo kopie sloupce z Excelu (max 20 000)
+            </p>
 
             <textarea
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               placeholder={"Jan Novák\nPetra Svobodová\nMartin Dvořák\n..."}
-              className="w-full h-52 sm:h-64 p-4 border border-gray-200 rounded-xl text-sm
+              className="w-full h-44 sm:h-56 p-3 sm:p-4 border border-gray-200 rounded-xl text-sm
                 text-gray-700 resize-none focus:outline-none focus:border-slon-primary
                 focus:ring-2 focus:ring-slon-primary/10 transition-all placeholder:text-gray-300
                 bg-gray-50/50"
               spellCheck={false}
             />
 
-            <div className="flex items-center justify-between mt-3">
-              <span className="text-xs text-gray-400 font-semibold">
+            <div className="flex items-center justify-between mt-2.5 gap-2">
+              <span className="text-xs text-gray-400 font-semibold whitespace-nowrap">
                 {inputCount.toLocaleString('cs-CZ')} jmen
               </span>
               <div className="flex gap-2">
                 <button
                   onClick={handleClear}
-                  className="px-4 py-2 text-sm font-semibold text-gray-400 hover:text-slon-primary rounded-lg transition-colors"
+                  className="px-3 py-1.5 text-xs sm:text-sm font-semibold text-gray-400 hover:text-slon-primary rounded-lg transition-colors"
                 >
-                  Smazat vše
+                  Smazat
                 </button>
                 <button
                   onClick={handleLoadNames}
                   disabled={inputCount === 0}
-                  className="px-5 py-2 bg-slon-primary text-white font-bold rounded-xl text-sm
+                  className="px-4 py-1.5 bg-slon-primary text-white font-bold rounded-xl text-xs sm:text-sm
                     hover:bg-slon-dark transition-colors disabled:opacity-30 disabled:cursor-not-allowed
-                    shadow-sm"
+                    shadow-sm whitespace-nowrap"
                 >
                   Načíst a točit
                 </button>
@@ -461,110 +452,104 @@ function App() {
           </div>
         )}
 
-        {/* Wheel + controls centered */}
-        <div className="flex flex-col items-center">
-
-          {/* Winner banner */}
-          {winner && (
-            <div className="winner-animate mb-6 w-full max-w-md">
-              <div className="bg-white rounded-2xl shadow-lg p-5 border border-slon-pink-200 text-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-slon-pink-100/50 to-transparent" />
-                <div className="relative">
-                  <p className="text-xs font-bold text-slon-pink-400 uppercase tracking-widest mb-1">
-                    Vylosovaný výherce
-                  </p>
-                  <p className="text-2xl sm:text-3xl font-black text-slon-primary break-words leading-tight">
-                    {winner}
-                  </p>
-                </div>
+        {/* Winner banner */}
+        {winner && (
+          <div className="winner-animate mb-5 w-full">
+            <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-5 border border-slon-pink-200 text-center relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-slon-pink-100/50 to-transparent" />
+              <div className="relative">
+                <p className="text-[10px] sm:text-xs font-bold text-slon-pink-400 uppercase tracking-widest mb-1">
+                  Vylosovaný výherce
+                </p>
+                <p className="text-xl sm:text-3xl font-black text-slon-primary break-words leading-tight">
+                  {winner}
+                </p>
               </div>
-            </div>
-          )}
-
-          {/* Wheel area */}
-          <div className="relative mb-6">
-            {/* Pointer */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 z-10 drop-shadow-md">
-              <svg width="32" height="36" viewBox="0 0 32 36">
-                <defs>
-                  <linearGradient id="ptr" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#ff4081" />
-                    <stop offset="100%" stopColor="#b0003a" />
-                  </linearGradient>
-                </defs>
-                <polygon points="16,34 2,4 30,4" fill="url(#ptr)" stroke="#880030" strokeWidth="1.5" strokeLinejoin="round" />
-              </svg>
-            </div>
-
-            <div className="w-full max-w-[460px] drop-shadow-xl">
-              <canvas ref={canvasRef} className="w-full" />
             </div>
           </div>
+        )}
 
-          {/* Spin button */}
-          <button
-            onClick={spin}
-            disabled={isSpinning || names.length === 0}
-            className={`mb-4 py-3.5 px-12 text-lg font-black text-white rounded-full
-              transition-all transform hover:scale-105 active:scale-95
-              disabled:opacity-30 disabled:cursor-not-allowed disabled:transform-none
-              ${!isSpinning && names.length > 0
-                ? 'bg-gradient-to-r from-slon-primary to-slon-light shadow-lg shadow-slon-primary/30 btn-spin'
-                : 'bg-gray-300 shadow-none'}
-            `}
-          >
-            {isSpinning ? 'Točí se...' : names.length === 0 ? 'Nejdříve nahrajte jména' : 'TOČIT KOLEM!'}
-          </button>
+        {/* Wheel */}
+        <div className="relative w-full flex justify-center mb-5">
+          {/* Pointer */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 z-10 drop-shadow-md">
+            <svg width="28" height="32" viewBox="0 0 32 36">
+              <defs>
+                <linearGradient id="ptr" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#ff4081" />
+                  <stop offset="100%" stopColor="#b0003a" />
+                </linearGradient>
+              </defs>
+              <polygon points="16,34 2,4 30,4" fill="url(#ptr)" stroke="#880030" strokeWidth="1.5" strokeLinejoin="round" />
+            </svg>
+          </div>
 
-          {/* Options */}
-          <label className="flex items-center gap-2 cursor-pointer select-none mb-6">
-            <input
-              type="checkbox"
-              checked={removeWinners}
-              onChange={(e) => setRemoveWinners(e.target.checked)}
-              className="w-4 h-4 accent-slon-primary rounded"
-            />
-            <span className="text-sm text-gray-500">
-              Odebrat výherce po vylosování
-            </span>
-          </label>
-
-          {/* Winner History */}
-          {winnerHistory.length > 0 && (
-            <div className="w-full max-w-sm bg-white rounded-2xl shadow-sm p-5 border border-slon-pink-200/60">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-extrabold text-gray-700 uppercase tracking-wider">
-                  Historie ({winnerHistory.length})
-                </h3>
-                <button
-                  onClick={() => setWinnerHistory([])}
-                  className="text-xs text-gray-400 hover:text-slon-primary transition-colors"
-                >
-                  Vymazat
-                </button>
-              </div>
-              <ol className="space-y-1 max-h-44 overflow-y-auto">
-                {winnerHistory.map((w, i) => (
-                  <li key={i} className="flex items-center gap-2.5 py-1 text-sm">
-                    <span className="w-5 h-5 flex items-center justify-center bg-slon-pink-200
-                      text-slon-primary font-bold rounded-full text-[10px] flex-shrink-0">
-                      {i + 1}
-                    </span>
-                    <span className="font-medium text-gray-600 truncate">{w}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          )}
+          <div className="w-full max-w-[min(100%,420px)] drop-shadow-xl">
+            <canvas ref={canvasRef} className="w-full" />
+          </div>
         </div>
+
+        {/* Spin button */}
+        <button
+          onClick={spin}
+          disabled={isSpinning || names.length === 0}
+          className={`mb-3 w-full max-w-xs py-3 sm:py-3.5 px-8 text-base sm:text-lg font-black text-white rounded-full
+            transition-all transform hover:scale-105 active:scale-95
+            disabled:opacity-30 disabled:cursor-not-allowed disabled:transform-none
+            ${!isSpinning && names.length > 0
+              ? 'bg-gradient-to-r from-slon-primary to-slon-light shadow-lg shadow-slon-primary/30 btn-spin'
+              : 'bg-gray-300 shadow-none'}
+          `}
+        >
+          {isSpinning ? 'Točí se...' : names.length === 0 ? 'Nejdříve nahrajte jména' : 'TOČIT KOLEM!'}
+        </button>
+
+        {/* Options */}
+        <label className="flex items-center gap-2 cursor-pointer select-none mb-5">
+          <input
+            type="checkbox"
+            checked={removeWinners}
+            onChange={(e) => setRemoveWinners(e.target.checked)}
+            className="w-4 h-4 accent-slon-primary rounded"
+          />
+          <span className="text-xs sm:text-sm text-gray-500">
+            Odebrat výherce po vylosování
+          </span>
+        </label>
+
+        {/* Winner History */}
+        {winnerHistory.length > 0 && (
+          <div className="w-full bg-white rounded-2xl shadow-sm p-4 sm:p-5 border border-slon-pink-200/60">
+            <div className="flex items-center justify-between mb-2.5">
+              <h3 className="text-xs sm:text-sm font-extrabold text-gray-700 uppercase tracking-wider">
+                Historie ({winnerHistory.length})
+              </h3>
+              <button
+                onClick={() => setWinnerHistory([])}
+                className="text-xs text-gray-400 hover:text-slon-primary transition-colors"
+              >
+                Vymazat
+              </button>
+            </div>
+            <ol className="space-y-1 max-h-36 sm:max-h-44 overflow-y-auto">
+              {winnerHistory.map((w, i) => (
+                <li key={i} className="flex items-center gap-2 py-0.5 text-sm">
+                  <span className="w-5 h-5 flex items-center justify-center bg-slon-pink-200
+                    text-slon-primary font-bold rounded-full text-[10px] flex-shrink-0">
+                    {i + 1}
+                  </span>
+                  <span className="font-medium text-gray-600 truncate">{w}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
       </main>
 
       {/* Footer */}
-      <footer className="py-5 px-6 text-center">
-        <div className="flex items-center justify-center gap-3 mb-2">
-          <img src="/slon-logo.svg" alt="Růžový Slon" className="h-6 opacity-40" />
-        </div>
-        <p className="text-xs text-gray-400">
+      <footer className="py-4 px-4 text-center">
+        <img src="/slon-logo.svg" alt="Růžový Slon" className="h-5 opacity-30 mx-auto mb-1" />
+        <p className="text-[10px] text-gray-400">
           {new Date().getFullYear()} Růžový Slon
         </p>
       </footer>
