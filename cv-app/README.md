@@ -29,4 +29,15 @@ npm run preview
 
 ## Nasazení
 
-Stejně jako ostatní projekty v monorepu — Netlify, base directory `cv-app`.
+### Netlify / Vercel
+
+Base directory / Root directory: `cv-app`. Build command `npm run build`, output `dist`.
+Žádné extra proměnné. Stránka běží v rootu domény.
+
+### GitHub Pages
+
+V repu je workflow `.github/workflows/pages-cv-app.yml`, který build nasadí při každém pushi do
+`main` měnícím `cv-app/`. Jednorázově v Settings repa → **Pages → Source: GitHub Actions**.
+
+Workflow staví s `BASE_PATH=/terka/`, protože project page žije na
+`https://<uživatel>.github.io/terka/`. Pokud repo přejmenuješ, uprav `BASE_PATH` v workflow.
