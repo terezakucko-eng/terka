@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+@theme {
+  --font-family-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-family-serif: 'Source Serif 4', ui-serif, Georgia, serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family-sans);
+  color: #1f2937;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'ss01', 'cv11';
+}
+
+.font-serif {
+  font-family: var(--font-family-serif);
+}
+
+/* ---------- Editable fields ---------- */
+.editable {
+  outline: none;
+  border-radius: 3px;
+  transition: background-color 120ms ease, box-shadow 120ms ease;
+  cursor: text;
+}
+
+.editable:hover {
+  background-color: rgba(20, 184, 166, 0.08);
+  box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.12);
+}
+
+.editable:focus {
+  background-color: rgba(20, 184, 166, 0.12);
+  box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.45);
+}
+
+.editable:empty::before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  font-style: italic;
+}
+
+/* ---------- CV page layout (A4) ---------- */
+.cv-page {
+  width: 100%;
+  max-width: 900px;
+  margin-inline: auto;
+  /* Give the on-screen page the feel of paper */
+  border-radius: 6px;
+}
+
+/* ---------- Print / PDF export ---------- */
+@page {
+  size: A4;
+  margin: 10mm;
+}
+
+@media print {
+  html,
+  body {
+    background: #ffffff !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  /* Remove any sticky / overlay chrome from screen */
+  .cv-page {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  /* Keep sections from being chopped awkwardly when possible */
+  article,
+  section,
+  ul,
+  li {
+    break-inside: avoid;
+  }
+
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+
+  /* Slightly tighter for print to fit more content on A4 */
+  body {
+    font-size: 11.5px;
+  }
+
+  /* Ensure backgrounds/borders render */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Don't highlight editable fields on paper */
+  .editable:hover,
+  .editable:focus {
+    background-color: transparent !important;
+    box-shadow: none !important;
+  }
+}
