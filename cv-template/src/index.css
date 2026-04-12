@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+@theme {
+  --color-sidebar: #5B8A8A;
+  --color-sidebar-light: #f0f5f5;
+  --color-accent-green: #4A7A5B;
+  --color-accent-red: #C45B5B;
+  --color-accent-teal: #3A7A7A;
+  --color-accent-orange: #C4875B;
+  --color-accent-dark-teal: #2A5A5A;
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #4a4a4a;
+  --color-border: #e0e0e0;
+  --color-stats-bg: #f7f7f5;
+  --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+@layer base {
+  html {
+    font-size: 14px;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    color: var(--color-text-primary);
+    background: #e8e8e8;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  [contenteditable] {
+    outline: none;
+    border-radius: 2px;
+    transition: background-color 0.15s, box-shadow 0.15s;
+  }
+
+  [contenteditable]:hover {
+    background-color: rgba(91, 138, 138, 0.06);
+  }
+
+  [contenteditable]:focus {
+    background-color: rgba(91, 138, 138, 0.1);
+    box-shadow: 0 0 0 2px rgba(91, 138, 138, 0.25);
+  }
+}
+
+/* Print styles */
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .cv-page {
+    box-shadow: none !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    width: 210mm !important;
+    min-height: 297mm !important;
+  }
+
+  [contenteditable]:hover,
+  [contenteditable]:focus {
+    background-color: transparent !important;
+    box-shadow: none !important;
+  }
+}
+
+/* Google Fonts import */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
