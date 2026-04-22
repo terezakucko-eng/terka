@@ -232,8 +232,15 @@ function PrivateTodosTab() {
     </div>
   )
 
-  const allOpen = items.filter(i => !i.done)
-  const allDone = items.filter(i => i.done)
+  const sortByDue = (a, b) => {
+    if (!a.due && !b.due) return 0
+    if (!a.due) return 1
+    if (!b.due) return -1
+    return a.due.localeCompare(b.due)
+  }
+
+  const allOpen = items.filter(i => !i.done).sort(sortByDue)
+  const allDone = items.filter(i => i.done).sort(sortByDue)
   const open = filterLabelId ? allOpen.filter(i => (i.labelIds || []).includes(filterLabelId)) : allOpen
   const done = filterLabelId ? allDone.filter(i => (i.labelIds || []).includes(filterLabelId)) : allDone
 
