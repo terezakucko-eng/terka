@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { db } from './firebase'
 import { doc, onSnapshot, setDoc } from 'firebase/firestore'
-import { RefreshCw, ExternalLink, CheckCircle2, Circle, ChevronDown, ChevronRight, AlertCircle, Clock, Calendar, Inbox, Bell, Plus, Trash2, CheckSquare, Square, Link, Pencil, X, Tag, Repeat2 } from 'lucide-react'
+import { RefreshCw, ExternalLink, CheckCircle2, Circle, ChevronDown, ChevronRight, AlertCircle, Clock, Calendar, Inbox, Bell, Plus, Trash2, CheckSquare, Square, Link, Pencil, X, Tag, Repeat2, EyeOff, Eye } from 'lucide-react'
 
 const IS_LOCAL = typeof window !== 'undefined' && window.location.hostname === 'localhost'
 const TEREZA_ID = 43838310
@@ -493,6 +493,7 @@ function NotificationsTab({ unreads, loading, error, lastSync, onRefresh }) {
 
 // ── Hlavní app ──────────────────────────────────────────────────────────────
 const REFRESH_INTERVAL = 15 * 60 * 1000 // 15 minut
+const HIDDEN_TODOS_KEY = 'hiddenBcTodoIds'
 
 export default function App() {
   const [tab, setTab] = useState('todos')
@@ -503,6 +504,25 @@ export default function App() {
   const [lastSync, setLastSync] = useState(null)
   const [collapsed, setCollapsed] = useState({})
   const [filterProject, setFilterProject] = useState('all')
+  const [hiddenIds, setHiddenIds] = useState<Set<number>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem(HIDDEN_TODOS_KEY) || '[]')) } catch { return new Set() }
+  })
+  const [showHidden, setShowHidden] = useState(false)
+
+  const hideТodo = (id: number) => {
+    setHiddenIds(prev => {
+      const next = new Set(prev); next.add(id)
+      localStorage.setItem(HIDDEN_TODOS_KEY, JSON.stringify([...next]))
+      return next
+    })
+  }
+  const unhideTodo = (id: number) => {
+    setHiddenIds(prev => {
+      const next = new Set(prev); next.delete(id)
+      localStorage.setItem(HIDDEN_TODOS_KEY, JSON.stringify([...next]))
+      return next
+    })
+  }
 
   const [notifUnreads, setNotifUnreads] = useState([])
   const [notifLoading, setNotifLoading] = useState(false)
@@ -603,8 +623,10 @@ export default function App() {
   }
 
   const open = todos.filter(t => !t.completed)
-  const projects = [...new Set(open.map(t => t.project))].sort()
-  const visible = filterProject === 'all' ? open : open.filter(t => t.project === filterProject)
+  const projects = [...new Set(open.filter(t => !hiddenIds.has(t.id)).map(t => t.project))].sort()
+  const visibleAll = filterProject === 'all' ? open : open.filter(t => t.project === filterProject)
+  const visible = visibleAll.filter(t => !hiddenIds.has(t.id))
+  const hidden = open.filter(t => hiddenIds.has(t.id))
   const grouped = {}
   for (const s of SECTIONS) {
     grouped[s.key] = visible
@@ -741,6 +763,10 @@ export default function App() {
                                 {todo.due && <><span className="mx-1">·</span>{formatDate(todo.due)}</>}
                               </p>
                             </div>
+                            <button onClick={() => hideТodo(todo.id)}
+                              className="opacity-0 group-hover:opacity-100 p-1 hover:text-gray-600 text-gray-300 flex-shrink-0" title="Skrýt úkol">
+                              <EyeOff className="w-3.5 h-3.5" />
+                            </button>
                             <a href={todo.url} target="_blank" rel="noreferrer"
                               className="opacity-0 group-hover:opacity-100 p-1 hover:text-indigo-600 text-gray-400 flex-shrink-0" title="Otevřít v Basecamp">
                               <ExternalLink className="w-3.5 h-3.5" />
@@ -752,6 +778,42 @@ export default function App() {
                   </div>
                 )
               })
+            )}
+
+            {hidden.length > 0 && (
+              <div className="mb-4 rounded-xl border border-gray-200 overflow-hidden">
+                <button onClick={() => setShowHidden(h => !h)}
+                  className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 text-left hover:bg-gray-100">
+                  <EyeOff className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                  <span className="font-semibold text-sm text-gray-400">Skryté</span>
+                  <span className="ml-auto text-sm font-bold text-gray-400">{hidden.length}</span>
+                  {showHidden ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+                </button>
+                {showHidden && (
+                  <div className="bg-white divide-y divide-gray-100">
+                    {hidden.map(todo => (
+                      <div key={todo.id} className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 group opacity-50">
+                        <Circle className="w-4 h-4 mt-0.5 text-gray-300 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-gray-500 leading-snug">{todo.content}</p>
+                          <p className="text-xs text-gray-400 mt-0.5 truncate">
+                            {todo.project}<span className="mx-1">·</span>{todo.list}
+                            {todo.due && <><span className="mx-1">·</span>{formatDate(todo.due)}</>}
+                          </p>
+                        </div>
+                        <button onClick={() => unhideTodo(todo.id)}
+                          className="opacity-0 group-hover:opacity-100 p-1 hover:text-indigo-600 text-gray-300 flex-shrink-0" title="Odkrýt úkol">
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+                        <a href={todo.url} target="_blank" rel="noreferrer"
+                          className="opacity-0 group-hover:opacity-100 p-1 hover:text-indigo-600 text-gray-400 flex-shrink-0" title="Otevřít v Basecamp">
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
 
             {!loading && visible.length === 0 && todos.length > 0 && (
