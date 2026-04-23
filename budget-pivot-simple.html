@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kontingencni tabulka - Marketing Budget 2026</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #fdf2f8, #f3e8ff, #dbeafe); min-height: 100vh; padding: 20px; }
+    .container { max-width: 100%; margin: 0 auto; }
+    .card { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 20px; border: 1px solid #e9d5ff; }
+    h1 { background: linear-gradient(90deg, #db2777, #9333ea, #2563eb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 1.5rem; margin-bottom: 5px; }
+    .subtitle { color: #666; font-size: 0.9rem; }
+    .controls { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; align-items: center; }
+    input, select { padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+    input:focus, select:focus { outline: none; border-color: #9333ea; }
+    .btn { padding: 6px 12px; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; }
+    .btn-primary { background: #9333ea; color: white; }
+    .btn-primary:hover { background: #7c3aed; }
+    .btn-secondary { background: #f3f4f6; color: #374151; }
+    .btn-secondary:hover { background: #e5e7eb; }
+    .btn-active { background: #9333ea; color: white; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { padding: 8px 6px; text-align: right; border: 1px solid #e5e7eb; }
+    th { font-weight: 600; }
+    td:first-child, th:first-child { text-align: left; position: sticky; left: 0; background: inherit; z-index: 1; min-width: 220px; }
+    .header-main { background: linear-gradient(90deg, #ec4899, #9333ea, #3b82f6); color: white; }
+    .header-sub { background: #f3e8ff; color: #581c87; font-size: 11px; }
+    .header-sub .yoy { background: #dbeafe; }
+    .header-sub .plan { background: #dcfce7; }
+    .header-sub .real { background: #ffedd5; }
+    .header-total { background: linear-gradient(90deg, #eab308, #f97316); color: white; }
+    .row-category { background: linear-gradient(90deg, #fdf4ff, #fce7f3); font-weight: 600; cursor: pointer; }
+    .row-category:hover { background: linear-gradient(90deg, #fae8ff, #fbcfe8); }
+    .row-category td:first-child { color: #7c3aed; }
+    .row-item { background: white; }
+    .row-item:nth-child(even) { background: #fafafa; }
+    .row-item td:first-child { padding-left: 30px; border-left: 4px solid #e9d5ff; }
+    .row-total { background: linear-gradient(90deg, #1f2937, #111827); color: white; font-weight: 700; }
+    .row-total td { border-color: #374151; }
+    .code { font-family: monospace; background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 4px; }
+    .country { font-family: monospace; background: #dbeafe; color: #1d4ed8; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 4px; }
+    .expand-icon { display: inline-block; width: 16px; margin-right: 4px; }
+    .yoy-col { background: rgba(219, 234, 254, 0.3); }
+    .plan-col { background: rgba(220, 252, 231, 0.3); }
+    .real-col { background: rgba(255, 237, 213, 0.3); }
+    .total-yoy { background: rgba(219, 234, 254, 0.5); font-weight: 600; }
+    .total-plan { background: rgba(220, 252, 231, 0.5); font-weight: 600; }
+    .total-real { background: rgba(255, 237, 213, 0.5); font-weight: 600; }
+    .trend-up { color: #ef4444; }
+    .trend-down { color: #22c55e; }
+    .legend { display: flex; flex-wrap: wrap; gap: 20px; font-size: 12px; color: #666; }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-box { width: 14px; height: 14px; border-radius: 3px; }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 20px; }
+    .summary-card { background: white; border-radius: 10px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e9d5ff; }
+    .summary-label { font-size: 11px; color: #666; margin-bottom: 4px; }
+    .summary-value { font-size: 1.2rem; font-weight: 700; }
+    .summary-value.blue { color: #2563eb; }
+    .summary-value.green { color: #16a34a; }
+    .summary-value.orange { color: #ea580c; }
+    .summary-value.purple { color: #9333ea; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Kontingencni tabulka - Marketing Budget 2026</h1>
+      <p class="subtitle">Prehled YOY / PLAN / REAL dle projektu a mesicu</p>
+
+      <div class="controls">
+        <input type="text" id="search" placeholder="Hledat ucet..." style="width: 180px;">
+        <select id="countryFilter">
+          <option value="all">Vsechny zeme</option>
+          <option value="CZ">CZ</option>
+          <option value="SK">SK</option>
+        </select>
+        <div style="display: flex; gap: 4px;">
+          <button class="btn btn-active" data-range="q1">Q1</button>
+          <button class="btn btn-secondary" data-range="q2">Q2</button>
+          <button class="btn btn-secondary" data-range="q3">Q3</button>
+          <button class="btn btn-secondary" data-range="q4">Q4</button>
+          <button class="btn btn-secondary" data-range="h1">H1</button>
+          <button class="btn btn-secondary" data-range="h2">H2</button>
+          <button class="btn btn-secondary" data-range="year">Rok</button>
+        </div>
+        <div style="margin-left: auto; display: flex; gap: 6px;">
+          <button class="btn btn-primary" id="expandAll">Rozbalit vse</button>
+          <button class="btn btn-secondary" id="collapseAll">Sbalit vse</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="padding: 0; overflow: hidden;">
+      <div class="table-wrap">
+        <table id="pivotTable"></table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="font-size: 14px; color: #9333ea; margin-bottom: 10px;">Legenda</h3>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-box" style="background: #dbeafe;"></div><strong>YOY</strong> - Minuly rok</div>
+        <div class="legend-item"><div class="legend-box" style="background: #dcfce7;"></div><strong>PLAN</strong> - Plan</div>
+        <div class="legend-item"><div class="legend-box" style="background: #ffedd5;"></div><strong>REAL</strong> - Realita</div>
+        <div class="legend-item"><span class="trend-up">▲</span> Prekroceni +5%</div>
+        <div class="legend-item"><span class="trend-down">▼</span> Uspora -5%</div>
+      </div>
+
+      <div class="summary-grid" id="summary"></div>
+    </div>
+  </div>
+
+  <script>
+    const budgetData = [
+      {
+        name: 'MKT_Darky',
+        items: [
+          { code: '50402', country: 'CZ', desc: 'Darky neslibene', data: { '01': [180000,200000,195000], '02': [165000,180000,172000], '03': [190000,210000,0], '04': [175000,195000,0], '05': [200000,220000,0], '06': [185000,205000,0], '07': [170000,190000,0], '08': [195000,215000,0], '09': [210000,230000,0], '10': [225000,245000,0], '11': [280000,300000,0], '12': [320000,350000,0] }},
+          { code: '50403', country: 'CZ', desc: 'Darky slibene', data: { '01': [95000,105000,102000], '02': [88000,98000,95000], '03': [102000,112000,0], '04': [92000,102000,0], '05': [108000,118000,0], '06': [98000,108000,0], '07': [85000,95000,0], '08': [105000,115000,0], '09': [115000,125000,0], '10': [125000,135000,0], '11': [155000,165000,0], '12': [185000,195000,0] }},
+        ]
+      },
+      {
+        name: 'MKT_Sluzby',
+        items: [
+          { code: '51201', country: 'CZ', desc: 'Cestovne', data: { '01': [12000,15000,14500], '02': [10000,12000,11800], '03': [15000,18000,0], '04': [18000,20000,0], '05': [16000,18000,0], '06': [14000,16000,0], '07': [8000,10000,0], '08': [10000,12000,0], '09': [15000,17000,0], '10': [18000,20000,0], '11': [20000,22000,0], '12': [12000,14000,0] }},
+          { code: '51202', country: 'CZ', desc: 'PHM', data: { '01': [8000,9000,8800], '02': [7500,8500,8200], '03': [9000,10000,0], '04': [9500,10500,0], '05': [10000,11000,0], '06': [9000,10000,0], '07': [8000,9000,0], '08': [8500,9500,0], '09': [9500,10500,0], '10': [10000,11000,0], '11': [10500,11500,0], '12': [8000,9000,0] }},
+        ]
+      },
+      {
+        name: 'MKT_TV_Radio',
+        items: [
+          { code: '518301', country: 'CZ', desc: 'TV Nova', data: { '01': [850000,950000,920000], '02': [780000,880000,850000], '03': [920000,1020000,0], '04': [850000,950000,0], '05': [900000,1000000,0], '06': [750000,850000,0], '07': [600000,700000,0], '08': [700000,800000,0], '09': [950000,1050000,0], '10': [1100000,1200000,0], '11': [1400000,1500000,0], '12': [1200000,1300000,0] }},
+          { code: '518302', country: 'CZ', desc: 'TV Prima', data: { '01': [650000,720000,710000], '02': [600000,680000,665000], '03': [700000,780000,0], '04': [650000,730000,0], '05': [680000,760000,0], '06': [580000,660000,0], '07': [450000,530000,0], '08': [520000,600000,0], '09': [720000,800000,0], '10': [850000,930000,0], '11': [1050000,1130000,0], '12': [920000,1000000,0] }},
+          { code: '518401', country: 'CZ', desc: 'Radio', data: { '01': [120000,140000,135000], '02': [110000,130000,125000], '03': [140000,160000,0], '04': [130000,150000,0], '05': [145000,165000,0], '06': [125000,145000,0], '07': [100000,120000,0], '08': [115000,135000,0], '09': [150000,170000,0], '10': [175000,195000,0], '11': [210000,230000,0], '12': [180000,200000,0] }},
+        ]
+      },
+      {
+        name: 'MKT_Performance',
+        items: [
+          { code: '518401', country: 'CZ', desc: 'PPC Google CZ', data: { '01': [1200000,1350000,1320000], '02': [1100000,1250000,1210000], '03': [1300000,1450000,0], '04': [1250000,1400000,0], '05': [1350000,1500000,0], '06': [1200000,1350000,0], '07': [1000000,1150000,0], '08': [1150000,1300000,0], '09': [1400000,1550000,0], '10': [1600000,1750000,0], '11': [2000000,2150000,0], '12': [1800000,1950000,0] }},
+          { code: '518402', country: 'SK', desc: 'PPC Google SK', data: { '01': [350000,400000,390000], '02': [320000,370000,355000], '03': [380000,430000,0], '04': [360000,410000,0], '05': [390000,440000,0], '06': [350000,400000,0], '07': [280000,330000,0], '08': [320000,370000,0], '09': [400000,450000,0], '10': [460000,510000,0], '11': [580000,630000,0], '12': [520000,570000,0] }},
+          { code: '518403', country: 'CZ', desc: 'Facebook Ads', data: { '01': [450000,520000,505000], '02': [420000,490000,475000], '03': [480000,550000,0], '04': [460000,530000,0], '05': [500000,570000,0], '06': [450000,520000,0], '07': [380000,450000,0], '08': [430000,500000,0], '09': [520000,590000,0], '10': [600000,670000,0], '11': [750000,820000,0], '12': [680000,750000,0] }},
+          { code: '518404', country: 'CZ', desc: 'SMS marketing', data: { '01': [85000,95000,92000], '02': [78000,88000,85000], '03': [92000,102000,0], '04': [88000,98000,0], '05': [95000,105000,0], '06': [85000,95000,0], '07': [70000,80000,0], '08': [80000,90000,0], '09': [98000,108000,0], '10': [115000,125000,0], '11': [145000,155000,0], '12': [130000,140000,0] }},
+        ]
+      },
+      {
+        name: 'MKT_Ostatni',
+        items: [
+          { code: '518505', country: 'CZ', desc: 'PR sluzby', data: { '01': [65000,75000,72000], '02': [60000,70000,68000], '03': [70000,80000,0], '04': [68000,78000,0], '05': [72000,82000,0], '06': [65000,75000,0], '07': [55000,65000,0], '08': [60000,70000,0], '09': [75000,85000,0], '10': [85000,95000,0], '11': [105000,115000,0], '12': [95000,105000,0] }},
+          { code: '518510', country: 'CZ', desc: 'Tisk', data: { '01': [35000,42000,40000], '02': [32000,38000,36500], '03': [38000,45000,0], '04': [36000,43000,0], '05': [40000,47000,0], '06': [35000,42000,0], '07': [28000,35000,0], '08': [32000,39000,0], '09': [42000,49000,0], '10': [48000,55000,0], '11': [60000,67000,0], '12': [52000,59000,0] }},
+        ]
+      },
+      {
+        name: 'MKT_Mzdy',
+        items: [
+          { code: '52100', country: 'CZ', desc: 'Mzdy HPP', data: { '01': [380000,410000,405000], '02': [380000,410000,408000], '03': [380000,410000,0], '04': [380000,410000,0], '05': [380000,410000,0], '06': [380000,410000,0], '07': [380000,410000,0], '08': [380000,410000,0], '09': [380000,410000,0], '10': [380000,410000,0], '11': [380000,410000,0], '12': [380000,410000,0] }},
+        ]
+      },
+    ];
+
+    const months = ['Leden','Unor','Brezen','Duben','Kveten','Cerven','Cervenec','Srpen','Zari','Rijen','Listopad','Prosinec'];
+    const ranges = { q1: [1,2,3], q2: [4,5,6], q3: [7,8,9], q4: [10,11,12], h1: [1,2,3,4,5,6], h2: [7,8,9,10,11,12], year: [1,2,3,4,5,6,7,8,9,10,11,12] };
+
+    let visibleMonths = [1,2,3];
+    let expanded = new Set();
+    let searchTerm = '';
+    let countryFilter = 'all';
+
+    const fmt = (n) => n === 0 ? '-' : n.toLocaleString('cs-CZ') + ' Kc';
+    const trend = (plan, real) => {
+      if (real === 0) return '';
+      const v = ((real - plan) / plan) * 100;
+      if (v > 5) return ' <span class="trend-up">▲</span>';
+      if (v < -5) return ' <span class="trend-down">▼</span>';
+      return '';
+    };
+
+    function getFilteredData() {
+      return budgetData.map(cat => ({
+        ...cat,
+        items: cat.items.filter(item => {
+          const matchSearch = !searchTerm || item.desc.toLowerCase().includes(searchTerm.toLowerCase()) || item.code.includes(searchTerm);
+          const matchCountry = countryFilter === 'all' || item.country === countryFilter;
+          return matchSearch && matchCountry;
+        })
+      })).filter(cat => cat.items.length > 0);
+    }
+
+    function getCatTotals(cat, m) {
+      return cat.items.reduce((a, item) => {
+        const d = item.data[m] || [0,0,0];
+        return [a[0]+d[0], a[1]+d[1], a[2]+d[2]];
+      }, [0,0,0]);
+    }
+
+    function render() {
+      const data = getFilteredData();
+      let html = '<thead><tr class="header-main"><th>Projekt / Ucet</th>';
+      visibleMonths.forEach(m => {
+        html += `<th colspan="3">${months[m-1]}</th>`;
+      });
+      html += '<th colspan="3" class="header-total">CELKEM</th></tr>';
+      html += '<tr class="header-sub"><th>Kod / Popis</th>';
+      visibleMonths.forEach(() => {
+        html += '<th class="yoy">YOY</th><th class="plan">PLAN</th><th class="real">REAL</th>';
+      });
+      html += '<th class="yoy">YOY</th><th class="plan">PLAN</th><th class="real">REAL</th></tr></thead><tbody>';
+
+      let grandTotals = {};
+      visibleMonths.forEach(m => grandTotals[m] = [0,0,0]);
+      let grandYearTotals = [0,0,0];
+
+      data.forEach(cat => {
+        const isExp = expanded.has(cat.name);
+        let catYearTotals = [0,0,0];
+
+        html += `<tr class="row-category" data-cat="${cat.name}"><td><span class="expand-icon">${isExp ? '▼' : '▶'}</span>${cat.name} <span style="color:#a78bfa;font-size:11px">(${cat.items.length})</span></td>`;
+        visibleMonths.forEach(m => {
+          const mm = String(m).padStart(2,'0');
+          const t = getCatTotals(cat, mm);
+          catYearTotals = [catYearTotals[0]+t[0], catYearTotals[1]+t[1], catYearTotals[2]+t[2]];
+          grandTotals[m] = [grandTotals[m][0]+t[0], grandTotals[m][1]+t[1], grandTotals[m][2]+t[2]];
+          html += `<td class="yoy-col">${fmt(t[0])}</td><td class="plan-col">${fmt(t[1])}</td><td class="real-col">${fmt(t[2])}${trend(t[1],t[2])}</td>`;
+        });
+        grandYearTotals = [grandYearTotals[0]+catYearTotals[0], grandYearTotals[1]+catYearTotals[1], grandYearTotals[2]+catYearTotals[2]];
+        html += `<td class="total-yoy">${fmt(catYearTotals[0])}</td><td class="total-plan">${fmt(catYearTotals[1])}</td><td class="total-real">${fmt(catYearTotals[2])}</td></tr>`;
+
+        if (isExp) {
+          cat.items.forEach(item => {
+            let itemYearTotals = [0,0,0];
+            html += `<tr class="row-item"><td><span class="code">${item.code}</span><span class="country">${item.country}</span>${item.desc}</td>`;
+            visibleMonths.forEach(m => {
+              const mm = String(m).padStart(2,'0');
+              const d = item.data[mm] || [0,0,0];
+              itemYearTotals = [itemYearTotals[0]+d[0], itemYearTotals[1]+d[1], itemYearTotals[2]+d[2]];
+              html += `<td class="yoy-col">${fmt(d[0])}</td><td class="plan-col">${fmt(d[1])}</td><td class="real-col">${fmt(d[2])}${trend(d[1],d[2])}</td>`;
+            });
+            html += `<td class="total-yoy">${fmt(itemYearTotals[0])}</td><td class="total-plan">${fmt(itemYearTotals[1])}</td><td class="total-real">${fmt(itemYearTotals[2])}</td></tr>`;
+          });
+        }
+      });
+
+      html += '<tr class="row-total"><td>CELKEM</td>';
+      visibleMonths.forEach(m => {
+        const t = grandTotals[m];
+        html += `<td>${fmt(t[0])}</td><td>${fmt(t[1])}</td><td>${fmt(t[2])}${trend(t[1],t[2])}</td>`;
+      });
+      html += `<td style="background:#ca8a04">${fmt(grandYearTotals[0])}</td><td style="background:#16a34a">${fmt(grandYearTotals[1])}</td><td style="background:#ea580c">${fmt(grandYearTotals[2])}</td></tr>`;
+      html += '</tbody>';
+
+      document.getElementById('pivotTable').innerHTML = html;
+
+      document.getElementById('summary').innerHTML = `
+        <div class="summary-card"><div class="summary-label">Celkem YOY</div><div class="summary-value blue">${fmt(grandYearTotals[0])}</div></div>
+        <div class="summary-card"><div class="summary-label">Celkem PLAN</div><div class="summary-value green">${fmt(grandYearTotals[1])}</div></div>
+        <div class="summary-card"><div class="summary-label">Celkem REAL</div><div class="summary-value orange">${fmt(grandYearTotals[2])}</div></div>
+        <div class="summary-card"><div class="summary-label">Pocet kategorii</div><div class="summary-value purple">${data.length}</div></div>
+      `;
+
+      document.querySelectorAll('.row-category').forEach(row => {
+        row.onclick = () => {
+          const cat = row.dataset.cat;
+          if (expanded.has(cat)) expanded.delete(cat); else expanded.add(cat);
+          render();
+        };
+      });
+    }
+
+    document.querySelectorAll('[data-range]').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('[data-range]').forEach(b => b.classList.remove('btn-active'));
+        btn.classList.add('btn-active');
+        btn.classList.remove('btn-secondary');
+        visibleMonths = ranges[btn.dataset.range];
+        render();
+      };
+    });
+
+    document.getElementById('search').oninput = (e) => { searchTerm = e.target.value; render(); };
+    document.getElementById('countryFilter').onchange = (e) => { countryFilter = e.target.value; render(); };
+    document.getElementById('expandAll').onclick = () => { budgetData.forEach(c => expanded.add(c.name)); render(); };
+    document.getElementById('collapseAll').onclick = () => { expanded.clear(); render(); };
+
+    render();
+  </script>
+</body>
+</html>
