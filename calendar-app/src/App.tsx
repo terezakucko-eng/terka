@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { db } from './firebase'
 import { doc, onSnapshot, setDoc } from 'firebase/firestore'
-import { RefreshCw, ExternalLink, CheckCircle2, Circle, ChevronDown, ChevronRight, AlertCircle, Clock, Calendar, Inbox, Bell, Plus, Trash2, CheckSquare, Square, Link, Pencil, X, Tag, Repeat2, EyeOff, Eye } from 'lucide-react'
+import { RefreshCw, ExternalLink, CheckCircle2, Circle, ChevronDown, ChevronRight, AlertCircle, Clock, Calendar, Inbox, Bell, Plus, Trash2, CheckSquare, Square, Link, Pencil, X, Tag, Repeat2, EyeOff, Eye, FileText } from 'lucide-react'
 
 const IS_LOCAL = typeof window !== 'undefined' && window.location.hostname === 'localhost'
 const TEREZA_ID = 43838310
@@ -87,6 +87,67 @@ const NOTIF_LABELS = {
   Message: 'Zpráva', ScheduleEntry: 'Událost', Document: 'Dokument', Upload: 'Soubor',
 }
 
+// ── Poznámkový blok – karta poznámky ────────────────────────────────────────
+function NoteCard({ note, labels, onSaveContent, onDelete, onToggleLabel }) {
+  const editorRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (editorRef.current) {
+      editorRef.current.innerHTML = note.content || ''
+    }
+  }, [note.id])
+
+  const saveContent = () => {
+    onSaveContent(note.id, editorRef.current?.innerHTML || '')
+  }
+
+  const fmt = (cmd: string) => {
+    editorRef.current?.focus()
+    document.execCommand(cmd, false, undefined)
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-4 mb-3">
+      <div className="flex items-center gap-0.5 mb-2 pb-2 border-b border-gray-100">
+        <button onMouseDown={e => { e.preventDefault(); fmt('bold') }}
+          className="w-7 h-7 flex items-center justify-center text-sm font-bold text-gray-500 hover:bg-gray-100 rounded" title="Tučně">
+          B
+        </button>
+        <button onMouseDown={e => { e.preventDefault(); fmt('italic') }}
+          className="w-7 h-7 flex items-center justify-center text-sm italic text-gray-500 hover:bg-gray-100 rounded" title="Kurzíva">
+          I
+        </button>
+        <button onMouseDown={e => { e.preventDefault(); fmt('insertUnorderedList') }}
+          className="w-7 h-7 flex items-center justify-center text-base text-gray-500 hover:bg-gray-100 rounded leading-none" title="Odrážky">
+          •
+        </button>
+        <div className="flex-1" />
+        <button onClick={() => onDelete(note.id)} className="text-gray-300 hover:text-red-500 p-1" title="Smazat">
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+      <div
+        ref={editorRef}
+        contentEditable
+        suppressContentEditableWarning
+        onBlur={saveContent}
+        className="text-sm text-gray-800 min-h-[80px] focus:outline-none leading-relaxed"
+      />
+      {labels.length > 0 && (
+        <div className="flex items-center gap-1.5 flex-wrap mt-3 pt-2 border-t border-gray-100">
+          <Tag className="w-3 h-3 text-gray-300 flex-shrink-0" />
+          {labels.map(l => (
+            <LabelChip key={l.id} label={l}
+              active={(note.labelIds || []).includes(l.id)}
+              onClick={() => onToggleLabel(note.id, l.id)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Soukromé úkoly ──────────────────────────────────────────────────────────
 const STORAGE_KEY = 'terka_private_todos'
 const FIRESTORE_DOC = doc(db, 'privateTodos', 'tereza')
@@ -123,7 +184,9 @@ function LabelChip({ label, onRemove = null, onClick = null, active = true }) {
 function PrivateTodosTab() {
   const [items, setItems] = useState([])
   const [labels, setLabels] = useState([])
+  const [notes, setNotes] = useState([])
   const [fsLoading, setFsLoading] = useState(true)
+  const [notepadLabel, setNotepadLabel] = useState<number | null>(null)
 
   // form
   const [title, setTitle] = useState('')
@@ -151,13 +214,14 @@ function PrivateTodosTab() {
         const data = snap.data()
         setItems(data.items || [])
         setLabels(data.labels || [])
+        setNotes(data.notes || [])
       } else if (!migratedRef.current) {
         migratedRef.current = true
         try {
           const local = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
-          setDoc(FIRESTORE_DOC, { items: local, labels: [] })
+          setDoc(FIRESTORE_DOC, { items: local, labels: [], notes: [] })
           if (local.length > 0) localStorage.removeItem(STORAGE_KEY)
-        } catch { setDoc(FIRESTORE_DOC, { items: [], labels: [] }) }
+        } catch { setDoc(FIRESTORE_DOC, { items: [], labels: [], notes: [] }) }
       }
       setFsLoading(false)
     }, () => setFsLoading(false))
@@ -166,7 +230,16 @@ function PrivateTodosTab() {
 
   const save = (newItems, newLabels) => {
     setItems(newItems); setLabels(newLabels)
-    setDoc(FIRESTORE_DOC, { items: newItems, labels: newLabels })
+    setDoc(FIRESTORE_DOC, { items: newItems, labels: newLabels, notes })
+  }
+
+  const saveNotes = (newNotes) => {
+    setNotes(newNotes)
+    setDoc(FIRESTORE_DOC, { items, labels, notes: newNotes })
+  }
+
+  const addNote = () => {
+    saveNotes([{ id: Date.now(), content: '', labelIds: [], createdAt: new Date().toISOString() }, ...notes])
   }
 
   const clearForm = () => { setTitle(''); setDue(''); setLink(''); setNote(''); setRepeat(''); setSelectedLabelIds([]); setEditId(null) }
@@ -243,6 +316,7 @@ function PrivateTodosTab() {
   const allDone = items.filter(i => i.done).sort(sortByDue)
   const open = filterLabelId ? allOpen.filter(i => (i.labelIds || []).includes(filterLabelId)) : allOpen
   const done = filterLabelId ? allDone.filter(i => (i.labelIds || []).includes(filterLabelId)) : allDone
+  const filteredNotes = notepadLabel ? notes.filter(n => (n.labelIds || []).includes(notepadLabel)) : notes
 
   const ItemRow = ({ item, faded = false }) => {
     const itemLabels = labels.filter(l => (item.labelIds || []).includes(l.id))
@@ -429,6 +503,55 @@ function PrivateTodosTab() {
         </div>
       )}
       <p className="text-xs text-gray-400 mt-4 text-center">Uloženo v Firestore · synchronizováno mezi zařízeními</p>
+
+      {/* ─── Poznámkový blok ─── */}
+      <div className="mt-8">
+        <div className="flex items-center gap-2 mb-4">
+          <FileText className="w-4 h-4 text-indigo-500" />
+          <h2 className="text-sm font-semibold text-gray-700">Poznámkový blok</h2>
+          <button onClick={addNote}
+            className="ml-auto flex items-center gap-1 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs hover:bg-indigo-700">
+            <Plus className="w-3.5 h-3.5" /> Nová poznámka
+          </button>
+        </div>
+
+        {labels.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap mb-4">
+            <button onClick={() => setNotepadLabel(null)}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${notepadLabel === null ? 'bg-indigo-600 text-white' : 'bg-white text-gray-500 border border-gray-200 hover:border-indigo-300'}`}>
+              Vše
+            </button>
+            {labels.map(l => (
+              <LabelChip key={l.id} label={l}
+                active={notepadLabel === l.id || notepadLabel === null}
+                onClick={() => setNotepadLabel(notepadLabel === l.id ? null : l.id)}
+              />
+            ))}
+          </div>
+        )}
+
+        {filteredNotes.map(note => (
+          <NoteCard
+            key={note.id}
+            note={note}
+            labels={labels}
+            onSaveContent={(id, html) => saveNotes(notes.map(n => n.id === id ? { ...n, content: html } : n))}
+            onDelete={(id) => saveNotes(notes.filter(n => n.id !== id))}
+            onToggleLabel={(noteId, labelId) => saveNotes(notes.map(n => {
+              if (n.id !== noteId) return n
+              const ids = n.labelIds || []
+              return { ...n, labelIds: ids.includes(labelId) ? ids.filter(x => x !== labelId) : [...ids, labelId] }
+            }))}
+          />
+        ))}
+
+        {filteredNotes.length === 0 && (
+          <div className="text-center py-10 text-gray-400">
+            <FileText className="w-10 h-10 mx-auto mb-3 opacity-25" />
+            <p className="text-sm">Žádné poznámky{notepadLabel ? ' pro vybraný štítek' : ''}</p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
