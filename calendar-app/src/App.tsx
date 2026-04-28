@@ -88,7 +88,7 @@ const NOTIF_LABELS = {
 }
 
 // ── Poznámkový blok – karta poznámky ────────────────────────────────────────
-function NoteCard({ note, labels, onSaveContent, onDelete, onToggleLabel }) {
+function NoteCard({ note, labels, onSaveContent, onSaveTitle, onDelete, onToggleLabel }) {
   const editorRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -108,6 +108,13 @@ function NoteCard({ note, labels, onSaveContent, onDelete, onToggleLabel }) {
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4 mb-3">
+      <input
+        type="text"
+        defaultValue={note.title || ''}
+        onBlur={e => onSaveTitle(note.id, e.target.value)}
+        placeholder="Název poznámky…"
+        className="w-full text-sm font-semibold text-gray-800 placeholder-gray-300 focus:outline-none mb-2"
+      />
       <div className="flex items-center gap-0.5 mb-2 pb-2 border-b border-gray-100">
         <button onMouseDown={e => { e.preventDefault(); fmt('bold') }}
           className="w-7 h-7 flex items-center justify-center text-sm font-bold text-gray-500 hover:bg-gray-100 rounded" title="Tučně">
@@ -239,7 +246,7 @@ function PrivateTodosTab() {
   }
 
   const addNote = () => {
-    saveNotes([{ id: Date.now(), content: '', labelIds: [], createdAt: new Date().toISOString() }, ...notes])
+    saveNotes([{ id: Date.now(), title: '', content: '', labelIds: [], createdAt: new Date().toISOString() }, ...notes])
   }
 
   const clearForm = () => { setTitle(''); setDue(''); setLink(''); setNote(''); setRepeat(''); setSelectedLabelIds([]); setEditId(null) }
@@ -536,6 +543,7 @@ function PrivateTodosTab() {
             note={note}
             labels={labels}
             onSaveContent={(id, html) => saveNotes(notes.map(n => n.id === id ? { ...n, content: html } : n))}
+            onSaveTitle={(id, title) => saveNotes(notes.map(n => n.id === id ? { ...n, title } : n))}
             onDelete={(id) => saveNotes(notes.filter(n => n.id !== id))}
             onToggleLabel={(noteId, labelId) => saveNotes(notes.map(n => {
               if (n.id !== noteId) return n
