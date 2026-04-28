@@ -108,13 +108,18 @@ function NoteCard({ note, labels, onSaveContent, onSaveTitle, onDelete, onToggle
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4 mb-3">
-      <input
-        type="text"
-        defaultValue={note.title || ''}
-        onBlur={e => onSaveTitle(note.id, e.target.value)}
-        placeholder="Název poznámky…"
-        className="w-full text-sm font-semibold text-gray-800 placeholder-gray-300 focus:outline-none mb-2"
-      />
+      <div className="flex items-center gap-1 mb-2">
+        <input
+          type="text"
+          defaultValue={note.title || ''}
+          onBlur={e => onSaveTitle(note.id, e.target.value)}
+          placeholder="Název poznámky…"
+          className="flex-1 text-sm font-semibold text-gray-800 placeholder-gray-300 border-b border-transparent hover:border-gray-200 focus:border-indigo-400 focus:outline-none pb-0.5 transition-colors"
+        />
+        <button onClick={() => onDelete(note.id)} className="text-gray-300 hover:text-red-500 p-1 flex-shrink-0" title="Smazat">
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
       <div className="flex items-center gap-0.5 mb-2 pb-2 border-b border-gray-100">
         <button onMouseDown={e => { e.preventDefault(); fmt('bold') }}
           className="w-7 h-7 flex items-center justify-center text-sm font-bold text-gray-500 hover:bg-gray-100 rounded" title="Tučně">
@@ -128,17 +133,13 @@ function NoteCard({ note, labels, onSaveContent, onSaveTitle, onDelete, onToggle
           className="w-7 h-7 flex items-center justify-center text-base text-gray-500 hover:bg-gray-100 rounded leading-none" title="Odrážky">
           •
         </button>
-        <div className="flex-1" />
-        <button onClick={() => onDelete(note.id)} className="text-gray-300 hover:text-red-500 p-1" title="Smazat">
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
       </div>
       <div
         ref={editorRef}
         contentEditable
         suppressContentEditableWarning
         onBlur={saveContent}
-        className="text-sm text-gray-800 min-h-[80px] focus:outline-none leading-relaxed"
+        className="text-sm text-gray-800 min-h-[80px] focus:outline-none leading-relaxed rounded px-1 -mx-1 hover:bg-gray-50 focus:bg-gray-50 transition-colors"
       />
       {labels.length > 0 && (
         <div className="flex items-center gap-1.5 flex-wrap mt-3 pt-2 border-t border-gray-100">
