@@ -1,0 +1,1611 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kampaň šablona - online tabulka</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* --- MODERNÍ DESIGN --- */
+        :root {
+            --primary-color: #e11d74;        /* růžová - brand */
+            --primary-color-dark: #be185d;
+            --primary-soft: #fdf2f8;
+            --primary-ring: rgba(225, 29, 116, 0.18);
+            --accent: #8b5cf6;               /* violet pro gradient */
+            --success: #10b981;
+            --success-dark: #059669;
+            --danger: #ef4444;
+            --danger-dark: #dc2626;
+            --background-color: #f7f5f9;     /* teplé off-white */
+            --container-background: #ffffff;
+            --surface-soft: #faf8fb;
+            --surface-muted: #f3f0f6;
+            --border-color: #ece8f0;
+            --border-strong: #d8d1e0;
+            --text-color: #1a1626;
+            --text-color-light: #6b6477;
+            --header-text-color: #ffffff;
+            --shadow-sm: 0 1px 2px rgba(26, 22, 38, 0.04);
+            --shadow-md: 0 4px 16px -4px rgba(26, 22, 38, 0.08), 0 2px 6px -2px rgba(26, 22, 38, 0.05);
+            --shadow-lg: 0 16px 40px -12px rgba(26, 22, 38, 0.18), 0 4px 12px -4px rgba(26, 22, 38, 0.08);
+            --shadow-brand: 0 8px 24px -8px rgba(225, 29, 116, 0.4);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --gradient-brand: linear-gradient(135deg, #e11d74 0%, #8b5cf6 100%);
+            --gradient-soft: linear-gradient(135deg, #fdf2f8 0%, #f3e8ff 100%);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: var(--font-family);
+            font-feature-settings: 'cv11', 'ss01', 'ss03';
+            background-color: var(--background-color);
+            background-image:
+                radial-gradient(at 0% 0%, rgba(225, 29, 116, 0.06) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.06) 0px, transparent 50%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            padding: 16px;
+            color: var(--text-color);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        ::selection { background: var(--primary-soft); color: var(--primary-color-dark); }
+
+        .container {
+            max-width: 1600px;
+            margin: 24px auto;
+            background: var(--container-background);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        /* -- Header -- */
+        .header {
+            background: var(--gradient-brand);
+            color: var(--header-text-color);
+            padding: 40px 32px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .header::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.18), transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.10), transparent 50%);
+            pointer-events: none;
+        }
+        .header > * { position: relative; }
+        .header h1 {
+            font-size: clamp(1.75em, 4vw, 2.5em);
+            margin-bottom: 24px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+        .header-buttons { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+        /* -- Správa sekcí -- */
+        .sections-manager {
+            padding: 28px 32px;
+            background: var(--surface-soft);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .sections-title {
+            font-size: 0.85em;
+            font-weight: 600;
+            color: var(--text-color-light);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 16px;
+        }
+        .sections-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+        .section-toggle {
+            background: var(--container-background);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            box-shadow: var(--shadow-sm);
+        }
+        .section-toggle:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+        .section-toggle:has(input:checked) {
+            background: var(--primary-soft);
+            border-color: var(--primary-color);
+        }
+        .section-toggle input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary-color); }
+        .section-toggle label { cursor: pointer; flex: 1; font-size: 0.9em; font-weight: 500; }
+
+        /* -- Tabulka a buňky -- */
+        .table-container { padding: 24px 32px; overflow-x: auto; }
+        .table-responsive { width: 100%; overflow-x: auto; }
+        table {
+            width: 100%;
+            min-width: 1200px;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        th, .country-header {
+            background-color: var(--surface-muted);
+            color: var(--text-color);
+            padding: 12px 16px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.75em;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            position: sticky; top: 0; z-index: 10;
+            border-bottom: 2px solid var(--border-color);
+        }
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.18s ease;
+            vertical-align: top;
+            position: relative;
+        }
+        tbody tr:hover td:not(.section-header):not(.subsection-header):not(.label-cell) {
+            background-color: var(--surface-soft);
+        }
+        tr:last-child td { border-bottom: none; }
+
+        .section-header {
+            background: var(--gradient-brand);
+            color: var(--header-text-color);
+            font-weight: 700;
+            padding: 14px 20px;
+            text-align: left;
+            font-size: 1em;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+        .subsection-header {
+            background: var(--surface-muted);
+            font-weight: 600;
+            padding: 10px 16px;
+            color: var(--text-color-light);
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .label-cell {
+            background: var(--surface-soft);
+            font-weight: 500;
+            color: var(--text-color);
+            width: 230px;
+            font-size: 0.9em;
+            vertical-align: middle;
+        }
+
+        /* -- Formulářové prvky -- */
+        input[type="text"], input[type="url"], input[type="date"], input[type="datetime-local"], input[type="number"], textarea, select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+            background: var(--container-background);
+            color: var(--text-color);
+        }
+        input:hover, textarea:hover, select:hover { border-color: var(--border-strong); }
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px var(--primary-ring);
+        }
+        textarea { resize: none; overflow: hidden; min-height: 42px; line-height: 1.5; }
+        select {
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%236b6477' d='M6 8 0 0h12z'/></svg>");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            padding-right: 38px;
+        }
+        .url-input-wrapper { display: flex; align-items: center; border: 1px solid var(--border-color); border-radius: var(--radius-sm); transition: border-color 0.15s ease, box-shadow 0.15s ease; background: var(--container-background); }
+        .url-input-wrapper:hover { border-color: var(--border-strong); }
+        .url-input-wrapper:focus-within { border-color: var(--primary-color); box-shadow: 0 0 0 4px var(--primary-ring); }
+        .url-input-wrapper input[type="url"] { border: none; flex-grow: 1; background: transparent; }
+        .url-input-wrapper input[type="url"]:focus { box-shadow: none; }
+        .url-preview-link { font-size: 1.3em; text-decoration: none; margin-right: 12px; color: var(--primary-color); transition: transform 0.15s ease; }
+        .url-preview-link:hover { transform: translateY(-1px); }
+        .date-input-wrapper { display: flex; align-items: center; gap: 8px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding-right: 12px; background: var(--container-background); transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+        .date-input-wrapper:hover { border-color: var(--border-strong); }
+        .date-input-wrapper:focus-within { border-color: var(--primary-color); box-shadow: 0 0 0 4px var(--primary-ring); }
+        .date-input-wrapper input { border: none; padding-left: 14px; flex-grow: 1; background: transparent; }
+        .date-input-wrapper input:focus { box-shadow: none; }
+        .date-icon { padding-left: 14px; color: var(--text-color-light); }
+        .textarea-link-container { margin-top: 6px; font-size: 0.8em; }
+        .textarea-link {
+            display: inline-block;
+            background-color: var(--primary-soft);
+            color: var(--primary-color-dark);
+            padding: 3px 10px;
+            border-radius: 999px;
+            text-decoration: none;
+            margin-right: 6px;
+            margin-bottom: 6px;
+            font-weight: 500;
+            transition: background-color 0.15s ease;
+        }
+        .textarea-link:hover { background-color: #fce7f3; }
+
+        /* -- Tlačítka -- */
+        .btn {
+            background: var(--container-background);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 10px 18px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: var(--shadow-sm);
+            white-space: nowrap;
+        }
+        .btn:hover { background-color: var(--surface-soft); border-color: var(--border-strong); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+        .btn:active { transform: translateY(0); box-shadow: var(--shadow-sm); }
+        .btn.save-btn { background: var(--success); color: white; border-color: var(--success); box-shadow: 0 4px 14px -4px rgba(16, 185, 129, 0.45); }
+        .btn.save-btn:hover { background: var(--success-dark); border-color: var(--success-dark); box-shadow: 0 8px 20px -4px rgba(16, 185, 129, 0.5); }
+        .btn.catalog-btn, .btn.view-btn, .btn.share-btn {
+            background: var(--gradient-brand);
+            color: white;
+            border-color: transparent;
+            box-shadow: var(--shadow-brand);
+        }
+        .btn.catalog-btn:hover, .btn.view-btn:hover, .btn.share-btn:hover {
+            background: var(--gradient-brand);
+            filter: brightness(1.06);
+            box-shadow: 0 12px 28px -8px rgba(225, 29, 116, 0.5);
+        }
+
+        /* Tlačítka uvnitř bíleho headeru / na barevném pozadí */
+        .header .btn:not(.save-btn):not(.catalog-btn):not(.view-btn):not(.share-btn) {
+            background: rgba(255, 255, 255, 0.16);
+            color: white;
+            border-color: rgba(255, 255, 255, 0.28);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        .header .btn:not(.save-btn):not(.catalog-btn):not(.view-btn):not(.share-btn):hover {
+            background: rgba(255, 255, 255, 0.26);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* -- PREZENTAČNÍ REŽIM -- */
+        .presentation-view { padding: 32px; }
+        .presentation-section {
+            background: var(--container-background);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+        .presentation-header {
+            font-size: 1.1em;
+            font-weight: 700;
+            padding: 18px 24px;
+            background: var(--gradient-soft);
+            color: var(--primary-color-dark);
+            border-bottom: 1px solid var(--border-color);
+            letter-spacing: 0.01em;
+        }
+        .presentation-body {
+            padding: 0;
+        }
+        .presentation-item {
+            display: flex;
+            gap: 24px;
+            padding: 18px 24px;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.15s ease;
+        }
+        .presentation-item:hover { background-color: var(--surface-soft); }
+        .presentation-section .presentation-item:last-child {
+            border-bottom: none;
+        }
+        .presentation-item-label {
+            flex-basis: 220px;
+            flex-shrink: 0;
+            font-weight: 600;
+            color: var(--text-color-light);
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin: 0;
+            padding-top: 2px;
+        }
+        .presentation-item-value {
+            flex: 1;
+            font-size: 1em;
+            color: var(--text-color);
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.55;
+        }
+        .presentation-item-value a { color: var(--primary-color); text-decoration: none; font-weight: 500; }
+        .presentation-item-value a:hover { text-decoration: underline; }
+
+        /* -- Ostatní -- */
+        .hidden { display: none; }
+        .checkbox-label { display: flex; align-items: center; gap: 10px; font-size: 0.9em; cursor: pointer; }
+        .checkbox-label input[type="checkbox"] { accent-color: var(--primary-color); width: 16px; height: 16px; }
+        input[type="checkbox"] { accent-color: var(--primary-color); }
+
+        /* -- Modální okna a Toast -- */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            overflow: auto;
+            background-color: rgba(26, 22, 38, 0.55);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            animation: fadeIn 0.25s ease;
+        }
+        .modal-content {
+            background-color: var(--container-background);
+            margin: 5% auto;
+            padding: 28px;
+            border: 1px solid var(--border-color);
+            width: 90%;
+            max-width: 800px;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-lg);
+            animation: slideDown 0.3s ease;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-header { padding-bottom: 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h2 { margin: 0; font-size: 1.3em; font-weight: 700; color: var(--text-color); letter-spacing: -0.01em; }
+        .close-btn { color: #9ca3af; font-size: 26px; font-weight: 400; cursor: pointer; transition: color 0.15s, transform 0.15s; line-height: 1; padding: 0 4px; }
+        .close-btn:hover { color: var(--text-color); transform: rotate(90deg); }
+        .modal-body { padding: 20px 0; overflow-y: auto; }
+        .campaign-list { display: flex; flex-direction: column; gap: 10px; }
+        .campaign-item {
+            background: var(--surface-soft);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            padding: 16px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .campaign-item:hover { border-color: var(--primary-color); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+        .campaign-info { flex: 1; min-width: 200px; }
+        .campaign-name { font-weight: 600; font-size: 1.05em; color: var(--text-color); letter-spacing: -0.01em; }
+        .campaign-dates { font-size: 0.85em; color: var(--text-color-light); margin-top: 4px; }
+        .campaign-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .empty-catalog { text-align: center; padding: 40px; color: var(--text-color-light); }
+        .modal-footer { padding-top: 20px; text-align: right; border-top: 1px solid var(--border-color); }
+        .campaign-item.ended { opacity: 0.65; background: var(--surface-muted); }
+
+        .toast {
+            visibility: hidden;
+            min-width: 260px;
+            background: rgba(26, 22, 38, 0.92);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: #fff;
+            text-align: center;
+            border-radius: var(--radius-md);
+            padding: 14px 20px;
+            position: fixed;
+            z-index: 2100;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 30px;
+            box-shadow: var(--shadow-lg);
+            font-weight: 500;
+            font-size: 0.95em;
+        }
+        .toast.show { visibility: visible; animation: toast-fadein 0.3s ease, toast-fadeout 0.3s ease 2.5s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes toast-fadein { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
+        @keyframes toast-fadeout { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 999px; border: 2px solid var(--background-color); }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-color-light); }
+
+        @media (max-width: 768px) {
+            body { padding: 8px; }
+            .container { margin: 8px auto; border-radius: var(--radius-md); }
+            .header { padding: 28px 20px; }
+            .sections-manager, .table-container, .presentation-view { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+    
+    <div id="specModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Podrobnosti</h2>
+                <span class="close-btn">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 10px; color: var(--text-color-light);">Zde můžete upravit podrobné zadání pro vybraný kanál:</p>
+                <textarea id="modalTextarea" placeholder="Vložte specifikace..." style="height: 250px; resize: vertical;"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button id="saveModalBtn" class="btn save-btn">Uložit specifikaci</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="catalogModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📁 Katalog kampaní</h2>
+                <span class="close-btn" onclick="this.closest('.modal').style.display='none'">&times;</span>
+            </div>
+            <div class="modal-body" id="campaignList"></div>
+        </div>
+    </div>
+    
+    <div id="shareModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="shareModalTitle">Sdílet odkazy pro kampaň</h2>
+                <span class="close-btn" onclick="this.closest('.modal').style.display='none'">&times;</span>
+            </div>
+            <div class="modal-body" id="shareLinkList"></div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">Akce provedena!</div>
+
+    <div class="container">
+        <div class="header">
+            <h1>Zadání kampaně</h1>
+            <div class="header-buttons">
+                 <button class="btn" onclick="newCampaign()">✨ Nová kampaň</button>
+                 <button class="btn save-btn" onclick="saveData()">💾 Uložit kampaň</button>
+                 <button class="btn catalog-btn" onclick="openCatalog()">📁 Katalog kampaní</button>
+                 <button id="viewModeBtn" class="btn view-btn hidden" onclick="toggleViewMode()">🖼️ Režim zobrazení</button>
+                 <button id="shareViewBtn" class="btn share-btn hidden" onclick="shareViewLink()">🔗 Sdílet přehled</button>
+            </div>
+        </div>
+        
+        <div id="edit-mode-content">
+            <div class="sections-manager">
+                <div class="sections-title">Správa sekcí</div>
+                <div class="sections-grid">
+                    <div class="section-toggle"><input type="checkbox" id="toggle-main" checked onchange="toggleSection('main')"><label for="toggle-main">1. Hlavní informace</label></div>
+                    <div class="section-toggle"><input type="checkbox" id="toggle-keymessage" checked onchange="toggleSection('keymessage')"><label for="toggle-keymessage">2. Klíčové sdělení</label></div>
+                    <div class="section-toggle"><input type="checkbox" id="toggle-flashsale" checked onchange="toggleSection('flashsale')"><label for="toggle-flashsale">3. Flash Sale</label></div>
+                    <div class="section-toggle"><input type="checkbox" id="toggle-graphics" checked onchange="toggleSection('graphics')"><label for="toggle-graphics">4. Grafika - zadání</label></div>
+                    <div class="section-toggle"><input type="checkbox" id="toggle-graphicchannels" checked onchange="toggleSection('graphicchannels')"><label for="toggle-graphicchannels">5. Grafika - výběr kanálů</label></div>
+                    <div class="section-toggle"><input type="checkbox" id="toggle-adminslider" checked onchange="toggleSection('adminslider')"><label for="toggle-adminslider">6. Admin - slider</label></div>
+                    <div class="section-toggle"><input type="checkbox" id="toggle-adminrozcestnik" checked onchange="toggleSection('adminrozcestnik')"><label for="toggle-adminrozcestnik">7. Admin - Rozcestník</label></div>
+                    <div class="section-toggle"><input type="checkbox" id="toggle-admincoupon" checked onchange="toggleSection('admincoupon')"><label for="toggle-admincoupon">8. Admin - Slevový kupón</label></div>
+                    <div class="section-toggle"><input type="checkbox" id="toggle-seo" checked onchange="toggleSection('seo')"><label for="toggle-seo">9. SEO / Copy</label></div>
+                    <div class="section-toggle"><input type="checkbox" id="toggle-sms" checked onchange="toggleSection('sms')"><label for="toggle-sms">10. SMS rozesílka</label></div>
+                    <div class="section-toggle"><input type="checkbox" id="toggle-social" checked onchange="toggleSection('social')"><label for="toggle-social">11. Sociální sítě</label></div>
+                    <div class="section-toggle"><input type="checkbox" id="toggle-media" checked onchange="toggleSection('media')"><label for="toggle-media">12. Média</label></div>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <div class="table-responsive">
+                    <table>
+                        <tbody class="section-wrapper" id="section-main">
+                            <tr><td colspan="9" class="section-header">1. ZADÁNÍ - Hlavní informace</td></tr>
+                            <tr><td class="label-cell">Název kampaně</td><td colspan="8"><input type="text" id="campaignName" placeholder="Zadejte název kampaně" /></td></tr>
+                            <tr><td class="label-cell">Datum začátku kampaně</td><td colspan="8"><div class="date-input-wrapper"><span class="date-icon">📅</span><input type="datetime-local" id="campaignStartDate" /></div></td></tr>
+                            <tr><td class="label-cell">Datum konce kampaně</td><td colspan="8"><div class="date-input-wrapper"><span class="date-icon">📅</span><input type="datetime-local" id="campaignEndDate" /></div></td></tr>
+                            <tr><td class="label-cell">Referer</td><td colspan="8"><div class="url-input-wrapper"><input type="url" id="mainReferer" placeholder="Zadejte referer URL" /><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td></tr>
+                            <tr><td class="label-cell">Gift-kód</td><td colspan="8"><input type="text" id="mainGiftCode" placeholder="Zadejte Gift-kód" /></td></tr>
+                            <tr><td class="label-cell">LP kategorie</td><td colspan="8"><input type="text" id="mainLpCategory" placeholder="Zadejte kategorii landing page" /></td></tr>
+                            <tr><td class="label-cell">ID kategorie admin</td><td colspan="8"><input type="text" id="mainAdminCategoryId" placeholder="Zadejte ID kategorie" /></td></tr>
+                            <tr><td class="label-cell">LP podkategorie</td><td colspan="8"><input type="text" id="mainLpSubcategory" placeholder="Zadejte podkategorii" /></td></tr>
+                            <tr><td class="label-cell">Další poznámky</td><td colspan="8"><textarea id="mainNotes" placeholder="Vložte další poznámky..."></textarea></td></tr>
+                            <tr><td></td><td class="country-header">CZ</td><td class="country-header">SK</td><td class="country-header">HU</td><td class="country-header">RO</td><td class="country-header">SI</td><td class="country-header">HR</td><td class="country-header">BG</td><td></td></tr>
+                            <tr><td class="label-cell">Znění slevového kuponu</td><td><input type="text" id="mainCouponText-CZ"/></td><td><input type="text" id="mainCouponText-SK"/></td><td><input type="text" id="mainCouponText-HU"/></td><td><input type="text" id="mainCouponText-RO"/></td><td><input type="text" id="mainCouponText-SI"/></td><td><input type="text" id="mainCouponText-HR"/></td><td><input type="text" id="mainCouponText-BG"/></td><td></td></tr>
+                            <tr><td class="label-cell">Výše slevy</td><td><input type="text" id="mainDiscountAmount-CZ"/></td><td><input type="text" id="mainDiscountAmount-SK"/></td><td><input type="text" id="mainDiscountAmount-HU"/></td><td><input type="text" id="mainDiscountAmount-RO"/></td><td><input type="text" id="mainDiscountAmount-SI"/></td><td><input type="text" id="mainDiscountAmount-HR"/></td><td><input type="text" id="mainDiscountAmount-BG"/></td><td></td></tr>
+                        </tbody>
+                        
+                        <tbody class="section-wrapper" id="section-keymessage">
+                            <tr><td colspan="9" class="section-header">2. ZADÁNÍ - Klíčové sdělení</td></tr>
+                            <tr><td class="label-cell">Emoční linka</td><td colspan="8"><textarea id="keymessageEmotionalLine" placeholder="Zadejte emoční linku"></textarea></td></tr>
+                            <tr><td class="label-cell">Tone of voice</td><td colspan="8"><textarea id="keymessageToneOfVoice" placeholder="Zadejte tone of voice"></textarea></td></tr>
+                            <tr><td class="label-cell">Cíle kampaně</td><td colspan="8"><textarea id="keymessageCampaignGoals" placeholder="Zadejte cíle kampaně"></textarea></td></tr>
+                            <tr><td colspan="9" class="subsection-header">Kanály pro MKT podporu</td></tr>
+                            <tr><td class="label-cell"><label class="checkbox-label"><input type="checkbox" id="keymessage-channel-heureka" /><span>Heureka - interní display</span></label></td><td colspan="8"></td></tr>
+                            <tr><td class="label-cell"><label class="checkbox-label"><input type="checkbox" id="keymessage-channel-social" /><span>Sociální sítě</span></label></td><td colspan="8"></td></tr>
+                            <tr><td class="label-cell"><label class="checkbox-label"><input type="checkbox" id="keymessage-channel-ppc" /><span>PPC - bannery (Sklik), search</span></label></td><td colspan="8"></td></tr>
+                            <tr><td class="label-cell"><label class="checkbox-label"><input type="checkbox" id="keymessage-channel-webbanners" /><span>Bannery WEB</span></label></td><td colspan="8"></td></tr>
+                            <tr><td class="label-cell"><label class="checkbox-label"><input type="checkbox" id="keymessage-channel-gscWindow" /><span>GSC okno</span></label></td><td colspan="8"></td></tr>
+                            <tr><td class="label-cell"><label class="checkbox-label"><input type="checkbox" id="keymessage-channel-gscCountdown" /><span>GSC odpočet</span></label></td><td colspan="8"></td></tr>
+                            <tr><td class="label-cell"><label class="checkbox-label"><input type="checkbox" id="keymessage-channel-sms" /><span>SMS</span></label></td><td colspan="8"></td></tr>
+                            <tr><td class="label-cell"><label class="checkbox-label"><input type="checkbox" id="keymessage-channel-coupon" /><span>Slevový kupón</span></label></td><td colspan="8"></td></tr>
+                            <tr><td class="label-cell"><label class="checkbox-label"><input type="checkbox" id="keymessage-channel-freeshipping" /><span>Doprava zdarma</span></label></td><td colspan="8"></td></tr>
+                            <tr><td class="label-cell"><label class="checkbox-label"><input type="checkbox" id="keymessage-channel-newsletter" /><span>Newsletter</span></label></td><td colspan="8"></td></tr>
+                            <tr><td class="label-cell"><label class="checkbox-label"><input type="checkbox" id="keymessage-channel-affiliate" /><span>Affil bannery</span></label></td><td colspan="8"></td></tr>
+                            <tr><td class="label-cell"><label class="checkbox-label"><input type="checkbox" id="keymessage-channel-stores" /><span>Prodejny</span></label></td><td colspan="8"></td></tr>
+                            <tr><td class="label-cell"><label class="checkbox-label"><input type="checkbox" id="keymessage-channel-radio" /><span>Rádio</span></label></td><td colspan="8"></td></tr>
+                            <tr><td class="label-cell"><label class="checkbox-label"><input type="checkbox" id="keymessage-channel-tv" /><span>TV</span></label></td><td colspan="8"></td></tr>
+                            <tr><td class="label-cell"><label class="checkbox-label"><input type="checkbox" id="keymessage-channel-billboards" /><span>Billboardy</span></label></td><td colspan="8"></td></tr>
+                            <tr><td class="label-cell"><label class="checkbox-label"><input type="checkbox" id="keymessage-channel-otherEnabled" /><span>Další...</span></label></td><td colspan="8"><textarea id="keymessage-channel-other" placeholder="Specifikujte další kanály nebo vložte odkazy"></textarea></td></tr>
+                        </tbody>
+    
+                        <tbody class="section-wrapper" id="section-flashsale">
+                            <tr><td colspan="9" class="section-header">3. FLASH SALE</td></tr>
+                            <script>
+                                const flashSaleTable = document.getElementById('section-flashsale');
+                                const countries = ['CZ', 'SK', 'HU', 'RO', 'SI', 'HR', 'BG'];
+                                for (let i = 1; i <= 18; i++) {
+                                    flashSaleTable.innerHTML += `<tr><td colspan="9" class="subsection-header">Produkt ${i}</td></tr>
+                                    <tr><td class="label-cell">PRODUKT ${i} (odkaz)</td><td colspan="8"><div class="url-input-wrapper"><input type="url" id="flashsale-product${i}-url" placeholder="Vložte odkaz na produkt" /><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td></tr>
+                                    <tr><td></td>${countries.map(c => `<td class="country-header">${c}</td>`).join('')}<td></td></tr>
+                                    <tr><td class="label-cell">Běžná cena</td>${countries.map(c => `<td><input type="text" id="flashsale-product${i}-regularprice-${c}"/></td>`).join('')}<td></td></tr>
+                                    <tr><td class="label-cell">Nejnižší cena (30 dní)</td>${countries.map(c => `<td><input type="text" id="flashsale-product${i}-minprice-${c}"/></td>`).join('')}<td></td></tr>
+                                    <tr><td class="label-cell">FLASH SALE cena</td>${countries.map(c => `<td><input type="text" id="flashsale-product${i}-saleprice-${c}"/></td>`).join('')}<td></td></tr>`;
+                                }
+                            </script>
+                        </tbody>
+                        
+                        <tbody class="section-wrapper" id="section-graphics">
+                            <tr><td colspan="9" class="section-header">4. GRAFIKA - Zadání pro grafika</td></tr>
+                            <tr><td class="label-cell">Odkaz na grafiku - DISK</td><td colspan="8"><div class="url-input-wrapper"><input type="url" id="graphicsDiskUrl" placeholder="Vložte odkaz na grafické podklady" /><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td></tr>
+                            <tr><td></td><td class="country-header">CZ</td><td class="country-header">SK</td><td class="country-header">HU</td><td class="country-header">RO</td><td class="country-header">SI</td><td class="country-header">HR</td><td class="country-header">BG</td><td></td></tr>
+                            <tr><td class="label-cell">Hlavní message</td><td><textarea id="graphicsMainMessage-CZ"></textarea></td><td><textarea id="graphicsMainMessage-SK"></textarea></td><td><textarea id="graphicsMainMessage-HU"></textarea></td><td><textarea id="graphicsMainMessage-RO"></textarea></td><td><textarea id="graphicsMainMessage-SI"></textarea></td><td><textarea id="graphicsMainMessage-HR"></textarea></td><td><textarea id="graphicsMainMessage-BG"></textarea></td><td></td></tr>
+                            <tr><td class="label-cell">CTA</td><td><textarea id="graphicsCTA-CZ"></textarea></td><td><textarea id="graphicsCTA-SK"></textarea></td><td><textarea id="graphicsCTA-HU"></textarea></td><td><textarea id="graphicsCTA-RO"></textarea></td><td><textarea id="graphicsCTA-SI"></textarea></td><td><textarea id="graphicsCTA-HR"></textarea></td><td><textarea id="graphicsCTA-BG"></textarea></td><td></td></tr>
+                            <tr><td class="label-cell">CTA tlačítko</td><td><input type="text" id="graphicsCTAButton-CZ"/></td><td><input type="text" id="graphicsCTAButton-SK"/></td><td><input type="text" id="graphicsCTAButton-HU"/></td><td><input type="text" id="graphicsCTAButton-RO"/></td><td><input type="text" id="graphicsCTAButton-SI"/></td><td><input type="text" id="graphicsCTAButton-HR"/></td><td><input type="text" id="graphicsCTAButton-BG"/></td><td></td></tr>
+                            <tr><td class="label-cell">Poznámka</td><td colspan="8"><textarea id="graphicsNote" placeholder="Poznámky pro grafika"></textarea></td></tr>
+                            <tr><td class="label-cell">Znění kuponu</td><td><input type="text" id="graphicsCouponText-CZ"/></td><td><input type="text" id="graphicsCouponText-SK"/></td><td><input type="text" id="graphicsCouponText-HU"/></td><td><input type="text" id="graphicsCouponText-RO"/></td><td><input type="text" id="graphicsCouponText-SI"/></td><td><input type="text" id="graphicsCouponText-HR"/></td><td><input type="text" id="graphicsCouponText-BG"/></td><td></td></tr>
+                            <tr><td class="label-cell">Dárek v hodnotě</td><td><input type="text" id="graphicsGiftValue-CZ"/></td><td><input type="text" id="graphicsGiftValue-SK"/></td><td><input type="text" id="graphicsGiftValue-HU"/></td><td><input type="text" id="graphicsGiftValue-RO"/></td><td><input type="text" id="graphicsGiftValue-SI"/></td><td><input type="text" id="graphicsGiftValue-HR"/></td><td><input type="text" id="graphicsGiftValue-BG"/></td><td></td></tr>
+                            <tr><td class="label-cell">Dárek k nákupu od</td><td><input type="text" id="graphicsGiftMinOrder-CZ"/></td><td><input type="text" id="graphicsGiftMinOrder-SK"/></td><td><input type="text" id="graphicsGiftMinOrder-HU"/></td><td><input type="text" id="graphicsGiftMinOrder-RO"/></td><td><input type="text" id="graphicsGiftMinOrder-SI"/></td><td><input type="text" id="graphicsGiftMinOrder-HR"/></td><td><input type="text" id="graphicsGiftMinOrder-BG"/></td><td></td></tr>
+                            <tr><td class="label-cell">Produkt(y) na banner</td><td colspan="8"><div class="url-input-wrapper"><input type="url" id="graphicsProductListUrl" placeholder="Vložte odkaz na seznam produktů" /><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td></tr>
+                        </tbody>
+    
+                        <tbody class="section-wrapper" id="section-graphicchannels">
+                            <tr><td colspan="9" class="section-header">5. Zadání pro grafika - výběr rozměrů/kanálů</td></tr>
+                            <tr><td class="label-cell">Kanál</td><td class="country-header">CZ</td><td class="country-header">SK</td><td class="country-header">HU</td><td class="country-header">RO</td><td class="country-header">SI</td><td class="country-header">HR</td><td class="country-header">BG</td><td class="label-cell" style="text-align:center; font-weight: 600;">Více info</td></tr>
+                            <script>
+                                const channels = ["1. BANNER HP", "2. BANNER kategorie", "3. BANNER detail produktu", "4. BANNER rozcestník", "5. BANNER newsletter", "6. BANNER affiliate", "7. PPC SKLIK", "8. FIRMY.cz - reklama", "9. FIRMY.cz - branding", "10. GOOGLE FIRMY", "11. HEUREKA display", "12. IG - feed", "13. IG - story", "14. RETINO"];
+                                const graphicChannelsTable = document.getElementById('section-graphicchannels');
+                                const countries_short = ['CZ', 'SK', 'HU', 'RO', 'SI', 'HR', 'BG'];
+                                channels.forEach(channel => {
+                                    const channelId = channel.split('. ')[1].replace(/ /g, '-').toLowerCase();
+                                    let row = `<tr><td class="label-cell">${channel}</td>`;
+                                    countries_short.forEach(c => {
+                                        row += `<td style="text-align: center;"><input type="checkbox" id="graphicchannel-${channelId}-${c}"/></td>`;
+                                    });
+                                    // Tlačítko Podrobnosti
+                                    row += `<td style="text-align: center;"><button class="btn edit-spec-btn" data-channel="${channel}">Podrobnosti</button></td></tr>`;
+                                    graphicChannelsTable.innerHTML += row;
+                                });
+                            </script>
+                            <tr>
+                                <td class="label-cell">15. Grafika pro prodejny</td>
+                                <td style="text-align: center;"><input type="checkbox" id="graphicchannel-grafika-pro-prodejny-CZ"/></td>
+                                <td style="text-align: center;"><input type="checkbox" id="graphicchannel-grafika-pro-prodejny-SK"/></td>
+                                <td style="text-align: center;"><input type="checkbox" id="graphicchannel-grafika-pro-prodejny-HU"/></td>
+                                <td style="text-align: center;"><input type="checkbox" id="graphicchannel-grafika-pro-prodejny-RO"/></td>
+                                <td style="text-align: center;"><input type="checkbox" id="graphicchannel-grafika-pro-prodejny-SI"/></td>
+                                <td style="text-align: center;"><input type="checkbox" id="graphicchannel-grafika-pro-prodejny-HR"/></td>
+                                <td style="text-align: center;"><input type="checkbox" id="graphicchannel-grafika-pro-prodejny-BG"/></td>
+                                <td style="text-align: center;"><button class="btn edit-spec-btn" data-channel="15. Grafika pro prodejny">Podrobnosti</button></td>
+                            </tr>
+                        </tbody>
+                        
+                        <tbody class="section-wrapper" id="section-adminslider">
+                            <tr><td colspan="9" class="section-header">6. ADMIN - SLIDER NA TITULCE</td></tr>
+                            <tr><td></td><td class="country-header">CZ</td><td class="country-header">SK</td><td class="country-header">HU</td><td class="country-header">RO</td><td class="country-header">SI</td><td class="country-header">HR</td><td class="country-header">BG</td><td></td></tr>
+                            <tr><td class="label-cell">Název/Text tlačítka</td><td><textarea id="sliderButtonText-CZ"></textarea></td><td><textarea id="sliderButtonText-SK"></textarea></td><td><textarea id="sliderButtonText-HU"></textarea></td><td><textarea id="sliderButtonText-RO"></textarea></td><td><textarea id="sliderButtonText-SI"></textarea></td><td><textarea id="sliderButtonText-HR"></textarea></td><td><textarea id="sliderButtonText-BG"></textarea></td><td></td></tr>
+                            <tr><td class="label-cell">Popis ALT</td><td><textarea id="sliderAltText-CZ"></textarea></td><td><textarea id="sliderAltText-SK"></textarea></td><td><textarea id="sliderAltText-HU"></textarea></td><td><textarea id="sliderAltText-RO"></textarea></td><td><textarea id="sliderAltText-SI"></textarea></td><td><textarea id="sliderAltText-HR"></textarea></td><td><textarea id="sliderAltText-BG"></textarea></td><td></td></tr>
+                            <tr><td class="label-cell">Odkaz</td><td colspan="8"><div class="url-input-wrapper"><input type="url" id="sliderLinkUrl" value="{categoryUrl:00000}{/categoryUrl}" /><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td></tr>
+                        </tbody>
+                        
+                        <tbody class="section-wrapper" id="section-adminrozcestnik">
+                            <tr><td colspan="9" class="section-header">7. ADMIN - ROZCESTNÍK</td></tr>
+                            <tr><td></td><td class="country-header">CZ</td><td class="country-header">SK</td><td class="country-header">HU</td><td class="country-header">RO</td><td class="country-header">SI</td><td class="country-header">HR</td><td class="country-header">BG</td><td></td></tr>
+                            <tr><td class="label-cell">Titulek</td><td><textarea id="rozcestnikTitle-CZ"></textarea></td><td><textarea id="rozcestnikTitle-SK"></textarea></td><td><textarea id="rozcestnikTitle-HU"></textarea></td><td><textarea id="rozcestnikTitle-RO"></textarea></td><td><textarea id="rozcestnikTitle-SI"></textarea></td><td><textarea id="rozcestnikTitle-HR"></textarea></td><td><textarea id="rozcestnikTitle-BG"></textarea></td><td></td></tr>
+                            <tr><td class="label-cell">Odkaz</td><td colspan="8"><div class="url-input-wrapper"><input type="url" id="rozcestnikLinkUrl" value="{categoryUrl:00000}{/categoryUrl}" /><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td></tr>
+                        </tbody>
+                        
+                        <tbody class="section-wrapper" id="section-admincoupon">
+                            <tr><td colspan="9" class="section-header">8. ADMIN - SLEVOVÝ KUPÓN</td></tr>
+                            <tr><td class="label-cell"></td><td class="country-header">CZ</td><td class="country-header">SK</td><td class="country-header">HU</td><td class="country-header">RO</td><td class="country-header">SI</td><td class="country-header">HR</td><td class="country-header">BG</td><td></td></tr>
+                            <tr><td class="label-cell">Kód (znění kuponu)</td><td><input type="text" id="couponCode-CZ"/></td><td><input type="text" id="couponCode-SK"/></td><td><input type="text" id="couponCode-HU"/></td><td><input type="text" id="couponCode-RO"/></td><td><input type="text" id="couponCode-SI"/></td><td><input type="text" id="couponCode-HR"/></td><td><input type="text" id="couponCode-BG"/></td><td></td></tr>
+                            <tr><td class="label-cell">Zobrazovat u produktu</td><td style="text-align:center;"><input type="checkbox" id="couponShowAtProduct-CZ"/></td><td style="text-align:center;"><input type="checkbox" id="couponShowAtProduct-SK"/></td><td style="text-align:center;"><input type="checkbox" id="couponShowAtProduct-HU"/></td><td style="text-align:center;"><input type="checkbox" id="couponShowAtProduct-RO"/></td><td style="text-align:center;"><input type="checkbox" id="couponShowAtProduct-SI"/></td><td style="text-align:center;"><input type="checkbox" id="couponShowAtProduct-HR"/></td><td style="text-align:center;"><input type="checkbox" id="couponShowAtProduct-BG"/></td><td></td></tr>
+                            <tr><td class="label-cell">Kombinovatelný s jiným kupónem</td><td style="text-align:center;"><input type="checkbox" id="couponCombinable-CZ"/></td><td style="text-align:center;"><input type="checkbox" id="couponCombinable-SK"/></td><td style="text-align:center;"><input type="checkbox" id="couponCombinable-HU"/></td><td style="text-align:center;"><input type="checkbox" id="couponCombinable-RO"/></td><td style="text-align:center;"><input type="checkbox" id="couponCombinable-SI"/></td><td style="text-align:center;"><input type="checkbox" id="couponCombinable-HR"/></td><td style="text-align:center;"><input type="checkbox" id="couponCombinable-BG"/></td><td></td></tr>
+                            <tr><td class="label-cell">První nákup</td><td style="text-align:center;"><input type="checkbox" id="couponFirstPurchase-CZ"/></td><td style="text-align:center;"><input type="checkbox" id="couponFirstPurchase-SK"/></td><td style="text-align:center;"><input type="checkbox" id="couponFirstPurchase-HU"/></td><td style="text-align:center;"><input type="checkbox" id="couponFirstPurchase-RO"/></td><td style="text-align:center;"><input type="checkbox" id="couponFirstPurchase-SI"/></td><td style="text-align:center;"><input type="checkbox" id="couponFirstPurchase-HR"/></td><td style="text-align:center;"><input type="checkbox" id="couponFirstPurchase-BG"/></td><td></td></tr>
+                            <tr><td class="label-cell">Doprava a platba zdarma</td><td colspan="8"><input type="text" id="couponShippingPaymentFree"/></td></tr>
+                            <tr>
+                                <td class="label-cell">Typ</td>
+                                <td colspan="8">
+                                    <select id="couponType">
+                                        <option>Částka</option>
+                                        <option>Procenta</option>
+                                        <option>Dárek k nákupu</option>
+                                        <option>Dárek k nákupu + absolutní sleva</option>
+                                        <option>Dárek k nákupu + procenta</option>
+                                        <option>Doprava + platba zdarma</option>
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="label-cell">Poznámka</td>
+                                <td><textarea id="couponNote-CZ" placeholder="CZ"></textarea></td>
+                                <td><textarea id="couponNote-SK" placeholder="SK"></textarea></td>
+                                <td><textarea id="couponNote-HU" placeholder="HU"></textarea></td>
+                                <td><textarea id="couponNote-RO" placeholder="RO"></textarea></td>
+                                <td><textarea id="couponNote-SI" placeholder="SI"></textarea></td>
+                                <td><textarea id="couponNote-HR" placeholder="HR"></textarea></td>
+                                <td><textarea id="couponNote-BG" placeholder="BG"></textarea></td>
+                                <td></td>
+                            </tr>
+                            <tr><td class="label-cell">Sleva v Kč nebo %</td><td colspan="8"><input type="text" id="couponDiscountValue"/></td></tr>
+                            <tr><td class="label-cell">Text do poznámky objednávky</td><td colspan="8"><input type="text" id="couponOrderNote"/></td></tr>
+                            <tr><td class="label-cell">Maximální počet použití</td><td colspan="8"><input type="number" id="couponMaxUsage"/></td></tr>
+                            <tr><td class="label-cell">Minimální hodnota objednávky</td><td colspan="8"><input type="text" id="couponMinOrderValue"/></td></tr>
+                            <tr><td class="label-cell">Platnost od</td><td colspan="8"><div class="date-input-wrapper"><span class="date-icon">📅</span><input type="datetime-local" id="couponValidFrom"/></div></td></tr>
+                            <tr><td class="label-cell">Platnost do</td><td colspan="8"><div class="date-input-wrapper"><span class="date-icon">📅</span><input type="datetime-local" id="couponValidTo"/></div></td></tr>
+                            <tr><td class="label-cell">Referer</td><td colspan="8"><div class="url-input-wrapper"><input type="url" id="couponReferer"/><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td></tr>
+                            <tr><td class="label-cell">Zdroj kuponu</td><td colspan="8"><input type="text" id="couponSource"/></td></tr>
+                            <tr>
+                                <td class="label-cell">Typ podmínky</td>
+                                <td colspan="8">
+                                    <div style="display: flex; gap: 10px; align-items: center;">
+                                        <select id="couponConditionType" style="flex-basis: 200px; flex-grow: 0;">
+                                            <option>KATEGORIE</option>
+                                            <option>PRODUKTY</option>
+                                            <option>ZNAČKY</option>
+                                        </select>
+                                        <input type="text" id="couponConditionDetail" placeholder="Upřesněte (např. ID, názvy...)" style="flex-grow: 1;" />
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="label-cell">Slevové kódy BI</td>
+                                <td colspan="8">
+                                    <div class="url-input-wrapper">
+                                        <input type="url" id="couponBILinks" value="https://docs.google.com/spreadsheets/d/1W7hOkI7S6KhNbX7eNtVcajwN4U47bH6M_eaqLpKsFRU/edit?gid=569211844#gid=569211844" />
+                                        <a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                        
+                        <tbody class="section-wrapper" id="section-seo">
+                            <tr><td colspan="9" class="section-header">9. SEO / COPY</td></tr>
+                            <tr><td></td><td class="country-header">CZ</td><td class="country-header">SK</td><td class="country-header">HU</td><td class="country-header">RO</td><td class="country-header">SI</td><td class="country-header">HR</td><td class="country-header">BG</td><td></td></tr>
+                            <tr><td class="label-cell">Meta Description</td><td><textarea id="seoMetaDescription-CZ"></textarea></td><td><textarea id="seoMetaDescription-SK"></textarea></td><td><textarea id="seoMetaDescription-HU"></textarea></td><td><textarea id="seoMetaDescription-RO"></textarea></td><td><textarea id="seoMetaDescription-SI"></textarea></td><td><textarea id="seoMetaDescription-HR"></textarea></td><td><textarea id="seoMetaDescription-BG"></textarea></td><td></td></tr>
+                            <tr><td class="label-cell">Popis kategorie</td><td><textarea id="seoCategoryDescription-CZ"></textarea></td><td><textarea id="seoCategoryDescription-SK"></textarea></td><td><textarea id="seoCategoryDescription-HU"></textarea></td><td><textarea id="seoCategoryDescription-RO"></textarea></td><td><textarea id="seoCategoryDescription-SI"></textarea></td><td><textarea id="seoCategoryDescription-HR"></textarea></td><td><textarea id="seoCategoryDescription-BG"></textarea></td><td></td></tr>
+                            <tr><td class="label-cell">Článek pro kampaň</td><td colspan="8"><textarea id="seoArticleNote" placeholder="poznámky pro zadání článku"></textarea></td></tr>
+                            <tr><td class="label-cell">ID článku v adminu</td><td colspan="8"><input type="text" id="seoArticleId"/></td></tr>
+                            <tr><td class="label-cell">Prolink na článek do BC</td><td colspan="8"><div class="url-input-wrapper"><input type="url" id="seoArticleLink"/><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td></tr>
+                        </tbody>
+                        
+                        <tbody class="section-wrapper" id="section-sms">
+                            <tr><td colspan="9" class="section-header">10. SMS ROZESÍLKA</td></tr>
+                            
+                            <tr><td colspan="9" class="subsection-header">SMS 1 - První SMS rozesílka</td></tr>
+                            <tr><td></td><td class="country-header" colspan="2">CZ</td><td class="country-header" colspan="3">SK</td><td class="country-header" colspan="3">HU</td></tr>
+                            <tr><td class="label-cell">Datum odeslání (SMS 1)</td><td colspan="2"><div class="date-input-wrapper"><span class="date-icon">📅</span><input type="datetime-local" id="sms1-cz-date" /></div></td><td colspan="3"><div class="date-input-wrapper"><span class="date-icon">📅</span><input type="datetime-local" id="sms1-sk-date" /></div></td><td colspan="3"><div class="date-input-wrapper"><span class="date-icon">📅</span><input type="datetime-local" id="sms1-hu-date" /></div></td></tr>
+                            <tr id="sms1-text-row"><td class="label-cell">Text SMS (pro SMS 1)</td><td colspan="8"><div class="url-input-wrapper"><input type="url" id="sms1-text-url" placeholder="Vložte odkaz na texty pro 1. SMS" /><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td></tr>
+                            <tr><td class="label-cell">Definice segmentu (SMS 1)</td><td colspan="2"><textarea id="sms1-cz-segment"></textarea></td><td colspan="3"><textarea id="sms1-sk-segment"></textarea></td><td colspan="3"><textarea id="sms1-hu-segment"></textarea></td></tr>
+                            <tr><td class="label-cell">Full URL vč. UTM (SMS 1)</td><td colspan="2"><div class="url-input-wrapper"><input type="url" placeholder="Odkaz pro CZ" id="sms1-cz-url" /><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td><td colspan="3"><div class="url-input-wrapper"><input type="url" placeholder="Odkaz pro SK" id="sms1-sk-url" /><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td><td colspan="3"><div class="url-input-wrapper"><input type="url" placeholder="Odkaz pro HU" id="sms1-hu-url" /><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td></tr>
+                            <tr><td class="label-cell">Seznamy příjemců Targito (SMS 1)</td><td colspan="2"><div class="url-input-wrapper"><input type="url" placeholder="Odkaz pro CZ" id="sms1-cz-list" /><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td><td colspan="3"><div class="url-input-wrapper"><input type="url" placeholder="Odkaz pro SK" id="sms1-sk-list" /><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td><td colspan="3"><div class="url-input-wrapper"><input type="url" placeholder="Odkaz pro HU" id="sms1-hu-list" /><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td></tr>
+                            <tr><td class="label-cell">Nastavení kampaně Targito (SMS 1)</td><td colspan="2"><div class="url-input-wrapper"><input type="url" placeholder="Odkaz pro CZ" id="sms1-cz-setup" /><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td><td colspan="3"><div class="url-input-wrapper"><input type="url" placeholder="Odkaz pro SK" id="sms1-sk-setup" /><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td><td colspan="3"><div class="url-input-wrapper"><input type="url" placeholder="Odkaz pro HU" id="sms1-hu-setup" /><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td></tr>
+
+                            <tr><td colspan="9" class="subsection-header">SMS 2 - Druhá SMS rozesílka</td></tr>
+                            <tr><td></td><td class="country-header" colspan="2">CZ</td><td class="country-header" colspan="3">SK</td><td class="country-header" colspan="3">HU</td></tr>
+                            <tr><td class="label-cell">Datum odeslání (SMS 2)</td><td colspan="2"><div class="date-input-wrapper"><span class="date-icon">📅</span><input type="datetime-local" id="sms2-cz-date" /></div></td><td colspan="3"><div class="date-input-wrapper"><span class="date-icon">📅</span><input type="datetime-local" id="sms2-sk-date" /></div></td><td colspan="3"><div class="date-input-wrapper"><span class="date-icon">📅</span><input type="datetime-local" id="sms2-hu-date" /></div></td></tr>
+                            <tr id="sms2-text-row"><td class="label-cell">Text SMS (pro SMS 2)</td><td colspan="8"><div class="url-input-wrapper"><input type="url" id="sms2-text-url" placeholder="Vložte odkaz na texty pro 2. SMS" /><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td></tr>
+                            <tr><td class="label-cell">Definice segmentu (SMS 2)</td><td colspan="2"><textarea id="sms2-cz-segment"></textarea></td><td colspan="3"><textarea id="sms2-sk-segment"></textarea></td><td colspan="3"><textarea id="sms2-hu-segment"></textarea></td></tr>
+                            <tr><td class="label-cell">Full URL vč. UTM (SMS 2)</td><td colspan="2"><div class="url-input-wrapper"><input type="url" placeholder="Odkaz pro CZ" id="sms2-cz-url" /><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td><td colspan="3"><div class="url-input-wrapper"><input type="url" placeholder="Odkaz pro SK" id="sms2-sk-url" /><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td><td colspan="3"><div class="url-input-wrapper"><input type="url" placeholder="Odkaz pro HU" id="sms2-hu-url" /><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td></tr>
+                            <tr><td class="label-cell">Seznamy příjemců Targito (SMS 2)</td><td colspan="2"><div class="url-input-wrapper"><input type="url" placeholder="Odkaz pro CZ" id="sms2-cz-list" /><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td><td colspan="3"><div class="url-input-wrapper"><input type="url" placeholder="Odkaz pro SK" id="sms2-sk-list" /><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td><td colspan="3"><div class="url-input-wrapper"><input type="url" placeholder="Odkaz pro HU" id="sms2-hu-list" /><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td></tr>
+                            <tr><td class="label-cell">Nastavení kampaně Targito (SMS 2)</td><td colspan="2"><div class="url-input-wrapper"><input type="url" placeholder="Odkaz pro CZ" id="sms2-cz-setup" /><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td><td colspan="3"><div class="url-input-wrapper"><input type="url" placeholder="Odkaz pro SK" id="sms2-sk-setup" /><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td><td colspan="3"><div class="url-input-wrapper"><input type="url" placeholder="Odkaz pro HU" id="sms2-hu-setup" /><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td></tr>
+
+                            <tr><td colspan="9" class="subsection-header">Sdílené informace pro SMS rozesílka</td></tr>
+                            <tr><td class="label-cell">BI LOG</td><td colspan="8"><div class="url-input-wrapper"><input type="url" id="sms-bi-log-url" value="https://docs.google.com/spreadsheets/d/1UBs5y3Dgh9ZtR73rz_QQFuHpD-LeF9JjGDOKijetfsU/edit?gid=902486596#gid=902486596" /><a href="#" class="url-preview-link" target="_blank" rel="noopener noreferrer" style="display: none;">↗️</a></div></td></tr>
+                        </tbody>
+                        
+                        <tbody class="section-wrapper" id="section-social">
+                            <tr><td colspan="9" class="section-header">11. SOCIÁLNÍ SÍTĚ</td></tr>
+                            <tr><td class="label-cell">Požadavek</td><td class="country-header" colspan="3">CZ</td><td class="country-header" colspan="2">SK</td><td class="country-header" colspan="3">Ostatní země</td></tr>
+                            <tr><td class="label-cell">STORIES</td><td colspan="3"><textarea id="socialStories-CZ"></textarea></td><td colspan="2"><textarea id="socialStories-SK"></textarea></td><td colspan="3"><textarea id="socialStories-Other"></textarea></td></tr>
+                            <tr><td class="label-cell">POST placený</td><td colspan="3"><textarea id="socialPaidPost-CZ"></textarea></td><td colspan="2"><textarea id="socialPaidPost-SK"></textarea></td><td colspan="3"><textarea id="socialPaidPost-Other"></textarea></td></tr>
+                            <tr><td class="label-cell">POST neplacený</td><td colspan="3"><textarea id="socialOrganicPost-CZ"></textarea></td><td colspan="2"><textarea id="socialOrganicPost-SK"></textarea></td><td colspan="3"><textarea id="socialOrganicPost-Other"></textarea></td></tr>
+                            <tr><td class="label-cell">Spolupráce s INFLUENCERY</td><td colspan="3"><textarea id="socialInfluencer-CZ"></textarea></td><td colspan="2"><textarea id="socialInfluencer-SK"></textarea></td><td colspan="3"><textarea id="socialInfluencer-Other"></textarea></td></tr>
+                            <tr><td class="label-cell">Ostatní požadavky nebo info</td><td colspan="8"><textarea id="socialOtherRequirements"></textarea></td></tr>
+                        </tbody>
+                        
+                        <tbody class="section-wrapper" id="section-media">
+                            <tr><td colspan="9" class="section-header">12. Rádio - TV - Billboardy</td></tr>
+                            <tr><td class="label-cell">Rádio</td><td colspan="8"><textarea id="mediaRadio"></textarea></td></tr>
+                            <tr><td class="label-cell">TV</td><td colspan="8"><textarea id="mediaTV"></textarea></td></tr>
+                            <tr><td class="label-cell">Billboardy</td><td colspan="8"><textarea id="mediaBillboards"></textarea></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="presentation-mode-content" class="hidden">
+            </div>
+    </div>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, orderBy, query, doc, getDoc, deleteDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+      
+        const firebaseConfig = {
+          apiKey: "AIzaSyBy6Lvu8ieKKiw5OyCDgsb2KZa5ZiR6u3w",
+          authDomain: "rs---kampane---rodny-list.firebaseapp.com",
+          projectId: "rs---kampane---rodny-list",
+          storageBucket: "rs---kampane---rodny-list.firebasestorage.app",
+          messagingSenderId: "1075985544557",
+          appId: "1:1075985544557:web:ac56741cabe41da8c9d664"
+        };
+      
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+      
+        window.db = db;
+        window.firebase = {
+            collection, addDoc, getDocs, orderBy, query, doc, getDoc, deleteDoc, setDoc
+        };
+      </script>
+
+    <script>
+        let currentCampaignId = null;
+        let sectionVisibility = {};
+        let channelSpecs = {}; 
+        let currentEditingChannel = null;
+        
+        // Pomocná funkce pro mapování starých neznačených polí z historických kampaní
+        // na nově přidané SMS 1 pole, aby se stará data načetla.
+        const smsLegacyMap = {
+            'field-263': 'sms1-cz-date',
+            'field-264': 'sms1-sk-date',
+            'field-265': 'sms1-hu-date',
+            'field-266': 'sms1-cz-segment',
+            'field-267': 'sms1-sk-segment',
+            'field-268': 'sms1-hu-segment',
+            'field-269': 'sms1-cz-url',
+            'field-270': 'sms1-sk-url',
+            'field-271': 'sms1-hu-url',
+            'field-272': 'sms1-cz-list',
+            'field-273': 'sms1-sk-list',
+            'field-274': 'sms1-hu-list',
+            'field-275': 'sms1-cz-setup',
+            'field-276': 'sms1-sk-setup',
+            'field-277': 'sms1-hu-setup',
+        };
+
+        function initializeEnhancedTextareas() {
+            document.querySelectorAll('textarea:not([data-enhanced])').forEach(enhanceTextarea);
+        }
+
+        function toggleSection(sectionId) {
+            const section = document.getElementById(`section-${sectionId}`);
+            const checkbox = document.getElementById(`toggle-${sectionId}`);
+            if (section) {
+                const isVisible = checkbox.checked;
+                section.classList.toggle('hidden', !isVisible);
+                sectionVisibility[sectionId] = isVisible;
+                if (isVisible) {
+                    section.querySelectorAll('textarea').forEach(autoResize);
+                }
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById("toast");
+            toast.textContent = message;
+            toast.className = "toast show";
+            setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+        }
+       
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Odkaz zkopírován do schránky!');
+            }).catch(err => {
+                console.error('Nepodařilo se zkopírovat odkaz: ', err);
+                alert('Kopírování se nezdařilo. Zkuste to prosím ručně.');
+            });
+        }
+        
+        function updateSpecButtonsVisuals() {
+            document.querySelectorAll('.edit-spec-btn').forEach(button => {
+                const channel = button.dataset.channel;
+                if (channelSpecs[channel] && channelSpecs[channel].trim() !== '') {
+                    button.style.background = 'var(--primary-color)';
+                    button.style.color = 'white';
+                    button.style.borderColor = 'var(--primary-color)';
+                } else {
+                    button.style.background = '';
+                    button.style.color = '';
+                    button.style.borderColor = '';
+                }
+            });
+        }
+
+        function newCampaign() {
+            if (confirm('Opravdu chcete vyčistit formulář a začít novou kampaň? Neuložené změny budou ztraceny.')) {
+                document.querySelectorAll('input, textarea, select').forEach(input => {
+                    if (input.type === 'checkbox' || input.type === 'radio') {
+                        input.checked = false;
+                    } else {
+                        input.value = '';
+                    }
+                    if (input.tagName === 'TEXTAREA') {
+                        autoResize(input);
+                    }
+                    if (input.tagName === 'TEXTAREA' || input.type === 'url') {
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                });
+                
+                currentCampaignId = null; 
+                document.querySelector('.save-btn').textContent = '💾 Uložit kampaň'; 
+                document.getElementById('viewModeBtn').classList.add('hidden');
+                document.getElementById('shareViewBtn').classList.add('hidden');
+                channelSpecs = {};
+                updateSpecButtonsVisuals();
+                
+                // U nové kampaně pole pro SMS texty vždy zobrazíme
+                const sms1Row = document.getElementById('sms1-text-row');
+                const sms2Row = document.getElementById('sms2-text-row');
+                if (sms1Row) sms1Row.classList.remove('hidden');
+                if (sms2Row) sms2Row.classList.remove('hidden');
+                
+                window.history.pushState({}, document.title, window.location.pathname);
+                showToast('Formulář je připraven pro novou kampaň.');
+                window.scrollTo(0, 0);
+
+                if(document.body.classList.contains('presentation-mode')) {
+                    toggleViewMode();
+                }
+            }
+        }
+       
+        async function saveData() {
+            const campaignName = document.getElementById('campaignName').value;
+            if (!campaignName) {
+                alert('Prosím, zadejte název kampaně.');
+                return;
+            }
+            
+            const allInputs = document.querySelectorAll('input, textarea, select');
+            const campaignData = {};
+            
+            allInputs.forEach((input, index) => {
+                const id = input.id || `field-${index}`;
+                campaignData[id] = input.type === 'checkbox' ? input.checked : input.value;
+            });
+
+            document.querySelectorAll('.section-toggle input').forEach(checkbox => {
+                sectionVisibility[checkbox.id.replace('toggle-', '')] = checkbox.checked;
+            });
+
+            const campaignObject = {
+                name: campaignName,
+                startDate: document.getElementById('campaignStartDate').value || null,
+                endDate: document.getElementById('campaignEndDate').value || null,
+                data: campaignData,
+                visibility: sectionVisibility,
+                channelSpecs: channelSpecs,
+                createdAt: new Date()
+            };
+
+            try {
+                if (currentCampaignId) {
+                    const docRef = window.firebase.doc(window.db, "kampane", currentCampaignId);
+                    await window.firebase.setDoc(docRef, campaignObject);
+                    showToast(`Kampaň "${campaignName}" byla úspěšně aktualizována.`);
+                } else {
+                    const docRef = await window.firebase.addDoc(window.firebase.collection(window.db, "kampane"), campaignObject);
+                    currentCampaignId = docRef.id;
+                    document.querySelector('.save-btn').textContent = '💾 Uložit změny';
+                    const newUrl = `${window.location.pathname}?campaignId=${docRef.id}${window.location.hash}`;
+                    window.history.pushState({path:newUrl}, '', newUrl);
+                    showToast(`Kampaň "${campaignName}" byla úspěšně uložena.`);
+                }
+                document.getElementById('viewModeBtn').classList.remove('hidden');
+                document.getElementById('shareViewBtn').classList.remove('hidden');
+            } catch (e) {
+                console.error("Error saving/updating document: ", e);
+                alert("Chyba při ukládání kampaně!");
+            }
+        }
+
+        async function loadCampaign(id, isViewOnly = false) {
+            try {
+                const docRef = window.firebase.doc(window.db, "kampane", id);
+                const docSnap = await window.firebase.getDoc(docRef);
+
+                if (!docSnap.exists()) {
+                    alert('Kampaň nebyla nalezena.');
+                    newCampaign();
+                    return;
+                }
+                
+                const campaignToLoad = docSnap.data();
+                
+                // --- LOGIKA PRO UKONČENÉ KAMPANĚ ---
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const endDate = campaignToLoad.endDate ? new Date(campaignToLoad.endDate) : null;
+                const isEnded = endDate && endDate < today;
+                
+                const sms1Row = document.getElementById('sms1-text-row');
+                const sms2Row = document.getElementById('sms2-text-row');
+                if (sms1Row) {
+                    if (isEnded) sms1Row.classList.add('hidden');
+                    else sms1Row.classList.remove('hidden');
+                }
+                if (sms2Row) {
+                    if (isEnded) sms2Row.classList.add('hidden');
+                    else sms2Row.classList.remove('hidden');
+                }
+                // ------------------------------------
+
+                channelSpecs = campaignToLoad.channelSpecs || {};
+                updateSpecButtonsVisuals();
+                
+                document.querySelectorAll('input, textarea, select').forEach(input => {
+                    if (input.type === 'checkbox') input.checked = false; else input.value = '';
+                });
+                
+                const allInputs = document.querySelectorAll('input, textarea, select');
+                const loadedData = campaignToLoad.data;
+
+                allInputs.forEach((input, index) => {
+                    let fieldId = input.id || `field-${index}`;
+                    let value = null;
+
+                    if (smsLegacyMap[fieldId]) {
+                        fieldId = smsLegacyMap[fieldId];
+                    }
+                    
+                    if (loadedData.hasOwnProperty(fieldId)) {
+                        value = loadedData[fieldId];
+                    } 
+                    else if (loadedData.hasOwnProperty(`field-${index}`)) {
+                         value = loadedData[`field-${index}`];
+                    }
+
+                    if (value !== null) {
+                        if (input.type === 'checkbox') {
+                            input.checked = value;
+                        } else {
+                            input.value = value;
+                        }
+                    }
+                });
+
+                document.querySelectorAll('input[type="url"]').forEach(el => {
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                });
+                
+                document.querySelectorAll('textarea').forEach(textarea => {
+                    autoResize(textarea);
+                    updateLinkDisplay(textarea);
+                });
+
+                if (campaignToLoad.visibility) {
+                    Object.keys(campaignToLoad.visibility).forEach(sectionId => {
+                        const checkbox = document.getElementById(`toggle-${sectionId}`);
+                        if (checkbox) {
+                            checkbox.checked = campaignToLoad.visibility[sectionId];
+                            toggleSection(sectionId);
+                        }
+                    });
+                }
+                
+                currentCampaignId = id;
+
+                if (!isViewOnly) {
+                    document.querySelector('.save-btn').textContent = '💾 Uložit změny';
+                    document.getElementById('viewModeBtn').classList.remove('hidden');
+                    document.getElementById('shareViewBtn').classList.remove('hidden');
+                    const newUrl = `${window.location.pathname}?campaignId=${id}${window.location.hash}`;
+                    window.history.pushState({path:newUrl}, '', newUrl);
+                }
+                
+                document.getElementById('catalogModal').style.display = 'none';
+                showToast(`Kampaň "${campaignToLoad.name}" byla načtena.`);
+
+            } catch (e) {
+                console.error("Error loading document: ", e);
+                alert("Chyba při načítání kampaně!");
+            }
+        }
+
+        async function deleteCampaign(id, campaignName) {
+            if (!confirm(`Opravdu chcete smazat kampaň "${campaignName}"? Tato akce je nevratná.`)) {
+                return;
+            }
+            try {
+                await window.firebase.deleteDoc(window.firebase.doc(window.db, "kampane", id));
+                showToast(`Kampaň "${campaignName}" byla smazána.`);
+                if (id === currentCampaignId) newCampaign();
+                displayCampaigns();
+            } catch (e) {
+                console.error("Error deleting document: ", e);
+                alert("Chyba při mazání kampaně!");
+            }
+        }
+
+        async function displayCampaigns() {
+            const listContainer = document.getElementById('campaignList');
+            listContainer.innerHTML = '<div class="empty-catalog">Načítám kampaně...</div>';
+
+            try {
+                const kampaneRef = window.firebase.collection(window.db, "kampane");
+                const q = window.firebase.query(kampaneRef, window.firebase.orderBy("createdAt", "desc"));
+                const querySnapshot = await window.firebase.getDocs(q);
+                
+                if (querySnapshot.empty) {
+                    listContainer.innerHTML = '<div class="empty-catalog">Žádné kampaně nebyly nalezeny.</div>';
+                    return;
+                }
+
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                let activeCampaigns = [];
+                let endedCampaigns = [];
+
+                querySnapshot.forEach((doc) => {
+                    const campaign = { id: doc.id, ...doc.data() };
+                    const endDate = campaign.endDate ? new Date(campaign.endDate) : null;
+                    if (endDate && endDate < today) endedCampaigns.push(campaign);
+                    else activeCampaigns.push(campaign);
+                });
+                
+                activeCampaigns.sort((a, b) => (new Date(b.startDate) || 0) - (new Date(a.startDate) || 0));
+                endedCampaigns.sort((a, b) => (new Date(b.endDate) || 0) - (new Date(a.endDate) || 0));
+                listContainer.innerHTML = '';
+
+                const createCampaignHTML = (campaign, isEnded = false) => {
+                    const campaignNameForJs = campaign.name.replace(/'/g, "\\'");
+                    const endedClass = isEnded ? 'ended' : '';
+                    return `
+                        <div class="campaign-item ${endedClass}">
+                            <div class="campaign-info">
+                                <div class="campaign-name">${campaign.name}</div>
+                                <div class="campaign-dates">
+                                    Start: ${campaign.startDate || 'N/A'} | Konec: ${campaign.endDate || 'N/A'}
+                                </div>
+                            </div>
+                            <div class="campaign-actions">
+                                <button class="btn" onclick="openShareModal('${campaign.id}', '${campaignNameForJs}')">🔗 Sdílet</button>
+                                <button class="btn save-btn" onclick="loadCampaign('${campaign.id}')">Načíst</button>
+                                <button class="btn" style="background: #ef4444; color: white; border-color: #ef4444;" onclick="deleteCampaign('${campaign.id}', '${campaignNameForJs}')">Smazat</button>
+                            </div>
+                        </div>
+                    `;
+                };
+
+                activeCampaigns.forEach(campaign => listContainer.innerHTML += createCampaignHTML(campaign, false));
+                if (endedCampaigns.length > 0) {
+                    listContainer.innerHTML += `<h3 style="padding: 20px 0 10px 5px; color: var(--text-color-light); font-size: 1em; font-weight: 600; border-top: 1px solid var(--border-color); margin-top: 20px;">Ukončené kampaně</h3>`;
+                    endedCampaigns.forEach(campaign => listContainer.innerHTML += createCampaignHTML(campaign, true));
+                }
+            } catch(e) {
+                console.error("Error fetching campaigns: ", e);
+                listContainer.innerHTML = '<div class="empty-catalog">Chyba při načítání kampaní.</div>';
+            }
+        }
+
+        function openCatalog() {
+            displayCampaigns();
+            document.getElementById('catalogModal').style.display = 'block';
+        }
+        
+        function openShareModal(campaignId, campaignName) {
+            const shareModal = document.getElementById('shareModal');
+            const shareModalTitle = document.getElementById('shareModalTitle');
+            const shareLinkList = document.getElementById('shareLinkList');
+
+            shareModalTitle.textContent = `Sdílet odkazy pro kampaň: ${campaignName}`;
+            shareLinkList.innerHTML = ''; 
+
+            const baseUrl = window.location.href.split('?')[0].split('#')[0];
+            document.querySelectorAll('.section-toggle').forEach(toggle => {
+                const label = toggle.querySelector('label').textContent;
+                const sectionId = toggle.querySelector('input').id.replace('toggle-', 'section-');
+                const fullUrl = `${baseUrl}?campaignId=${campaignId}#${sectionId}`;
+                const linkItem = document.createElement('div');
+                linkItem.className = 'campaign-item';
+                linkItem.style.padding = '10px';
+                linkItem.innerHTML = `
+                    <div class="campaign-info" style="font-weight: 500;">${label}</div>
+                    <div class="campaign-actions">
+                        <input type="text" value="${fullUrl}" readonly style="width: 280px; font-size: 12px;"/>
+                        <button class="btn" onclick="copyToClipboard('${fullUrl}')">Kopírovat</button>
+                    </div>
+                `;
+                shareLinkList.appendChild(linkItem);
+            });
+            shareModal.style.display = 'block';
+        }
+
+        async function handleUrlParameters() {
+            const params = new URLSearchParams(window.location.search);
+            const campaignId = params.get('campaignId');
+            const isViewOnly = params.get('view') === 'true';
+            
+            if (isViewOnly && campaignId) {
+                document.querySelectorAll('.btn:not(.view-btn), .sections-manager').forEach(el => el.classList.add('hidden'));
+                document.querySelector('.header h1').textContent = "Přehled kampaně";
+                await loadCampaign(campaignId, true);
+                toggleViewMode(); 
+            } else if (campaignId) {
+                 await loadCampaign(campaignId);
+                 const sectionHash = window.location.hash;
+                 if (sectionHash) {
+                    setTimeout(() => {
+                        const sectionId = sectionHash.substring(1);
+                        const targetSection = document.getElementById(sectionId);
+                        if (targetSection) {
+                            targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    }, 500);
+                 }
+            } else {
+                currentCampaignId = null;
+                document.querySelector('.save-btn').textContent = '💾 Uložit kampaň';
+                document.getElementById('viewModeBtn').classList.add('hidden');
+                document.getElementById('shareViewBtn').classList.add('hidden');
+                initializeEnhancedTextareas();
+            }
+        }
+
+        function shareViewLink() {
+            if (currentCampaignId) {
+                const baseUrl = window.location.href.split('?')[0].split('#')[0];
+                const shareUrl = `${baseUrl}?campaignId=${currentCampaignId}&view=true`;
+                copyToClipboard(shareUrl);
+            }
+        }
+
+        window.newCampaign = newCampaign;
+        window.saveData = saveData;
+        window.openCatalog = openCatalog;
+        window.loadCampaign = loadCampaign;
+        window.deleteCampaign = deleteCampaign;
+        window.openShareModal = openShareModal;
+        window.copyToClipboard = copyToClipboard;
+        window.shareViewLink = shareViewLink;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            handleUrlParameters();
+            
+            document.querySelectorAll('.section-toggle input[type="checkbox"]').forEach(toggle => {
+                sectionVisibility[toggle.id.replace('toggle-','')] = toggle.checked;
+                toggleSection(toggle.id.substring(7));
+            });
+            
+            document.body.addEventListener('input', function(event) {
+                if (event.target.matches('input[type="url"]')) {
+                    const input = event.target;
+                    const wrapper = input.closest('.url-input-wrapper');
+                    if (!wrapper) return;
+                    const previewLink = wrapper.querySelector('.url-preview-link');
+                    if (!previewLink) return;
+                    const url = input.value.trim();
+                    if (url.startsWith('http://') || url.startsWith('https://')) {
+                        previewLink.href = url;
+                        previewLink.style.display = 'inline';
+                    } else {
+                        previewLink.style.display = 'none';
+                    }
+                }
+            });
+            document.querySelectorAll('input[type="url"]').forEach(input => {
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+
+            const specModal = document.getElementById('specModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalTextarea = document.getElementById('modalTextarea');
+            const saveModalBtn = document.getElementById('saveModalBtn');
+
+            document.querySelector('#section-graphicchannels').addEventListener('click', function(event) {
+                const target = event.target.closest('.edit-spec-btn');
+                if (target) {
+                    currentEditingChannel = target.dataset.channel;
+                    modalTitle.textContent = `Podrobnosti pro: ${currentEditingChannel}`;
+                    modalTextarea.value = channelSpecs[currentEditingChannel] || '';
+                    specModal.style.display = 'block';
+                }
+            });
+
+            saveModalBtn.addEventListener('click', function() {
+                if (currentEditingChannel) {
+                    channelSpecs[currentEditingChannel] = modalTextarea.value;
+                }
+                specModal.style.display = 'none';
+                showToast('Specifikace uložena.');
+                updateSpecButtonsVisuals();
+            });
+            
+            document.querySelectorAll('.modal .close-btn').forEach(btn => {
+                btn.onclick = () => { btn.closest('.modal').style.display = 'none'; };
+            });
+            window.onclick = (event) => {
+                if (event.target.classList.contains('modal')) {
+                    event.target.style.display = 'none';
+                }
+            };
+        });
+    </script>
+    
+    <script>
+    // ============== TEXTAREA & VIEW MODE SCRIPT ==============
+    const urlRegex = /(https?:\/\/[^\s"'<>`]+)/g;
+
+    function autoResize(textarea) {
+        if (!textarea) return;
+        textarea.style.height = 'auto';
+        textarea.style.height = (textarea.scrollHeight) + 'px';
+    }
+
+    function updateLinkDisplay(textarea) {
+        const parentCell = textarea.closest('td');
+        if (!parentCell) return;
+
+        let linkContainer = parentCell.querySelector('.textarea-link-container');
+        if (!linkContainer) {
+            linkContainer = document.createElement('div');
+            linkContainer.className = 'textarea-link-container';
+            parentCell.appendChild(linkContainer);
+        }
+        
+        linkContainer.innerHTML = '';
+        const urls = textarea.value.match(urlRegex);
+        if (urls) {
+            const uniqueUrls = [...new Set(urls)];
+            uniqueUrls.forEach(url => {
+                const link = document.createElement('a');
+                link.href = url;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.className = 'textarea-link';
+                link.textContent = url.length > 50 ? url.substring(0, 47) + '...' : url;
+                linkContainer.appendChild(link);
+            });
+        }
+    }
+
+    function enhanceTextarea(textarea) {
+        if (textarea.dataset.enhanced) return;
+        
+        textarea.addEventListener('input', () => {
+            autoResize(textarea);
+            updateLinkDisplay(textarea);
+        });
+        
+        setTimeout(() => autoResize(textarea), 0);
+
+        textarea.dataset.enhanced = 'true';
+    }
+
+    function toggleViewMode() {
+        const editContent = document.getElementById('edit-mode-content');
+        const presContent = document.getElementById('presentation-mode-content');
+        const viewBtn = document.getElementById('viewModeBtn');
+        const isPresenting = document.body.classList.toggle('presentation-mode');
+
+        if (isPresenting) {
+            generatePresentationView();
+            editContent.classList.add('hidden');
+            presContent.classList.remove('hidden');
+            viewBtn.innerHTML = '✏️ Režim úprav';
+        } else {
+            editContent.classList.remove('hidden');
+            presContent.classList.add('hidden');
+            viewBtn.innerHTML = '🖼️ Režim zobrazení';
+        }
+    }
+
+    function formatSpecialDate(isoString) {
+        if (!isoString || !isoString.includes('T')) {
+            return isoString; 
+        }
+        const [date, time] = isoString.split('T');
+        return `${date} Time: ${time}`;
+    }
+
+    function generatePresentationView() {
+        const container = document.getElementById('presentation-mode-content');
+        container.innerHTML = '<div class="presentation-view"></div>';
+        const presView = container.querySelector('.presentation-view');
+        
+        function getSmsValues(sectionId, label, countries) {
+             let countryValues = [];
+             countries.forEach(c => {
+                 const input = document.getElementById(`${sectionId}-${c.toLowerCase()}-${label}`);
+                 let value = input ? input.value.trim() : '';
+                 if (value) {
+                     if (label === 'date') {
+                         value = formatSpecialDate(value);
+                     }
+                     countryValues.push(`<b>${c}:</b> ${formatValue(value)}`);
+                 }
+             });
+             return countryValues.length > 0 ? countryValues.join('<br>') : '';
+        }
+
+        document.querySelectorAll('#edit-mode-content table > tbody').forEach(tbody => {
+            if (tbody.classList.contains('hidden')) return;
+
+            const section = document.createElement('div');
+            section.className = 'presentation-section';
+
+            const headerText = tbody.querySelector('.section-header')?.textContent || 'Další informace';
+            section.innerHTML = `<div class="presentation-header">${headerText}</div>`;
+            
+            const body = document.createElement('div');
+            body.className = 'presentation-body';
+
+            let marketingChannels = []; 
+
+            if (tbody.id === 'section-sms') {
+                const countries = ['CZ', 'SK', 'HU'];
+                const smsFields = [
+                    { label: 'Datum odeslání', keys: ['date'] },
+                    { label: 'Definice segmentu', keys: ['segment'] },
+                    { label: 'Full URL vč. UTM', keys: ['url'] },
+                    { label: 'Seznamy příjemců Targito', keys: ['list'] },
+                    { label: 'Nastavení kampaně Targito', keys: ['setup'] }
+                ];
+
+                ['sms1', 'sms2'].forEach((smsSection, index) => {
+                    let smsContent = [];
+                    smsFields.forEach(field => {
+                        const compiledValue = getSmsValues(smsSection, field.keys[0], countries);
+                        if (compiledValue) {
+                            smsContent.push({
+                                label: `${field.label} (SMS ${index + 1})`,
+                                value: compiledValue
+                            });
+                        }
+                    });
+
+                    // Přidání textu SMS k dané rozesílce, pokud je viditelný a vyplněný
+                    const textInputId = smsSection === 'sms1' ? 'sms1-text-url' : 'sms2-text-url';
+                    const textInput = document.getElementById(textInputId);
+                    if (textInput && textInput.value.trim() && !textInput.closest('tr').classList.contains('hidden')) {
+                         smsContent.splice(1, 0, {
+                             label: `Text SMS (pro SMS ${index + 1})`,
+                             value: formatValue(textInput.value.trim())
+                         });
+                    }
+
+                    if (smsContent.length > 0) {
+                        const subHeader = document.createElement('div');
+                        subHeader.className = 'presentation-item';
+                        subHeader.innerHTML = `<div class="presentation-item-label" style="font-weight: 600;">${index === 0 ? 'SMS 1 - První rozesílka' : 'SMS 2 - Druhá rozesílka'}</div><div class="presentation-item-value"></div>`;
+                        body.appendChild(subHeader);
+                        
+                        smsContent.forEach(item => {
+                            const itemEl = document.createElement('div');
+                            itemEl.className = 'presentation-item';
+                            itemEl.innerHTML = `<div class="presentation-item-label">${item.label}</div>
+                                                <div class="presentation-item-value">${item.value}</div>`;
+                            body.appendChild(itemEl);
+                        });
+                    }
+                });
+                
+                const sharedFields = [
+                     { id: 'sms-bi-log-url', label: 'BI LOG', isUrl: true }
+                ];
+                
+                sharedFields.forEach(field => {
+                    const input = document.getElementById(field.id);
+                    if (input && input.value.trim()) {
+                         const item = document.createElement('div');
+                         item.className = 'presentation-item';
+                         item.innerHTML = `<div class="presentation-item-label">${field.label}</div>
+                                           <div class="presentation-item-value">${formatValue(input.value.trim())}</div>`;
+                         body.appendChild(item);
+                    }
+                });
+
+            } else {
+                tbody.querySelectorAll('tr').forEach(tr => {
+                    if (tr.classList.contains('hidden')) return;
+
+                    const labelCell = tr.querySelector('.label-cell');
+                    const subsectionHeader = tr.querySelector('.subsection-header');
+                    
+                    if (!labelCell || tr.querySelector('.country-header')) return;
+                    if (subsectionHeader) return;
+
+                    const label = labelCell.textContent.trim() || labelCell.querySelector('span')?.textContent.trim();
+                    const inputs = [...tr.querySelectorAll('input, textarea, select')];
+                    
+                    if (tbody.id === 'section-keymessage' && inputs.length === 1 && inputs[0].type === 'checkbox') {
+                        if (inputs[0].checked) {
+                            marketingChannels.push(label);
+                        }
+                        return; 
+                    }
+                    
+                    if (inputs.length === 1 && inputs[0].type !== 'checkbox') {
+                        let value = inputs[0].value.trim();
+                        if (value) {
+                            const dateLabels = ["Datum začátku kampaně", "Datum konce kampaně", "Platnost od", "Platnost do"];
+                            if (dateLabels.includes(label)) {
+                                value = formatSpecialDate(value);
+                            } else if (label === 'Typ') {
+                                value = inputs[0].options[inputs[0].selectedIndex].text;
+                            } else if (label === 'Typ podmínky') {
+                                const select = document.getElementById('couponConditionType');
+                                const detailInput = document.getElementById('couponConditionDetail');
+                                value = `${select ? select.options[select.selectedIndex].text : ''}: ${detailInput ? detailInput.value.trim() : ''}`;
+                            }
+
+                            const item = document.createElement('div');
+                            item.className = 'presentation-item';
+                            item.innerHTML = `<div class="presentation-item-label">${label}</div>
+                                              <div class="presentation-item-value">${formatValue(value)}</div>`;
+                            body.appendChild(item);
+                        }
+                    } 
+                    else if (inputs.length > 1 && inputs[0].type !== 'checkbox') {
+                        const countries = ['CZ', 'SK', 'HU', 'RO', 'SI', 'HR', 'BG'];
+                        let countryValues = [];
+                        
+                        inputs.slice(0, 7).forEach((input, index) => {
+                            let value = input.value.trim();
+                            if (value) {
+                                countryValues.push(`<b>${countries[index]}:</b> ${formatValue(value)}`);
+                            }
+                        });
+                        
+                        if (countryValues.length > 0) {
+                            const item = document.createElement('div');
+                            item.className = 'presentation-item';
+                            item.innerHTML = `<div class="presentation-item-label">${label}</div>
+                                              <div class="presentation-item-value">${countryValues.join('<br>')}</div>`;
+                            body.appendChild(item);
+                        }
+                    }
+                    else if (inputs.length > 1 && inputs[0].type === 'checkbox') {
+                        const countries = ['CZ', 'SK', 'HU', 'RO', 'SI', 'HR', 'BG'];
+                        let checkedCountries = [];
+                        inputs.slice(0, 7).forEach((input, index) => {
+                            if (input.checked) {
+                                checkedCountries.push(`<b>${countries[index]}</b>`);
+                            }
+                        });
+                        if (checkedCountries.length > 0) {
+                            const item = document.createElement('div');
+                            item.className = 'presentation-item';
+                            item.innerHTML = `<div class="presentation-item-label">${label}</div>
+                                              <div class="presentation-item-value">${checkedCountries.join(', ')}</div>`;
+                            body.appendChild(item);
+                        }
+                    }
+                    
+                    if (tbody.id === 'section-flashsale' && tr.querySelector('input[type="url"]')) {
+                        const productUrlInput = tr.querySelector('input[type="url"]');
+                        if (productUrlInput && productUrlInput.value.trim()) {
+                            const productUrl = productUrlInput.value.trim();
+                            const rowIndexes = ['Běžná cena', 'Nejnižší cena (30 dní)', 'FLASH SALE cena'];
+                            
+                            const getPriceValues = (currentRow) => {
+                                const nextRows = [];
+                                let nextTr = currentRow.nextElementSibling;
+                                while (nextTr && nextRows.length < 3) {
+                                    if(nextTr.querySelector('.label-cell')) nextRows.push(nextTr);
+                                    nextTr = nextTr.nextElementSibling;
+                                }
+                                
+                                const prices = {};
+                                const priceCountries = ['CZ', 'SK', 'HU', 'RO', 'SI', 'HR', 'BG'];
+                                
+                                nextRows.forEach((row, rowIndex) => {
+                                    const priceInputs = row.querySelectorAll('input[type="text"]');
+                                    priceInputs.forEach((input, inputIndex) => {
+                                        const country = priceCountries[inputIndex];
+                                        if (input.value.trim()) {
+                                            if (!prices[country]) prices[country] = [];
+                                            prices[country].push(`<b>${rowIndexes[rowIndex]}:</b> ${input.value.trim()}`);
+                                        }
+                                    });
+                                });
+                                return prices;
+                            };
+                            
+                            const prices = getPriceValues(tr);
+                            let priceHtml = '';
+                            Object.keys(prices).forEach(country => {
+                                priceHtml += `<b>${country}:</b> ${prices[country].join(' / ')}<br>`;
+                            });
+                            
+                            if (priceHtml) {
+                                const productHeader = tr.previousElementSibling.querySelector('.subsection-header')?.textContent || 'Produkt';
+                                const item = document.createElement('div');
+                                item.className = 'presentation-section';
+                                item.innerHTML = `<div class="presentation-header" style="background: #eef2ff; color: var(--primary-color);">${productHeader}</div>
+                                                  <div class="presentation-body">
+                                                      <div class="presentation-item"><div class="presentation-item-label">Odkaz</div><div class="presentation-item-value">${formatValue(productUrl)}</div></div>
+                                                      <div class="presentation-item"><div class="presentation-item-label">Ceny</div><div class="presentation-item-value">${priceHtml}</div></div>
+                                                  </div>`;
+                                presView.appendChild(item);
+                            }
+                        }
+                    }
+                });
+            
+                if (tbody.id === 'section-keymessage' && marketingChannels.length > 0) {
+                     const item = document.createElement('div');
+                     item.className = 'presentation-item';
+                     item.innerHTML = `<div class="presentation-item-label">Marketingový kanál</div>
+                                       <div class="presentation-item-value">✔️ ${marketingChannels.join('<br>✔️ ')}</div>`;
+                     body.appendChild(item);
+                }
+            }
+
+            if (body.children.length > 0) {
+                 if (tbody.id !== 'section-flashsale') {
+                    section.appendChild(body);
+                    presView.appendChild(section);
+                 }
+            }
+        });
+    }
+
+    function formatValue(value) {
+        const escapedValue = value.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        return escapedValue.replace(urlRegex, (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initializeEnhancedTextareas();
+    });
+    </script>
+
+</body>
+</html>
