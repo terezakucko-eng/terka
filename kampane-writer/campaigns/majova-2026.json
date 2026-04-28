@@ -1,0 +1,183 @@
+{
+  "name": "Májová kampaň | 1.5. - 30.5.2026",
+  "startDate": "2026-05-01T00:00",
+  "endDate": "2026-05-30T23:59",
+
+  "main": {
+    "lpCategory": "ruzovyslon.cz/akce",
+    "adminCategoryId": "SKUPINA A",
+    "lpSubcategory": "Pro ni, pro něj, pro oba...",
+    "notes": "https://docs.google.com/spreadsheets/d/1J6Eno5E3cK23d46MLLjZA25jqr0GuEkH-vmEwrMyy78/edit?gid=504572475#gid=504572475\nPouze CZ a SK trhy.\n\nFlash Sale (volitelné): Návrh – synergicky s finále výprodeje 24.–30. 5. 2026, víkendová flash akce na top produkty.",
+    "couponText": { "CZ": "MAJ20", "SK": "MAJ20", "HU": "-", "RO": "-", "SI": "-", "HR": "-", "BG": "-" },
+    "discountAmount": { "CZ": "20 %", "SK": "20 %", "HU": "-", "RO": "-", "SI": "-", "HR": "-", "BG": "-" }
+  },
+
+  "keymessage": {
+    "emotionalLine": "Jaro je obdobím probouzení – nejen přírody, ale i touhy. „Něžně to začíná, vášnivě končí.\" mluví o těch magických chvílích, kdy drobný dotek spustí lavinu emocí, kdy jeden polibek pod rozkvetlou třešní přeroste v noc plnou vášně. Kampaň oslavuje lásku ve všech podobách – romantickou, smyslnou, rozvernou. Něžná i hříšná. Dává prostor partnerství, objevování i hravosti.",
+    "toneOfVoice": "Něžně-smyslný, romantický, hravý, mírně škádlivý. Brandový Slon – elegantní, ne vulgární. Místo slova „sleva\" používáme obraty spojené s láskou, vášní a rozkoší.",
+    "goals": "1) Podpora prodeje v kategorii Lásky čas (konverze, AOV).\n2) Emoční spojení s brandem.\n3) Zviditelnění párových pomůcek, vibračních hraček a prádla.\n4) Reaktivace stávajících zákazníků – sezónní kampaň + motivující dárky.\n5) Komunikace výhodnosti bez slova „sleva\".",
+    "channels": {
+      "heureka": true,
+      "social": true,
+      "ppc": true,
+      "webbanners": true,
+      "gscWindow": true,
+      "gscCountdown": true,
+      "sms": true,
+      "coupon": true,
+      "freeshipping": true,
+      "newsletter": true,
+      "affiliate": true,
+      "stores": true,
+      "radio": true,
+      "tv": true,
+      "billboards": true,
+      "otherEnabled": false,
+      "otherText": ""
+    }
+  },
+
+  "graphics": {
+    "diskUrl": "https://drive.google.com/...",
+    "mainMessage": {
+      "CZ": "Něžně to začíná, vášnivě končí.",
+      "SK": "Nežne to začína, vášnivo končí."
+    },
+    "cta": {
+      "CZ": "Užij si máj plný smyslných cen s kódem MAJ20",
+      "SK": "Uži si máj plný zmyselných cien s kódom MAJ20"
+    },
+    "ctaButton": {
+      "CZ": "Nakup s láskou",
+      "SK": "Nakúp s láskou"
+    },
+    "couponText": { "CZ": "MAJ20", "SK": "MAJ20" },
+    "giftValue": { "CZ": "-", "SK": "-" },
+    "giftMinOrder": { "CZ": "-", "SK": "-" },
+    "note": "Vizuál: jarní motivy (rozkvetlé třešně, něžné světlo, doteky). Něžně-smyslná estetika, žádná vulgarita.",
+    "productListUrl": "Doplnit výběr top z kategorií párové pomůcky, vibrační hračky, prádlo"
+  },
+
+  "graphicchannels": {
+    "banner-hp":            { "CZ": true, "SK": true },
+    "banner-kategorie":     { "CZ": true, "SK": true },
+    "banner-newsletter":    { "CZ": true, "SK": true },
+    "banner-affiliate":     { "CZ": true, "SK": true },
+    "ppc-sklik":            { "CZ": true, "SK": true },
+    "heureka-display":      { "CZ": true, "SK": true },
+    "ig---feed":            { "CZ": true, "SK": true },
+    "ig---story":           { "CZ": true, "SK": true },
+    "grafika-pro-prodejny": { "CZ": true, "SK": true }
+  },
+
+  "channelSpecs": {
+    "banner-hp": "Web bannery (HP) – rozměry dle CMS.",
+    "banner-kategorie": "Web bannery (kategorie) – rozměry dle CMS.",
+    "banner-newsletter": "Newsletter header 600×300.",
+    "banner-affiliate": "Affil bannery: 300×250, 728×90, 160×600, 970×310.",
+    "ppc-sklik": "Std. balíček Sklik.",
+    "heureka-display": "Std. rozměry Heureka.",
+    "ig---feed": "1080×1080.",
+    "ig---story": "1080×1920.",
+    "grafika-pro-prodejny": "A4 / A3 plakát."
+  },
+
+  "adminslider": {
+    "buttonText": { "CZ": "Nakup s láskou", "SK": "Nakúp s láskou" },
+    "altText": {
+      "CZ": "Májová kampaň — Lásky čas, sleva s kódem MAJ20",
+      "SK": "Májová kampaň — Lásky čas, zľava s kódom MAJ20"
+    },
+    "linkUrl": "https://www.ruzovyslon.cz/akce"
+  },
+
+  "adminrozcestnik": {
+    "title": { "CZ": "Lásky čas", "SK": "Lásky čas" },
+    "linkUrl": "https://www.ruzovyslon.cz/akce"
+  },
+
+  "admincoupon": {
+    "code": { "CZ": "MAJ20", "SK": "MAJ20" },
+    "showAtProduct":   { "CZ": true,  "SK": true  },
+    "combinable":      { "CZ": false, "SK": false },
+    "firstPurchase":   { "CZ": false, "SK": false },
+    "shippingPaymentFree": "",
+    "type": "Procenta",
+    "note": {
+      "CZ": "Platí v kategorii /akce, nelze kombinovat.",
+      "SK": "Platí v kategórii /akcie, nemožno kombinovať."
+    },
+    "discountValue": "20 %",
+    "orderNote": "",
+    "minOrderValue": "např. 500 Kč / 20 €",
+    "validFrom": "2026-05-01T00:00",
+    "validTo": "2026-05-30T23:59",
+    "conditionType": "KATEGORIE",
+    "conditionDetail": ""
+  },
+
+  "seo": {
+    "metaDescription": {
+      "CZ": "Něžně to začíná, vášnivě končí. Užij si máj plný smyslných cen v kategorii Lásky čas — sleva 20 % s kódem MAJ20 + doprava zdarma ve finále výprodeje.",
+      "SK": "Nežne to začína, vášnivo končí. Užívaj si máj plný zmyselných cien v kategórii Lásky čas — zľava 20 % s kódom MAJ20 + doprava zdarma vo finále výpredaja."
+    },
+    "categoryDescription": {
+      "CZ": "Jaro je čas, kdy se probouzí nejen příroda, ale i touha. V kategorii Lásky čas najdeš všechno, co spustí lavinu emocí — párové pomůcky, vibrační hračky i smyslné prádlo. Něžně to začíná, vášnivě končí. S kódem MAJ20 ušetříš 20 % a od 24. 5. máš dopravu zdarma.",
+      "SK": "Jar je čas, keď sa prebúdza nielen príroda, ale aj túžba. V kategórii Lásky čas nájdeš všetko, čo spustí lavínu emócií — párové pomôcky, vibračné hračky i zmyselnú bielizeň. Nežne to začína, vášnivo končí. S kódom MAJ20 ušetríš 20 % a od 24. 5. máš dopravu zdarma."
+    },
+    "articleNote": "Návrh: „5 způsobů, jak prožít máj smyslněji\""
+  },
+
+  "sms": {
+    "sms1": {
+      "CZ": {
+        "date": "2026-05-14T10:00",
+        "segment": "Aktivní zákazníci s nákupem v posledních 12 měsících + opt-in SMS.\n\nText SMS: Něžně to začíná, vášnivě končí. 💗 Užij si máj v kategorii Lásky čas se slevou 20 % s kódem MAJ20. Růžový slon",
+        "url": "?utm_source=sms&utm_medium=sms&utm_campaign=majova_2026&utm_content=sms1"
+      },
+      "SK": {
+        "date": "2026-05-14T10:00",
+        "segment": "Aktívni zákazníci s nákupom za posledných 12 mesiacov + opt-in SMS.\n\nText SMS: Nežne to začína, vášnivo končí. 💗 Užívaj si máj v kategórii Lásky čas so zľavou 20 % s kódom MAJ20. Ružový slon",
+        "url": "?utm_source=sms&utm_medium=sms&utm_campaign=majova_2026&utm_content=sms1"
+      }
+    },
+    "sms2": {
+      "CZ": {
+        "date": "2026-05-24T10:00",
+        "segment": "Otevírači SMS 1 + neaktivní z posledních 6 měsíců (reaktivace).\n\nText SMS: Finále lásky! 💌 Doprava zdarma + 20 % s kódem MAJ20 v kategorii Lásky čas. Jen do 30. 5. Růžový slon",
+        "url": "?utm_source=sms&utm_medium=sms&utm_campaign=majova_2026&utm_content=sms2"
+      },
+      "SK": {
+        "date": "2026-05-24T10:00",
+        "segment": "Otvárači SMS 1 + neaktívni za posledných 6 mesiacov (reaktivácia).\n\nText SMS: Finále lásky! 💌 Doprava zdarma + 20 % s kódom MAJ20 v kategórii Lásky čas. Len do 30. 5. Ružový slon",
+        "url": "?utm_source=sms&utm_medium=sms&utm_campaign=majova_2026&utm_content=sms2"
+      }
+    }
+  },
+
+  "social": {
+    "stories": {
+      "CZ": "Týdenní série stories: start (1. 5.), polovina (14. 5.), finále + doprava zdarma (24.–30. 5.). Důraz na jarní vizuály, doteky, atmosféru.",
+      "SK": "Týždenná séria stories: štart (1. 5.), polovica (14. 5.), finále + doprava zdarma (24.–30. 5.)."
+    },
+    "paidPost": {
+      "CZ": "2× placený post (start + finále), boost na cílovku 25–55, ČR.",
+      "SK": "2× platený post (štart + finále), boost na cieľovku 25–55, SR."
+    },
+    "organicPost": {
+      "CZ": "3–4× neplacený post (emoční vizuál + produktový + edukační „Jak vybrat…\").",
+      "SK": "3–4× neplatený post (emočný + produktový + edukačný)."
+    },
+    "influencer": {
+      "CZ": "Návrh: 1–2 mikro-influencerky (lifestyle/vztahy).",
+      "SK": "Návrh: 1 SK partnerka."
+    },
+    "otherRequirements": "Hashtagy: #LaskyCas #MajRuzovehoSlona #NezneToZacina"
+  },
+
+  "media": {
+    "radio": "CZ: ano — 2 vlny (1.–7. 5. teaser, 24.–30. 5. finále s dopravou zdarma). Stanice + spoty doplnit.\nSK: rozhodnout.",
+    "tv": "— nezahrnuto",
+    "billboards": "— nezahrnuto"
+  }
+}
