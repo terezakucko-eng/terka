@@ -670,9 +670,9 @@ function DontForgetTab({ items, loading, error, onRefresh }) {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-gray-800 font-medium leading-snug">{item.title}</p>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {item.bucket?.name && <span className="font-medium text-gray-500">{item.bucket.name}</span>}
+                    {item.bucket_name && <span className="font-medium text-gray-500">{item.bucket_name}</span>}
                     {item.type && <><span className="mx-1">·</span>{RECORDING_LABELS[item.type] || item.type}</>}
-                    {item.bookmarked_at && <><span className="mx-1">·</span>{new Date(item.bookmarked_at).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short' })}</>}
+                    {item.created_at && <><span className="mx-1">·</span>{new Date(item.created_at).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short' })}</>}
                   </p>
                 </div>
                 <ExternalLink className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 text-gray-400 flex-shrink-0 mt-0.5" />
@@ -808,8 +808,8 @@ export default function App() {
   const loadDontForget = useCallback(async () => {
     setDontForgetLoading(true); setDontForgetError(null)
     try {
-      const { data } = await apiFetch('/my/bookmarks.json')
-      setDontForget(Array.isArray(data) ? data : (data?.bookmarks || []))
+      const { data } = await apiFetch('/my/readings.json')
+      setDontForget(data?.memories || [])
     } catch (e) { setDontForgetError('Chyba: ' + e.message) }
     setDontForgetLoading(false)
   }, [])
