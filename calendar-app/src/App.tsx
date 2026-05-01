@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { db } from './firebase'
 import { doc, onSnapshot, setDoc } from 'firebase/firestore'
-import { RefreshCw, ExternalLink, CheckCircle2, Circle, ChevronDown, ChevronRight, AlertCircle, Clock, Calendar, Inbox, Bell, Plus, Trash2, CheckSquare, Square, Link, Pencil, X, Tag, Repeat2, EyeOff, Eye, FileText } from 'lucide-react'
+import { RefreshCw, ExternalLink, CheckCircle2, Circle, ChevronDown, ChevronRight, AlertCircle, Clock, Calendar, Inbox, Bell, Plus, Trash2, CheckSquare, Square, Link, Pencil, X, Tag, Repeat2, EyeOff, Eye, FileText, Bookmark } from 'lucide-react'
 
 const IS_LOCAL = typeof window !== 'undefined' && window.location.hostname === 'localhost'
 const TEREZA_ID = 43838310
@@ -623,6 +623,67 @@ function NotificationsTab({ unreads, loading, error, lastSync, onRefresh }) {
   )
 }
 
+// ── Don't Forget ────────────────────────────────────────────────────────────
+const RECORDING_LABELS = {
+  Todo: 'Úkol', Message: 'Zpráva', Document: 'Dokument',
+  Upload: 'Soubor', 'Kanban::Card': 'Karta', 'Schedule::Entry': 'Událost',
+  Comment: 'Komentář', 'Question::Answer': 'Check-in',
+}
+
+function DontForgetTab({ items, loading, error, onRefresh }) {
+  if (loading && items.length === 0) return (
+    <div className="text-center py-20 text-gray-400">
+      <RefreshCw className="w-10 h-10 mx-auto mb-3 animate-spin opacity-40" /><p>Načítám Don't Forget…</p>
+    </div>
+  )
+  if (error) return <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">{error}</div>
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-sm text-gray-500">
+          {items.length > 0
+            ? <span className="font-semibold text-indigo-600">{items.length} položek</span>
+            : 'Prázdné'}
+        </p>
+        <button onClick={onRefresh}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 hover:text-indigo-600 border border-gray-200 rounded-lg hover:border-indigo-300">
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Obnovit
+        </button>
+      </div>
+
+      {items.length === 0 ? (
+        <div className="text-center py-16 text-gray-400">
+          <Bookmark className="w-12 h-12 mx-auto mb-3 opacity-30" /><p>Don't Forget je prázdné</p>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-indigo-200 overflow-hidden">
+          <div className="bg-indigo-50 px-4 py-2.5 text-xs font-semibold text-indigo-600 uppercase tracking-wide flex items-center gap-2">
+            <Bookmark className="w-3.5 h-3.5" /> Don't Forget · {items.length}
+          </div>
+          <div className="bg-white divide-y divide-gray-100">
+            {items.map((item, i) => (
+              <a key={item.id || i} href={item.app_url} target="_blank" rel="noreferrer"
+                className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 group">
+                <Bookmark className="w-4 h-4 mt-0.5 text-indigo-400 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-800 font-medium leading-snug">{item.title}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {item.bucket?.name && <span className="font-medium text-gray-500">{item.bucket.name}</span>}
+                    {item.type && <><span className="mx-1">·</span>{RECORDING_LABELS[item.type] || item.type}</>}
+                    {item.bookmarked_at && <><span className="mx-1">·</span>{new Date(item.bookmarked_at).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short' })}</>}
+                  </p>
+                </div>
+                <ExternalLink className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 text-gray-400 flex-shrink-0 mt-0.5" />
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Hlavní app ──────────────────────────────────────────────────────────────
 const REFRESH_INTERVAL = 15 * 60 * 1000 // 15 minut
 const HIDDEN_TODOS_KEY = 'hiddenBcTodoIds'
@@ -661,6 +722,10 @@ export default function App() {
   const [notifError, setNotifError] = useState(null)
   const [notifLastSync, setNotifLastSync] = useState(null)
   const [notifBadge, setNotifBadge] = useState(0)
+
+  const [dontForget, setDontForget] = useState([])
+  const [dontForgetLoading, setDontForgetLoading] = useState(false)
+  const [dontForgetError, setDontForgetError] = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
@@ -739,12 +804,22 @@ export default function App() {
     setNotifLoading(false)
   }, [])
 
+  const loadDontForget = useCallback(async () => {
+    setDontForgetLoading(true); setDontForgetError(null)
+    try {
+      const { data } = await apiFetch('/my/bookmarks.json')
+      setDontForget(Array.isArray(data) ? data : (data?.bookmarks || []))
+    } catch (e) { setDontForgetError('Chyba: ' + e.message) }
+    setDontForgetLoading(false)
+  }, [])
+
   useEffect(() => {
     load()
     loadNotifs()
+    loadDontForget()
     const id = setInterval(() => { load(); loadNotifs() }, REFRESH_INTERVAL)
     return () => clearInterval(id)
-  }, [load, loadNotifs])
+  }, [load, loadNotifs, loadDontForget])
 
   const openTab = (key) => {
     setTab(key)
@@ -775,6 +850,7 @@ export default function App() {
   const TABS = [
     { key: 'todos', label: 'Moje úkoly', badge: 0 },
     { key: 'notifications', label: 'Notifikace', badge: notifBadge },
+    { key: 'dontforget', label: "Don't Forget", badge: dontForget.length },
     { key: 'private', label: 'Soukromé úkoly', badge: 0 },
   ]
 
@@ -793,6 +869,7 @@ export default function App() {
             Tereza Kucková ·{' '}
             {tab === 'todos' && (lastSync ? `aktualizováno ${lastSync.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })}` : 'načítám…')}
             {tab === 'notifications' && 'notifikace'}
+            {tab === 'dontforget' && "don't forget"}
             {tab === 'private' && 'soukromé úkoly'}
           </p>
         </div>
@@ -963,6 +1040,14 @@ export default function App() {
             error={notifError}
             lastSync={notifLastSync}
             onRefresh={loadNotifs}
+          />
+        )}
+        {tab === 'dontforget' && (
+          <DontForgetTab
+            items={dontForget}
+            loading={dontForgetLoading}
+            error={dontForgetError}
+            onRefresh={loadDontForget}
           />
         )}
         {tab === 'private' && <PrivateTodosTab />}
