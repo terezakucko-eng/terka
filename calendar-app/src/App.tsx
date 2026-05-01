@@ -15,7 +15,8 @@ async function apiFetch(path) {
     const body = await res.text().catch(() => '')
     throw new Error(body || `${res.status}`)
   }
-  const data = await res.json()
+  const text = await res.text().catch(() => '')
+  const data = text ? JSON.parse(text) : null
   const link = res.headers.get('Link') || ''
   const next = link.match(/<https:\/\/3\.basecampapi\.com\/\d+([^>]*)>;\s*rel="next"/)
   return { data, next: next ? next[1] : null }
