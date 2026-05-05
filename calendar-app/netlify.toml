@@ -8,3 +8,7 @@
   to = "/.netlify/functions/basecamp/:splat"
   status = 200
   force = true
+
+# Páteční report SLON 4.0 — každý pátek v 8:00 UTC (9:00/10:00 CET)
+[functions."weekly-report"]
+  schedule = "0 8 * * 5"
