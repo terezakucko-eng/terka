@@ -133,10 +133,26 @@ async function bcPost(path, token, payload) {
   return { status, data: resBody ? JSON.parse(resBody) : null };
 }
 
+// ── Načtení schůzek ze schedule ───────────────────────────────────────────────
+
+async function fetchSchedule(token) {
+  try {
+    const info = await bcGet(`/buckets/${PROJECT_ID}/schedule.json`, token);
+    const scheduleId = info?.id || info?.[0]?.id;
+    if (!scheduleId) return [];
+    const entries = await bcGet(`/buckets/${PROJECT_ID}/schedules/${scheduleId}/entries.json`, token);
+    return (Array.isArray(entries) ? entries : [])
+      .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+  } catch { return []; }
+}
+
 // ── Načtení stavu projektu ────────────────────────────────────────────────────
 
 async function fetchProjectState(token) {
-  const todolists = await bcGet(`/buckets/${PROJECT_ID}/todolists.json`, token);
+  const [todolists, schedule] = await Promise.all([
+    bcGet(`/buckets/${PROJECT_ID}/todolists.json`, token),
+    fetchSchedule(token),
+  ]);
   const groups = [];
 
   for (const list of todolists) {
@@ -173,10 +189,15 @@ async function fetchProjectState(token) {
   const totalAll = groups.reduce((s, g) => s + g.total, 0);
   const pct = totalAll > 0 ? Math.round((totalCompleted / totalAll) * 100) : 0;
 
-  return { groups, totalCompleted, totalAll, pct };
+  return { groups, totalCompleted, totalAll, pct, schedule };
 }
 
 // ── Sestavení textu komentáře ─────────────────────────────────────────────────
+
+function formatEntry(e) {
+  const d = new Date(e.starts_at).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric' });
+  return `${d} — ${e.summary}`;
+}
 
 function buildComment(state, prevPct) {
   const today = new Date().toLocaleDateString('cs-CZ', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -191,14 +212,19 @@ function buildComment(state, prevPct) {
   lines.push('');
 
   for (const g of state.groups) {
-    const bar = `${g.completed}/${g.total}`;
-    lines.push(`### ${g.name} — ${bar}`);
+    lines.push(`### ${g.name} — ${g.completed}/${g.total}`);
     if (g.open.length > 0) {
       lines.push('Otevřené úkoly:');
       g.open.forEach(t => lines.push(`- ${t}`));
     } else {
       lines.push('✅ Vše dokončeno');
     }
+    lines.push('');
+  }
+
+  if (state.schedule.length > 0) {
+    lines.push('### 📅 Schůzky');
+    state.schedule.forEach(e => lines.push(`- ${formatEntry(e)}`));
     lines.push('');
   }
 
@@ -211,11 +237,28 @@ function buildComment(state, prevPct) {
 
 // ── Gauge needle ──────────────────────────────────────────────────────────────
 
-async function updateNeedle(token, pct, change) {
+async function updateNeedle(token, state, change) {
+  const { pct, groups, totalCompleted, totalAll, schedule } = state;
   const color = pct >= 60 ? 'green' : pct >= 30 ? 'yellow' : 'red';
   const today = new Date().toLocaleDateString('cs-CZ', { day: 'numeric', month: 'long', year: 'numeric' });
-  const changeStr = change === null ? '' : change > 0 ? ` (+${change} % od minulého týdne)` : change < 0 ? ` (${change} % od minulého týdne)` : ' (bez posunu)';
-  const description = `<div>Auto-update ${today} — ${pct} %${changeStr}</div>`;
+  const changeStr = change === null ? '' : change > 0 ? ` ↑ +${change} %` : change < 0 ? ` ↓ ${change} %` : ' — bez posunu';
+
+  const groupLines = groups.map(g => {
+    const openList = g.open.length > 0
+      ? `<ul>${g.open.map(t => `<li>${t}</li>`).join('')}</ul>`
+      : '<p>✅ Vše dokončeno</p>';
+    return `<strong>${g.name} — ${g.completed}/${g.total}</strong>${openList}`;
+  }).join('');
+
+  const scheduleLines = schedule.length > 0
+    ? `<p><strong>📅 Schůzky</strong></p><ul>${schedule.map(e => `<li>${formatEntry(e)}</li>`).join('')}</ul>`
+    : '';
+
+  const description = `<div>
+<p><strong>Auto-update ${today} — ${totalCompleted}/${totalAll} = ${pct} %${changeStr}</strong></p>
+${groupLines}
+${scheduleLines}
+</div>`;
 
   return bcPost(
     `/projects/${PROJECT_ID}/gauge/needles.json`,
