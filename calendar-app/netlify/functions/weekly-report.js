@@ -294,7 +294,7 @@ exports.handler = async () => {
     );
 
     // Aktualizuj gauge needle
-    const { status: needleStatus } = await updateNeedle(token, state.pct, change);
+    const { status: needleStatus } = await updateNeedle(token, state, change);
 
     // Ulož nový stav do Firestore
     await writeFirestore(REPORT_DOC, {
