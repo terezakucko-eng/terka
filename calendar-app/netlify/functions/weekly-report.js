@@ -209,6 +209,21 @@ function buildComment(state, prevPct) {
   return lines.join('\n');
 }
 
+// ── Gauge needle ──────────────────────────────────────────────────────────────
+
+async function updateNeedle(token, pct, change) {
+  const color = pct >= 60 ? 'green' : pct >= 30 ? 'yellow' : 'red';
+  const today = new Date().toLocaleDateString('cs-CZ', { day: 'numeric', month: 'long', year: 'numeric' });
+  const changeStr = change === null ? '' : change > 0 ? ` (+${change} % od minulého týdne)` : change < 0 ? ` (${change} % od minulého týdne)` : ' (bez posunu)';
+  const description = `<div>Auto-update ${today} — ${pct} %${changeStr}</div>`;
+
+  return bcPost(
+    `/projects/${PROJECT_ID}/gauge/needles.json`,
+    token,
+    { gauge_needle: { position: pct, color, description } }
+  );
+}
+
 // ── Hlavní handler ────────────────────────────────────────────────────────────
 
 exports.handler = async () => {
@@ -225,13 +240,18 @@ exports.handler = async () => {
       ? parseInt(prevDoc.fields.pct.integerValue)
       : null;
 
+    const change = prevPct !== null ? state.pct - prevPct : null;
+
     // Sestav a pošli komentář
     const text = buildComment(state, prevPct);
-    const { status } = await bcPost(
+    const { status: commentStatus } = await bcPost(
       `/buckets/${PROJECT_ID}/recordings/${MESSAGE_ID}/comments.json`,
       token,
       { content: text }
     );
+
+    // Aktualizuj gauge needle
+    const { status: needleStatus } = await updateNeedle(token, state.pct, change);
 
     // Ulož nový stav do Firestore
     await writeFirestore(REPORT_DOC, {
@@ -241,7 +261,7 @@ exports.handler = async () => {
       updatedAt: { stringValue: new Date().toISOString() },
     });
 
-    console.log(`Weekly report odeslán (HTTP ${status}), postup: ${state.pct}%`);
+    console.log(`Weekly report odeslán (HTTP ${commentStatus}), needle (HTTP ${needleStatus}), postup: ${state.pct}%`);
     return { statusCode: 200, body: JSON.stringify({ ok: true, pct: state.pct }) };
   } catch (e) {
     console.error('Weekly report chyba:', e.message);
