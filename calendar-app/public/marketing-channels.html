@@ -44,7 +44,6 @@
 
   .main { display: flex; gap: 0; height: calc(100vh - 130px); }
 
-  /* MATRIX */
   .matrix-wrap {
     flex: 1;
     padding: 24px;
@@ -71,25 +70,6 @@
   .axis-x-hi { bottom: -28px; right: 4px; }
   .axis-y-lo { left: -60px; bottom: 4px; transform: rotate(-90deg); transform-origin: right center; }
   .axis-y-hi { left: -60px; top: 4px; transform: rotate(-90deg); transform-origin: right center; }
-  .axis-x-label {
-    position: absolute;
-    bottom: -44px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 0.72rem;
-    color: #999;
-    font-style: italic;
-  }
-  .axis-y-label {
-    position: absolute;
-    left: -72px;
-    top: 50%;
-    transform: translateY(-50%) rotate(-90deg);
-    font-size: 0.72rem;
-    color: #999;
-    font-style: italic;
-    white-space: nowrap;
-  }
   .quadrant-label {
     position: absolute;
     font-size: 0.68rem;
@@ -104,7 +84,6 @@
     background: #f0dde8;
   }
 
-  /* BUBBLES */
   .bubble {
     position: absolute;
     border-radius: 50%;
@@ -130,7 +109,6 @@
   .bubble.dimmed { opacity: 0.15; }
   .bubble.highlighted { opacity: 1; }
 
-  /* SIDEBAR */
   .sidebar {
     width: 300px;
     background: white;
@@ -165,7 +143,6 @@
     color: #555;
   }
 
-  /* DETAIL TOOLTIP */
   .tooltip {
     position: fixed;
     background: white;
@@ -237,24 +214,18 @@
 <div class="main">
   <div class="matrix-wrap">
     <div class="matrix" id="matrix">
-      <!-- grid lines -->
       <div class="grid-line" style="width:100%;height:1px;top:50%;left:0;opacity:0.5"></div>
       <div class="grid-line" style="width:1px;height:100%;top:0;left:50%;opacity:0.5"></div>
-
-      <!-- quadrant labels -->
       <div class="quadrant-label" style="top:8px;left:8px">Vysoký dopad / Nízká námaha</div>
       <div class="quadrant-label" style="top:8px;right:8px;text-align:right">Vysoký dopad / Vysoká námaha</div>
       <div class="quadrant-label" style="bottom:8px;left:8px">Nízký dopad / Nízká námaha</div>
       <div class="quadrant-label" style="bottom:8px;right:8px;text-align:right">Nízký dopad / Vysoká námaha</div>
-
-      <!-- axis labels -->
       <div class="axis-label axis-x-lo">← Nízká námaha</div>
       <div class="axis-label axis-x-hi">Vysoká námaha →</div>
       <div class="axis-label axis-y-lo">Nízký dopad →</div>
       <div class="axis-label axis-y-hi">← Vysoký dopad</div>
     </div>
   </div>
-
   <div class="sidebar">
     <h2>📋 Přehled kanálů</h2>
     <div id="channel-list"></div>
@@ -273,152 +244,65 @@ const CATEGORIES = {
   community: { label: 'Komunita & Obsah',  color: '#00838f' },
 };
 
-// effort: 0=min, 100=max | impact: 0=min, 100=max | size: bubble radius px
 const CHANNELS = [
-  { id: 1,  name: 'Email / Newsletter', icon: '📧', cat: 'owned',
-    effort: 20, impact: 88, size: 42,
-    desc: 'Segmentovaný podle chování, fáze vztahu, sezóny. Nejvyšší ROI v e-commerce.',
-    tags: ['Děláte', 'Vysoký ROI', 'Automatizace'] },
-  { id: 2,  name: 'SMS', icon: '📱', cat: 'owned',
-    effort: 15, impact: 72, size: 32,
-    desc: 'Jen jednou za kampaň — prostor pro více. Ideální na flash slevové akce.',
-    tags: ['Děláte', 'Krátký text'] },
-  { id: 3,  name: 'Push notifikace', icon: '🔔', cat: 'owned',
-    effort: 18, impact: 55, size: 28,
-    desc: 'Web push — nízká saturace v CZ, snadné nastavení přes OneSignal apod.',
-    tags: ['Neděláte', 'Nízká saturace'] },
-  { id: 4,  name: 'Věrnostní program / Referral', icon: '🎁', cat: 'owned',
-    effort: 55, impact: 78, size: 38,
-    desc: 'Přiveď kamarádku — virální šíření bez nutnosti platit za dosah.',
-    tags: ['Neděláte', 'Virální potenciál'] },
-  { id: 5,  name: 'SEO + Obsahový marketing', icon: '🔍', cat: 'search',
-    effort: 60, impact: 90, size: 46,
-    desc: 'SexTIPy, poradna, návody — dlouhý ocas, organický dosah, budování autority.',
-    tags: ['Děláte', 'Dlouhodobé', 'Autorita'] },
-  { id: 6,  name: 'Heureka / Zboží.cz', icon: '🛒', cat: 'search',
-    effort: 22, impact: 58, size: 28,
-    desc: 'Hlavně pro Kondomshop. U erotiky opatrněji — ale funguje pro produkty bez explicity.',
-    tags: ['Děláte (KS)', 'Srovnávače'] },
-  { id: 7,  name: 'Google Shopping', icon: '🛍️', cat: 'search',
-    effort: 30, impact: 65, size: 32,
-    desc: 'Vybrané kategorie (pomůcky pro páry, zdraví) — Google je povolí.',
-    tags: ['Neděláte', 'Vybrané kategorie'] },
-  { id: 8,  name: 'Rádio', icon: '📻', cat: 'paid',
-    effort: 45, impact: 80, size: 40,
-    desc: 'Nový narativ "plnění přání". Spot schválen Karlem, běží.',
-    tags: ['Děláte', 'Džin narativ', 'Brandový'] },
-  { id: 9,  name: 'OOH (billboardy, MHD)', icon: '🪧', cat: 'paid',
-    effort: 50, impact: 68, size: 32,
-    desc: 'Velký potenciál pro odvážnou kreativu. Máte todolist.',
-    tags: ['Plánujete', 'Kreativa'] },
-  { id: 10, name: 'Programmatic / Retargeting', icon: '🎯', cat: 'paid',
-    effort: 35, impact: 75, size: 36,
-    desc: 'Sítě přátelské k adult obsahu — Adform, RTB House. Remarketing na návštěvníky.',
-    tags: ['Neděláte', 'Adult-friendly sítě'] },
-  { id: 11, name: 'Native advertising', icon: '📰', cat: 'paid',
-    effort: 28, impact: 52, size: 26,
-    desc: 'Seznam Sklik, Taboola — s opatrností. Edukační formáty fungují.',
-    tags: ['Neděláte', 'Sklik'] },
-  { id: 12, name: 'Affiliate', icon: '🤝', cat: 'partner',
-    effort: 40, impact: 85, size: 44,
-    desc: 'Právě restrukturalizujete. Nový provizní systém X/Y/Z. Velký potenciál.',
-    tags: ['Děláte', 'Restrukturalizace', 'X=20%'] },
-  { id: 13, name: 'Influencer marketing', icon: '⭐', cat: 'partner',
-    effort: 65, impact: 82, size: 40,
-    desc: 'Sex-positive tvůrci, sexuologové, páry. Autentická doporučení fungují lépe než reklama.',
-    tags: ['Neděláte', 'Autenticita'] },
-  { id: 14, name: 'Podcasty', icon: '🎙️', cat: 'partner',
-    effort: 55, impact: 70, size: 32,
-    desc: 'Sponzoring nebo vlastní podcast o vztazích, intimitě a zdraví.',
-    tags: ['Neděláte', 'Dlouhý obsah'] },
-  { id: 15, name: 'Odborná spolupráce', icon: '👩‍⚕️', cat: 'partner',
-    effort: 60, impact: 78, size: 36,
-    desc: 'Sexuologové, terapeuti, gynekoložky jako ambasadoři — budování důvěry.',
-    tags: ['Neděláte', 'Důvěryhodnost'] },
-  { id: 16, name: 'Eventy (EroFest, veletrhy)', icon: '🎪', cat: 'offline',
-    effort: 75, impact: 72, size: 34,
-    desc: 'EroFest — děláte. Wellness veletrhy, párové akce — prostor pro expanzi.',
-    tags: ['Děláte (EroFest)', 'Networking'] },
-  { id: 17, name: 'Zážitkové karty', icon: '🎴', cat: 'offline',
-    effort: 50, impact: 65, size: 30,
-    desc: 'Skvělý gifting kanál — dárek pro pár. Máte v todos.',
-    tags: ['Plánujete', 'Gifting'] },
-  { id: 18, name: 'B2B (hotely, wellness)', icon: '🏨', cat: 'offline',
-    effort: 70, impact: 60, size: 28,
-    desc: 'Minibary, welcome packety v butikových hotelech. Niche, ale efektní.',
-    tags: ['Neděláte', 'Premium niche'] },
-  { id: 19, name: 'YouTube / Video', icon: '▶️', cat: 'community',
-    effort: 72, impact: 80, size: 38,
-    desc: 'SexTIPy, recenze produktů, edukace. Organický dosah bez omezení Mety.',
-    tags: ['Částečně', 'SEO synergies'] },
-  { id: 20, name: 'Reddit / Diskuzní fóra', icon: '💬', cat: 'community',
-    effort: 30, impact: 50, size: 24,
-    desc: 'Organická přítomnost v komunitách o sexualitě — nenásilné, autentické.',
-    tags: ['Neděláte', 'Organické'] },
-  { id: 21, name: 'TikTok', icon: '🎵', cat: 'community',
-    effort: 78, impact: 70, size: 32,
-    desc: 'Edukační obsah o sexuálním zdraví bez explicity. Mladá generace. Vyžaduje kontinuitu.',
-    tags: ['Neděláte', 'Gen Z', 'Compliance'] },
+  { id: 1,  name: 'Email / Newsletter', icon: '📧', cat: 'owned', effort: 20, impact: 88, size: 42, desc: 'Segmentovaný podle chování, fáze vztahu, sezóny. Nejvyšší ROI v e-commerce.', tags: ['Děláte', 'Vysoký ROI', 'Automatizace'] },
+  { id: 2,  name: 'SMS', icon: '📱', cat: 'owned', effort: 15, impact: 72, size: 32, desc: 'Jen jednou za kampaň — prostor pro více. Ideální na flash slevové akce.', tags: ['Děláte', 'Krátký text'] },
+  { id: 3,  name: 'Push notifikace', icon: '🔔', cat: 'owned', effort: 18, impact: 55, size: 28, desc: 'Web push — nízká saturace v CZ, snadné nastavení přes OneSignal apod.', tags: ['Neděláte', 'Nízká saturace'] },
+  { id: 4,  name: 'Věrnostní program / Referral', icon: '🎁', cat: 'owned', effort: 55, impact: 78, size: 38, desc: 'Přiveď kamarádku — virální šíření bez nutnosti platit za dosah.', tags: ['Neděláte', 'Virální potenciál'] },
+  { id: 5,  name: 'SEO + Obsahový marketing', icon: '🔍', cat: 'search', effort: 60, impact: 90, size: 46, desc: 'SexTIPy, poradna, návody — dlouhý ocas, organický dosah, budování autority.', tags: ['Děláte', 'Dlouhodobé', 'Autorita'] },
+  { id: 6,  name: 'Heureka / Zboží.cz', icon: '🛒', cat: 'search', effort: 22, impact: 58, size: 28, desc: 'Hlavně pro Kondomshop. U erotiky opatrněji — ale funguje pro produkty bez explicity.', tags: ['Děláte (KS)', 'Srovnávače'] },
+  { id: 7,  name: 'Google Shopping', icon: '🛍️', cat: 'search', effort: 30, impact: 65, size: 32, desc: 'Vybrané kategorie (pomůcky pro páry, zdraví) — Google je povolí.', tags: ['Neděláte', 'Vybrané kategorie'] },
+  { id: 8,  name: 'Rádio', icon: '📻', cat: 'paid', effort: 45, impact: 80, size: 40, desc: 'Nový narativ "plnění přání". Spot schválen Karlem, běží.', tags: ['Děláte', 'Džin narativ', 'Brandový'] },
+  { id: 9,  name: 'OOH (billboardy, MHD)', icon: '🪧', cat: 'paid', effort: 50, impact: 68, size: 32, desc: 'Velký potenciál pro odvážnou kreativu. Máte todolist.', tags: ['Plánujete', 'Kreativa'] },
+  { id: 10, name: 'Programmatic / Retargeting', icon: '🎯', cat: 'paid', effort: 35, impact: 75, size: 36, desc: 'Sítě přátelské k adult obsahu — Adform, RTB House. Remarketing na návštěvníky.', tags: ['Neděláte', 'Adult-friendly sítě'] },
+  { id: 11, name: 'Native advertising', icon: '📰', cat: 'paid', effort: 28, impact: 52, size: 26, desc: 'Seznam Sklik, Taboola — s opatrností. Edukační formáty fungují.', tags: ['Neděláte', 'Sklik'] },
+  { id: 12, name: 'Affiliate', icon: '🤝', cat: 'partner', effort: 40, impact: 85, size: 44, desc: 'Právě restrukturalizujete. Nový provizní systém X/Y/Z. Velký potenciál.', tags: ['Děláte', 'Restrukturalizace', 'X=20%'] },
+  { id: 13, name: 'Influencer marketing', icon: '⭐', cat: 'partner', effort: 65, impact: 82, size: 40, desc: 'Sex-positive tvůrci, sexuologové, páry. Autentická doporučení fungují lépe než reklama.', tags: ['Neděláte', 'Autenticita'] },
+  { id: 14, name: 'Podcasty', icon: '🎙️', cat: 'partner', effort: 55, impact: 70, size: 32, desc: 'Sponzoring nebo vlastní podcast o vztazích, intimitě a zdraví.', tags: ['Neděláte', 'Dlouhý obsah'] },
+  { id: 15, name: 'Odborná spolupráce', icon: '👩‍⚕️', cat: 'partner', effort: 60, impact: 78, size: 36, desc: 'Sexuologové, terapeuti, gynekoložky jako ambasadoři — budování důvěry.', tags: ['Neděláte', 'Důvěryhodnost'] },
+  { id: 16, name: 'Eventy (EroFest, veletrhy)', icon: '🎪', cat: 'offline', effort: 75, impact: 72, size: 34, desc: 'EroFest — děláte. Wellness veletrhy, párové akce — prostor pro expanzi.', tags: ['Děláte (EroFest)', 'Networking'] },
+  { id: 17, name: 'Zážitkové karty', icon: '🎴', cat: 'offline', effort: 50, impact: 65, size: 30, desc: 'Skvělý gifting kanál — dárek pro pár. Máte v todos.', tags: ['Plánujete', 'Gifting'] },
+  { id: 18, name: 'B2B (hotely, wellness)', icon: '🏨', cat: 'offline', effort: 70, impact: 60, size: 28, desc: 'Minibary, welcome packety v butikových hotelech. Niche, ale efektní.', tags: ['Neděláte', 'Premium niche'] },
+  { id: 19, name: 'YouTube / Video', icon: '▶️', cat: 'community', effort: 72, impact: 80, size: 38, desc: 'SexTIPy, recenze produktů, edukace. Organický dosah bez omezení Mety.', tags: ['Částečně', 'SEO synergies'] },
+  { id: 20, name: 'Reddit / Diskuzní fóra', icon: '💬', cat: 'community', effort: 30, impact: 50, size: 24, desc: 'Organická přítomnost v komunitách o sexualitě — nenásilné, autentické.', tags: ['Neděláte', 'Organické'] },
+  { id: 21, name: 'TikTok', icon: '🎵', cat: 'community', effort: 78, impact: 70, size: 32, desc: 'Edukační obsah o sexuálním zdraví bez explicity. Mladá generace. Vyžaduje kontinuitu.', tags: ['Neděláte', 'Gen Z', 'Compliance'] },
 ];
 
 let activeFilter = 'all';
 let selectedId = null;
 
-// Render bubbles
 function renderBubbles() {
   const matrix = document.getElementById('matrix');
   matrix.querySelectorAll('.bubble').forEach(b => b.remove());
-
   CHANNELS.forEach(ch => {
     const bubble = document.createElement('div');
     bubble.className = 'bubble';
     bubble.dataset.id = ch.id;
     bubble.dataset.cat = ch.cat;
-
     const cat = CATEGORIES[ch.cat];
     const size = ch.size * 2;
-
-    // effort → x (0=left=low, 100=right=high)
-    // impact → y (0=bottom=low, 100=top=high)
     const leftPct = ch.effort;
     const topPct = 100 - ch.impact;
-
-    bubble.style.cssText = `
-      width: ${size}px;
-      height: ${size}px;
-      background: ${cat.color};
-      left: ${leftPct}%;
-      top: ${topPct}%;
-      transform: translate(-50%, -50%);
-      font-size: ${ch.size < 30 ? '0.55rem' : '0.62rem'};
-    `;
+    bubble.style.cssText = `width: ${size}px; height: ${size}px; background: ${cat.color}; left: ${leftPct}%; top: ${topPct}%; transform: translate(-50%, -50%); font-size: ${ch.size < 30 ? '0.55rem' : '0.62rem'};`;
     bubble.textContent = ch.icon;
     bubble.title = ch.name;
-
     bubble.addEventListener('mouseenter', (e) => showTooltip(e, ch));
     bubble.addEventListener('mouseleave', hideTooltip);
     bubble.addEventListener('mousemove', moveTooltip);
     bubble.addEventListener('click', () => selectChannel(ch.id));
-
     matrix.appendChild(bubble);
   });
-
   applyFilter();
 }
 
 function applyFilter() {
-  const bubbles = document.querySelectorAll('.bubble');
-  const cards = document.querySelectorAll('.channel-card');
-
-  bubbles.forEach(b => {
+  document.querySelectorAll('.bubble').forEach(b => {
     const match = activeFilter === 'all' || b.dataset.cat === activeFilter;
     b.classList.toggle('dimmed', !match);
     b.classList.toggle('highlighted', match);
   });
-
-  cards.forEach(c => {
-    const match = activeFilter === 'all' || c.dataset.cat === activeFilter;
-    c.style.display = match ? 'block' : 'none';
+  document.querySelectorAll('.channel-card').forEach(c => {
+    c.style.display = (activeFilter === 'all' || c.dataset.cat === activeFilter) ? 'block' : 'none';
   });
 }
 
@@ -428,24 +312,14 @@ function selectChannel(id) {
     c.classList.toggle('selected', parseInt(c.dataset.id) === selectedId);
   });
   if (selectedId) {
-    const card = document.querySelector(`.channel-card[data-id="${selectedId}"]`);
-    card?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    document.querySelector(`.channel-card[data-id="${selectedId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 }
 
-// Tooltip
 const tooltip = document.getElementById('tooltip');
 function showTooltip(e, ch) {
   const cat = CATEGORIES[ch.cat];
-  tooltip.innerHTML = `
-    <h3>${ch.icon} ${ch.name}</h3>
-    <p style="color:${cat.color};font-size:0.68rem;font-weight:600;margin-bottom:6px">${cat.label}</p>
-    <p>${ch.desc}</p>
-    <div class="meta">
-      <span>Dopad: ${ch.impact}%</span>
-      <span>Námaha: ${ch.effort}%</span>
-    </div>
-  `;
+  tooltip.innerHTML = `<h3>${ch.icon} ${ch.name}</h3><p style="color:${cat.color};font-size:0.68rem;font-weight:600;margin-bottom:6px">${cat.label}</p><p>${ch.desc}</p><div class="meta"><span>Dopad: ${ch.impact}%</span><span>Námaha: ${ch.effort}%</span></div>`;
   tooltip.style.display = 'block';
   moveTooltip(e);
 }
@@ -458,15 +332,10 @@ function moveTooltip(e) {
 }
 function hideTooltip() { tooltip.style.display = 'none'; }
 
-// Sidebar cards
 function renderCards() {
   const list = document.getElementById('channel-list');
   const grouped = {};
-  CHANNELS.forEach(ch => {
-    if (!grouped[ch.cat]) grouped[ch.cat] = [];
-    grouped[ch.cat].push(ch);
-  });
-
+  CHANNELS.forEach(ch => { if (!grouped[ch.cat]) grouped[ch.cat] = []; grouped[ch.cat].push(ch); });
   Object.entries(grouped).forEach(([cat, channels]) => {
     const info = CATEGORIES[cat];
     channels.sort((a,b) => b.impact - a.impact).forEach(ch => {
@@ -476,46 +345,21 @@ function renderCards() {
       card.dataset.cat = ch.cat;
       card.style.background = info.color + '12';
       card.style.color = info.color;
-
-      card.innerHTML = `
-        <div class="card-header">
-          <span class="card-icon">${ch.icon}</span>
-          <div>
-            <div class="card-name">${ch.name}</div>
-            <div class="card-cat">${info.label}</div>
-          </div>
-        </div>
-        <div class="card-desc">${ch.desc}</div>
-        <div class="card-tags">
-          ${ch.tags.map(t => `<span class="tag">${t}</span>`).join('')}
-        </div>
-      `;
+      card.innerHTML = `<div class="card-header"><span class="card-icon">${ch.icon}</span><div><div class="card-name">${ch.name}</div><div class="card-cat">${info.label}</div></div></div><div class="card-desc">${ch.desc}</div><div class="card-tags">${ch.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>`;
       card.addEventListener('click', () => selectChannel(ch.id));
       list.appendChild(card);
     });
   });
 }
 
-// Filter buttons
 document.querySelectorAll('.filter-btn').forEach(btn => {
-  const cat = btn.dataset.cat;
-  const color = cat === 'all' ? '#c2185b' : (CATEGORIES[cat]?.color || '#c2185b');
   btn.addEventListener('click', () => {
-    activeFilter = cat;
+    activeFilter = btn.dataset.cat;
     document.querySelectorAll('.filter-btn').forEach(b => {
       const bc = b.dataset.cat;
       const bc2 = bc === 'all' ? '#c2185b' : (CATEGORIES[bc]?.color || '#c2185b');
-      if (b === btn) {
-        b.classList.add('active');
-        b.style.background = bc2;
-        b.style.borderColor = bc2;
-        b.style.color = 'white';
-      } else {
-        b.classList.remove('active');
-        b.style.background = '#f5f5f5';
-        b.style.borderColor = 'transparent';
-        b.style.color = '#555';
-      }
+      if (b === btn) { b.classList.add('active'); b.style.background = bc2; b.style.borderColor = bc2; b.style.color = 'white'; }
+      else { b.classList.remove('active'); b.style.background = '#f5f5f5'; b.style.borderColor = 'transparent'; b.style.color = '#555'; }
     });
     applyFilter();
   });
