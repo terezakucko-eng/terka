@@ -1,0 +1,27 @@
+{
+  "name": "Acme Brand",
+  "colors": {
+    "primary": "#0B5FFF",
+    "secondary": "#0A2540",
+    "accent": "#FF7A00",
+    "background": "#FFFFFF",
+    "surface": "#F4F7FB",
+    "text": "#0A2540",
+    "textMuted": "#5A6B82",
+    "ctaBackground": "#FF7A00",
+    "ctaText": "#FFFFFF"
+  },
+  "fonts": {
+    "heading": {
+      "family": "Poppins, 'Segoe UI', Arial, sans-serif",
+      "weight": 700,
+      "url": "https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap"
+    },
+    "body": {
+      "family": "Inter, 'Segoe UI', Arial, sans-serif",
+      "weight": 400,
+      "url": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+    }
+  },
+  "logoText": "ACME"
+}

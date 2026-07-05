@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="cs">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ad Banner Generator</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand-block">
+        <h1>Ad Banner Generator</h1>
+        <div class="brand-info">
+          <span class="brand-name" id="brandName">Brand</span>
+          <div class="brand-swatches" id="brandSwatches"></div>
+          <span class="brand-fonts" id="brandFonts"></span>
+        </div>
+      </div>
+      <div class="status" id="status">Načítám…</div>
+    </header>
+
+    <main class="layout">
+      <!-- LEVÝ PANEL: editor -->
+      <aside class="panel editor">
+        <section class="card">
+          <h2>1 · Formát &amp; šablona</h2>
+          <label class="field">
+            <span>Rozměr banneru</span>
+            <select id="formatSelect"></select>
+          </label>
+          <label class="field">
+            <span>Šablona</span>
+            <select id="templateSelect"></select>
+          </label>
+          <p class="hint" id="templateDesc"></p>
+        </section>
+
+        <section class="card">
+          <h2>2 · Vizuál</h2>
+          <div class="version-toggle">
+            <span class="version-label">Verze vizuálu:</span>
+            <label class="radio">
+              <input type="radio" name="version" value="full" checked />
+              <span>Full</span>
+            </label>
+            <label class="radio">
+              <input type="radio" name="version" value="safe" />
+              <span>Safe</span>
+            </label>
+          </div>
+          <p class="hint">
+            „Safe" verze slouží pro display sítě s omezením citlivého/adult obsahu.
+          </p>
+          <div class="uploads">
+            <div class="upload-slot">
+              <div class="thumb" id="thumb-full">
+                <span class="thumb-label">Full</span>
+                <button class="thumb-clear" id="btnClearFull" title="Odebrat">×</button>
+              </div>
+              <input type="file" id="uploadFull" accept="image/*" hidden />
+            </div>
+            <div class="upload-slot">
+              <div class="thumb" id="thumb-safe">
+                <span class="thumb-label">Safe</span>
+                <button class="thumb-clear" id="btnClearSafe" title="Odebrat">×</button>
+              </div>
+              <input type="file" id="uploadSafe" accept="image/*" hidden />
+            </div>
+          </div>
+          <p class="hint">Klikni na dlaždici pro nahrání obrázku.</p>
+        </section>
+
+        <section class="card">
+          <h2>3 · Texty <small id="activeLangLabel"></small></h2>
+          <div class="lang-tabs" id="langTabs"></div>
+          <label class="field">
+            <span>Headline</span>
+            <input type="text" id="inHeadline" maxlength="120" />
+          </label>
+          <label class="field">
+            <span>Subline</span>
+            <input type="text" id="inSubline" maxlength="160" />
+          </label>
+          <label class="field">
+            <span>CTA tlačítko</span>
+            <input type="text" id="inCta" maxlength="40" />
+          </label>
+          <button class="btn ghost" id="btnResetLang">↺ Výchozí texty pro jazyk</button>
+        </section>
+      </aside>
+
+      <!-- STŘED: náhled -->
+      <section class="panel preview">
+        <div class="preview-stage">
+          <canvas id="mainPreview"></canvas>
+        </div>
+        <div class="preview-meta" id="previewMeta"></div>
+        <h3 class="gallery-title">Všechny formáty (aktivní jazyk)</h3>
+        <div class="gallery" id="gallery"></div>
+      </section>
+
+      <!-- PRAVÝ PANEL: export & ukládání -->
+      <aside class="panel exports">
+        <section class="card">
+          <h2>Export PNG</h2>
+          <button class="btn primary" id="btnExportPng">⬇ Stáhnout aktuální PNG</button>
+          <hr />
+          <h3>Hromadný export (ZIP)</h3>
+          <div class="export-group">
+            <div class="export-head">
+              <span>Formáty</span>
+              <button class="link" id="btnSelectAllFormats">vše</button>
+            </div>
+            <div class="chk-grid" id="exportFormats"></div>
+          </div>
+          <div class="export-group">
+            <div class="export-head">
+              <span>Jazyky</span>
+              <button class="link" id="btnSelectAllLangs">vše</button>
+            </div>
+            <div class="chk-grid" id="exportLangs"></div>
+          </div>
+          <label class="field">
+            <span>Verze vizuálu v exportu</span>
+            <select id="exportVersion">
+              <option value="current">Aktuální (dle přepínače)</option>
+              <option value="full">Jen Full</option>
+              <option value="safe">Jen Safe</option>
+              <option value="both">Obě (safe + full)</option>
+            </select>
+          </label>
+          <button class="btn primary" id="btnExportZip">📦 Exportovat vše do ZIP</button>
+        </section>
+
+        <section class="card">
+          <h2>Rozpracované projekty</h2>
+          <p class="hint">Ukládá se do localStorage prohlížeče.</p>
+          <label class="field">
+            <span>Název projektu</span>
+            <input type="text" id="projectName" placeholder="např. jarni-kampan" />
+          </label>
+          <button class="btn" id="btnSaveProject">💾 Uložit</button>
+          <hr />
+          <label class="field">
+            <span>Uložené projekty</span>
+            <select id="projectList"></select>
+          </label>
+          <div class="btn-row">
+            <button class="btn" id="btnLoadProject">Načíst</button>
+            <button class="btn ghost danger" id="btnDeleteProject">Smazat</button>
+          </div>
+        </section>
+      </aside>
+    </main>
+
+    <script src="js/config.js"></script>
+    <script src="js/zip.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>
