@@ -16,12 +16,12 @@
     "heading": {
       "family": "Montserrat, 'Segoe UI', Arial, sans-serif",
       "weight": 800,
-      "url": "https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800&display=swap"
+      "url": "fonts/fonts.css"
     },
     "body": {
       "family": "Roboto, 'Segoe UI', Arial, sans-serif",
       "weight": 400,
-      "url": "https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+      "url": "fonts/fonts.css"
     }
   },
   "logoText": "Růžový Slon",

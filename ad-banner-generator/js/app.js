@@ -89,30 +89,51 @@
     applyBrandToUI();
   }
 
-  // Načte webové fonty z brand.json (pokud mají url) a počká na jejich dostupnost.
+  // Načte fonty z brand.json (url může být lokální fonts.css i CDN) a počká
+  // na jejich dostupnost, aby canvas kreslil správným písmem.
   async function loadBrandFonts() {
     const fonts = state.brand.fonts || {};
     const urls = new Set();
     Object.values(fonts).forEach((f) => f && f.url && urls.add(f.url));
+
+    // Vlož stylesheety a počkej na jejich načtení — teprve pak jsou @font-face
+    // pravidla známá a je možné fonty přednačíst.
+    const linkPromises = [];
     urls.forEach((url) => {
       if (document.querySelector(`link[href="${url}"]`)) return;
       const link = document.createElement('link');
       link.rel = 'stylesheet';
       link.href = url;
+      linkPromises.push(
+        new Promise((resolve) => {
+          link.onload = resolve;
+          link.onerror = resolve;
+        })
+      );
       document.head.appendChild(link);
     });
-    // Počkej, až budou fonty připravené (kvůli přesnému kreslení na canvas)
+
+    // Probe text pokrývá latin, latin-ext (Ěě Řř íé) i cyrilici (Бб гд),
+    // aby se přednačetly všechny potřebné subsety pro všechny jazyky.
+    const probeText = 'AaĚěŘříé Ббгд 0123';
+    const weights = [400, 500, 600, 700, 800];
+
     try {
+      await Promise.race([
+        Promise.all(linkPromises),
+        new Promise((r) => setTimeout(r, 3000)),
+      ]);
       const probes = [];
       Object.values(fonts).forEach((f) => {
         if (!f || !f.family) return;
         const fam = f.family.split(',')[0].replace(/['"]/g, '').trim();
-        probes.push(document.fonts.load(`${f.weight || 400} 20px ${fam}`));
-        probes.push(document.fonts.load(`700 20px ${fam}`));
+        weights.forEach((w) =>
+          probes.push(document.fonts.load(`${w} 20px ${fam}`, probeText))
+        );
       });
       await Promise.race([
         Promise.all(probes).then(() => document.fonts.ready),
-        new Promise((r) => setTimeout(r, 2500)),
+        new Promise((r) => setTimeout(r, 3000)),
       ]);
     } catch (e) {
       /* ignore */

@@ -65,9 +65,15 @@ nebo `npx serve`, `php -S localhost:8080` apod.
 ```
 
 - `colors` řídí pozadí, texty i CTA tlačítko ve všech šablonách.
-- `fonts.*.url` je volitelná — pokud je uvedená (např. Google Fonts), font se
-  načte a použije i při kreslení na canvas. Bez URL se použije systémový font
-  z `family`.
+- `fonts.*.url` odkazuje na stylesheet s `@font-face`. Projekt používá
+  **self-hostované fonty** (`fonts/fonts.css` + `fonts/files/*.woff2`),
+  takže nejsou závislé na žádném CDN a fungují offline. Zahrnují subsety
+  **latin, latin-ext** (čeština, SK, HU, RO, SI, HR) i **cyrillic** (BG).
+  URL může být i externí (např. Google Fonts). Bez URL se použije systémový
+  font z `family`.
+
+Fonty pro Růžového Slona (Montserrat + Roboto) jsou převzaty z firemního
+design manuálu.
 
 ## Rozšíření o nový formát / jazyk
 
@@ -84,6 +90,9 @@ ad-banner-generator/
 ├── index.html
 ├── brand.json          # konfigurace značky (barvy, fonty)
 ├── css/style.css
+├── fonts/
+│   ├── fonts.css       # @font-face (self-hostováno, bez CDN)
+│   └── files/*.woff2   # Montserrat + Roboto, subsety latin/latin-ext/cyrillic
 └── js/
     ├── config.js       # formáty, jazyky, šablony
     ├── renderer.js     # kreslení banneru na canvas (náhled i export)
