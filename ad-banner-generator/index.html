@@ -68,6 +68,26 @@
             </div>
           </div>
           <p class="hint">Klikni na dlaždici pro nahrání obrázku.</p>
+
+          <div class="layout-controls">
+            <div class="lc-title">
+              Posun &amp; zoom obrázku — <span id="imgFmtLabel"></span>
+              <span class="mode-pill">rozvržení: <span id="layoutMode">automatické</span></span>
+            </div>
+            <label class="slider">
+              <span>Zoom <b id="zoomVal">100%</b></span>
+              <input type="range" id="imgZoom" min="100" max="300" value="100" />
+            </label>
+            <label class="slider">
+              <span>Posun X</span>
+              <input type="range" id="imgX" min="-100" max="100" value="0" />
+            </label>
+            <label class="slider">
+              <span>Posun Y</span>
+              <input type="range" id="imgY" min="-100" max="100" value="0" />
+            </label>
+            <button class="btn ghost" id="btnResetLayout">↺ Reset rozvržení (tento rozměr)</button>
+          </div>
         </section>
 
         <section class="card">
@@ -87,6 +107,36 @@
           </label>
           <button class="btn ghost" id="btnResetLang">↺ Výchozí texty pro jazyk</button>
         </section>
+
+        <section class="card">
+          <h2>4 · Prvky &amp; styl</h2>
+          <label class="field">
+            <span>Barva CTA tlačítka</span>
+            <span class="color-row">
+              <input type="color" id="ctaColor" value="#2FB773" />
+              <button class="swatch-btn" data-cta="#2FB773" style="background:#2FB773" title="Zelená"></button>
+              <button class="swatch-btn" data-cta="#DC004E" style="background:#DC004E" title="Růžová"></button>
+              <button class="swatch-btn" data-cta="#985FA3" style="background:#985FA3" title="Fialová"></button>
+              <button class="swatch-btn" data-cta="#1F0F36" style="background:#1F0F36" title="Tmavá"></button>
+            </span>
+          </label>
+          <label class="field">
+            <span>Barva textu</span>
+            <select id="textColor">
+              <option value="auto">Auto (dle šablony)</option>
+              <option value="light">Světlá</option>
+              <option value="dark">Tmavá</option>
+            </select>
+          </label>
+          <label class="chk block"><input type="checkbox" id="showLogo" checked /> Zobrazit logo v rohu</label>
+          <hr />
+          <label class="chk block"><input type="checkbox" id="discountShow" /> Slevový odznak („pusinka")</label>
+          <div class="inline2">
+            <input type="text" id="discountText" value="-20 %" maxlength="12" placeholder="-20 %" />
+            <input type="color" id="discountColor" value="#DC004E" title="Barva odznaku" />
+          </div>
+          <p class="hint">Texty, CTA i odznak <b>přetáhneš myší</b> přímo v náhledu. Táhnutím přes obrázek ho posuneš.</p>
+        </section>
       </aside>
 
       <!-- STŘED: náhled -->
@@ -95,6 +145,7 @@
           <canvas id="mainPreview"></canvas>
         </div>
         <div class="preview-meta" id="previewMeta"></div>
+        <div class="preview-hint">✋ Přetáhni myší headline, subline, CTA nebo slevový odznak. Táhnutím přes obrázek ho posuneš, zoom nastavíš posuvníkem vlevo.</div>
         <h3 class="gallery-title">Všechny formáty (aktivní jazyk)</h3>
         <div class="gallery" id="gallery"></div>
       </section>

@@ -2,6 +2,9 @@
  * Vykreslení jednoho banneru na canvas.
  * Stejná funkce se používá pro živý náhled i pro PNG export,
  * takže náhled = výsledek.
+ *
+ * renderBanner vrací "layout" — pozice prvků (headline, subline, cta) a oblast
+ * obrázku v pixelech banneru. Editor to používá pro chytání prvků myší.
  */
 (function (global) {
   'use strict';
@@ -26,7 +29,6 @@
     ctx.closePath();
   }
 
-  // Rozdělí text na řádky tak, aby se vešel do maxWidth, s daným fontem.
   function wrapText(ctx, text, maxWidth) {
     const words = String(text || '').split(/\s+/).filter(Boolean);
     if (!words.length) return [];
@@ -45,8 +47,6 @@
     return lines;
   }
 
-  // Najde největší velikost písma (<= maxSize), při které se text vejde
-  // do maxWidth na maxLines řádků. Vrací { fontSize, lines }.
   function fitText(ctx, text, opts) {
     const { fontFamily, fontWeight, maxWidth, maxHeight, maxLines, maxSize, minSize } = opts;
     for (let size = maxSize; size >= minSize; size -= 1) {
@@ -57,45 +57,46 @@
         return { fontSize: size, lines: lines, lineHeight: lineHeight };
       }
     }
-    // fallback: minSize, tvrdě ořízneme počet řádků
     ctx.font = `${fontWeight} ${minSize}px ${fontFamily}`;
     let lines = wrapText(ctx, text, maxWidth).slice(0, maxLines);
     if (lines.length === maxLines) {
-      // přidat výpustku k poslednímu řádku pokud oříznuto
       lines[lines.length - 1] = lines[lines.length - 1] + '…';
     }
     return { fontSize: minSize, lines: lines, lineHeight: minSize * 1.15 };
   }
 
-  function drawTextBlock(ctx, lines, x, y, lineHeight, align) {
-    ctx.textAlign = align || 'left';
+  function drawLines(ctx, lines, x, y, lineHeight) {
+    ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     let cy = y;
+    let maxW = 0;
     for (const line of lines) {
       ctx.fillText(line, x, cy);
+      maxW = Math.max(maxW, ctx.measureText(line).width);
       cy += lineHeight;
     }
-    return cy;
+    return { width: maxW, bottom: cy };
   }
 
-  // Nakreslí obrázek metodou "cover" do obdélníku (x,y,w,h).
-  function drawImageCover(ctx, img, x, y, w, h) {
-    const ir = img.width / img.height;
-    const rr = w / h;
-    let sx, sy, sw, sh;
-    if (ir > rr) {
-      // obrázek širší — ořež po stranách
-      sh = img.height;
-      sw = sh * rr;
-      sx = (img.width - sw) / 2;
-      sy = 0;
-    } else {
-      sw = img.width;
-      sh = sw / rr;
-      sx = 0;
-      sy = (img.height - sh) / 2;
-    }
-    ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+  // Nakreslí obrázek "cover" do obdélníku s transformací (zoom + posun).
+  // t = { scale >= 1, offsetX -1..1, offsetY -1..1 }
+  function drawImageTransformed(ctx, img, rx, ry, rw, rh, t) {
+    t = t || {};
+    const scale = Math.max(rw / img.width, rh / img.height) * (t.scale || 1);
+    const dw = img.width * scale;
+    const dh = img.height * scale;
+    const slackX = dw - rw;
+    const slackY = dh - rh;
+    const ox = Math.max(-1, Math.min(1, t.offsetX || 0));
+    const oy = Math.max(-1, Math.min(1, t.offsetY || 0));
+    const dx = rx - slackX / 2 + (ox * slackX) / 2;
+    const dy = ry - slackY / 2 + (oy * slackY) / 2;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(rx, ry, rw, rh);
+    ctx.clip();
+    ctx.drawImage(img, dx, dy, dw, dh);
+    ctx.restore();
   }
 
   function linearGradient(ctx, x0, y0, x1, y1, stops) {
@@ -104,25 +105,58 @@
     return g;
   }
 
-  function drawCTA(ctx, spec, brand, cx, cy, scale) {
-    const text = spec.cta || '';
-    if (!text.trim()) return { width: 0, height: 0 };
-    const fontFamily = brand.fonts.heading.family;
+  // ---------- CTA ----------
+  function ctaMetrics(ctx, spec, brand, scale) {
+    const text = (spec.cta || '').trim();
+    if (!text) return null;
     const fontSize = Math.max(9, Math.round(13 * scale));
-    ctx.font = `600 ${fontSize}px ${fontFamily}`;
+    ctx.font = `600 ${fontSize}px ${brand.fonts.heading.family}`;
     const padX = Math.round(fontSize * 1.1);
     const padY = Math.round(fontSize * 0.6);
     const textW = ctx.measureText(text).width;
-    const btnW = textW + padX * 2;
-    const btnH = fontSize + padY * 2;
-    roundRect(ctx, cx, cy, btnW, btnH, btnH / 2);
-    ctx.fillStyle = brand.colors.ctaBackground;
+    return { text, fontSize, padX, padY, w: textW + padX * 2, h: fontSize + padY * 2 };
+  }
+
+  function drawCTAAt(ctx, m, brand, ctaColor, x, y) {
+    roundRect(ctx, x, y, m.w, m.h, m.h / 2);
+    ctx.fillStyle = ctaColor || brand.colors.ctaBackground;
     ctx.fill();
     ctx.fillStyle = brand.colors.ctaText;
+    ctx.font = `600 ${m.fontSize}px ${brand.fonts.heading.family}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(text, cx + btnW / 2, cy + btnH / 2 + 1);
-    return { width: btnW, height: btnH };
+    ctx.fillText(m.text, x + m.w / 2, y + m.h / 2 + 1);
+  }
+
+  // Odznak ve tvaru "pusinky" (špičatý ovál / lens) s hodnotou slevy.
+  function badgePath(ctx, cx, cy, halfW, halfH) {
+    ctx.beginPath();
+    ctx.moveTo(cx - halfW, cy);
+    ctx.quadraticCurveTo(cx, cy - 2 * halfH, cx + halfW, cy);
+    ctx.quadraticCurveTo(cx, cy + 2 * halfH, cx - halfW, cy);
+    ctx.closePath();
+  }
+
+  function badgeMetrics(ctx, text, brand, scale) {
+    const t = String(text || '').trim();
+    if (!t) return null;
+    const fontSize = Math.max(12, Math.round(20 * scale));
+    ctx.font = `800 ${fontSize}px ${brand.fonts.heading.family}`;
+    const tw = ctx.measureText(t).width;
+    const halfW = tw / 2 + fontSize * 1.15;
+    const halfH = fontSize / 2 + fontSize * 0.85;
+    return { text: t, fontSize, halfW, halfH };
+  }
+
+  function drawBadgeAt(ctx, m, brand, color, cx, cy) {
+    badgePath(ctx, cx, cy, m.halfW, m.halfH);
+    ctx.fillStyle = color || brand.colors.primary;
+    ctx.fill();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = `800 ${m.fontSize}px ${brand.fonts.heading.family}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(m.text, cx, cy + 1);
   }
 
   function drawLogo(ctx, brand, x, y, scale, color) {
@@ -132,196 +166,138 @@
     ctx.font = `700 ${fontSize}px ${brand.fonts.heading.family}`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
-    ctx.fillStyle = color || brand.colors.primary;
+    ctx.fillStyle = color;
     ctx.fillText(text, x, y);
   }
 
-  // ---------- hlavní render ----------
+  // ---------- barvy textu ----------
+  function resolveTextColors(mode, bgDefault, brand) {
+    if (mode === 'light') return { text: '#FFFFFF', muted: 'rgba(255,255,255,0.9)' };
+    if (mode === 'dark') return { text: brand.colors.text, muted: brand.colors.textMuted };
+    return bgDefault; // auto
+  }
 
-  /**
-   * @param {CanvasRenderingContext2D} ctx
-   * @param {Object} format  { width, height }
-   * @param {Object} spec    { headline, subline, cta, template }
-   * @param {Object} brand   načtený brand.json
-   * @param {HTMLImageElement|null} image  vybraný vizuál (safe/full)
-   */
-  function renderBanner(ctx, format, spec, brand, image) {
+  // ---------- pozadí (dle šablony) ----------
+  function drawBackground(ctx, format, spec, brand, image, orient, scale, pad, imgT) {
     const W = format.width;
     const H = format.height;
-    const orient = orientationOf(format);
-    const scale = Math.max(0.7, Math.min(2.2, Math.sqrt((W * H) / (300 * 250))));
-    const pad = Math.round(Math.max(8, 12 * scale));
-    const template = spec.template || 'overlay';
     const c = brand.colors;
-
-    // pozadí
     ctx.fillStyle = c.background;
     ctx.fillRect(0, 0, W, H);
 
+    const template = spec.template || 'overlay';
+
     if (template === 'minimal' || !image) {
-      renderTextOnColor(ctx, format, spec, brand, orient, scale, pad, !image && template !== 'minimal');
-    } else if (template === 'overlay') {
-      renderOverlay(ctx, format, spec, brand, image, orient, scale, pad);
-    } else if (template === 'classic') {
-      renderClassic(ctx, format, spec, brand, image, orient, scale, pad);
-    } else if (template === 'split') {
-      renderSplit(ctx, format, spec, brand, image, orient, scale, pad);
-    } else {
-      renderOverlay(ctx, format, spec, brand, image, orient, scale, pad);
-    }
-
-    // jemný rámeček (pro display sítě)
-    ctx.strokeStyle = 'rgba(0,0,0,0.12)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
-  }
-
-  // Text na barevném pozadí značky (minimal, nebo fallback bez vizuálu)
-  function renderTextOnColor(ctx, format, spec, brand, orient, scale, pad, noVisualHint) {
-    const W = format.width;
-    const H = format.height;
-    const c = brand.colors;
-
-    ctx.fillStyle = linearGradient(ctx, 0, 0, W, H, [
-      [0, c.primary],
-      [1, c.secondary],
-    ]);
-    ctx.fillRect(0, 0, W, H);
-
-    const textColor = '#FFFFFF';
-    const mutedColor = 'rgba(255,255,255,0.85)';
-
-    if (orient === 'horizontal') {
-      layoutHorizontal(ctx, format, spec, brand, pad, scale, textColor, mutedColor, null);
-    } else {
-      layoutStacked(ctx, format, spec, brand, pad, scale, textColor, mutedColor, 0, W);
-    }
-    drawLogo(ctx, brand, pad, pad, scale, '#FFFFFF');
-  }
-
-  function renderOverlay(ctx, format, spec, brand, image, orient, scale, pad) {
-    const W = format.width;
-    const H = format.height;
-    drawImageCover(ctx, image, 0, 0, W, H);
-
-    // tmavý přechod pro čitelnost
-    if (orient === 'horizontal') {
-      ctx.fillStyle = linearGradient(ctx, 0, 0, W, 0, [
-        [0, 'rgba(0,0,0,0.72)'],
-        [0.6, 'rgba(0,0,0,0.35)'],
-        [1, 'rgba(0,0,0,0.0)'],
+      ctx.fillStyle = linearGradient(ctx, 0, 0, W, H, [
+        [0, c.primary],
+        [1, c.secondary],
       ]);
-    } else {
-      ctx.fillStyle = linearGradient(ctx, 0, H, 0, 0, [
-        [0, 'rgba(0,0,0,0.78)'],
-        [0.55, 'rgba(0,0,0,0.35)'],
-        [1, 'rgba(0,0,0,0.0)'],
-      ]);
+      ctx.fillRect(0, 0, W, H);
+      return {
+        region: { x: 0, y: 0, w: W, h: H },
+        colors: { text: '#FFFFFF', muted: 'rgba(255,255,255,0.85)' },
+        imageRect: null,
+        logoColor: '#FFFFFF',
+      };
     }
-    ctx.fillRect(0, 0, W, H);
 
-    const textColor = '#FFFFFF';
-    const mutedColor = 'rgba(255,255,255,0.9)';
-    if (orient === 'horizontal') {
-      layoutHorizontal(ctx, format, spec, brand, pad, scale, textColor, mutedColor, null);
-    } else {
-      layoutStackedBottom(ctx, format, spec, brand, pad, scale, textColor, mutedColor, 0, W);
+    if (template === 'overlay') {
+      drawImageTransformed(ctx, image, 0, 0, W, H, imgT);
+      if (orient === 'horizontal') {
+        ctx.fillStyle = linearGradient(ctx, 0, 0, W, 0, [
+          [0, 'rgba(0,0,0,0.72)'],
+          [0.6, 'rgba(0,0,0,0.35)'],
+          [1, 'rgba(0,0,0,0.0)'],
+        ]);
+      } else {
+        ctx.fillStyle = linearGradient(ctx, 0, H, 0, 0, [
+          [0, 'rgba(0,0,0,0.78)'],
+          [0.55, 'rgba(0,0,0,0.35)'],
+          [1, 'rgba(0,0,0,0.0)'],
+        ]);
+      }
+      ctx.fillRect(0, 0, W, H);
+      return {
+        region: { x: 0, y: 0, w: W, h: H },
+        colors: { text: '#FFFFFF', muted: 'rgba(255,255,255,0.9)' },
+        imageRect: { x: 0, y: 0, w: W, h: H },
+        logoColor: '#FFFFFF',
+        valign: 'bottom',
+      };
     }
-    drawLogo(ctx, brand, pad, pad, scale, '#FFFFFF');
-  }
 
-  function renderClassic(ctx, format, spec, brand, image, orient, scale, pad) {
-    const W = format.width;
-    const H = format.height;
-    const c = brand.colors;
+    if (template === 'classic') {
+      let imageRect, region;
+      if (orient === 'vertical') {
+        const imgH = Math.round(H * 0.5);
+        imageRect = { x: 0, y: 0, w: W, h: imgH };
+        region = { x: 0, y: imgH, w: W, h: H - imgH };
+      } else if (orient === 'horizontal') {
+        const imgW = Math.round(W * 0.34);
+        imageRect = { x: 0, y: 0, w: imgW, h: H };
+        region = { x: imgW, y: 0, w: W - imgW, h: H };
+      } else {
+        const imgH = Math.round(H * 0.52);
+        imageRect = { x: 0, y: 0, w: W, h: imgH };
+        region = { x: 0, y: imgH, w: W, h: H - imgH };
+      }
+      drawImageTransformed(ctx, image, imageRect.x, imageRect.y, imageRect.w, imageRect.h, imgT);
+      ctx.fillStyle = c.surface;
+      ctx.fillRect(region.x, region.y, region.w, region.h);
+      return {
+        region: region,
+        colors: { text: c.text, muted: c.textMuted },
+        imageRect: imageRect,
+        logoColor: '#FFFFFF',
+      };
+    }
 
+    // split
+    let imageRect, region, logoColor;
     if (orient === 'vertical') {
-      const imgH = Math.round(H * 0.5);
-      drawImageCover(ctx, image, 0, 0, W, imgH);
-      ctx.fillStyle = c.surface;
-      ctx.fillRect(0, imgH, W, H - imgH);
-      const region = { x: 0, y: imgH, w: W, h: H - imgH };
-      layoutStackedRegion(ctx, format, spec, brand, region, pad, scale, c.text, c.textMuted);
-      drawLogo(ctx, brand, pad, pad, scale, '#FFFFFF');
-    } else if (orient === 'horizontal') {
-      const imgW = Math.round(W * 0.34);
-      drawImageCover(ctx, image, 0, 0, imgW, H);
-      ctx.fillStyle = c.surface;
-      ctx.fillRect(imgW, 0, W - imgW, H);
-      layoutHorizontalRegion(ctx, format, spec, brand, { x: imgW, y: 0, w: W - imgW, h: H }, pad, scale, c.text, c.textMuted);
-    } else {
-      const imgH = Math.round(H * 0.52);
-      drawImageCover(ctx, image, 0, 0, W, imgH);
-      ctx.fillStyle = c.surface;
-      ctx.fillRect(0, imgH, W, H - imgH);
-      const region = { x: 0, y: imgH, w: W, h: H - imgH };
-      layoutStackedRegion(ctx, format, spec, brand, region, pad, scale, c.text, c.textMuted);
-      drawLogo(ctx, brand, pad, pad, scale, '#FFFFFF');
-    }
-  }
-
-  function renderSplit(ctx, format, spec, brand, image, orient, scale, pad) {
-    const W = format.width;
-    const H = format.height;
-    const c = brand.colors;
-
-    if (orient === 'vertical') {
-      // obrázek dole, text nahoře na barvě
       const textH = Math.round(H * 0.5);
       ctx.fillStyle = linearGradient(ctx, 0, 0, 0, textH, [
         [0, c.primary],
         [1, c.secondary],
       ]);
       ctx.fillRect(0, 0, W, textH);
-      drawImageCover(ctx, image, 0, textH, W, H - textH);
-      layoutStackedRegion(ctx, format, spec, brand, { x: 0, y: 0, w: W, h: textH }, pad, scale, '#FFFFFF', 'rgba(255,255,255,0.85)');
-      drawLogo(ctx, brand, pad, pad, scale, '#FFFFFF');
+      imageRect = { x: 0, y: textH, w: W, h: H - textH };
+      region = { x: 0, y: 0, w: W, h: textH };
+      logoColor = '#FFFFFF';
     } else {
-      // text vlevo na barvě, obrázek vpravo
       const textW = Math.round(W * (orient === 'horizontal' ? 0.5 : 0.55));
       ctx.fillStyle = linearGradient(ctx, 0, 0, textW, H, [
         [0, c.primary],
         [1, c.secondary],
       ]);
       ctx.fillRect(0, 0, textW, H);
-      drawImageCover(ctx, image, textW, 0, W - textW, H);
-      if (orient === 'horizontal') {
-        layoutHorizontalRegion(ctx, format, spec, brand, { x: 0, y: 0, w: textW, h: H }, pad, scale, '#FFFFFF', 'rgba(255,255,255,0.85)');
-      } else {
-        layoutStackedRegion(ctx, format, spec, brand, { x: 0, y: 0, w: textW, h: H }, pad, scale, '#FFFFFF', 'rgba(255,255,255,0.85)');
-      }
-      drawLogo(ctx, brand, pad, pad, scale, '#FFFFFF');
+      imageRect = { x: textW, y: 0, w: W - textW, h: H };
+      region = { x: 0, y: 0, w: textW, h: H };
+      logoColor = '#FFFFFF';
     }
+    drawImageTransformed(ctx, image, imageRect.x, imageRect.y, imageRect.w, imageRect.h, imgT);
+    return {
+      region: region,
+      colors: { text: '#FFFFFF', muted: 'rgba(255,255,255,0.85)' },
+      imageRect: imageRect,
+      logoColor: logoColor,
+    };
   }
 
-  // ---------- layout helpery ----------
-
-  // Vertikálně skládaný obsah v celém formátu, zarovnaný odshora s logem.
-  function layoutStacked(ctx, format, spec, brand, pad, scale, textColor, mutedColor, x0, width) {
-    layoutStackedRegion(
-      ctx,
-      format,
-      spec,
-      brand,
-      { x: x0, y: 0, w: width, h: format.height },
-      pad,
-      scale,
-      textColor,
-      mutedColor
-    );
+  // ---------- automatické rozvržení textů (v oblasti) ----------
+  function layoutTextsAuto(ctx, format, spec, brand, colors, ctaColor, region, orient, scale, pad, valign) {
+    if (orient === 'horizontal') {
+      return layoutHorizontal(ctx, format, spec, brand, colors, ctaColor, region, scale, pad);
+    }
+    return layoutStacked(ctx, format, spec, brand, colors, ctaColor, region, scale, pad, valign);
   }
 
-  // Skládaný obsah zarovnaný dolů (pro overlay).
-  function layoutStackedBottom(ctx, format, spec, brand, pad, scale, textColor, mutedColor, x0, width) {
-    const region = { x: x0, y: 0, w: width, h: format.height };
-    layoutStackedRegion(ctx, format, spec, brand, region, pad, scale, textColor, mutedColor, 'bottom');
-  }
-
-  function layoutStackedRegion(ctx, format, spec, brand, region, pad, scale, textColor, mutedColor, valign) {
+  function layoutStacked(ctx, format, spec, brand, colors, ctaColor, region, scale, pad, valign) {
     const innerX = region.x + pad;
     const maxWidth = region.w - pad * 2;
     const hFont = brand.fonts.heading;
     const bFont = brand.fonts.body;
+    const boxes = {};
 
     const headline = fitText(ctx, spec.headline, {
       fontFamily: hFont.family,
@@ -332,75 +308,66 @@
       maxSize: Math.round(28 * scale),
       minSize: Math.max(12, Math.round(13 * scale)),
     });
-
-    const subline = spec.subline && spec.subline.trim()
-      ? fitText(ctx, spec.subline, {
-          fontFamily: bFont.family,
-          fontWeight: bFont.weight || 400,
-          maxWidth: maxWidth,
-          maxHeight: region.h * 0.3,
-          maxLines: region.h > 300 ? 3 : 2,
-          maxSize: Math.round(15 * scale),
-          minSize: Math.max(10, Math.round(11 * scale)),
-        })
-      : null;
+    const subline =
+      spec.subline && spec.subline.trim()
+        ? fitText(ctx, spec.subline, {
+            fontFamily: bFont.family,
+            fontWeight: bFont.weight || 400,
+            maxWidth: maxWidth,
+            maxHeight: region.h * 0.3,
+            maxLines: region.h > 300 ? 3 : 2,
+            maxSize: Math.round(15 * scale),
+            minSize: Math.max(10, Math.round(11 * scale)),
+          })
+        : null;
 
     const gap = Math.round(6 * scale);
-    const ctaText = (spec.cta || '').trim();
-    const ctaH = ctaText ? Math.round(13 * scale) + Math.round(13 * scale * 0.6) * 2 : 0;
-
+    const cta = ctaMetrics(ctx, spec, brand, scale);
     const headlineH = headline.lines.length * headline.lineHeight;
     const sublineH = subline ? subline.lines.length * subline.lineHeight : 0;
-    const totalH = headlineH + (subline ? gap + sublineH : 0) + (ctaText ? gap * 1.6 + ctaH : 0);
+    const totalH = headlineH + (subline ? gap + sublineH : 0) + (cta ? gap * 1.6 + cta.h : 0);
 
     let y;
     if (valign === 'bottom') {
       y = region.y + region.h - pad - totalH;
     } else {
-      // vertikálně vycentrovat v regionu, ale nechat místo na logo nahoře
       const topSpace = region.y === 0 ? pad + 18 * scale : pad;
       const avail = region.h - topSpace - pad;
       y = region.y + topSpace + Math.max(0, (avail - totalH) / 2);
     }
 
-    ctx.fillStyle = textColor;
+    ctx.fillStyle = colors.text;
     ctx.font = `${hFont.weight || 700} ${headline.fontSize}px ${hFont.family}`;
-    y = drawTextBlock(ctx, headline.lines, innerX, y, headline.lineHeight, 'left');
+    let r = drawLines(ctx, headline.lines, innerX, y, headline.lineHeight);
+    boxes.headline = { x: innerX, y: y, w: r.width, h: headlineH };
+    y = r.bottom;
 
     if (subline) {
       y += gap;
-      ctx.fillStyle = mutedColor;
+      ctx.fillStyle = colors.muted;
       ctx.font = `${bFont.weight || 400} ${subline.fontSize}px ${bFont.family}`;
-      y = drawTextBlock(ctx, subline.lines, innerX, y, subline.lineHeight, 'left');
+      r = drawLines(ctx, subline.lines, innerX, y, subline.lineHeight);
+      boxes.subline = { x: innerX, y: y - gap + gap, w: r.width, h: sublineH };
+      y = r.bottom;
     }
 
-    if (ctaText) {
+    if (cta) {
       y += gap * 1.6;
-      drawCTA(ctx, spec, brand, innerX, y, scale);
+      drawCTAAt(ctx, cta, brand, ctaColor, innerX, y);
+      boxes.cta = { x: innerX, y: y, w: cta.w, h: cta.h };
     }
+    return boxes;
   }
 
-  // Horizontální pruh: text vlevo, CTA vpravo (leaderboard apod.)
-  function layoutHorizontal(ctx, format, spec, brand, pad, scale, textColor, mutedColor) {
-    layoutHorizontalRegion(ctx, format, spec, brand, { x: 0, y: 0, w: format.width, h: format.height }, pad, scale, textColor, mutedColor);
-  }
-
-  function layoutHorizontalRegion(ctx, format, spec, brand, region, pad, scale, textColor, mutedColor) {
+  function layoutHorizontal(ctx, format, spec, brand, colors, ctaColor, region, scale, pad) {
     const hFont = brand.fonts.heading;
     const bFont = brand.fonts.body;
-    const ctaText = (spec.cta || '').trim();
+    const boxes = {};
+    const cta = ctaMetrics(ctx, spec, brand, scale);
+    const ctaW = cta ? cta.w + pad : 0;
 
-    // Rezervuj prostor pro CTA vpravo
-    let ctaW = 0;
-    if (ctaText) {
-      const fontSize = Math.max(9, Math.round(13 * scale));
-      ctx.font = `600 ${fontSize}px ${hFont.family}`;
-      ctaW = ctx.measureText(ctaText).width + Math.round(fontSize * 1.1) * 2 + pad;
-    }
-
-    const logoSpace = region.x === 0 ? 0 : 0;
-    const textX = region.x + pad + logoSpace;
-    const textMaxW = region.w - pad * 2 - ctaW - logoSpace;
+    const textX = region.x + pad;
+    const textMaxW = region.w - pad * 2 - ctaW;
 
     const headline = fitText(ctx, spec.headline, {
       fontFamily: hFont.family,
@@ -411,7 +378,6 @@
       maxSize: Math.round(Math.min(region.h * 0.42, 24 * scale)),
       minSize: Math.max(11, Math.round(12 * scale)),
     });
-
     const showSub = spec.subline && spec.subline.trim() && region.h >= 90;
     const subline = showSub
       ? fitText(ctx, spec.subline, {
@@ -431,33 +397,121 @@
     const totalH = headlineH + (subline ? gap + sublineH : 0);
     let y = region.y + (region.h - totalH) / 2;
 
-    ctx.fillStyle = textColor;
+    ctx.fillStyle = colors.text;
     ctx.font = `${hFont.weight || 700} ${headline.fontSize}px ${hFont.family}`;
-    y = drawTextBlock(ctx, headline.lines, textX, y, headline.lineHeight, 'left');
+    let r = drawLines(ctx, headline.lines, textX, y, headline.lineHeight);
+    boxes.headline = { x: textX, y: y, w: r.width, h: headlineH };
+    y = r.bottom;
 
     if (subline) {
       y += gap;
-      ctx.fillStyle = mutedColor;
+      ctx.fillStyle = colors.muted;
       ctx.font = `${bFont.weight || 400} ${subline.fontSize}px ${bFont.family}`;
-      drawTextBlock(ctx, subline.lines, textX, y, subline.lineHeight, 'left');
+      r = drawLines(ctx, subline.lines, textX, y, subline.lineHeight);
+      boxes.subline = { x: textX, y: y, w: r.width, h: sublineH };
     }
 
-    if (ctaText) {
-      const fontSize = Math.max(9, Math.round(13 * scale));
-      const btnH = fontSize + Math.round(fontSize * 0.6) * 2;
-      const cy = region.y + (region.h - btnH) / 2;
-      const padX = Math.round(fontSize * 1.1);
-      ctx.font = `600 ${fontSize}px ${hFont.family}`;
-      const btnW = ctx.measureText(ctaText).width + padX * 2;
-      const cx = region.x + region.w - pad - btnW;
-      roundRect(ctx, cx, cy, btnW, btnH, btnH / 2);
-      ctx.fillStyle = brand.colors.ctaBackground;
-      ctx.fill();
-      ctx.fillStyle = brand.colors.ctaText;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(ctaText, cx + btnW / 2, cy + btnH / 2 + 1);
+    if (cta) {
+      const cy = region.y + (region.h - cta.h) / 2;
+      const cx = region.x + region.w - pad - cta.w;
+      drawCTAAt(ctx, cta, brand, ctaColor, cx, cy);
+      boxes.cta = { x: cx, y: cy, w: cta.w, h: cta.h };
     }
+    return boxes;
+  }
+
+  // ---------- ruční rozvržení textů (volné pozice) ----------
+  function layoutTextsManual(ctx, format, spec, brand, colors, ctaColor, ov, scale, pad) {
+    const W = format.width;
+    const H = format.height;
+    const hFont = brand.fonts.heading;
+    const bFont = brand.fonts.body;
+    const boxes = {};
+
+    function place(el, isHeadline) {
+      const o = ov[el];
+      if (!o) return;
+      const anchorX = o.x * W;
+      const anchorY = o.y * H;
+      const maxWidth = Math.max(20, W - anchorX - pad);
+      const font = isHeadline ? hFont : bFont;
+      const fit = fitText(ctx, spec[el], {
+        fontFamily: font.family,
+        fontWeight: font.weight || (isHeadline ? 700 : 400),
+        maxWidth: maxWidth,
+        maxHeight: H,
+        maxLines: isHeadline ? 3 : 3,
+        maxSize: isHeadline ? Math.round(30 * scale) : Math.round(15 * scale),
+        minSize: isHeadline ? Math.max(12, Math.round(13 * scale)) : Math.max(10, Math.round(11 * scale)),
+      });
+      ctx.fillStyle = isHeadline ? colors.text : colors.muted;
+      ctx.font = `${font.weight || (isHeadline ? 700 : 400)} ${fit.fontSize}px ${font.family}`;
+      const r = drawLines(ctx, fit.lines, anchorX, anchorY, fit.lineHeight);
+      boxes[el] = { x: anchorX, y: anchorY, w: r.width, h: fit.lines.length * fit.lineHeight };
+    }
+
+    if (spec.headline && spec.headline.trim()) place('headline', true);
+    if (spec.subline && spec.subline.trim()) place('subline', false);
+
+    const cta = ctaMetrics(ctx, spec, brand, scale);
+    if (cta && ov.cta) {
+      const cx = ov.cta.x * W;
+      const cy = ov.cta.y * H;
+      drawCTAAt(ctx, cta, brand, ctaColor, cx, cy);
+      boxes.cta = { x: cx, y: cy, w: cta.w, h: cta.h };
+    }
+    return boxes;
+  }
+
+  // ---------- hlavní render ----------
+  /**
+   * @param {Object} opts { override, ctaColor, textColor }
+   *   override = { manual, image:{scale,offsetX,offsetY}, headline:{x,y}, subline:{x,y}, cta:{x,y} }
+   * @returns {Object} layout { boxes:{headline,subline,cta}, imageRect, region }
+   */
+  function renderBanner(ctx, format, spec, brand, image, opts) {
+    opts = opts || {};
+    const ov = opts.override || {};
+    const imgT = ov.image || null;
+    const W = format.width;
+    const H = format.height;
+    const orient = orientationOf(format);
+    const scale = Math.max(0.7, Math.min(2.2, Math.sqrt((W * H) / (300 * 250))));
+    const pad = Math.round(Math.max(8, 12 * scale));
+
+    const bg = drawBackground(ctx, format, spec, brand, image, orient, scale, pad, imgT);
+    const colors = resolveTextColors(opts.textColor, bg.colors, brand);
+
+    let boxes;
+    if (ov.manual) {
+      boxes = layoutTextsManual(ctx, format, spec, brand, colors, opts.ctaColor, ov, scale, pad);
+    } else {
+      boxes = layoutTextsAuto(
+        ctx, format, spec, brand, colors, opts.ctaColor, bg.region, orient, scale, pad, bg.valign
+      );
+    }
+
+    // slevový odznak ("pusinka")
+    if (spec.discount && spec.discount.show) {
+      const bm = badgeMetrics(ctx, spec.discount.text, brand, scale);
+      if (bm) {
+        const b = ov.badge || { x: 0.8, y: 0.3 };
+        const cx = b.x * W;
+        const cy = b.y * H;
+        drawBadgeAt(ctx, bm, brand, opts.badgeColor, cx, cy);
+        boxes.badge = { x: cx - bm.halfW, y: cy - bm.halfH, w: bm.halfW * 2, h: bm.halfH * 2 };
+      }
+    }
+
+    if (opts.showLogo !== false) {
+      drawLogo(ctx, brand, pad, pad, scale, bg.imageRect ? bg.logoColor : colors.text);
+    }
+
+    ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
+
+    return { boxes: boxes, imageRect: bg.imageRect, region: bg.region };
   }
 
   global.BannerRenderer = { renderBanner: renderBanner, orientationOf: orientationOf };

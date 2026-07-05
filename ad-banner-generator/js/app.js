@@ -19,11 +19,23 @@
     template: 'overlay',
     version: 'full', // 'safe' | 'full'
     images: { safe: null, full: null }, // dataURL
-    // texty per jazyk: { CZ: {headline, subline, cta}, ... }
-    texts: {},
+    texts: {}, // per jazyk: { CZ:{headline,subline,cta}, ... }
+
+    // styl prvků (globální)
+    ctaColor: '#2FB773', // zelená z palety manuálu
+    textColor: 'auto', // 'auto' | 'light' | 'dark'
+    showLogo: true,
+    discount: { show: false, text: '-20 %' },
+    badgeColor: null, // null = primární barva značky
+
+    // rozvržení per formát: { manual, image:{scale,offsetX,offsetY},
+    //                         headline:{x,y}, subline:{x,y}, cta:{x,y}, badge:{x,y} }
+    overrides: {},
   };
 
-  // cache načtených HTMLImageElement dle dataURL
+  // poslední spočítané rozvržení aktivního náhledu (pro chytání myší)
+  let lastLayout = { boxes: {}, imageRect: null };
+
   const imageCache = new Map();
 
   // ---------- pomůcky ----------
@@ -31,6 +43,7 @@
   const $$ = (sel) => Array.from(document.querySelectorAll(sel));
   const formatById = (id) => FORMATS.find((f) => f.id === id);
   const langByCode = (code) => LANGUAGES.find((l) => l.code === code);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
   function loadImage(dataURL) {
     if (!dataURL) return Promise.resolve(null);
@@ -60,15 +73,45 @@
 
   function specFor(lang) {
     const t = textsFor(lang);
-    return { headline: t.headline, subline: t.subline, cta: t.cta, template: state.template };
+    return {
+      headline: t.headline,
+      subline: t.subline,
+      cta: t.cta,
+      template: state.template,
+      discount: state.discount,
+    };
+  }
+
+  function ensureOverride(fmt) {
+    if (!state.overrides[fmt]) {
+      state.overrides[fmt] = { image: { scale: 1, offsetX: 0, offsetY: 0 } };
+    }
+    if (!state.overrides[fmt].image) {
+      state.overrides[fmt].image = { scale: 1, offsetX: 0, offsetY: 0 };
+    }
+    return state.overrides[fmt];
+  }
+
+  function optsFor(fmt) {
+    return {
+      override: state.overrides[fmt] || null,
+      ctaColor: state.ctaColor,
+      textColor: state.textColor,
+      showLogo: state.showLogo,
+      badgeColor: state.badgeColor || (state.brand && state.brand.colors.primary),
+    };
   }
 
   // ---------- načtení brandu ----------
   async function loadBrand() {
     try {
-      const res = await fetch('brand.json', { cache: 'no-store' });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      state.brand = await res.json();
+      if (window.__BRAND__) {
+        state.brand = window.__BRAND__;
+      } else {
+        const res = await fetch('brand.json', { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        state.brand = await res.json();
+      }
     } catch (e) {
       console.warn('brand.json se nepodařilo načíst, používám výchozí.', e);
       state.brand = {
@@ -85,19 +128,16 @@
         logoText: 'BRAND',
       };
     }
+    if (!state.badgeColor) state.badgeColor = state.brand.colors.primary;
     await loadBrandFonts();
     applyBrandToUI();
   }
 
-  // Načte fonty z brand.json (url může být lokální fonts.css i CDN) a počká
-  // na jejich dostupnost, aby canvas kreslil správným písmem.
   async function loadBrandFonts() {
     const fonts = state.brand.fonts || {};
     const urls = new Set();
     Object.values(fonts).forEach((f) => f && f.url && urls.add(f.url));
 
-    // Vlož stylesheety a počkej na jejich načtení — teprve pak jsou @font-face
-    // pravidla známá a je možné fonty přednačíst.
     const linkPromises = [];
     urls.forEach((url) => {
       if (document.querySelector(`link[href="${url}"]`)) return;
@@ -113,8 +153,6 @@
       document.head.appendChild(link);
     });
 
-    // Probe text pokrývá latin, latin-ext (Ěě Řř íé) i cyrilici (Бб гд),
-    // aby se přednačetly všechny potřebné subsety pro všechny jazyky.
     const probeText = 'AaĚěŘříé Ббгд 0123';
     const weights = [400, 500, 600, 700, 800];
 
@@ -146,9 +184,8 @@
     root.style.setProperty('--brand-primary', c.primary);
     root.style.setProperty('--brand-secondary', c.secondary);
     root.style.setProperty('--brand-accent', c.accent);
-    root.style.setProperty('--brand-cta', c.ctaBackground);
+    root.style.setProperty('--brand-cta', state.ctaColor);
     $('#brandName').textContent = state.brand.name || 'Brand';
-    // ukázka barev
     const swatches = $('#brandSwatches');
     swatches.innerHTML = '';
     Object.entries(c).forEach(([key, val]) => {
@@ -159,9 +196,9 @@
       swatches.appendChild(chip);
     });
     $('#brandFonts').textContent =
-      (state.brand.fonts.heading.family.split(',')[0].replace(/['"]/g, '')) +
+      state.brand.fonts.heading.family.split(',')[0].replace(/['"]/g, '') +
       ' / ' +
-      (state.brand.fonts.body.family.split(',')[0].replace(/['"]/g, ''));
+      state.brand.fonts.body.family.split(',')[0].replace(/['"]/g, '');
   }
 
   // ---------- render offscreen ----------
@@ -173,7 +210,7 @@
     const ctx = canvas.getContext('2d');
     const dataURL = state.images[version] || state.images.full || state.images.safe || null;
     const img = await loadImage(dataURL);
-    renderBanner(ctx, format, specFor(lang), state.brand, img);
+    renderBanner(ctx, format, specFor(lang), state.brand, img, optsFor(formatId));
     return canvas;
   }
 
@@ -248,6 +285,26 @@
     $('#activeLangLabel').textContent = langByCode(state.activeLang).label;
   }
 
+  function syncLayoutControls() {
+    const ov = state.overrides[state.activeFormat];
+    const img = (ov && ov.image) || { scale: 1, offsetX: 0, offsetY: 0 };
+    $('#imgZoom').value = Math.round((img.scale || 1) * 100);
+    $('#zoomVal').textContent = $('#imgZoom').value + '%';
+    $('#imgX').value = Math.round((img.offsetX || 0) * 100);
+    $('#imgY').value = Math.round((img.offsetY || 0) * 100);
+    $('#imgFmtLabel').textContent = state.activeFormat;
+    $('#layoutMode').textContent = ov && ov.manual ? 'ruční' : 'automatické';
+  }
+
+  function syncStyleControls() {
+    $('#ctaColor').value = state.ctaColor;
+    $('#textColor').value = state.textColor;
+    $('#showLogo').checked = state.showLogo;
+    $('#discountShow').checked = state.discount.show;
+    $('#discountText').value = state.discount.text;
+    $('#discountColor').value = state.badgeColor || (state.brand && state.brand.colors.primary) || '#DC004E';
+  }
+
   // ---------- náhled ----------
   let renderScheduled = false;
   function scheduleRender() {
@@ -260,23 +317,21 @@
   }
 
   async function renderPreview() {
-    // hlavní náhled
     const format = formatById(state.activeFormat);
     const mainCanvas = $('#mainPreview');
     mainCanvas.width = format.width;
     mainCanvas.height = format.height;
     const ctx = mainCanvas.getContext('2d');
     const img = await loadImage(currentImageDataURL());
-    renderBanner(ctx, format, specFor(state.activeLang), state.brand, img);
+    lastLayout = renderBanner(ctx, format, specFor(state.activeLang), state.brand, img, optsFor(state.activeFormat));
     $('#previewMeta').textContent =
       `${format.id} · ${format.label} · ${state.activeLang} · ${state.version.toUpperCase()}`;
-
-    // galerie všech formátů (aktivní jazyk)
+    syncLayoutControls();
     renderGallery(img);
     saveAutosave();
   }
 
-  async function renderGallery(img) {
+  function renderGallery(img) {
     const gallery = $('#gallery');
     gallery.innerHTML = '';
     for (const f of FORMATS) {
@@ -286,8 +341,7 @@
       canvas.width = f.width;
       canvas.height = f.height;
       const ctx = canvas.getContext('2d');
-      renderBanner(ctx, f, specFor(state.activeLang), state.brand, img);
-      // omez zobrazenou velikost
+      renderBanner(ctx, f, specFor(state.activeLang), state.brand, img, optsFor(f.id));
       const maxW = 150, maxH = 120;
       const s = Math.min(maxW / f.width, maxH / f.height, 1);
       canvas.style.width = Math.round(f.width * s) + 'px';
@@ -304,6 +358,106 @@
       });
       gallery.appendChild(cell);
     }
+  }
+
+  // ---------- interaktivní editor (tažení prvků) ----------
+  let drag = null;
+
+  function canvasCoords(e) {
+    const c = $('#mainPreview');
+    const rect = c.getBoundingClientRect();
+    return {
+      x: ((e.clientX - rect.left) / rect.width) * c.width,
+      y: ((e.clientY - rect.top) / rect.height) * c.height,
+    };
+  }
+
+  function inside(p, box, pad) {
+    pad = pad || 0;
+    return (
+      p.x >= box.x - pad && p.x <= box.x + box.w + pad &&
+      p.y >= box.y - pad && p.y <= box.y + box.h + pad
+    );
+  }
+
+  function hitTest(p) {
+    const order = ['badge', 'cta', 'subline', 'headline'];
+    for (const k of order) {
+      const b = lastLayout.boxes[k];
+      if (b && inside(p, b, 6)) return k;
+    }
+    if (lastLayout.imageRect && inside(p, lastLayout.imageRect, 0) && currentImageDataURL()) {
+      return 'image';
+    }
+    return null;
+  }
+
+  function seedManual(ov, format) {
+    ['headline', 'subline', 'cta'].forEach((el) => {
+      const b = lastLayout.boxes[el];
+      if (b) ov[el] = { x: b.x / format.width, y: b.y / format.height };
+    });
+    ov.manual = true;
+  }
+
+  function onPointerDown(e) {
+    const p = canvasCoords(e);
+    const hit = hitTest(p);
+    if (!hit) return;
+    const fmt = state.activeFormat;
+    const format = formatById(fmt);
+    const ov = ensureOverride(fmt);
+
+    if (hit === 'image') {
+      drag = {
+        kind: 'image',
+        downX: p.x, downY: p.y,
+        orig: { ...ov.image },
+        rect: lastLayout.imageRect,
+      };
+    } else {
+      if ((hit === 'headline' || hit === 'subline' || hit === 'cta') && !ov.manual) {
+        seedManual(ov, format);
+      }
+      if (hit === 'badge' && !ov.badge) {
+        const b = lastLayout.boxes.badge;
+        ov.badge = { x: (b.x + b.w / 2) / format.width, y: (b.y + b.h / 2) / format.height };
+      }
+      const cur = ov[hit] || { x: 0, y: 0 };
+      drag = { kind: 'el', el: hit, downX: p.x, downY: p.y, origX: cur.x, origY: cur.y, W: format.width, H: format.height };
+    }
+    $('#mainPreview').classList.add('dragging');
+    e.preventDefault();
+    try { e.target.setPointerCapture(e.pointerId); } catch (_) {}
+  }
+
+  function onPointerMove(e) {
+    if (!drag) return;
+    const p = canvasCoords(e);
+    const ov = state.overrides[state.activeFormat];
+    if (drag.kind === 'el') {
+      const nx = clamp(drag.origX + (p.x - drag.downX) / drag.W, 0, 0.99);
+      const ny = clamp(drag.origY + (p.y - drag.downY) / drag.H, 0, 0.99);
+      ov[drag.el] = { x: nx, y: ny };
+    } else {
+      ov.image = ov.image || { scale: 1, offsetX: 0, offsetY: 0 };
+      ov.image.offsetX = clamp(drag.orig.offsetX + (p.x - drag.downX) / (drag.rect.w / 2), -1, 1);
+      ov.image.offsetY = clamp(drag.orig.offsetY + (p.y - drag.downY) / (drag.rect.h / 2), -1, 1);
+    }
+    scheduleRender();
+  }
+
+  function onPointerUp() {
+    if (!drag) return;
+    drag = null;
+    $('#mainPreview').classList.remove('dragging');
+    saveAutosave();
+  }
+
+  function onHoverMove(e) {
+    if (drag) return;
+    const p = canvasCoords(e);
+    $('#mainPreview').style.cursor = hitTest(p) ? 'grab' : 'default';
   }
 
   // ---------- export PNG ----------
@@ -331,7 +485,7 @@
   async function exportBatchZip() {
     const formats = $$('#exportFormats input:checked').map((i) => i.value);
     const langs = $$('#exportLangs input:checked').map((i) => i.value);
-    const versionSel = $('#exportVersion').value; // 'current' | 'safe' | 'full' | 'both'
+    const versionSel = $('#exportVersion').value;
     let versions;
     if (versionSel === 'both') versions = ['safe', 'full'];
     else if (versionSel === 'current') versions = [state.version];
@@ -377,13 +531,19 @@
   // ---------- localStorage: rozpracované projekty ----------
   function serializeState() {
     return {
-      v: 1,
+      v: 2,
       activeFormat: state.activeFormat,
       activeLang: state.activeLang,
       template: state.template,
       version: state.version,
       images: state.images,
       texts: state.texts,
+      ctaColor: state.ctaColor,
+      textColor: state.textColor,
+      showLogo: state.showLogo,
+      discount: state.discount,
+      badgeColor: state.badgeColor,
+      overrides: state.overrides,
       savedAt: new Date().toISOString(),
     };
   }
@@ -396,7 +556,13 @@
     state.version = data.version || state.version;
     state.images = data.images || { safe: null, full: null };
     state.texts = data.texts || {};
-    // sync UI
+    if (data.ctaColor) state.ctaColor = data.ctaColor;
+    if (data.textColor) state.textColor = data.textColor;
+    if (typeof data.showLogo === 'boolean') state.showLogo = data.showLogo;
+    if (data.discount) state.discount = data.discount;
+    if (data.badgeColor) state.badgeColor = data.badgeColor;
+    state.overrides = data.overrides || {};
+
     $('#formatSelect').value = state.activeFormat;
     $('#templateSelect').value = state.template;
     $('#templateDesc').textContent = TEMPLATES.find((t) => t.id === state.template).description;
@@ -404,6 +570,8 @@
     updateImageThumbs();
     buildLangTabs();
     syncTextInputs();
+    syncStyleControls();
+    document.documentElement.style.setProperty('--brand-cta', state.ctaColor);
     renderPreview();
   }
 
@@ -570,6 +738,72 @@
       renderPreview();
     });
 
+    // rozvržení obrázku
+    $('#imgZoom').addEventListener('input', (e) => {
+      const ov = ensureOverride(state.activeFormat);
+      ov.image.scale = (+e.target.value) / 100;
+      $('#zoomVal').textContent = e.target.value + '%';
+      scheduleRender();
+    });
+    $('#imgX').addEventListener('input', (e) => {
+      const ov = ensureOverride(state.activeFormat);
+      ov.image.offsetX = (+e.target.value) / 100;
+      scheduleRender();
+    });
+    $('#imgY').addEventListener('input', (e) => {
+      const ov = ensureOverride(state.activeFormat);
+      ov.image.offsetY = (+e.target.value) / 100;
+      scheduleRender();
+    });
+    $('#btnResetLayout').addEventListener('click', () => {
+      delete state.overrides[state.activeFormat];
+      syncLayoutControls();
+      renderPreview();
+      setStatus('Rozvržení tohoto rozměru resetováno.');
+    });
+
+    // styl prvků
+    $('#ctaColor').addEventListener('input', (e) => {
+      state.ctaColor = e.target.value;
+      document.documentElement.style.setProperty('--brand-cta', state.ctaColor);
+      scheduleRender();
+    });
+    $$('.swatch-btn[data-cta]').forEach((b) =>
+      b.addEventListener('click', () => {
+        state.ctaColor = b.getAttribute('data-cta');
+        $('#ctaColor').value = state.ctaColor;
+        document.documentElement.style.setProperty('--brand-cta', state.ctaColor);
+        scheduleRender();
+      })
+    );
+    $('#textColor').addEventListener('change', (e) => {
+      state.textColor = e.target.value;
+      scheduleRender();
+    });
+    $('#showLogo').addEventListener('change', (e) => {
+      state.showLogo = e.target.checked;
+      scheduleRender();
+    });
+    $('#discountShow').addEventListener('change', (e) => {
+      state.discount.show = e.target.checked;
+      scheduleRender();
+    });
+    $('#discountText').addEventListener('input', (e) => {
+      state.discount.text = e.target.value;
+      scheduleRender();
+    });
+    $('#discountColor').addEventListener('input', (e) => {
+      state.badgeColor = e.target.value;
+      scheduleRender();
+    });
+
+    // tažení prvků v náhledu
+    const preview = $('#mainPreview');
+    preview.addEventListener('pointerdown', onPointerDown);
+    preview.addEventListener('pointermove', onHoverMove);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+
     $('#btnExportPng').addEventListener('click', exportCurrentPNG);
     $('#btnExportZip').addEventListener('click', exportBatchZip);
 
@@ -593,11 +827,12 @@
     buildLangTabs();
     buildExportCheckboxes();
     syncTextInputs();
+    syncStyleControls();
     updateImageThumbs();
+    document.documentElement.style.setProperty('--brand-cta', state.ctaColor);
     wireEvents();
     refreshProjectList();
 
-    // obnovit autosave, pokud existuje
     try {
       const auto = localStorage.getItem(AUTOSAVE_KEY);
       if (auto) applySerialized(JSON.parse(auto));
