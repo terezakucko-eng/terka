@@ -333,14 +333,22 @@
     });
   }
 
+  // Vykreslí do canvasu s kapnutým rozlišením (kvůli velmi velkým formátům),
+  // ale layout počítá v reálných rozměrech → náhled odpovídá exportu.
+  function renderIntoCanvas(canvas, format, lang, img, maxDim) {
+    const k = Math.min(1, maxDim / Math.max(format.width, format.height));
+    canvas.width = Math.round(format.width * k);
+    canvas.height = Math.round(format.height * k);
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(k, 0, 0, k, 0, 0);
+    return renderBanner(ctx, format, specFor(lang), state.brand, img, optsFor(format.id));
+  }
+
   async function renderPreview() {
     const format = formatById(state.activeFormat);
     const mainCanvas = $('#mainPreview');
-    mainCanvas.width = format.width;
-    mainCanvas.height = format.height;
-    const ctx = mainCanvas.getContext('2d');
     const img = await loadImage(currentImageDataURL());
-    lastLayout = renderBanner(ctx, format, specFor(state.activeLang), state.brand, img, optsFor(state.activeFormat));
+    lastLayout = renderIntoCanvas(mainCanvas, format, state.activeLang, img, 1600);
     $('#previewMeta').textContent =
       `${format.id} · ${format.label} · ${state.activeLang} · ${state.version.toUpperCase()}`;
     syncLayoutControls();
@@ -359,10 +367,7 @@
       const cell = document.createElement('div');
       cell.className = 'gallery-cell' + (f.id === state.activeFormat ? ' active' : '');
       const canvas = document.createElement('canvas');
-      canvas.width = f.width;
-      canvas.height = f.height;
-      const ctx = canvas.getContext('2d');
-      renderBanner(ctx, f, specFor(state.activeLang), state.brand, img, optsFor(f.id));
+      renderIntoCanvas(canvas, f, state.activeLang, img, 360);
       const maxW = 150, maxH = 120;
       const s = Math.min(maxW / f.width, maxH / f.height, 1);
       canvas.style.width = Math.round(f.width * s) + 'px';
@@ -387,9 +392,11 @@
   function canvasCoords(e) {
     const c = $('#mainPreview');
     const rect = c.getBoundingClientRect();
+    // mapuj na REÁLNÉ rozměry formátu (náhled může mít kapnuté rozlišení)
+    const format = formatById(state.activeFormat);
     return {
-      x: ((e.clientX - rect.left) / rect.width) * c.width,
-      y: ((e.clientY - rect.top) / rect.height) * c.height,
+      x: ((e.clientX - rect.left) / rect.width) * format.width,
+      y: ((e.clientY - rect.top) / rect.height) * format.height,
     };
   }
 

@@ -21,11 +21,64 @@
       ],
     },
     {
+      id: 'kategorie',
+      label: '2. Banner kategorie',
+      formats: [{ w: 1144, h: 395 }],
+    },
+    {
+      id: 'rozcestnik',
+      label: '4. Banner rozcestník',
+      formats: [{ w: 500, h: 500 }],
+    },
+    {
       id: 'newsletter',
       label: '5. Newsletter',
       formats: [
         { w: 1280, h: 1800, note: 'hlavní' },
         { w: 1280, h: 400, note: 'proužek' },
+      ],
+    },
+    {
+      // Návrh běžných affiliate/display rozměrů (upravitelné dle sítě).
+      id: 'affiliate',
+      label: '6. Affiliate (návrh)',
+      formats: [
+        { w: 300, h: 250 }, { w: 300, h: 600 }, { w: 728, h: 90 },
+        { w: 970, h: 250 }, { w: 160, h: 600 }, { w: 320, h: 100 },
+        { w: 250, h: 250 }, { w: 336, h: 280 },
+      ],
+    },
+    {
+      // Podporované rozměry bannerů Sklik (napoveda.sklik.cz).
+      id: 'sklik',
+      label: '7. PPC Sklik',
+      formats: [
+        { w: 300, h: 250 }, { w: 320, h: 100 }, { w: 480, h: 300 },
+        { w: 728, h: 90 }, { w: 970, h: 210 }, { w: 970, h: 310 },
+        { w: 500, h: 200 }, { w: 160, h: 600 }, { w: 300, h: 600 },
+        { w: 300, h: 300 }, { w: 480, h: 480 },
+      ],
+    },
+    {
+      // Firmy.cz úvodní fotografie (na šířku, min 1200×800).
+      id: 'firmy-reklama',
+      label: '8. Firmy.cz – reklama',
+      formats: [{ w: 1200, h: 800, note: 'úvodní foto' }],
+    },
+    {
+      // Firmy.cz branding (hlavní sdělení v horních 1366×720).
+      id: 'firmy-branding',
+      label: '9. Firmy.cz – branding',
+      formats: [{ w: 2000, h: 1400, note: 'safe zóna 1366×720 nahoře' }],
+    },
+    {
+      // Google Business Profile (Google firmy).
+      id: 'google-firmy',
+      label: '10. Google firmy',
+      formats: [
+        { w: 1024, h: 575, note: 'cover' },
+        { w: 720, h: 720, note: 'logo/foto' },
+        { w: 1200, h: 900, note: 'příspěvek' },
       ],
     },
     {
@@ -47,6 +100,14 @@
       formats: [
         { w: 1080, h: 1080, note: 'feed' },
         { w: 1080, h: 1920, note: 'story' },
+      ],
+    },
+    {
+      id: 'prodejny',
+      label: '15. Grafika pro prodejny',
+      formats: [
+        { w: 1920, h: 1080 },
+        { w: 4353, h: 4535 },
       ],
     },
   ];
