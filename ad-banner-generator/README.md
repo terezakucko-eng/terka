@@ -75,11 +75,15 @@ nebo `npx serve`, `php -S localhost:8080` apod.
 Fonty pro Růžového Slona (Montserrat + Roboto) jsou převzaty z firemního
 design manuálu.
 
-## Rozšíření o nový formát / jazyk
+## Rozšíření o nový kanál / rozměr / jazyk
 
-Vše je v [`js/config.js`](js/config.js):
+Vše je v [`js/config.js`](js/config.js). Formáty jsou organizované podle
+**kanálů** (kam banner poletí — Web HP, Newsletter, Heureka, Instagram…):
 
-- **Nový formát** → přidej položku do `FORMATS` (`id`, `label`, `width`, `height`).
+- **Nový rozměr** → přidej `{ w, h, note? }` do `formats` příslušného kanálu.
+- **Nový kanál** → přidej položku do `CHANNELS` (`id`, `label`, `formats`).
+  Ploché pole `FORMATS` (které používá zbytek appky) se z kanálů odvodí samo,
+  stejně jako seskupení ve výběru formátu, v galerii i v exportu.
 - **Nový jazyk** → přidej položku do `LANGUAGES` (`code`, `label`, `defaults`).
 - **Nová šablona** → přidej do `TEMPLATES` a doplň větev v `js/renderer.js`.
 

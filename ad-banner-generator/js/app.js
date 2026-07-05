@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  const { FORMATS, LANGUAGES, TEMPLATES } = window.BannerConfig;
+  const { CHANNELS, FORMATS, LANGUAGES, TEMPLATES } = window.BannerConfig;
   const { renderBanner } = window.BannerRenderer;
 
   const STORAGE_PREFIX = 'abg:project:';
@@ -218,11 +218,16 @@
   function buildFormatSelect() {
     const sel = $('#formatSelect');
     sel.innerHTML = '';
-    FORMATS.forEach((f) => {
-      const opt = document.createElement('option');
-      opt.value = f.id;
-      opt.textContent = `${f.id} — ${f.label}`;
-      sel.appendChild(opt);
+    CHANNELS.forEach((ch) => {
+      const og = document.createElement('optgroup');
+      og.label = ch.label;
+      FORMATS.filter((f) => f.channel === ch.id).forEach((f) => {
+        const opt = document.createElement('option');
+        opt.value = f.id;
+        opt.textContent = f.label;
+        og.appendChild(opt);
+      });
+      sel.appendChild(og);
     });
     sel.value = state.activeFormat;
   }
@@ -261,11 +266,23 @@
   function buildExportCheckboxes() {
     const fWrap = $('#exportFormats');
     fWrap.innerHTML = '';
-    FORMATS.forEach((f) => {
-      const label = document.createElement('label');
-      label.className = 'chk';
-      label.innerHTML = `<input type="checkbox" value="${f.id}" checked> ${f.id}`;
-      fWrap.appendChild(label);
+    CHANNELS.forEach((ch) => {
+      const grp = document.createElement('div');
+      grp.className = 'exp-channel';
+      const head = document.createElement('div');
+      head.className = 'exp-channel-head';
+      head.textContent = ch.label;
+      grp.appendChild(head);
+      const row = document.createElement('div');
+      row.className = 'chk-grid';
+      FORMATS.filter((f) => f.channel === ch.id).forEach((f) => {
+        const label = document.createElement('label');
+        label.className = 'chk';
+        label.innerHTML = `<input type="checkbox" value="${f.id}" checked> ${f.width}×${f.height}`;
+        row.appendChild(label);
+      });
+      grp.appendChild(row);
+      fWrap.appendChild(grp);
     });
     const lWrap = $('#exportLangs');
     lWrap.innerHTML = '';
@@ -334,7 +351,11 @@
   function renderGallery(img) {
     const gallery = $('#gallery');
     gallery.innerHTML = '';
-    for (const f of FORMATS) {
+    const active = formatById(state.activeFormat);
+    const title = $('#galleryTitle');
+    if (title) title.textContent = `${active.channelLabel} — všechny rozměry (${state.activeLang})`;
+    const list = FORMATS.filter((f) => f.channel === active.channel);
+    for (const f of list) {
       const cell = document.createElement('div');
       cell.className = 'gallery-cell' + (f.id === state.activeFormat ? ' active' : '');
       const canvas = document.createElement('canvas');
@@ -562,6 +583,10 @@
     if (data.discount) state.discount = data.discount;
     if (data.badgeColor) state.badgeColor = data.badgeColor;
     state.overrides = data.overrides || {};
+
+    // pojistka proti neplatnému uloženému formátu/jazyku (např. starší verze)
+    if (!formatById(state.activeFormat)) state.activeFormat = FORMATS[0].id;
+    if (!langByCode(state.activeLang)) state.activeLang = LANGUAGES[0].code;
 
     $('#formatSelect').value = state.activeFormat;
     $('#templateSelect').value = state.template;
