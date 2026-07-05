@@ -1,27 +1,41 @@
 {
-  "name": "Acme Brand",
+  "name": "Růžový Slon",
+  "source": "Google Drive → Design_manual → ruzovy_slon_design_manual (V1.0, 9. 9. 2022)",
   "colors": {
-    "primary": "#0B5FFF",
-    "secondary": "#0A2540",
-    "accent": "#FF7A00",
+    "primary": "#DC004E",
+    "secondary": "#1F0F36",
+    "accent": "#985FA3",
     "background": "#FFFFFF",
-    "surface": "#F4F7FB",
-    "text": "#0A2540",
-    "textMuted": "#5A6B82",
-    "ctaBackground": "#FF7A00",
+    "surface": "#FCEAEA",
+    "text": "#1F0F36",
+    "textMuted": "#8A7C93",
+    "ctaBackground": "#DC004E",
     "ctaText": "#FFFFFF"
   },
   "fonts": {
     "heading": {
-      "family": "Poppins, 'Segoe UI', Arial, sans-serif",
-      "weight": 700,
-      "url": "https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap"
+      "family": "Montserrat, 'Segoe UI', Arial, sans-serif",
+      "weight": 800,
+      "url": "https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800&display=swap"
     },
     "body": {
-      "family": "Inter, 'Segoe UI', Arial, sans-serif",
+      "family": "Roboto, 'Segoe UI', Arial, sans-serif",
       "weight": 400,
-      "url": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+      "url": "https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
     }
   },
-  "logoText": "ACME"
+  "logoText": "Růžový Slon",
+  "palette": {
+    "primaryPink": "#DC004E",
+    "darkViolet": "#1F0F36",
+    "lightPink": "#F8C7C8",
+    "lightestPink": "#FCEAEA",
+    "pink": "#F29BA8",
+    "white": "#FFFFFF",
+    "teal": "#11AAAA",
+    "yellow": "#F4B945",
+    "violet": "#985FA3",
+    "blue": "#114CAA",
+    "green": "#2FB773"
+  }
 }
