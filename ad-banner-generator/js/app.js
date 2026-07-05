@@ -24,6 +24,7 @@
     // styl prvků (globální)
     ctaColor: '#2FB773', // zelená z palety manuálu
     textColor: 'auto', // 'auto' | 'light' | 'dark'
+    textScale: 1, // násobič velikosti textů (0.6–2.5)
     showLogo: true,
     discount: { show: false, text: '-20 %' },
     badgeColor: null, // null = primární barva značky
@@ -97,6 +98,7 @@
       override: state.overrides[fmt] || null,
       ctaColor: state.ctaColor,
       textColor: state.textColor,
+      textScale: state.textScale,
       showLogo: state.showLogo,
       badgeColor: state.badgeColor || (state.brand && state.brand.colors.primary),
     };
@@ -316,6 +318,8 @@
   function syncStyleControls() {
     $('#ctaColor').value = state.ctaColor;
     $('#textColor').value = state.textColor;
+    $('#textScale').value = Math.round(state.textScale * 100);
+    $('#textScaleVal').textContent = Math.round(state.textScale * 100) + '%';
     $('#showLogo').checked = state.showLogo;
     $('#discountShow').checked = state.discount.show;
     $('#discountText').value = state.discount.text;
@@ -621,6 +625,7 @@
       texts: state.texts,
       ctaColor: state.ctaColor,
       textColor: state.textColor,
+      textScale: state.textScale,
       showLogo: state.showLogo,
       discount: state.discount,
       badgeColor: state.badgeColor,
@@ -639,6 +644,7 @@
     state.texts = data.texts || {};
     if (data.ctaColor) state.ctaColor = data.ctaColor;
     if (data.textColor) state.textColor = data.textColor;
+    if (data.textScale) state.textScale = data.textScale;
     if (typeof data.showLogo === 'boolean') state.showLogo = data.showLogo;
     if (data.discount) state.discount = data.discount;
     if (data.badgeColor) state.badgeColor = data.badgeColor;
@@ -863,6 +869,11 @@
     );
     $('#textColor').addEventListener('change', (e) => {
       state.textColor = e.target.value;
+      scheduleRender();
+    });
+    $('#textScale').addEventListener('input', (e) => {
+      state.textScale = (+e.target.value) / 100;
+      $('#textScaleVal').textContent = e.target.value + '%';
       scheduleRender();
     });
     $('#showLogo').addEventListener('change', (e) => {

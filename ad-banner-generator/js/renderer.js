@@ -106,10 +106,10 @@
   }
 
   // ---------- CTA ----------
-  function ctaMetrics(ctx, spec, brand, scale) {
+  function ctaMetrics(ctx, spec, brand, scale, ts) {
     const text = (spec.cta || '').trim();
     if (!text) return null;
-    const fontSize = Math.max(9, Math.round(13 * scale));
+    const fontSize = Math.max(9, Math.round(13 * scale * (ts || 1)));
     ctx.font = `600 ${fontSize}px ${brand.fonts.heading.family}`;
     const padX = Math.round(fontSize * 1.1);
     const padY = Math.round(fontSize * 0.6);
@@ -128,12 +128,18 @@
     ctx.fillText(m.text, x + m.w / 2, y + m.h / 2 + 1);
   }
 
-  // Odznak ve tvaru "pusinky" (špičatý ovál / lens) s hodnotou slevy.
-  function badgePath(ctx, cx, cy, halfW, halfH) {
+  // Odznak ve tvaru "pusinky" (rty Růžového Slona) s hodnotou slevy.
+  // Špičaté rohy vlevo/vpravo, horní ret s prohlubní uprostřed (cupid's bow),
+  // spodní ret plná oblá křivka.
+  function badgePath(ctx, cx, cy, W, H) {
     ctx.beginPath();
-    ctx.moveTo(cx - halfW, cy);
-    ctx.quadraticCurveTo(cx, cy - 2 * halfH, cx + halfW, cy);
-    ctx.quadraticCurveTo(cx, cy + 2 * halfH, cx - halfW, cy);
+    ctx.moveTo(cx - W, cy);
+    // horní ret: levá špička → levý hrbolek → prohlubeň uprostřed
+    ctx.bezierCurveTo(cx - W * 0.58, cy - H * 1.5, cx - W * 0.2, cy - H * 1.12, cx, cy - H * 0.5);
+    // → pravý hrbolek → pravá špička
+    ctx.bezierCurveTo(cx + W * 0.2, cy - H * 1.12, cx + W * 0.58, cy - H * 1.5, cx + W, cy);
+    // spodní ret: plná oblá křivka zpět k levé špičce
+    ctx.bezierCurveTo(cx + W * 0.52, cy + H * 1.4, cx - W * 0.52, cy + H * 1.4, cx - W, cy);
     ctx.closePath();
   }
 
@@ -143,8 +149,8 @@
     const fontSize = Math.max(12, Math.round(20 * scale));
     ctx.font = `800 ${fontSize}px ${brand.fonts.heading.family}`;
     const tw = ctx.measureText(t).width;
-    const halfW = tw / 2 + fontSize * 1.15;
-    const halfH = fontSize / 2 + fontSize * 0.85;
+    const halfW = tw / 2 + fontSize * 1.35;
+    const halfH = fontSize * 1.5;
     return { text: t, fontSize, halfW, halfH };
   }
 
@@ -285,14 +291,15 @@
   }
 
   // ---------- automatické rozvržení textů (v oblasti) ----------
-  function layoutTextsAuto(ctx, format, spec, brand, colors, ctaColor, region, orient, scale, pad, valign) {
+  function layoutTextsAuto(ctx, format, spec, brand, colors, ctaColor, region, orient, scale, pad, valign, ts) {
     if (orient === 'horizontal') {
-      return layoutHorizontal(ctx, format, spec, brand, colors, ctaColor, region, scale, pad);
+      return layoutHorizontal(ctx, format, spec, brand, colors, ctaColor, region, scale, pad, ts);
     }
-    return layoutStacked(ctx, format, spec, brand, colors, ctaColor, region, scale, pad, valign);
+    return layoutStacked(ctx, format, spec, brand, colors, ctaColor, region, scale, pad, valign, ts);
   }
 
-  function layoutStacked(ctx, format, spec, brand, colors, ctaColor, region, scale, pad, valign) {
+  function layoutStacked(ctx, format, spec, brand, colors, ctaColor, region, scale, pad, valign, ts) {
+    const st = scale * (ts || 1);
     const innerX = region.x + pad;
     const maxWidth = region.w - pad * 2;
     const hFont = brand.fonts.heading;
@@ -303,10 +310,10 @@
       fontFamily: hFont.family,
       fontWeight: hFont.weight || 700,
       maxWidth: maxWidth,
-      maxHeight: region.h * 0.4,
+      maxHeight: region.h * (ts > 1 ? 0.7 : 0.4),
       maxLines: region.h > 300 ? 3 : 2,
-      maxSize: Math.round(28 * scale),
-      minSize: Math.max(12, Math.round(13 * scale)),
+      maxSize: Math.round(28 * st),
+      minSize: Math.max(9, Math.round(13 * st)),
     });
     const subline =
       spec.subline && spec.subline.trim()
@@ -314,15 +321,15 @@
             fontFamily: bFont.family,
             fontWeight: bFont.weight || 400,
             maxWidth: maxWidth,
-            maxHeight: region.h * 0.3,
+            maxHeight: region.h * (ts > 1 ? 0.5 : 0.3),
             maxLines: region.h > 300 ? 3 : 2,
-            maxSize: Math.round(15 * scale),
-            minSize: Math.max(10, Math.round(11 * scale)),
+            maxSize: Math.round(15 * st),
+            minSize: Math.max(8, Math.round(11 * st)),
           })
         : null;
 
     const gap = Math.round(6 * scale);
-    const cta = ctaMetrics(ctx, spec, brand, scale);
+    const cta = ctaMetrics(ctx, spec, brand, scale, ts);
     const headlineH = headline.lines.length * headline.lineHeight;
     const sublineH = subline ? subline.lines.length * subline.lineHeight : 0;
     const totalH = headlineH + (subline ? gap + sublineH : 0) + (cta ? gap * 1.6 + cta.h : 0);
@@ -359,11 +366,12 @@
     return boxes;
   }
 
-  function layoutHorizontal(ctx, format, spec, brand, colors, ctaColor, region, scale, pad) {
+  function layoutHorizontal(ctx, format, spec, brand, colors, ctaColor, region, scale, pad, ts) {
+    const st = scale * (ts || 1);
     const hFont = brand.fonts.heading;
     const bFont = brand.fonts.body;
     const boxes = {};
-    const cta = ctaMetrics(ctx, spec, brand, scale);
+    const cta = ctaMetrics(ctx, spec, brand, scale, ts);
     const ctaW = cta ? cta.w + pad : 0;
 
     const textX = region.x + pad;
@@ -373,10 +381,10 @@
       fontFamily: hFont.family,
       fontWeight: hFont.weight || 700,
       maxWidth: textMaxW,
-      maxHeight: region.h * 0.6,
+      maxHeight: region.h * 0.85,
       maxLines: region.h < 110 ? 1 : 2,
-      maxSize: Math.round(Math.min(region.h * 0.42, 24 * scale)),
-      minSize: Math.max(11, Math.round(12 * scale)),
+      maxSize: Math.round(Math.min(region.h * 0.42 * (ts || 1), 24 * st)),
+      minSize: Math.max(9, Math.round(12 * st)),
     });
     const showSub = spec.subline && spec.subline.trim() && region.h >= 90;
     const subline = showSub
@@ -384,10 +392,10 @@
           fontFamily: bFont.family,
           fontWeight: bFont.weight || 400,
           maxWidth: textMaxW,
-          maxHeight: region.h * 0.35,
+          maxHeight: region.h * 0.45,
           maxLines: 1,
-          maxSize: Math.round(Math.min(region.h * 0.28, 14 * scale)),
-          minSize: Math.max(9, Math.round(10 * scale)),
+          maxSize: Math.round(Math.min(region.h * 0.28 * (ts || 1), 14 * st)),
+          minSize: Math.max(8, Math.round(10 * st)),
         })
       : null;
 
@@ -421,9 +429,10 @@
   }
 
   // ---------- ruční rozvržení textů (volné pozice) ----------
-  function layoutTextsManual(ctx, format, spec, brand, colors, ctaColor, ov, scale, pad) {
+  function layoutTextsManual(ctx, format, spec, brand, colors, ctaColor, ov, scale, pad, ts) {
     const W = format.width;
     const H = format.height;
+    const st = scale * (ts || 1);
     const hFont = brand.fonts.heading;
     const bFont = brand.fonts.body;
     const boxes = {};
@@ -440,9 +449,9 @@
         fontWeight: font.weight || (isHeadline ? 700 : 400),
         maxWidth: maxWidth,
         maxHeight: H,
-        maxLines: isHeadline ? 3 : 3,
-        maxSize: isHeadline ? Math.round(30 * scale) : Math.round(15 * scale),
-        minSize: isHeadline ? Math.max(12, Math.round(13 * scale)) : Math.max(10, Math.round(11 * scale)),
+        maxLines: isHeadline ? 4 : 4,
+        maxSize: isHeadline ? Math.round(30 * st) : Math.round(15 * st),
+        minSize: isHeadline ? Math.max(9, Math.round(13 * st)) : Math.max(8, Math.round(11 * st)),
       });
       ctx.fillStyle = isHeadline ? colors.text : colors.muted;
       ctx.font = `${font.weight || (isHeadline ? 700 : 400)} ${fit.fontSize}px ${font.family}`;
@@ -453,7 +462,7 @@
     if (spec.headline && spec.headline.trim()) place('headline', true);
     if (spec.subline && spec.subline.trim()) place('subline', false);
 
-    const cta = ctaMetrics(ctx, spec, brand, scale);
+    const cta = ctaMetrics(ctx, spec, brand, scale, ts);
     if (cta && ov.cta) {
       const cx = ov.cta.x * W;
       const cy = ov.cta.y * H;
@@ -481,13 +490,14 @@
 
     const bg = drawBackground(ctx, format, spec, brand, image, orient, scale, pad, imgT);
     const colors = resolveTextColors(opts.textColor, bg.colors, brand);
+    const ts = opts.textScale || 1;
 
     let boxes;
     if (ov.manual) {
-      boxes = layoutTextsManual(ctx, format, spec, brand, colors, opts.ctaColor, ov, scale, pad);
+      boxes = layoutTextsManual(ctx, format, spec, brand, colors, opts.ctaColor, ov, scale, pad, ts);
     } else {
       boxes = layoutTextsAuto(
-        ctx, format, spec, brand, colors, opts.ctaColor, bg.region, orient, scale, pad, bg.valign
+        ctx, format, spec, brand, colors, opts.ctaColor, bg.region, orient, scale, pad, bg.valign, ts
       );
     }
 

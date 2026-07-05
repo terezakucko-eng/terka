@@ -75,8 +75,8 @@
               <span class="mode-pill">rozvržení: <span id="layoutMode">automatické</span></span>
             </div>
             <label class="slider">
-              <span>Zoom <b id="zoomVal">100%</b></span>
-              <input type="range" id="imgZoom" min="100" max="300" value="100" />
+              <span>Zoom (oddálit ↔ přiblížit) <b id="zoomVal">100%</b></span>
+              <input type="range" id="imgZoom" min="20" max="300" value="100" />
             </label>
             <label class="slider">
               <span>Posun X</span>
@@ -128,7 +128,11 @@
               <option value="dark">Tmavá</option>
             </select>
           </label>
-          <label class="chk block"><input type="checkbox" id="showLogo" checked /> Zobrazit logo v rohu</label>
+          <label class="slider">
+            <span>Velikost textu <b id="textScaleVal">100%</b></span>
+            <input type="range" id="textScale" min="60" max="250" value="100" />
+          </label>
+          <label class="chk block"><input type="checkbox" id="showLogo" checked /> Zobrazit logo „Růžový Slon" v rohu</label>
           <hr />
           <label class="chk block"><input type="checkbox" id="discountShow" /> Slevový odznak („pusinka")</label>
           <div class="inline2">
