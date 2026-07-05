@@ -134,12 +134,11 @@
   function badgePath(ctx, cx, cy, W, H) {
     ctx.beginPath();
     ctx.moveTo(cx - W, cy);
-    // horní ret: levá špička → levý hrbolek → prohlubeň uprostřed
-    ctx.bezierCurveTo(cx - W * 0.58, cy - H * 1.5, cx - W * 0.2, cy - H * 1.12, cx, cy - H * 0.5);
-    // → pravý hrbolek → pravá špička
-    ctx.bezierCurveTo(cx + W * 0.2, cy - H * 1.12, cx + W * 0.58, cy - H * 1.5, cx + W, cy);
+    // horní ret: levá špička → hrbolek → jemná prohlubeň uprostřed → hrbolek → pravá špička
+    ctx.bezierCurveTo(cx - W * 0.55, cy - H * 1.35, cx - W * 0.22, cy - H * 1.15, cx, cy - H * 0.82);
+    ctx.bezierCurveTo(cx + W * 0.22, cy - H * 1.15, cx + W * 0.55, cy - H * 1.35, cx + W, cy);
     // spodní ret: plná oblá křivka zpět k levé špičce
-    ctx.bezierCurveTo(cx + W * 0.52, cy + H * 1.4, cx - W * 0.52, cy + H * 1.4, cx - W, cy);
+    ctx.bezierCurveTo(cx + W * 0.5, cy + H * 1.32, cx - W * 0.5, cy + H * 1.32, cx - W, cy);
     ctx.closePath();
   }
 

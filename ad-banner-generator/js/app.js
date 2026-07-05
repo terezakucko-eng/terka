@@ -26,6 +26,7 @@
     textColor: 'auto', // 'auto' | 'light' | 'dark'
     textScale: 1, // násobič velikosti textů (0.6–2.5)
     showLogo: true,
+    showGuides: false, // vodicí středové lišty v náhledu
     discount: { show: false, text: '-20 %' },
     badgeColor: null, // null = primární barva značky
 
@@ -321,6 +322,7 @@
     $('#textScale').value = Math.round(state.textScale * 100);
     $('#textScaleVal').textContent = Math.round(state.textScale * 100) + '%';
     $('#showLogo').checked = state.showLogo;
+    $('#showGuides').checked = state.showGuides;
     $('#discountShow').checked = state.discount.show;
     $('#discountText').value = state.discount.text;
     $('#discountColor').value = state.badgeColor || (state.brand && state.brand.colors.primary) || '#DC004E';
@@ -339,16 +341,37 @@
 
   // Vykreslí do canvasu s kapnutým rozlišením (kvůli velmi velkým formátům),
   // ale layout počítá v reálných rozměrech → náhled odpovídá exportu.
-  function renderIntoCanvas(canvas, format, lang, img, maxDim, guides) {
+  function renderIntoCanvas(canvas, format, lang, img, maxDim, overlay) {
     const k = Math.min(1, maxDim / Math.max(format.width, format.height));
     canvas.width = Math.round(format.width * k);
     canvas.height = Math.round(format.height * k);
     const ctx = canvas.getContext('2d');
     ctx.setTransform(k, 0, 0, k, 0, 0);
     const layout = renderBanner(ctx, format, specFor(lang), state.brand, img, optsFor(format.id));
-    // vodicí safe zóna — jen v náhledu, NIKDY se neexportuje
-    if (guides && format.safeZone) drawSafeZone(ctx, format.safeZone);
+    // vodítka — jen v náhledu, NIKDY se neexportují
+    if (overlay) {
+      if (overlay.safeZone && format.safeZone) drawSafeZone(ctx, format.safeZone);
+      if (overlay.centerGuides || overlay.snapX || overlay.snapY) {
+        drawCenterGuides(ctx, format, overlay);
+      }
+    }
     return layout;
+  }
+
+  function drawCenterGuides(ctx, format, o) {
+    const W = format.width, H = format.height;
+    ctx.save();
+    // svislá lišta (střed X)
+    ctx.strokeStyle = o.snapX ? 'rgba(17,170,170,1)' : 'rgba(17,170,170,0.4)';
+    ctx.lineWidth = o.snapX ? 3 : 1.5;
+    ctx.setLineDash(o.snapX ? [] : [9, 8]);
+    ctx.beginPath(); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.stroke();
+    // vodorovná lišta (střed Y)
+    ctx.strokeStyle = o.snapY ? 'rgba(17,170,170,1)' : 'rgba(17,170,170,0.4)';
+    ctx.lineWidth = o.snapY ? 3 : 1.5;
+    ctx.setLineDash(o.snapY ? [] : [9, 8]);
+    ctx.beginPath(); ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2); ctx.stroke();
+    ctx.restore();
   }
 
   function drawSafeZone(ctx, s) {
@@ -381,7 +404,13 @@
     const format = formatById(state.activeFormat);
     const mainCanvas = $('#mainPreview');
     const img = await loadImage(currentImageDataURL());
-    lastLayout = renderIntoCanvas(mainCanvas, format, state.activeLang, img, 1600, true);
+    const overlay = {
+      safeZone: true,
+      centerGuides: state.showGuides || !!drag,
+      snapX: !!(drag && drag.snapX),
+      snapY: !!(drag && drag.snapY),
+    };
+    lastLayout = renderIntoCanvas(mainCanvas, format, state.activeLang, img, 1600, overlay);
     $('#previewMeta').textContent =
       `${format.id} · ${format.label} · ${state.activeLang} · ${state.version.toUpperCase()}`;
     syncLayoutControls();
@@ -496,15 +525,32 @@
     if (!drag) return;
     const p = canvasCoords(e);
     const ov = state.overrides[state.activeFormat];
+    const thr = 0.018; // práh přichycení na střed (~1,8 %)
+    let snapX = false, snapY = false;
     if (drag.kind === 'el') {
-      const nx = clamp(drag.origX + (p.x - drag.downX) / drag.W, 0, 0.99);
-      const ny = clamp(drag.origY + (p.y - drag.downY) / drag.H, 0, 0.99);
-      ov[drag.el] = { x: nx, y: ny };
+      let nx = drag.origX + (p.x - drag.downX) / drag.W;
+      let ny = drag.origY + (p.y - drag.downY) / drag.H;
+      const b = lastLayout.boxes[drag.el];
+      if (drag.el === 'badge') {
+        if (Math.abs(nx - 0.5) < thr) { nx = 0.5; snapX = true; }
+        if (Math.abs(ny - 0.5) < thr) { ny = 0.5; snapY = true; }
+      } else if (b) {
+        const bw = b.w / drag.W, bh = b.h / drag.H;
+        if (Math.abs(nx + bw / 2 - 0.5) < thr) { nx = 0.5 - bw / 2; snapX = true; }
+        if (Math.abs(ny + bh / 2 - 0.5) < thr) { ny = 0.5 - bh / 2; snapY = true; }
+      }
+      ov[drag.el] = { x: clamp(nx, 0, 0.99), y: clamp(ny, 0, 0.99) };
     } else {
       ov.image = ov.image || { scale: 1, offsetX: 0, offsetY: 0 };
-      ov.image.offsetX = clamp(drag.orig.offsetX + (p.x - drag.downX) / (drag.rect.w / 2), -1, 1);
-      ov.image.offsetY = clamp(drag.orig.offsetY + (p.y - drag.downY) / (drag.rect.h / 2), -1, 1);
+      let ox = drag.orig.offsetX + (p.x - drag.downX) / (drag.rect.w / 2);
+      let oy = drag.orig.offsetY + (p.y - drag.downY) / (drag.rect.h / 2);
+      if (Math.abs(ox) < 0.05) { ox = 0; snapX = true; }
+      if (Math.abs(oy) < 0.05) { oy = 0; snapY = true; }
+      ov.image.offsetX = clamp(ox, -1, 1);
+      ov.image.offsetY = clamp(oy, -1, 1);
     }
+    drag.snapX = snapX;
+    drag.snapY = snapY;
     scheduleRender();
   }
 
@@ -627,6 +673,7 @@
       textColor: state.textColor,
       textScale: state.textScale,
       showLogo: state.showLogo,
+      showGuides: state.showGuides,
       discount: state.discount,
       badgeColor: state.badgeColor,
       overrides: state.overrides,
@@ -646,6 +693,7 @@
     if (data.textColor) state.textColor = data.textColor;
     if (data.textScale) state.textScale = data.textScale;
     if (typeof data.showLogo === 'boolean') state.showLogo = data.showLogo;
+    if (typeof data.showGuides === 'boolean') state.showGuides = data.showGuides;
     if (data.discount) state.discount = data.discount;
     if (data.badgeColor) state.badgeColor = data.badgeColor;
     state.overrides = data.overrides || {};
@@ -878,6 +926,10 @@
     });
     $('#showLogo').addEventListener('change', (e) => {
       state.showLogo = e.target.checked;
+      scheduleRender();
+    });
+    $('#showGuides').addEventListener('change', (e) => {
+      state.showGuides = e.target.checked;
       scheduleRender();
     });
     $('#discountShow').addEventListener('change', (e) => {
