@@ -153,8 +153,22 @@
       <!-- PRAVÝ PANEL: export & ukládání -->
       <aside class="panel exports">
         <section class="card">
-          <h2>Export PNG</h2>
-          <button class="btn primary" id="btnExportPng">⬇ Stáhnout aktuální PNG</button>
+          <h2>Export</h2>
+          <div class="inline2">
+            <label class="field" style="flex:1;margin:0">
+              <span>Formát souboru</span>
+              <select id="exportFileFormat">
+                <option value="png">PNG (bez ztráty)</option>
+                <option value="jpg">JPG (komprimované)</option>
+              </select>
+            </label>
+            <label class="field" id="maxKbField" style="width:120px;margin:0">
+              <span>Max kB (JPG)</span>
+              <input type="number" id="exportMaxKB" value="250" min="30" max="2000" />
+            </label>
+          </div>
+          <p class="hint">JPG se automaticky komprimuje pod zadaný limit (Sklik ≤ 250 kB, Heureka/PPC mívají 150 kB).</p>
+          <button class="btn primary" id="btnExportPng">⬇ Stáhnout aktuální banner</button>
           <hr />
           <h3>Hromadný export (ZIP)</h3>
           <div class="export-group">

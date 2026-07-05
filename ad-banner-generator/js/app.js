@@ -335,20 +335,49 @@
 
   // Vykreslí do canvasu s kapnutým rozlišením (kvůli velmi velkým formátům),
   // ale layout počítá v reálných rozměrech → náhled odpovídá exportu.
-  function renderIntoCanvas(canvas, format, lang, img, maxDim) {
+  function renderIntoCanvas(canvas, format, lang, img, maxDim, guides) {
     const k = Math.min(1, maxDim / Math.max(format.width, format.height));
     canvas.width = Math.round(format.width * k);
     canvas.height = Math.round(format.height * k);
     const ctx = canvas.getContext('2d');
     ctx.setTransform(k, 0, 0, k, 0, 0);
-    return renderBanner(ctx, format, specFor(lang), state.brand, img, optsFor(format.id));
+    const layout = renderBanner(ctx, format, specFor(lang), state.brand, img, optsFor(format.id));
+    // vodicí safe zóna — jen v náhledu, NIKDY se neexportuje
+    if (guides && format.safeZone) drawSafeZone(ctx, format.safeZone);
+    return layout;
+  }
+
+  function drawSafeZone(ctx, s) {
+    ctx.save();
+    // tmavý podklad linky (kontrast na světlém pozadí)
+    ctx.setLineDash([]);
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+    ctx.lineWidth = 5;
+    ctx.strokeRect(s.x, s.y, s.w, s.h);
+    // světlá čárkovaná linka navrch (kontrast na tmavém pozadí)
+    ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([14, 9]);
+    ctx.strokeRect(s.x, s.y, s.w, s.h);
+    ctx.setLineDash([]);
+    // štítek
+    const label = 'SAFE ZÓNA – hlavní sdělení (1366×720)';
+    ctx.font = '700 22px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    const tw = ctx.measureText(label).width;
+    ctx.fillStyle = 'rgba(0,0,0,0.72)';
+    ctx.fillRect(s.x, s.y, tw + 20, 34);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillText(label, s.x + 10, s.y + 7);
+    ctx.restore();
   }
 
   async function renderPreview() {
     const format = formatById(state.activeFormat);
     const mainCanvas = $('#mainPreview');
     const img = await loadImage(currentImageDataURL());
-    lastLayout = renderIntoCanvas(mainCanvas, format, state.activeLang, img, 1600);
+    lastLayout = renderIntoCanvas(mainCanvas, format, state.activeLang, img, 1600, true);
     $('#previewMeta').textContent =
       `${format.id} · ${format.label} · ${state.activeLang} · ${state.version.toUpperCase()}`;
     syncLayoutControls();
@@ -500,14 +529,32 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  function canvasToBlob(canvas) {
-    return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+  function toBlob(canvas, type, quality) {
+    return new Promise((resolve) => canvas.toBlob(resolve, type, quality));
+  }
+
+  // Zakóduje canvas dle zvoleného formátu. U JPG hledá kvalitu tak, aby se
+  // vešel pod zadaný limit velikosti (auto-komprese pro Sklik/Heureka/PPC).
+  async function encodeCanvas(canvas) {
+    const fmt = $('#exportFileFormat').value;
+    if (fmt === 'jpg') {
+      const maxBytes = (parseInt($('#exportMaxKB').value, 10) || 250) * 1024;
+      let q = 0.92;
+      let blob = await toBlob(canvas, 'image/jpeg', q);
+      while (blob && blob.size > maxBytes && q > 0.35) {
+        q -= 0.08;
+        blob = await toBlob(canvas, 'image/jpeg', q);
+      }
+      return { blob: blob, ext: 'jpg', over: blob && blob.size > maxBytes };
+    }
+    return { blob: await toBlob(canvas, 'image/png'), ext: 'png', over: false };
   }
 
   async function exportCurrentPNG() {
     const canvas = await renderToCanvas(state.activeFormat, state.activeLang, state.version);
-    const blob = await canvasToBlob(canvas);
-    downloadBlob(blob, `${state.activeFormat}_${state.activeLang}_${state.version}.png`);
+    const { blob, ext, over } = await encodeCanvas(canvas);
+    downloadBlob(blob, `${state.activeFormat}_${state.activeLang}_${state.version}.${ext}`);
+    if (over) setStatus('Pozor: ani při nejnižší kvalitě se JPG nevešel pod limit.', true);
   }
 
   async function exportBatchZip() {
@@ -530,14 +577,16 @@
     let done = 0;
 
     const zip = new window.ZipWriter();
+    let oversized = 0;
     for (const version of versions) {
       for (const fmt of formats) {
         for (const lang of langs) {
           const canvas = await renderToCanvas(fmt, lang, version);
-          const blob = await canvasToBlob(canvas);
+          const { blob, ext, over } = await encodeCanvas(canvas);
+          if (over) oversized++;
           const buf = new Uint8Array(await blob.arrayBuffer());
           const folder = versions.length > 1 ? `${version}/${fmt}` : fmt;
-          zip.addFile(`${folder}/${fmt}_${lang}.png`, buf);
+          zip.addFile(`${folder}/${fmt}_${lang}.${ext}`, buf);
           done++;
           setStatus(`Generuji… ${done}/${total}`);
         }
@@ -546,7 +595,11 @@
     const zipBlob = zip.toBlob();
     const brandSlug = (state.brand.name || 'brand').toLowerCase().replace(/[^a-z0-9]+/g, '-');
     downloadBlob(zipBlob, `banners_${brandSlug}.zip`);
-    setStatus(`Hotovo — ${total} bannerů zabaleno do ZIP.`);
+    setStatus(
+      `Hotovo — ${total} bannerů zabaleno do ZIP.` +
+        (oversized ? ` (${oversized} × se nevešlo pod limit velikosti)` : ''),
+      !!oversized
+    );
     btn.disabled = false;
   }
 

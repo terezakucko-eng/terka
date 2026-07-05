@@ -69,7 +69,13 @@
       // Firmy.cz branding (hlavní sdělení v horních 1366×720).
       id: 'firmy-branding',
       label: '9. Firmy.cz – branding',
-      formats: [{ w: 2000, h: 1400, note: 'safe zóna 1366×720 nahoře' }],
+      formats: [
+        {
+          w: 2000, h: 1400, note: 'safe zóna 1366×720 nahoře',
+          // Hlavní sdělení musí být v horním prostoru 1366×720 (vycentrováno).
+          safeZone: { x: 317, y: 100, w: 1366, h: 720 },
+        },
+      ],
     },
     {
       // Google Business Profile (Google firmy).
@@ -112,18 +118,25 @@
     },
   ];
 
-  // Odvození plochého seznamu formátů. id je unikátní napříč kanály.
+  // Odvození plochého seznamu formátů. id je čisté (kanál-šířkaxvýška), bez
+  // poznámky/diakritiky, aby fungovalo i v názvech souborů. Rozměr je v rámci
+  // kanálu unikátní; případný duplicitní rozměr dostane pořadové číslo.
   const FORMATS = [];
+  const seenIds = new Set();
   CHANNELS.forEach((ch) => {
     ch.formats.forEach((f) => {
-      const suffix = f.note ? '-' + f.note : '';
+      let id = `${ch.id}-${f.w}x${f.h}`;
+      let n = 2;
+      while (seenIds.has(id)) id = `${ch.id}-${f.w}x${f.h}-${n++}`;
+      seenIds.add(id);
       FORMATS.push({
-        id: `${ch.id}-${f.w}x${f.h}${suffix}`,
+        id: id,
         channel: ch.id,
         channelLabel: ch.label,
         label: `${f.w}×${f.h}${f.note ? ' · ' + f.note : ''}`,
         width: f.w,
         height: f.h,
+        safeZone: f.safeZone || null,
       });
     });
   });
