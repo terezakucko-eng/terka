@@ -133,23 +133,31 @@
   // spodní ret plná oblá křivka.
   function badgePath(ctx, cx, cy, W, H) {
     ctx.beginPath();
-    ctx.moveTo(cx - W, cy);
-    // horní ret: levá špička → hrbolek → jemná prohlubeň uprostřed → hrbolek → pravá špička
-    ctx.bezierCurveTo(cx - W * 0.55, cy - H * 1.35, cx - W * 0.22, cy - H * 1.15, cx, cy - H * 0.82);
-    ctx.bezierCurveTo(cx + W * 0.22, cy - H * 1.15, cx + W * 0.55, cy - H * 1.35, cx + W, cy);
+    ctx.moveTo(cx - W, cy); // levá špička
+    // horní ret: hrbolek → jemný zářez uprostřed → hrbolek → pravá špička
+    ctx.bezierCurveTo(cx - W * 0.48, cy - H * 1.34, cx - W * 0.18, cy - H * 1.22, cx, cy - H * 1.05);
+    ctx.bezierCurveTo(cx + W * 0.18, cy - H * 1.22, cx + W * 0.48, cy - H * 1.34, cx + W, cy);
     // spodní ret: plná oblá křivka zpět k levé špičce
-    ctx.bezierCurveTo(cx + W * 0.5, cy + H * 1.32, cx - W * 0.5, cy + H * 1.32, cx - W, cy);
+    ctx.bezierCurveTo(cx + W * 0.5, cy + H * 1.33, cx - W * 0.5, cy + H * 1.33, cx - W, cy);
     ctx.closePath();
   }
 
+  // Zachovává poměr stran pusinky (~1,9:1), aby vypadala stejně bez ohledu na
+  // délku textu slevy. Číslo je vždy vycentrované uvnitř.
   function badgeMetrics(ctx, text, brand, scale) {
     const t = String(text || '').trim();
     if (!t) return null;
     const fontSize = Math.max(12, Math.round(20 * scale));
     ctx.font = `800 ${fontSize}px ${brand.fonts.heading.family}`;
     const tw = ctx.measureText(t).width;
-    const halfW = tw / 2 + fontSize * 1.35;
-    const halfH = fontSize * 1.5;
+    const ASPECT = 1.9;
+    let halfW = tw / 2 + fontSize * 1.1;
+    let halfH = halfW / ASPECT;
+    const minHalfH = fontSize * 0.95;
+    if (halfH < minHalfH) {
+      halfH = minHalfH;
+      halfW = halfH * ASPECT;
+    }
     return { text: t, fontSize, halfW, halfH };
   }
 
