@@ -27,6 +27,7 @@
     textScale: 1, // násobič velikosti textů (0.6–2.5)
     showLogo: true,
     showGuides: false, // vodicí středové lišty v náhledu
+    showGrid: false, // jemná vodicí mřížka v náhledu
     discount: { show: false, text: '-20 %' },
     badgeColor: null, // null = primární barva značky
 
@@ -323,6 +324,7 @@
     $('#textScaleVal').textContent = Math.round(state.textScale * 100) + '%';
     $('#showLogo').checked = state.showLogo;
     $('#showGuides').checked = state.showGuides;
+    $('#showGrid').checked = state.showGrid;
     $('#discountShow').checked = state.discount.show;
     $('#discountText').value = state.discount.text;
     $('#discountColor').value = state.badgeColor || (state.brand && state.brand.colors.primary) || '#DC004E';
@@ -350,12 +352,30 @@
     const layout = renderBanner(ctx, format, specFor(lang), state.brand, img, optsFor(format.id));
     // vodítka — jen v náhledu, NIKDY se neexportují
     if (overlay) {
+      if (overlay.grid) drawGrid(ctx, format);
       if (overlay.safeZone && format.safeZone) drawSafeZone(ctx, format.safeZone);
       if (overlay.centerGuides || overlay.snapX || overlay.snapY) {
         drawCenterGuides(ctx, format, overlay);
       }
     }
     return layout;
+  }
+
+  // Jemná vodicí mřížka (jen náhled). Čtvercové buňky ~1/8 kratší strany.
+  function drawGrid(ctx, format) {
+    const W = format.width, H = format.height;
+    const cell = Math.max(16, Math.min(W, H) / 8);
+    ctx.save();
+    ctx.setLineDash([]);
+    ctx.strokeStyle = 'rgba(127,127,127,0.28)';
+    ctx.lineWidth = 1;
+    for (let x = cell; x < W - 0.5; x += cell) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+    }
+    for (let y = cell; y < H - 0.5; y += cell) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    }
+    ctx.restore();
   }
 
   function drawCenterGuides(ctx, format, o) {
@@ -405,6 +425,7 @@
     const mainCanvas = $('#mainPreview');
     const img = await loadImage(currentImageDataURL());
     const overlay = {
+      grid: state.showGrid,
       safeZone: true,
       centerGuides: state.showGuides || !!drag,
       snapX: !!(drag && drag.snapX),
@@ -674,6 +695,7 @@
       textScale: state.textScale,
       showLogo: state.showLogo,
       showGuides: state.showGuides,
+      showGrid: state.showGrid,
       discount: state.discount,
       badgeColor: state.badgeColor,
       overrides: state.overrides,
@@ -694,6 +716,7 @@
     if (data.textScale) state.textScale = data.textScale;
     if (typeof data.showLogo === 'boolean') state.showLogo = data.showLogo;
     if (typeof data.showGuides === 'boolean') state.showGuides = data.showGuides;
+    if (typeof data.showGrid === 'boolean') state.showGrid = data.showGrid;
     if (data.discount) state.discount = data.discount;
     if (data.badgeColor) state.badgeColor = data.badgeColor;
     state.overrides = data.overrides || {};
@@ -930,6 +953,10 @@
     });
     $('#showGuides').addEventListener('change', (e) => {
       state.showGuides = e.target.checked;
+      scheduleRender();
+    });
+    $('#showGrid').addEventListener('change', (e) => {
+      state.showGrid = e.target.checked;
       scheduleRender();
     });
     $('#discountShow').addEventListener('change', (e) => {
