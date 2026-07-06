@@ -454,6 +454,8 @@
     $('#inSubline').value = t.subline || '';
     $('#inCta').value = t.cta || '';
     $('#activeLangLabel').textContent = langByCode(state.activeLang).label;
+    const tfl = $('#translateFromLabel');
+    if (tfl) tfl.textContent = state.activeLang;
     syncPerFormatUI();
     if (typeof refreshHighlightControls === 'function') refreshHighlightControls();
   }
@@ -496,14 +498,17 @@
       $('#ttAlign').classList.add('hidden');
       $('#ttLhWrap').classList.add('hidden');
       $('#ttLogoColorWrap').classList.toggle('hidden', el !== 'logo');
+      $('#ttBadgeColors').classList.toggle('hidden', el !== 'badge');
       const val = el === 'logo' ? effectiveLogoScale(state.activeFormat) : effectiveBadgeSize(state.activeFormat);
       $('#ttSize').value = Math.round(val * 100);
       $('#ttSizeVal').textContent = Math.round(val * 100) + '%';
       if (el === 'logo') $('#ttLogoColor').value = state.logoColorMode;
+      if (el === 'badge') syncBadgeSwatches();
       return;
     }
     $('#ttAlign').classList.remove('hidden');
     $('#ttLogoColorWrap').classList.add('hidden');
+    $('#ttBadgeColors').classList.add('hidden');
     const s = effectiveTextStyle(state.activeFormat)[el];
     $$('#ttAlign button').forEach((b) => b.classList.toggle('active', b.getAttribute('data-align') === (s.align || 'left')));
     $('#ttSize').value = Math.round((s.size || 1) * 100);
@@ -1257,6 +1262,113 @@
     $('#btnWrapHighlight').textContent = active ? '✨ Zrušit zvýraznění tohoto slova' : '✨ Zvýraznit označené slovo';
   }
 
+  // ---------- automatický překlad ----------
+  // Mapa našich kódů na ISO kódy překladače.
+  const ISO_LANG = { CZ: 'cs', SK: 'sk', HU: 'hu', RO: 'ro', SI: 'sl', HR: 'hr', BG: 'bg' };
+
+  // Odstraní zvýrazňovací značky (*[..]slovo*) — u překladu se neponechávají.
+  function stripHighlight(text) {
+    return String(text || '').replace(/\*\[[^\]]*\]/g, '*').replace(/\*/g, '');
+  }
+
+  // Přeloží text přes veřejný Google endpoint (CORS povolen). Vrací přeložený text.
+  async function translateText(text, from, to) {
+    if (!text || !text.trim()) return text || '';
+    const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=' +
+      from + '&tl=' + to + '&dt=t&q=' + encodeURIComponent(text);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    return (data && data[0] ? data[0].map((s) => s[0]).join('') : text).trim();
+  }
+
+  async function autoTranslateAll() {
+    const src = state.activeLang;
+    const from = ISO_LANG[src] || 'cs';
+    if (!confirm('Automaticky přeložit z „' + src + '" do všech ostatních jazyků? Přepíše to jejich současné texty (strojový překlad je nutné zkontrolovat).')) return;
+    const scope = textScope();
+    const base = textTarget(src);
+    const plain = {
+      headline: stripHighlight(base.headline),
+      subline: stripHighlight(base.subline),
+      cta: stripHighlight(base.cta),
+    };
+    const btn = $('#btnAutoTranslate');
+    btn.disabled = true;
+    const targets = LANGUAGES.filter((l) => l.code !== src);
+    try {
+      for (const l of targets) {
+        const to = ISO_LANG[l.code];
+        setStatus('Překládám… ' + l.code);
+        const [h, s, c] = await Promise.all([
+          translateText(plain.headline, from, to),
+          translateText(plain.subline, from, to),
+          translateText(plain.cta, from, to),
+        ]);
+        scope[l.code] = { headline: h, subline: s, cta: c };
+      }
+      syncTextInputs();
+      renderPreview();
+      setStatus('Přeloženo do všech jazyků. Zkontroluj prosím znění — je to strojový překlad.');
+    } catch (e) {
+      setStatus('Automatický překlad se nepodařil (nejspíš připojení nebo blokace prohlížeče). Přelož ručně přes záložky jazyků.', true);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ---------- pusinka: barvy v horní liště (dle manuálu) ----------
+  function badgeSwatchColors() {
+    const p = (state.brand && state.brand.palette) || {};
+    const c = (state.brand && state.brand.colors) || {};
+    const fill = [
+      { c: p.primaryPink || c.primary || '#DC004E', t: 'Růžová' },
+      { c: p.violet || c.accent || '#985FA3', t: 'Fialová' },
+      { c: p.darkViolet || c.secondary || '#1F0F36', t: 'Tmavá' },
+      { c: p.lightPink || '#F8C7C8', t: 'Světlá růžová' },
+    ];
+    const text = [
+      { c: p.white || '#FFFFFF', t: 'Bílá' },
+      { c: p.darkViolet || '#1F0F36', t: 'Tmavá' },
+      { c: p.primaryPink || '#DC004E', t: 'Růžová' },
+    ];
+    return { fill, text };
+  }
+  function buildBadgeSwatches() {
+    const { fill, text } = badgeSwatchColors();
+    const mk = (arr, wrapSel, get, set) => {
+      const wrap = $(wrapSel);
+      wrap.innerHTML = '';
+      arr.forEach((o) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'tt-swatch';
+        b.style.background = o.c;
+        b.title = o.t;
+        b.addEventListener('click', () => { set(o.c); syncTextToolbar(); scheduleRender(); });
+        wrap.appendChild(b);
+      });
+    };
+    mk(fill, '#ttBadgeFill', () => state.badgeColor, (v) => { state.badgeColor = v; $('#discountColor').value = v; });
+    mk(text, '#ttBadgeText', () => state.badgeTextColor, (v) => { state.badgeTextColor = v; $('#discountTextColor').value = v; });
+  }
+  function syncBadgeSwatches() {
+    const cur = (state.badgeColor || '').toLowerCase();
+    const curT = (state.badgeTextColor || '').toLowerCase();
+    $$('#ttBadgeFill .tt-swatch').forEach((b) =>
+      b.classList.toggle('sel', (b.style.background && rgbToHex(b.style.background)) === cur));
+    $$('#ttBadgeText .tt-swatch').forEach((b) =>
+      b.classList.toggle('sel', (b.style.background && rgbToHex(b.style.background)) === curT));
+  }
+  // pomocník: „rgb(a,b,c)" → „#rrggbb" (pro porovnání s uloženou hex barvou)
+  function rgbToHex(rgb) {
+    if (!rgb) return '';
+    if (rgb[0] === '#') return rgb.toLowerCase();
+    const m = rgb.match(/\d+/g);
+    if (!m) return rgb.toLowerCase();
+    return '#' + m.slice(0, 3).map((n) => (+n).toString(16).padStart(2, '0')).join('').toLowerCase();
+  }
+
   // ---------- události ----------
   function wireEvents() {
     $('#formatSelect').addEventListener('change', (e) => {
@@ -1345,17 +1457,7 @@
 
     wireTextToolbar();
 
-    $('#btnMasterText').addEventListener('click', () => {
-      if (!confirm('Zkopírovat text z „' + state.activeLang + '" do VŠECH jazyků? Přepíše to případné hotové překlady v ostatních jazycích.')) return;
-      const t = textTarget(state.activeLang);
-      const master = { headline: t.headline, subline: t.subline, cta: t.cta };
-      const scope = textScope(); // společné, nebo per-formát pokud je zapnuté
-      LANGUAGES.forEach((l) => {
-        scope[l.code] = { headline: master.headline, subline: master.subline, cta: master.cta };
-      });
-      renderPreview();
-      setStatus('Text zkopírován do všech jazyků. Teď si každý přepiš na svůj překlad přes záložky jazyků nahoře.');
-    });
+    $('#btnAutoTranslate').addEventListener('click', autoTranslateAll);
 
     $('#btnResetLang').addEventListener('click', () => {
       if (!confirm('Přepsat text tohoto jazyka výchozím placeholderem? Tvůj text se ztratí.')) return;
@@ -1570,20 +1672,30 @@
       setStatus('Výchozí rozvržení zrušeno.');
     });
 
-    $('#btnResetApp').addEventListener('click', () => {
-      if (!confirm('Odebrat vizuál a resetovat jeho umístění (zoom/posun/těžiště) ve všech rozměrech? Texty a rozvržení zůstanou.')) return;
+    // Odebrat vizuál — jen smaže obrázek (dvojí potvrzení).
+    $('#btnRemoveImage').addEventListener('click', () => {
+      if (!confirm('Odebrat nahraný vizuál z projektu?')) return;
+      if (!confirm('Určitě? Vizuál se odstraní ze všech bannerů. Tuto akci nelze vrátit.')) return;
       state.image = null;
       state.imageStore = null;
       state.imageAvg = null;
+      updateImageThumbs();
+      renderPreview();
+      setStatus('Vizuál odebrán.');
+    });
+
+    // Reset umístění — vrátí zoom/posun/těžiště u všech rozměrů (dvojí potvrzení).
+    $('#btnResetPlacement').addEventListener('click', () => {
+      if (!confirm('Resetovat umístění vizuálu (zoom, posun, těžiště) u VŠECH rozměrů?')) return;
+      if (!confirm('Určitě? Ruční doladění obrázku u všech rozměrů se ztratí. Tuto akci nelze vrátit.')) return;
       state.imageFocus = { x: 0.5, y: 0.45 };
       Object.values(state.overrides).forEach((o) => {
         if (o) o.image = { scale: 1, offsetX: 0, offsetY: 0 };
       });
-      updateImageThumbs();
       syncStyleControls();
       syncLayoutControls();
       renderPreview();
-      setStatus('Vizuál odebrán a umístění resetováno.');
+      setStatus('Umístění vizuálu resetováno u všech rozměrů.');
     });
 
     $('#btnSaveProject').addEventListener('click', saveNamedProject);
@@ -1613,6 +1725,7 @@
     buildExportCheckboxes();
     syncTextInputs();
     syncStyleControls();
+    buildBadgeSwatches();
     syncTextToolbar();
     updateImageThumbs();
     document.documentElement.style.setProperty('--brand-cta', state.ctaColor);

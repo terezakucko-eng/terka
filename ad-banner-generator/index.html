@@ -115,7 +115,8 @@
           </div>
 
           <p class="hint">Styl textu (velikost, řádkování, zarovnání) najdeš v liště nad náhledem — <b>platí pro tento rozměr</b> (každý banner má vlastní).</p>
-          <button class="btn" id="btnMasterText">⭐ Použít tento text do všech jazyků</button>
+          <button class="btn" id="btnAutoTranslate">🌐 Automaticky přeložit do všech jazyků</button>
+          <p class="hint">Přeloží z aktivního jazyka (<b id="translateFromLabel">CZ</b>) do ostatních přes online překladač. Vyžaduje připojení; <b>strojový překlad zkontroluj</b>. Zvýraznění (*slovo*) se u překladů neponechává.</p>
           <button class="btn ghost" id="btnResetLang">↺ Výchozí (placeholder) texty</button>
         </section>
 
@@ -188,6 +189,10 @@
               <option value="pink">Růžová</option>
             </select>
           </label>
+          <div class="tt-badge hidden" id="ttBadgeColors">
+            <div class="tt-swatch-row"><span>Pusinka</span><span class="tt-swatches" id="ttBadgeFill"></span></div>
+            <div class="tt-swatch-row"><span>Text</span><span class="tt-swatches" id="ttBadgeText"></span></div>
+          </div>
         </div>
         <div class="preview-stage">
           <canvas id="mainPreview"></canvas>
@@ -267,8 +272,9 @@
           </div>
           <p class="hint">Uloží aktuální rozvržení všech rozměrů jako výchozí — načte se automaticky při startu.</p>
           <hr />
-          <button class="btn ghost danger" id="btnResetApp">🗑 Odebrat vizuál a reset umístění</button>
-          <p class="hint">Odebere obrázek a resetuje jeho zoom/posun/těžiště. Texty a rozvržení zůstanou.</p>
+          <button class="btn ghost danger" id="btnRemoveImage">🗑 Odebrat vizuál</button>
+          <button class="btn ghost danger" id="btnResetPlacement">↺ Reset umístění (všechny rozměry)</button>
+          <p class="hint">„Odebrat vizuál" smaže nahraný obrázek. „Reset umístění" vrátí zoom/posun/těžiště na výchozí u všech rozměrů. Texty a rozvržení zůstanou. Obojí vyžaduje <b>dvojí potvrzení</b>.</p>
         </section>
       </aside>
     </main>
