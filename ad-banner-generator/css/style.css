@@ -94,6 +94,40 @@ body {
   gap: 16px;
 }
 
+/* Na širokých obrazovkách: každý panel scrolluje samostatně v rámci výšky
+   okna, takže nic nezůstane schované dole a náhled i horní lišta drží místo. */
+@media (min-width: 1101px) {
+  html,
+  body {
+    height: 100vh;
+    overflow: hidden;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+  }
+  .topbar {
+    flex: 0 0 auto;
+  }
+  .layout {
+    flex: 1 1 auto;
+    min-height: 0;
+    align-items: stretch;
+  }
+  .editor,
+  .exports,
+  .preview {
+    max-height: 100%;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .text-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+}
+
 /* ---------- cards ---------- */
 .card {
   background: var(--panel);

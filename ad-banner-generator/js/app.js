@@ -209,7 +209,12 @@
     $('#brandName').textContent = state.brand.name || 'Brand';
     const swatches = $('#brandSwatches');
     swatches.innerHTML = '';
-    Object.entries(c).forEach(([key, val]) => {
+    // Zobraz kompletní barevnou paletu z manuálu (vč. světlých růžových),
+    // ne jen funkční barvy. Fallback na colors, pokud palette chybí.
+    const palette = state.brand.palette
+      ? Object.entries(state.brand.palette)
+      : Object.entries(c);
+    palette.forEach(([key, val]) => {
       const chip = document.createElement('div');
       chip.className = 'swatch';
       chip.title = key + ' — ' + val;
