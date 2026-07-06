@@ -96,8 +96,9 @@
     return { size: s.size || 1, lineHeight: s.lineHeight || (el === 'headline' ? 1.15 : 1.3), align: s.align || 'left' };
   }
 
-  // Nakreslí obrázek "cover" do obdélníku s transformací (zoom + posun).
-  // t = { scale >= 1, offsetX -1..1, offsetY -1..1 }
+  // Nakreslí obrázek "cover" do obdélníku s transformací.
+  // t = { scale, offsetX -1..1, offsetY -1..1, focusX 0..1, focusY 0..1 }
+  // focus = "těžiště" (hlavní motiv) — drží se v záběru napříč rozměry (master).
   function drawImageTransformed(ctx, img, rx, ry, rw, rh, t) {
     t = t || {};
     const scale = Math.max(rw / img.width, rh / img.height) * (t.scale || 1);
@@ -105,10 +106,16 @@
     const dh = img.height * scale;
     const slackX = dw - rw;
     const slackY = dh - rh;
+    const fx = t.focusX == null ? 0.5 : t.focusX;
+    const fy = t.focusY == null ? 0.45 : t.focusY;
     const ox = Math.max(-1, Math.min(1, t.offsetX || 0));
     const oy = Math.max(-1, Math.min(1, t.offsetY || 0));
-    const dx = rx - slackX / 2 + (ox * slackX) / 2;
-    const dy = ry - slackY / 2 + (oy * slackY) / 2;
+    // umísti tak, aby těžiště obrázku bylo ve středu rámu, pak jemný pan
+    let dx = rx + rw / 2 - fx * dw + (ox * slackX) / 2;
+    let dy = ry + rh / 2 - fy * dh + (oy * slackY) / 2;
+    // pokud obrázek rám pokrývá, drž ho v mezích (bez prázdných okrajů)
+    if (slackX >= 0) dx = Math.min(rx, Math.max(rx + rw - dw, dx));
+    if (slackY >= 0) dy = Math.min(ry, Math.max(ry + rh - dh, dy));
     ctx.save();
     ctx.beginPath();
     ctx.rect(rx, ry, rw, rh);
@@ -545,12 +552,17 @@
   function renderBanner(ctx, format, spec, brand, image, opts) {
     opts = opts || {};
     const ov = opts.override || {};
-    const imgT = ov.image || null;
+    const imgT = ov.image ? Object.assign({}, ov.image) : { scale: 1, offsetX: 0, offsetY: 0 };
+    if (opts.imageFocus) {
+      if (imgT.focusX == null) imgT.focusX = opts.imageFocus.x;
+      if (imgT.focusY == null) imgT.focusY = opts.imageFocus.y;
+    }
     const W = format.width;
     const H = format.height;
     const orient = orientationOf(format);
     const scale = Math.max(0.7, Math.min(2.2, Math.sqrt((W * H) / (300 * 250))));
-    const pad = Math.round(Math.max(8, 12 * scale));
+    // proporcionální bezpečný okraj (~6 % kratší strany) dle grafických standardů
+    const pad = Math.round(Math.max(10, Math.min(W, H) * 0.06));
 
     const bg = drawBackground(ctx, format, spec, brand, image, orient, scale, pad, imgT);
     const colors = resolveTextColors(opts.textColor, bg.colors, brand);

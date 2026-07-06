@@ -18,6 +18,7 @@
     activeLang: 'CZ',
     template: 'overlay',
     image: null, // jediný nahraný vizuál (dataURL)
+    imageFocus: { x: 0.5, y: 0.45 }, // těžiště motivu (master framing pro všechny rozměry)
     texts: {}, // per jazyk: { CZ:{headline,subline,cta}, ... }
 
     // styl prvků (globální)
@@ -117,6 +118,7 @@
       textScale: state.textScale,
       textStyle: state.textStyle,
       logoDefaultHidden: state.logoDefaultHidden,
+      imageFocus: state.imageFocus,
       badgeColor: state.badgeColor || (state.brand && state.brand.colors.primary),
     };
   }
@@ -387,6 +389,10 @@
     $('#discountColor').value = state.badgeColor || (state.brand && state.brand.colors.primary) || '#DC004E';
     $('#discountSize').value = Math.round((state.discount.size || 1) * 100);
     $('#discountSizeVal').textContent = Math.round((state.discount.size || 1) * 100) + '%';
+    $('#focusX').value = Math.round(state.imageFocus.x * 100);
+    $('#focusXVal').textContent = Math.round(state.imageFocus.x * 100) + '%';
+    $('#focusY').value = Math.round(state.imageFocus.y * 100);
+    $('#focusYVal').textContent = Math.round(state.imageFocus.y * 100) + '%';
   }
 
   // ---------- náhled ----------
@@ -749,6 +755,7 @@
       textColor: state.textColor,
       textScale: state.textScale,
       textStyle: state.textStyle,
+      imageFocus: state.imageFocus,
       logoDefaultHidden: state.logoDefaultHidden,
       showGuides: state.showGuides,
       showGrid: state.showGrid,
@@ -774,6 +781,7 @@
         if (data.textStyle[el]) Object.assign(state.textStyle[el], data.textStyle[el]);
       });
     }
+    if (data.imageFocus) state.imageFocus = data.imageFocus;
     if (typeof data.logoDefaultHidden === 'boolean') state.logoDefaultHidden = data.logoDefaultHidden;
     if (typeof data.showGuides === 'boolean') state.showGuides = data.showGuides;
     if (typeof data.showGrid === 'boolean') state.showGrid = data.showGrid;
@@ -1023,6 +1031,16 @@
     $('#discountSize').addEventListener('input', (e) => {
       state.discount.size = (+e.target.value) / 100;
       $('#discountSizeVal').textContent = e.target.value + '%';
+      scheduleRender();
+    });
+    $('#focusX').addEventListener('input', (e) => {
+      state.imageFocus.x = (+e.target.value) / 100;
+      $('#focusXVal').textContent = e.target.value + '%';
+      scheduleRender();
+    });
+    $('#focusY').addEventListener('input', (e) => {
+      state.imageFocus.y = (+e.target.value) / 100;
+      $('#focusYVal').textContent = e.target.value + '%';
       scheduleRender();
     });
     $('#hideLogoAll').addEventListener('change', (e) => {
