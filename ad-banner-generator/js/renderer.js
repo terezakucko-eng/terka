@@ -318,19 +318,27 @@
   }
 
   // ---------- CTA ----------
-  function ctaMetrics(ctx, spec, brand, scale, ts, sizeMult) {
+  function ctaMetrics(ctx, spec, brand, scale, ts, sizeMult, maxW) {
     const text = (spec.cta || '').trim();
     if (!text) return null;
-    const fontSize = Math.max(9, Math.round(13 * scale * (ts || 1) * (sizeMult || 1)));
-    ctx.font = `600 ${fontSize}px ${brand.fonts.heading.family}`;
-    const padX = Math.round(fontSize * 1.1);
-    const padY = Math.round(fontSize * 0.6);
-    const textW = ctx.measureText(text).width;
+    const fam = brand.fonts.heading.family;
     const arrow = !!spec.ctaArrow;
-    const gap = arrow ? fontSize * 0.5 : 0;
-    const arrowW = arrow ? fontSize * 0.55 : 0;
-    const contentW = textW + gap + arrowW;
-    return { text, fontSize, padX, padY, textW, gap, arrow, arrowW, contentW, w: contentW + padX * 2, h: fontSize + padY * 2 };
+    const compute = (fs) => {
+      ctx.font = `600 ${fs}px ${fam}`;
+      const textW = ctx.measureText(text).width;
+      const padX = Math.round(fs * 1.1);
+      const padY = Math.round(fs * 0.6);
+      const gap = arrow ? fs * 0.5 : 0;
+      const arrowW = arrow ? fs * 0.55 : 0;
+      const contentW = textW + gap + arrowW;
+      return { text, fontSize: fs, padX, padY, textW, gap, arrow, arrowW, contentW, w: contentW + padX * 2, h: fs + padY * 2 };
+    };
+    let m = compute(Math.max(9, Math.round(13 * scale * (ts || 1) * (sizeMult || 1))));
+    // u úzkých rozměrů zmenši CTA tak, aby se vešlo na šířku (min 8 px)
+    if (maxW) {
+      while (m.fontSize > 8 && m.w > maxW) m = compute(m.fontSize - 1);
+    }
+    return m;
   }
 
   function drawCTAAt(ctx, m, brand, ctaColor, x, y) {
@@ -639,7 +647,7 @@
       : null;
 
     const gap = Math.round(6 * scale);
-    const cta = ctaMetrics(ctx, spec, brand, scale, ts, cs.size);
+    const cta = ctaMetrics(ctx, spec, brand, scale, ts, cs.size, maxWidth);
     const headlineH = headline.height;
     const sublineH = subline ? subline.height : 0;
     const totalH = headlineH + (subline ? gap + sublineH : 0) + (cta ? gap * 1.6 + cta.h : 0);
@@ -684,7 +692,7 @@
     const cs = styleFor(styles, 'cta');
     const hst = scale * (ts || 1) * hs.size;
     const sst = scale * (ts || 1) * ss.size;
-    const cta = ctaMetrics(ctx, spec, brand, scale, ts, cs.size);
+    const cta = ctaMetrics(ctx, spec, brand, scale, ts, cs.size, Math.max(40, region.w - pad * 2));
     const ctaW = cta ? cta.w + pad : 0;
 
     const textX = region.x + pad;
@@ -782,7 +790,7 @@
     if (spec.subline && spec.subline.trim()) place('subline', false);
 
     const cs = styleFor(styles, 'cta');
-    const cta = ctaMetrics(ctx, spec, brand, scale, ts, cs.size);
+    const cta = ctaMetrics(ctx, spec, brand, scale, ts, cs.size, Math.max(40, regRight - regLeft));
     if (cta && ov.cta) {
       const anchorX = ov.cta.x * W;
       const cy = ov.cta.y * H;

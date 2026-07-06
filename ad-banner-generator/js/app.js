@@ -860,7 +860,12 @@
     }
     $('#mainPreview').classList.add('dragging');
     e.preventDefault();
-    try { e.target.setPointerCapture(e.pointerId); } catch (_) {}
+    // zachyť ukazatel, ať tažení funguje i mimo plátno; ulož pro pozdější uvolnění
+    try {
+      e.target.setPointerCapture(e.pointerId);
+      drag.captureTarget = e.target;
+      drag.pointerId = e.pointerId;
+    } catch (_) {}
   }
 
   function onPointerMove(e) {
@@ -902,6 +907,13 @@
 
   function onPointerUp() {
     if (!drag) return;
+    // uvolni zachycení ukazatele, jinak by plátno „polykalo" další kliknutí
+    // (např. výběr rozměru v galerii pod náhledem)
+    try {
+      if (drag.captureTarget && drag.pointerId != null) {
+        drag.captureTarget.releasePointerCapture(drag.pointerId);
+      }
+    } catch (_) {}
     drag = null;
     $('#mainPreview').classList.remove('dragging');
     // znovu vykresli bez tažení → vodicí lišta se po manipulaci sama skryje
