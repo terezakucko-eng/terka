@@ -25,6 +25,11 @@
     }
   },
   "logoText": "Růžový Slon",
+  "logoByLang": {
+    "CZ": "Růžový Slon",
+    "SK": "Ružový slon",
+    "default": "Sexy Elephant"
+  },
   "palette": {
     "primaryPink": "#DC004E",
     "darkViolet": "#1F0F36",

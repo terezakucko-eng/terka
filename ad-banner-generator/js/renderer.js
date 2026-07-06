@@ -30,20 +30,27 @@
   }
 
   function wrapText(ctx, text, maxWidth) {
-    const words = String(text || '').split(/\s+/).filter(Boolean);
-    if (!words.length) return [];
+    // Respektuj ruční zalomení (Enter = \n), pak zalamuj po slovech.
+    const paragraphs = String(text || '').split('\n');
     const lines = [];
-    let current = words[0];
-    for (let i = 1; i < words.length; i++) {
-      const test = current + ' ' + words[i];
-      if (ctx.measureText(test).width <= maxWidth) {
-        current = test;
-      } else {
-        lines.push(current);
-        current = words[i];
+    for (const para of paragraphs) {
+      const words = para.split(/\s+/).filter(Boolean);
+      if (!words.length) {
+        lines.push('');
+        continue;
       }
+      let current = words[0];
+      for (let i = 1; i < words.length; i++) {
+        const test = current + ' ' + words[i];
+        if (ctx.measureText(test).width <= maxWidth) {
+          current = test;
+        } else {
+          lines.push(current);
+          current = words[i];
+        }
+      }
+      lines.push(current);
     }
-    lines.push(current);
     return lines;
   }
 
@@ -151,21 +158,38 @@
     return _pusinkaPath2D;
   }
 
-  // Zachovává skutečný poměr stran pusinky, číslo je vždy vycentrované uvnitř.
-  function badgeMetrics(ctx, text, brand, scale) {
+  // sizeMult zvětšuje/zmenšuje celý odznak; text vyplňuje pusinku výrazně,
+  // procenta jsou menší a blíž k číslu. Zachovává poměr stran pusinky.
+  function badgeMetrics(ctx, text, brand, scale, sizeMult) {
     const t = String(text || '').trim();
     if (!t) return null;
-    const fontSize = Math.max(12, Math.round(20 * scale));
-    ctx.font = `800 ${fontSize}px ${brand.fonts.heading.family}`;
-    const tw = ctx.measureText(t).width;
-    let halfW = tw / 2 + fontSize * 1.2;
+    const fam = brand.fonts.heading.family;
+    const fontSize = Math.max(12, Math.round(20 * scale * (sizeMult || 1)));
+    const m = t.match(/^(.*?)(?:\s*)(%)\s*$/);
+    let parts = null;
+    let totalW;
+    if (m && m[1].trim()) {
+      const numPart = m[1].trim();
+      const pctSize = Math.round(fontSize * 0.62);
+      ctx.font = `800 ${fontSize}px ${fam}`;
+      const numW = ctx.measureText(numPart).width;
+      ctx.font = `800 ${pctSize}px ${fam}`;
+      const pctW = ctx.measureText('%').width;
+      const gap = fontSize * 0.05;
+      totalW = numW + gap + pctW;
+      parts = { numPart, numW, pctW, pctSize, gap };
+    } else {
+      ctx.font = `800 ${fontSize}px ${fam}`;
+      totalW = ctx.measureText(t).width;
+    }
+    let halfW = totalW / 2 + fontSize * 0.7;
     let halfH = halfW / PUSINKA_ASPECT;
-    const minHalfH = fontSize * 0.95;
+    const minHalfH = fontSize * 0.82;
     if (halfH < minHalfH) {
       halfH = minHalfH;
       halfW = halfH * PUSINKA_ASPECT;
     }
-    return { text: t, fontSize, halfW, halfH };
+    return { text: t, fontSize, halfW, halfH, parts };
   }
 
   function drawBadgeAt(ctx, m, brand, color, cx, cy) {
@@ -178,15 +202,29 @@
     ctx.fillStyle = color || brand.colors.primary;
     if (shape) ctx.fill(shape);
     ctx.restore();
+
+    const fam = brand.fonts.heading.family;
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = `800 ${m.fontSize}px ${brand.fonts.heading.family}`;
-    ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(m.text, cx, cy + 1);
+    if (m.parts) {
+      const p = m.parts;
+      const totalW = p.numW + p.gap + p.pctW;
+      let x = cx - totalW / 2;
+      ctx.textAlign = 'left';
+      ctx.font = `800 ${m.fontSize}px ${fam}`;
+      ctx.fillText(p.numPart, x, cy + 1);
+      x += p.numW + p.gap;
+      ctx.font = `800 ${p.pctSize}px ${fam}`;
+      ctx.fillText('%', x, cy + 1);
+    } else {
+      ctx.textAlign = 'center';
+      ctx.font = `800 ${m.fontSize}px ${fam}`;
+      ctx.fillText(m.text, cx, cy + 1);
+    }
   }
 
-  function drawLogo(ctx, brand, x, y, scale, color) {
-    const text = brand.logoText || brand.name || '';
+  function drawLogo(ctx, brand, x, y, scale, color, logoText) {
+    const text = logoText || brand.logoText || brand.name || '';
     if (!text) return null;
     const fontSize = Math.max(9, Math.round(12 * scale));
     ctx.font = `700 ${fontSize}px ${brand.fonts.heading.family}`;
@@ -529,7 +567,7 @@
 
     // slevový odznak ("pusinka")
     if (spec.discount && spec.discount.show) {
-      const bm = badgeMetrics(ctx, spec.discount.text, brand, scale);
+      const bm = badgeMetrics(ctx, spec.discount.text, brand, scale, spec.discount.size);
       if (bm) {
         const b = ov.badge || { x: 0.8, y: 0.3 };
         const cx = b.x * W;
@@ -539,10 +577,11 @@
       }
     }
 
-    if (!ov.logoHidden) {
+    const logoHidden = ov.logoHidden === undefined ? !!opts.logoDefaultHidden : ov.logoHidden;
+    if (!logoHidden) {
       const lx = ov.logo ? ov.logo.x * W : pad;
       const ly = ov.logo ? ov.logo.y * H : pad;
-      const lbox = drawLogo(ctx, brand, lx, ly, scale, bg.imageRect ? bg.logoColor : colors.text);
+      const lbox = drawLogo(ctx, brand, lx, ly, scale, bg.imageRect ? bg.logoColor : colors.text, spec.logoText);
       if (lbox) boxes.logo = lbox;
     }
 

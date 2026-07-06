@@ -31,9 +31,11 @@
       subline: { size: 1, lineHeight: 1.3, align: 'left' },
       cta: { size: 1, align: 'left' },
     },
+    selectedEl: 'headline', // prvek editovaný horní lištou
+    logoDefaultHidden: false, // skrýt logo u všech (globální výchozí)
     showGuides: false, // vodicí středové lišty v náhledu
     showGrid: false, // jemná vodicí mřížka v náhledu
-    discount: { show: false, text: '-20 %' },
+    discount: { show: false, text: '-20 %', size: 1 },
     badgeColor: null, // null = primární barva značky
 
     // rozvržení per formát: { manual, image:{scale,offsetX,offsetY},
@@ -79,6 +81,13 @@
     return state.texts[lang];
   }
 
+  // Logo se liší podle země: CZ = Růžový Slon, SK = Ružový slon,
+  // ostatní (zahraničí) = Sexy Elephant. Řízeno brand.logoByLang.
+  function logoFor(lang) {
+    const map = (state.brand && state.brand.logoByLang) || {};
+    return map[lang] || map.default || (state.brand && state.brand.logoText) || '';
+  }
+
   function specFor(lang) {
     const t = textsFor(lang);
     return {
@@ -87,6 +96,7 @@
       cta: t.cta,
       template: state.template,
       discount: state.discount,
+      logoText: logoFor(lang),
     };
   }
 
@@ -107,6 +117,7 @@
       textColor: state.textColor,
       textScale: state.textScale,
       textStyle: state.textStyle,
+      logoDefaultHidden: state.logoDefaultHidden,
       badgeColor: state.badgeColor || (state.brand && state.brand.colors.primary),
     };
   }
@@ -320,60 +331,48 @@
     $('#imgY').value = Math.round((img.offsetY || 0) * 100);
     $('#imgFmtLabel').textContent = state.activeFormat;
     $('#layoutMode').textContent = ov && ov.manual ? 'ruční' : 'automatické';
-    $('#showLogo').checked = !(ov && ov.logoHidden);
+    const logoHidden = ov && ov.logoHidden !== undefined ? ov.logoHidden : state.logoDefaultHidden;
+    $('#showLogo').checked = !logoHidden;
   }
 
-  function syncTextStyleControls() {
-    $$('.text-style').forEach((blk) => {
-      const el = blk.getAttribute('data-el');
-      const s = state.textStyle[el];
-      blk.querySelectorAll('.align-group button').forEach((b) =>
-        b.classList.toggle('active', b.getAttribute('data-align') === (s.align || 'left'))
-      );
-      const sizeInput = blk.querySelector('input[data-prop="size"]');
-      if (sizeInput) {
-        sizeInput.value = Math.round((s.size || 1) * 100);
-        const v = blk.querySelector('b[data-val="size"]');
-        if (v) v.textContent = Math.round((s.size || 1) * 100) + '%';
-      }
-      const lhInput = blk.querySelector('input[data-prop="lineHeight"]');
-      if (lhInput) {
-        const lh = s.lineHeight || (el === 'headline' ? 1.15 : 1.3);
-        lhInput.value = Math.round(lh * 100);
-        const v = blk.querySelector('b[data-val="lineHeight"]');
-        if (v) v.textContent = lh.toFixed(2);
-      }
+  function syncTextToolbar() {
+    const el = state.selectedEl;
+    const s = state.textStyle[el];
+    $$('#ttElements button').forEach((b) => b.classList.toggle('active', b.getAttribute('data-sel') === el));
+    $$('#ttAlign button').forEach((b) => b.classList.toggle('active', b.getAttribute('data-align') === (s.align || 'left')));
+    $('#ttSize').value = Math.round((s.size || 1) * 100);
+    $('#ttSizeVal').textContent = Math.round((s.size || 1) * 100) + '%';
+    const lh = s.lineHeight || (el === 'headline' ? 1.15 : 1.3);
+    $('#ttLineHeight').value = Math.round(lh * 100);
+    $('#ttLhVal').textContent = lh.toFixed(2);
+    $('#ttLhWrap').classList.toggle('hidden', el === 'cta');
+  }
+
+  function selectElement(el) {
+    state.selectedEl = el;
+    syncTextToolbar();
+  }
+
+  function wireTextToolbar() {
+    $$('#ttElements button').forEach((b) =>
+      b.addEventListener('click', () => selectElement(b.getAttribute('data-sel')))
+    );
+    $$('#ttAlign button').forEach((b) =>
+      b.addEventListener('click', () => {
+        state.textStyle[state.selectedEl].align = b.getAttribute('data-align');
+        syncTextToolbar();
+        scheduleRender();
+      })
+    );
+    $('#ttSize').addEventListener('input', (e) => {
+      state.textStyle[state.selectedEl].size = (+e.target.value) / 100;
+      $('#ttSizeVal').textContent = e.target.value + '%';
+      scheduleRender();
     });
-  }
-
-  function wireTextStyle() {
-    $$('.text-style').forEach((blk) => {
-      const el = blk.getAttribute('data-el');
-      blk.querySelectorAll('.align-group button').forEach((b) => {
-        b.addEventListener('click', () => {
-          state.textStyle[el].align = b.getAttribute('data-align');
-          blk.querySelectorAll('.align-group button').forEach((x) => x.classList.toggle('active', x === b));
-          scheduleRender();
-        });
-      });
-      const sizeInput = blk.querySelector('input[data-prop="size"]');
-      if (sizeInput) {
-        sizeInput.addEventListener('input', (e) => {
-          state.textStyle[el].size = (+e.target.value) / 100;
-          const v = blk.querySelector('b[data-val="size"]');
-          if (v) v.textContent = e.target.value + '%';
-          scheduleRender();
-        });
-      }
-      const lhInput = blk.querySelector('input[data-prop="lineHeight"]');
-      if (lhInput) {
-        lhInput.addEventListener('input', (e) => {
-          state.textStyle[el].lineHeight = (+e.target.value) / 100;
-          const v = blk.querySelector('b[data-val="lineHeight"]');
-          if (v) v.textContent = ((+e.target.value) / 100).toFixed(2);
-          scheduleRender();
-        });
-      }
+    $('#ttLineHeight').addEventListener('input', (e) => {
+      state.textStyle[state.selectedEl].lineHeight = (+e.target.value) / 100;
+      $('#ttLhVal').textContent = ((+e.target.value) / 100).toFixed(2);
+      scheduleRender();
     });
   }
 
@@ -382,11 +381,14 @@
     $('#textColor').value = state.textColor;
     $('#textScale').value = Math.round(state.textScale * 100);
     $('#textScaleVal').textContent = Math.round(state.textScale * 100) + '%';
+    $('#hideLogoAll').checked = state.logoDefaultHidden;
     $('#showGuides').checked = state.showGuides;
     $('#showGrid').checked = state.showGrid;
     $('#discountShow').checked = state.discount.show;
     $('#discountText').value = state.discount.text;
     $('#discountColor').value = state.badgeColor || (state.brand && state.brand.colors.primary) || '#DC004E';
+    $('#discountSize').value = Math.round((state.discount.size || 1) * 100);
+    $('#discountSizeVal').textContent = Math.round((state.discount.size || 1) * 100) + '%';
   }
 
   // ---------- náhled ----------
@@ -597,6 +599,7 @@
         const b = lastLayout.boxes.logo;
         ov.logo = { x: b.x / format.width, y: b.y / format.height };
       }
+      if (hit === 'headline' || hit === 'subline' || hit === 'cta') selectElement(hit);
       const cur = ov[hit] || { x: 0, y: 0 };
       drag = { kind: 'el', el: hit, downX: p.x, downY: p.y, origX: cur.x, origY: cur.y, W: format.width, H: format.height };
     }
@@ -757,6 +760,7 @@
       textColor: state.textColor,
       textScale: state.textScale,
       textStyle: state.textStyle,
+      logoDefaultHidden: state.logoDefaultHidden,
       showGuides: state.showGuides,
       showGrid: state.showGrid,
       discount: state.discount,
@@ -782,6 +786,7 @@
         if (data.textStyle[el]) Object.assign(state.textStyle[el], data.textStyle[el]);
       });
     }
+    if (typeof data.logoDefaultHidden === 'boolean') state.logoDefaultHidden = data.logoDefaultHidden;
     if (typeof data.showGuides === 'boolean') state.showGuides = data.showGuides;
     if (typeof data.showGrid === 'boolean') state.showGrid = data.showGrid;
     if (data.discount) state.discount = data.discount;
@@ -800,7 +805,7 @@
     buildLangTabs();
     syncTextInputs();
     syncStyleControls();
-    syncTextStyleControls();
+    syncTextToolbar();
     document.documentElement.style.setProperty('--brand-cta', state.ctaColor);
     renderPreview();
   }
@@ -944,7 +949,7 @@
       scheduleRender();
     });
 
-    wireTextStyle();
+    wireTextToolbar();
 
     $('#btnResetLang').addEventListener('click', () => {
       const d = langByCode(state.activeLang).defaults;
@@ -1048,6 +1053,20 @@
       state.badgeColor = e.target.value;
       scheduleRender();
     });
+    $('#discountSize').addEventListener('input', (e) => {
+      state.discount.size = (+e.target.value) / 100;
+      $('#discountSizeVal').textContent = e.target.value + '%';
+      scheduleRender();
+    });
+    $('#hideLogoAll').addEventListener('change', (e) => {
+      state.logoDefaultHidden = e.target.checked;
+      // aplikuj na všechny rozměry — zruš per-formát výjimky loga
+      Object.values(state.overrides).forEach((o) => {
+        if (o) delete o.logoHidden;
+      });
+      syncLayoutControls();
+      renderPreview();
+    });
 
     // tažení prvků v náhledu
     const preview = $('#mainPreview');
@@ -1080,7 +1099,7 @@
     buildExportCheckboxes();
     syncTextInputs();
     syncStyleControls();
-    syncTextStyleControls();
+    syncTextToolbar();
     updateImageThumbs();
     document.documentElement.style.setProperty('--brand-cta', state.ctaColor);
     wireEvents();
