@@ -564,8 +564,13 @@ select:focus {
   gap: 8px;
   align-items: center;
 }
-.inline2 input[type='text'] {
+.inline2 input[type='text'],
+.inline2 textarea {
   flex: 1;
+}
+.inline2 textarea {
+  min-height: 44px;
+  resize: vertical;
 }
 .inline2 input[type='color'] {
   width: 42px;

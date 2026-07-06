@@ -42,7 +42,7 @@
     logoDefaultHidden: false, // skrýt logo u všech (globální výchozí)
     showGuides: false, // vodicí středové lišty v náhledu
     showGrid: false, // jemná vodicí mřížka v náhledu
-    discount: { show: false, text: '-20 %', size: 1 },
+    discount: { show: false, text: '-20 %', size: 1, lineHeight: 1.1 },
     badgeColor: null, // null = primární barva značky
     badgeTextColor: '#FFFFFF', // barva textu v pusince
     colorScope: 'format', // 'format' = barvy per rozměr, 'all' = pro všechny
@@ -237,6 +237,7 @@
         show: state.discount.show && !hdn('badge'),
         text: state.discount.text,
         size: fmtId ? effectiveBadgeSize(fmtId) : (state.discount.size || 1),
+        lineHeight: state.discount.lineHeight || 1.1,
       },
       logoText: logoFor(lang),
       ctaArrow: state.ctaArrow,
@@ -748,6 +749,9 @@
     $('#discountText').value = state.discount.text;
     $('#discountColor').value = effectiveBadgeColor(state.activeFormat);
     $('#discountTextColor').value = effectiveBadgeTextColor(state.activeFormat);
+    const dlh = state.discount.lineHeight || 1.1;
+    $('#discountLineHeight').value = Math.round(dlh * 100);
+    $('#discountLhVal').textContent = dlh.toFixed(2);
     const bs = effectiveBadgeSize(state.activeFormat);
     $('#discountSize').value = Math.round(bs * 100);
     $('#discountSizeVal').textContent = Math.round(bs * 100) + '%';
@@ -1917,6 +1921,12 @@
     });
     $('#discountText').addEventListener('input', (e) => {
       state.discount.text = e.target.value;
+      scheduleRender();
+    });
+    $('#discountLineHeight').addEventListener('input', (e) => {
+      const lh = (+e.target.value) / 100;
+      state.discount.lineHeight = lh;
+      $('#discountLhVal').textContent = lh.toFixed(2);
       scheduleRender();
     });
     $('#discountColor').addEventListener('input', (e) => {
