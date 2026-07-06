@@ -171,7 +171,7 @@
     if (el === 'logo') return ov.logoHidden !== undefined ? ov.logoHidden : !!state.logoDefaultHidden;
     if (el === 'cta') return effectiveCtaHidden(fmt);
     if (el === 'badge') return ov.badgeHidden === true;
-    return ov[el + 'Hidden'] === true; // headline, subline
+    return ov[el + 'Hidden'] === true; // headline, subline, image
   }
   function setElHidden(fmt, el, hidden) {
     const ov = ensureOverride(fmt);
@@ -402,7 +402,8 @@
     const img = await loadImage(state.image);
     const ov = state.overrides[formatId];
     if (ov && ov.extra && ov.extra.src) await loadImage(ov.extra.src);
-    renderBanner(ctx, format, specFor(lang, formatId), state.brand, img, optsFor(formatId));
+    const mainImg = isElHidden(formatId, 'image') ? null : img;
+    renderBanner(ctx, format, specFor(lang, formatId), state.brand, mainImg, optsFor(formatId));
     return canvas;
   }
 
@@ -541,6 +542,17 @@
     $$('#ttElements button').forEach((b) => b.classList.toggle('active', b.getAttribute('data-sel') === el));
     // univerzální „Zobrazit" pro vybraný prvek (per formát)
     $('#ttShow').checked = !isElHidden(state.activeFormat, el);
+    $('#ttSizeWrap').classList.remove('hidden');
+    if (el === 'image') {
+      // master obrázek: v liště jen zobrazit/skrýt (zoom/posun je v sekci 2)
+      $('#ttAlign').classList.add('hidden');
+      $('#ttLhWrap').classList.add('hidden');
+      $('#ttLogoColorWrap').classList.add('hidden');
+      $('#ttBadgeColors').classList.add('hidden');
+      $('#ttCtaControls').classList.add('hidden');
+      $('#ttSizeWrap').classList.add('hidden');
+      return;
+    }
     if (el === 'logo' || el === 'badge') {
       // Logo i pusinka: skryj zarovnání/řádkování; velikost = jejich měřítko.
       $('#ttAlign').classList.add('hidden');
@@ -582,13 +594,14 @@
     );
     $$('#ttAlign button').forEach((b) =>
       b.addEventListener('click', () => {
-        if (state.selectedEl === 'logo') return;
+        if (['logo', 'badge', 'image'].indexOf(state.selectedEl) !== -1) return;
         activeTextStyle()[state.selectedEl].align = b.getAttribute('data-align');
         syncTextToolbar();
         scheduleRender();
       })
     );
     $('#ttSize').addEventListener('input', (e) => {
+      if (state.selectedEl === 'image') return;
       const v = (+e.target.value) / 100;
       if (state.selectedEl === 'logo') {
         ensureOverride(state.activeFormat).logoScale = v;
@@ -629,7 +642,7 @@
       scheduleRender();
     });
     $('#ttLineHeight').addEventListener('input', (e) => {
-      if (state.selectedEl === 'logo') return;
+      if (state.selectedEl === 'logo' || state.selectedEl === 'image' || state.selectedEl === 'badge') return;
       activeTextStyle()[state.selectedEl].lineHeight = (+e.target.value) / 100;
       $('#ttLhVal').textContent = ((+e.target.value) / 100).toFixed(2);
       scheduleRender();
@@ -700,7 +713,8 @@
     ctx.setTransform(k, 0, 0, k, 0, 0);
     // U formátů „bez pozadí" ukaž v NÁHLEDU šachovnici (průhlednost) — do exportu nejde.
     if (format.transparent) drawCheckerboard(ctx, format);
-    const layout = renderBanner(ctx, format, specFor(lang, format.id), state.brand, img, optsFor(format.id));
+    const mainImg = isElHidden(format.id, 'image') ? null : img;
+    const layout = renderBanner(ctx, format, specFor(lang, format.id), state.brand, mainImg, optsFor(format.id));
     // vodítka — jen v náhledu, NIKDY se neexportují
     if (overlay) {
       if (overlay.grid) drawGrid(ctx, format);
