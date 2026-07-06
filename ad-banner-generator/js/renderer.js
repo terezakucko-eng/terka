@@ -96,6 +96,124 @@
     return { size: s.size || 1, lineHeight: s.lineHeight || (el === 'headline' ? 1.15 : 1.3), align: s.align || 'left' };
   }
 
+  // ---------- rich text (část textu jinou velikostí/barvou přes *...*) ----------
+  var richCfg = { color: '#DC004E', scale: 1.35 };
+
+  function richTokens(text) {
+    const runs = [];
+    let hl = false, buf = '';
+    const s = String(text || '');
+    for (let i = 0; i < s.length; i++) {
+      const ch = s[i];
+      if (ch === '*') { if (buf) { runs.push({ t: buf, hl: hl }); buf = ''; } hl = !hl; }
+      else buf += ch;
+    }
+    if (buf) runs.push({ t: buf, hl: hl });
+    const items = [];
+    runs.forEach((r) => {
+      r.t.split('\n').forEach((seg, si) => {
+        if (si > 0) items.push({ br: true });
+        seg.split(/\s+/).forEach((w) => { if (w) items.push({ word: w, hl: r.hl }); });
+      });
+    });
+    return items;
+  }
+
+  function richHasMarkup(text) {
+    return String(text || '').indexOf('*') !== -1;
+  }
+
+  function layoutRichAt(ctx, items, family, weight, base, hlScale, maxWidth, lh) {
+    const hlS = Math.max(6, Math.round(base * (hlScale || 1)));
+    const setFont = (hl) => { ctx.font = `${weight} ${hl ? hlS : base}px ${family}`; };
+    const lines = [];
+    let cur = { words: [], width: 0, maxSize: 0 };
+    const flush = () => { lines.push(cur); cur = { words: [], width: 0, maxSize: 0 }; };
+    for (const it of items) {
+      if (it.br) { flush(); continue; }
+      setFont(it.hl);
+      const w = ctx.measureText(it.word).width;
+      const sp = cur.words.length ? ctx.measureText(' ').width : 0;
+      if (cur.words.length && cur.width + sp + w > maxWidth) flush();
+      const sp2 = cur.words.length ? (setFont(it.hl), ctx.measureText(' ').width) : 0;
+      const size = it.hl ? hlS : base;
+      cur.words.push({ word: it.word, hl: it.hl, x: cur.width + sp2, w: w, size: size });
+      cur.width += sp2 + w;
+      cur.maxSize = Math.max(cur.maxSize, size);
+    }
+    if (cur.words.length || lines.length === 0) flush();
+    let totalH = 0, maxLineW = 0;
+    lines.forEach((l) => { l.lineH = l.maxSize * lh; totalH += l.lineH; maxLineW = Math.max(maxLineW, l.width); });
+    return { lines: lines, height: totalH, width: maxLineW, base: base };
+  }
+
+  // Náhrada fitText pro rich text — vrací kompatibilní objekt s .lines a rozměry.
+  function fitRich(ctx, text, o) {
+    const items = richTokens(text);
+    const lh = o.lineHeight || 1.15;
+    for (let base = o.maxSize; base >= o.minSize; base--) {
+      const r = layoutRichAt(ctx, items, o.fontFamily, o.fontWeight, base, o.hlScale, o.maxWidth, lh);
+      if (r.lines.length <= o.maxLines && r.height <= o.maxHeight && r.width <= o.maxWidth) {
+        return r;
+      }
+    }
+    return layoutRichAt(ctx, items, o.fontFamily, o.fontWeight, o.minSize, o.hlScale, o.maxWidth, lh);
+  }
+
+  function drawRich(ctx, r, boxLeft, y, boxW, align, weight, family, color, hlColor) {
+    let cy = y, minL = Infinity, maxR = -Infinity;
+    for (const l of r.lines) {
+      let sx = boxLeft;
+      if (align === 'center') sx = boxLeft + (boxW - l.width) / 2;
+      else if (align === 'right') sx = boxLeft + (boxW - l.width);
+      const baseline = cy + l.maxSize * 0.8;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+      for (const w of l.words) {
+        ctx.font = `${weight} ${w.size}px ${family}`;
+        ctx.fillStyle = w.hl ? hlColor : color;
+        ctx.fillText(w.word, sx + w.x, baseline);
+        minL = Math.min(minL, sx + w.x);
+        maxR = Math.max(maxR, sx + w.x + w.w);
+      }
+      cy += l.lineH;
+    }
+    if (!isFinite(minL)) { minL = boxLeft; maxR = boxLeft; }
+    return { left: minL, right: maxR, width: maxR - minL, bottom: cy };
+  }
+
+  // Změř textový prvek (rich pokud obsahuje *…*, jinak plain) BEZ vykreslení.
+  // Vrací { rich, data, height, lineCount } — layout nejdřív měří, pak kreslí.
+  function measureTextEl(ctx, text, o) {
+    if (richHasMarkup(text)) {
+      const r = fitRich(ctx, text, {
+        fontFamily: o.fontFamily, fontWeight: o.fontWeight, maxWidth: o.maxWidth,
+        maxHeight: o.maxHeight, maxLines: o.maxLines, maxSize: o.maxSize,
+        minSize: o.minSize, lineHeight: o.lineHeight, hlScale: richCfg.scale,
+      });
+      return { rich: true, data: r, height: r.height, lineCount: r.lines.length };
+    }
+    const fit = fitText(ctx, text, {
+      fontFamily: o.fontFamily, fontWeight: o.fontWeight, maxWidth: o.maxWidth,
+      maxHeight: o.maxHeight, maxLines: o.maxLines, maxSize: o.maxSize,
+      minSize: o.minSize, lineHeight: o.lineHeight,
+    });
+    return { rich: false, data: fit, height: fit.lines.length * fit.lineHeight, lineCount: fit.lines.length };
+  }
+
+  // Vykresli změřený prvek na pozici y v pásu [boxLeft, boxLeft+boxW].
+  // Vrací { box:{x,y,w,h}, bottom }.
+  function paintTextEl(ctx, m, boxLeft, y, boxW, align, weight, family, color) {
+    if (m.rich) {
+      const d = drawRich(ctx, m.data, boxLeft, y, boxW, align, weight, family, color, richCfg.color);
+      return { box: { x: d.left, y: y, w: d.width, h: m.height }, bottom: d.bottom };
+    }
+    ctx.fillStyle = color;
+    ctx.font = `${weight} ${m.data.fontSize}px ${family}`;
+    const d = drawLines(ctx, m.data.lines, boxLeft, y, m.data.lineHeight, align, boxW);
+    return { box: { x: d.left, y: y, w: d.width, h: m.height }, bottom: d.bottom };
+  }
+
   // Nakreslí obrázek "cover" do obdélníku s transformací.
   // t = { scale, offsetX -1..1, offsetY -1..1, focusX 0..1, focusY 0..1 }
   // focus = "těžiště" (hlavní motiv) — drží se v záběru napříč rozměry (master).
@@ -161,6 +279,16 @@
     const pink = brand.colors.primary;
     if (relLum(bg) < 0.42) return white;
     return contrastRatio(pink, bg) >= 2.4 ? pink : black;
+  }
+  function rgbaStr(col, a) {
+    const [r, g, b] = parseColor(col);
+    return `rgba(${r}, ${g}, ${b}, ${a})`;
+  }
+  // Ztmaví barvu o daný podíl (0..1) — pro čitelný podklad pod bílým textem.
+  function darken(col, t) {
+    const [r, g, b] = parseColor(col);
+    const f = 1 - t;
+    return `rgb(${Math.round(r * f)}, ${Math.round(g * f)}, ${Math.round(b * f)})`;
   }
   // Dotónuje světlé pozadí panelu k průměrné barvě vizuálu (čitelný pastel).
   function tintPanel(avg, brand) {
@@ -259,7 +387,7 @@
     return { text: t, fontSize, halfW, halfH, parts };
   }
 
-  function drawBadgeAt(ctx, m, brand, color, cx, cy) {
+  function drawBadgeAt(ctx, m, brand, color, cx, cy, textColor) {
     const shape = pusinkaShape();
     const b = PUSINKA_BBOX;
     ctx.save();
@@ -271,7 +399,7 @@
     ctx.restore();
 
     const fam = brand.fonts.heading.family;
-    ctx.fillStyle = '#FFFFFF';
+    ctx.fillStyle = textColor || '#FFFFFF';
     ctx.textBaseline = 'middle';
     if (m.parts) {
       const p = m.parts;
@@ -390,28 +518,40 @@
       };
     }
 
-    // split
-    let imageRect, region;
+    // split — textový panel je graficky odvozený z použitého vizuálu:
+    // do panelu se vloží samotný obrázek a překryje se značkovým přechodem
+    // (růžová → tón vizuálu), takže panel drží barevně pohromadě s fotkou.
+    let imageRect, region, gv;
     if (orient === 'vertical') {
       const textH = Math.round(H * 0.5);
-      ctx.fillStyle = linearGradient(ctx, 0, 0, 0, textH, [
-        [0, c.primary],
-        [1, c.secondary],
-      ]);
-      ctx.fillRect(0, 0, W, textH);
       imageRect = { x: 0, y: textH, w: W, h: H - textH };
       region = { x: 0, y: 0, w: W, h: textH };
+      gv = true;
     } else {
       const textW = Math.round(W * (orient === 'horizontal' ? 0.5 : 0.55));
-      ctx.fillStyle = linearGradient(ctx, 0, 0, textW, H, [
-        [0, c.primary],
-        [1, c.secondary],
-      ]);
-      ctx.fillRect(0, 0, textW, H);
       imageRect = { x: textW, y: 0, w: W - textW, h: H };
       region = { x: 0, y: 0, w: textW, h: H };
+      gv = false;
     }
+    // hlavní vizuál
     drawImageTransformed(ctx, image, imageRect.x, imageRect.y, imageRect.w, imageRect.h, imgT);
+    // textový panel: stejný vizuál jako podklad + značkový přechod přes něj
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(region.x, region.y, region.w, region.h);
+    ctx.clip();
+    drawImageTransformed(ctx, image, region.x, region.y, region.w, region.h, imgT);
+    const panelTone = avg ? darken(avg, 0.5) : c.secondary;
+    const gx1 = gv ? region.x : region.x;
+    const gy1 = gv ? region.y : region.y;
+    const gx2 = gv ? region.x : region.x + region.w;
+    const gy2 = gv ? region.y + region.h : region.y;
+    ctx.fillStyle = linearGradient(ctx, gx1, gy1, gx2, gy2, [
+      [0, rgbaStr(c.primary, 0.9)],
+      [1, rgbaStr(panelTone, 0.94)],
+    ]);
+    ctx.fillRect(region.x, region.y, region.w, region.h);
+    ctx.restore();
     return {
       region: region,
       colors: { text: '#FFFFFF', muted: 'rgba(255,255,255,0.85)' },
@@ -441,7 +581,7 @@
     const hst = scale * (ts || 1) * hs.size;
     const sst = scale * (ts || 1) * ss.size;
 
-    const headline = fitText(ctx, spec.headline, {
+    const headline = measureTextEl(ctx, spec.headline, {
       fontFamily: hFont.family, fontWeight: hFont.weight || 700,
       maxWidth: maxWidth, maxHeight: region.h * 0.85,
       maxLines: region.h > 300 ? 5 : 3,
@@ -449,7 +589,7 @@
       lineHeight: hs.lineHeight,
     });
     const subline = spec.subline && spec.subline.trim()
-      ? fitText(ctx, spec.subline, {
+      ? measureTextEl(ctx, spec.subline, {
           fontFamily: bFont.family, fontWeight: bFont.weight || 400,
           maxWidth: maxWidth, maxHeight: region.h * 0.55,
           maxLines: region.h > 300 ? 5 : 3,
@@ -460,8 +600,8 @@
 
     const gap = Math.round(6 * scale);
     const cta = ctaMetrics(ctx, spec, brand, scale, ts, cs.size);
-    const headlineH = headline.lines.length * headline.lineHeight;
-    const sublineH = subline ? subline.lines.length * subline.lineHeight : 0;
+    const headlineH = headline.height;
+    const sublineH = subline ? subline.height : 0;
     const totalH = headlineH + (subline ? gap + sublineH : 0) + (cta ? gap * 1.6 + cta.h : 0);
 
     let y;
@@ -473,18 +613,14 @@
       y = region.y + topSpace + Math.max(0, (avail - totalH) / 2);
     }
 
-    ctx.fillStyle = colors.text;
-    ctx.font = `${hFont.weight || 700} ${headline.fontSize}px ${hFont.family}`;
-    let r = drawLines(ctx, headline.lines, innerX, y, headline.lineHeight, hs.align, maxWidth);
-    boxes.headline = { x: r.left, y: y, w: r.width, h: headlineH };
+    let r = paintTextEl(ctx, headline, innerX, y, maxWidth, hs.align, hFont.weight || 700, hFont.family, colors.text);
+    boxes.headline = { x: r.box.x, y: y, w: r.box.w, h: headlineH };
     y = r.bottom;
 
     if (subline) {
       y += gap;
-      ctx.fillStyle = colors.muted;
-      ctx.font = `${bFont.weight || 400} ${subline.fontSize}px ${bFont.family}`;
-      r = drawLines(ctx, subline.lines, innerX, y, subline.lineHeight, ss.align, maxWidth);
-      boxes.subline = { x: r.left, y: y, w: r.width, h: sublineH };
+      r = paintTextEl(ctx, subline, innerX, y, maxWidth, ss.align, bFont.weight || 400, bFont.family, colors.muted);
+      boxes.subline = { x: r.box.x, y: y, w: r.box.w, h: sublineH };
       y = r.bottom;
     }
 
@@ -514,7 +650,7 @@
     const textX = region.x + pad;
     const textMaxW = region.w - pad * 2 - ctaW;
 
-    const headline = fitText(ctx, spec.headline, {
+    const headline = measureTextEl(ctx, spec.headline, {
       fontFamily: hFont.family, fontWeight: hFont.weight || 700,
       maxWidth: textMaxW, maxHeight: region.h * 0.85,
       maxLines: region.h < 110 ? 2 : 3,
@@ -524,7 +660,7 @@
     });
     const showSub = spec.subline && spec.subline.trim() && region.h >= 90;
     const subline = showSub
-      ? fitText(ctx, spec.subline, {
+      ? measureTextEl(ctx, spec.subline, {
           fontFamily: bFont.family, fontWeight: bFont.weight || 400,
           maxWidth: textMaxW, maxHeight: region.h * 0.45, maxLines: 2,
           maxSize: Math.round(Math.min(region.h * 0.3 * (ts || 1) * ss.size, 14 * sst)),
@@ -534,23 +670,19 @@
       : null;
 
     const gap = Math.round(3 * scale);
-    const headlineH = headline.lines.length * headline.lineHeight;
-    const sublineH = subline ? subline.lines.length * subline.lineHeight : 0;
+    const headlineH = headline.height;
+    const sublineH = subline ? subline.height : 0;
     const totalH = headlineH + (subline ? gap + sublineH : 0);
     let y = region.y + (region.h - totalH) / 2;
 
-    ctx.fillStyle = colors.text;
-    ctx.font = `${hFont.weight || 700} ${headline.fontSize}px ${hFont.family}`;
-    let r = drawLines(ctx, headline.lines, textX, y, headline.lineHeight, hs.align, textMaxW);
-    boxes.headline = { x: r.left, y: y, w: r.width, h: headlineH };
+    let r = paintTextEl(ctx, headline, textX, y, textMaxW, hs.align, hFont.weight || 700, hFont.family, colors.text);
+    boxes.headline = { x: r.box.x, y: y, w: r.box.w, h: headlineH };
     y = r.bottom;
 
     if (subline) {
       y += gap;
-      ctx.fillStyle = colors.muted;
-      ctx.font = `${bFont.weight || 400} ${subline.fontSize}px ${bFont.family}`;
-      r = drawLines(ctx, subline.lines, textX, y, subline.lineHeight, ss.align, textMaxW);
-      boxes.subline = { x: r.left, y: y, w: r.width, h: sublineH };
+      r = paintTextEl(ctx, subline, textX, y, textMaxW, ss.align, bFont.weight || 400, bFont.family, colors.muted);
+      boxes.subline = { x: r.box.x, y: y, w: r.box.w, h: sublineH };
     }
 
     if (cta) {
@@ -591,9 +723,10 @@
       const anchorY = o.y * H;
       const band = bandFor(s.align, anchorX);
       const font = isHeadline ? hFont : bFont;
-      const fit = fitText(ctx, spec[el], {
+      const weight = font.weight || (isHeadline ? 700 : 400);
+      const m = measureTextEl(ctx, spec[el], {
         fontFamily: font.family,
-        fontWeight: font.weight || (isHeadline ? 700 : 400),
+        fontWeight: weight,
         maxWidth: band.boxW,
         maxHeight: H,
         maxLines: 6,
@@ -601,10 +734,8 @@
         minSize: isHeadline ? Math.max(9, Math.round(13 * est)) : Math.max(8, Math.round(11 * est)),
         lineHeight: s.lineHeight,
       });
-      ctx.fillStyle = isHeadline ? colors.text : colors.muted;
-      ctx.font = `${font.weight || (isHeadline ? 700 : 400)} ${fit.fontSize}px ${font.family}`;
-      const r = drawLines(ctx, fit.lines, band.boxLeft, anchorY, fit.lineHeight, s.align, band.boxW);
-      boxes[el] = { x: r.left, y: anchorY, w: r.width, h: fit.lines.length * fit.lineHeight };
+      const r = paintTextEl(ctx, m, band.boxLeft, anchorY, band.boxW, s.align, weight, font.family, isHeadline ? colors.text : colors.muted);
+      boxes[el] = { x: r.box.x, y: anchorY, w: r.box.w, h: m.height };
     }
 
     if (spec.headline && spec.headline.trim()) place('headline', true);
@@ -633,6 +764,9 @@
    */
   function renderBanner(ctx, format, spec, brand, image, opts) {
     opts = opts || {};
+    // barva/velikost zvýrazněné části textu (*slovo*) — z nastavení uživatele
+    richCfg.color = opts.highlightColor || '#DC004E';
+    richCfg.scale = opts.highlightScale || 1.35;
     const ov = opts.override || {};
     const imgT = ov.image ? Object.assign({}, ov.image) : { scale: 1, offsetX: 0, offsetY: 0 };
     if (opts.imageFocus) {
@@ -689,7 +823,7 @@
         const b = ov.badge || { x: 0.8, y: 0.3 };
         const cx = b.x * W;
         const cy = b.y * H;
-        drawBadgeAt(ctx, bm, brand, opts.badgeColor, cx, cy);
+        drawBadgeAt(ctx, bm, brand, opts.badgeColor, cx, cy, opts.badgeTextColor);
         boxes.badge = { x: cx - bm.halfW, y: cy - bm.halfH, w: bm.halfW * 2, h: bm.halfH * 2 };
       }
     }

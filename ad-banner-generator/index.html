@@ -101,7 +101,7 @@
             <span>CTA tlačítko</span>
             <input type="text" id="inCta" maxlength="40" />
           </label>
-          <p class="hint">Styl textu (velikost, řádkování, zarovnání) najdeš v liště nad náhledem.</p>
+          <p class="hint">Styl textu (velikost, řádkování, zarovnání) najdeš v liště nad náhledem — <b>platí pro tento rozměr</b> (každý banner má vlastní).</p>
           <button class="btn" id="btnMasterText">⭐ Použít tento text do všech jazyků</button>
           <button class="btn ghost" id="btnResetLang">↺ Výchozí (placeholder) texty</button>
         </section>
@@ -129,9 +129,16 @@
             </select>
           </label>
           <label class="slider">
-            <span>Velikost textu <b id="textScaleVal">100%</b></span>
+            <span>Velikost textu — <b>všechny rozměry</b> (master) <b id="textScaleVal">100%</b></span>
             <input type="range" id="textScale" min="60" max="250" value="100" />
           </label>
+          <p class="hint">Tento posuvník mění velikost <b>naráz u všech</b>. Pro <b>jeden rozměr</b> použij „Velikost" v liště nad náhledem.</p>
+          <div class="lc-title" style="margin-top:8px">✨ Zvýraznění části textu</div>
+          <p class="hint">Do headline/subline napiš <b>*slovo*</b> — zvýrazní se barvou a velikostí (např. <em>Jak *žhavé* bude léto?</em>).</p>
+          <div class="inline2">
+            <label class="field" style="flex:1;margin:0"><span>Barva zvýraznění</span><input type="color" id="highlightColor" value="#DC004E" /></label>
+            <label class="field" style="width:130px;margin:0"><span>Velikost <b id="highlightScaleVal">135%</b></span><input type="range" id="highlightScale" min="100" max="220" value="135" /></label>
+          </div>
           <label class="chk block"><input type="checkbox" id="hideLogoAll" /> Skrýt logo u <b>všech</b> bannerů</label>
           <label class="chk block"><input type="checkbox" id="showGuides" /> Vodicí lišty (střed) — prvky se přichytávají na střed</label>
           <label class="chk block"><input type="checkbox" id="showGrid" /> Vodicí mřížka (jemná, jen náhled)</label>
@@ -140,7 +147,9 @@
           <div class="inline2">
             <input type="text" id="discountText" value="-20 %" maxlength="12" placeholder="-20 %" />
             <input type="color" id="discountColor" value="#DC004E" title="Barva odznaku" />
+            <input type="color" id="discountTextColor" value="#FFFFFF" title="Barva textu v odznaku" />
           </div>
+          <p class="hint">Barvy: <b>výplň pusinky</b> a <b>barva textu</b> v ní.</p>
           <label class="slider"><span>Velikost odznaku <b id="discountSizeVal">100%</b></span><input type="range" id="discountSize" min="40" max="300" value="100" /></label>
           <p class="hint">Texty, CTA i odznak <b>přetáhneš myší</b> přímo v náhledu. Táhnutím přes obrázek ho posuneš.</p>
         </section>
@@ -153,14 +162,23 @@
             <button type="button" data-sel="headline" class="active">Headline</button>
             <button type="button" data-sel="subline">Subline</button>
             <button type="button" data-sel="cta">CTA</button>
+            <button type="button" data-sel="logo">Logo</button>
           </div>
           <div class="align-group" id="ttAlign">
             <button type="button" data-align="left" title="Vlevo">⬅</button>
             <button type="button" data-align="center" title="Na střed">↔</button>
             <button type="button" data-align="right" title="Vpravo">➡</button>
           </div>
-          <label class="tt-slider"><span>Velikost <b id="ttSizeVal">100%</b></span><input type="range" id="ttSize" min="50" max="300" value="100" /></label>
+          <label class="tt-slider"><span>Velikost <b id="ttSizeVal">100%</b></span><input type="range" id="ttSize" min="40" max="300" value="100" /></label>
           <label class="tt-slider" id="ttLhWrap"><span>Řádkování <b id="ttLhVal">1.15</b></span><input type="range" id="ttLineHeight" min="90" max="220" value="115" /></label>
+          <label class="tt-select hidden" id="ttLogoColorWrap"><span>Barva loga</span>
+            <select id="ttLogoColor">
+              <option value="auto">Auto</option>
+              <option value="white">Bílá</option>
+              <option value="black">Černá</option>
+              <option value="pink">Růžová</option>
+            </select>
+          </label>
         </div>
         <div class="preview-stage">
           <canvas id="mainPreview"></canvas>
