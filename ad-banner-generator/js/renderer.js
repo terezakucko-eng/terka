@@ -548,16 +548,19 @@
 
     if (template === 'overlay') {
       drawImageTransformed(ctx, image, 0, 0, W, H, imgT);
+      // ztmavení překryvu pod textem — uživatelsky nastavitelné (0 = bez stínu)
+      const shade = (opts && opts.overlayShade != null) ? opts.overlayShade : 1;
+      const a = (v) => Math.max(0, Math.min(1, v * shade));
       if (orient === 'horizontal') {
         ctx.fillStyle = linearGradient(ctx, 0, 0, W, 0, [
-          [0, 'rgba(0,0,0,0.72)'],
-          [0.6, 'rgba(0,0,0,0.35)'],
+          [0, `rgba(0,0,0,${a(0.72)})`],
+          [0.6, `rgba(0,0,0,${a(0.35)})`],
           [1, 'rgba(0,0,0,0.0)'],
         ]);
       } else {
         ctx.fillStyle = linearGradient(ctx, 0, H, 0, 0, [
-          [0, 'rgba(0,0,0,0.78)'],
-          [0.55, 'rgba(0,0,0,0.35)'],
+          [0, `rgba(0,0,0,${a(0.78)})`],
+          [0.55, `rgba(0,0,0,${a(0.35)})`],
           [1, 'rgba(0,0,0,0.0)'],
         ]);
       }

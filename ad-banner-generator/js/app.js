@@ -217,6 +217,11 @@
     const ov = state.overrides[fmt];
     return (ov && ov.badgeSize != null) ? ov.badgeSize : (state.discount.size || 1);
   }
+  // ztmavení překryvu u šablony overlay (1 = výchozí, 0 = bez stínu) — per formát
+  function effectiveOverlayShade(fmt) {
+    const ov = state.overrides[fmt];
+    return (ov && ov.overlayShade != null) ? ov.overlayShade : 1;
+  }
 
   // Logo se liší podle země: CZ = Růžový Slon, SK = Ružový slon,
   // ostatní (zahraničí) = Sexy Elephant. Řízeno brand.logoByLang.
@@ -330,6 +335,7 @@
       textStyle: effectiveTextStyle(fmt, lang),
       logoDefaultHidden: state.logoDefaultHidden,
       logoScale: effectiveLogoScale(fmt),
+      overlayShade: effectiveOverlayShade(fmt),
       logoColorMode: state.logoColorMode,
       imageFocus: state.imageFocus,
       imageAvg: state.imageAvg,
@@ -571,6 +577,13 @@
     if (desc) $('#templateDesc').textContent = desc.description;
     const cb = $('#perFormatText');
     if (cb) cb.checked = hasFormatText(state.activeFormat);
+    // ztmavení překryvu — jen pro šablonu overlay
+    const isOverlay = tpl === 'overlay';
+    $('#overlayShadeWrap').classList.toggle('hidden', !isOverlay);
+    $('#overlayShadeHint').classList.toggle('hidden', !isOverlay);
+    const osh = effectiveOverlayShade(state.activeFormat);
+    $('#overlayShade').value = Math.round(osh * 100);
+    $('#overlayShadeVal').textContent = Math.round(osh * 100) + '%';
   }
 
   function syncLayoutControls() {
@@ -1689,6 +1702,7 @@
       ov.template = e.target.value;
       const d = TEMPLATES.find((t) => t.id === e.target.value);
       if (d) $('#templateDesc').textContent = d.description;
+      syncPerFormatUI();
       scheduleRender();
     });
 
@@ -1978,6 +1992,11 @@
     $('#discountSize').addEventListener('input', (e) => {
       ensureOverride(state.activeFormat).badgeSize = (+e.target.value) / 100;
       $('#discountSizeVal').textContent = e.target.value + '%';
+      scheduleRender();
+    });
+    $('#overlayShade').addEventListener('input', (e) => {
+      ensureOverride(state.activeFormat).overlayShade = (+e.target.value) / 100;
+      $('#overlayShadeVal').textContent = e.target.value + '%';
       scheduleRender();
     });
     $('#focusX').addEventListener('input', (e) => {
