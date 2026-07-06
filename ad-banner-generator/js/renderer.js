@@ -378,10 +378,30 @@
     return _pusinkaPath2D;
   }
 
+  // Měření jednoho řádku pro dané fontSize (buď „číslo + %", nebo prostý text).
+  function badgeLineMeasure(ctx, t, fam, fontSize) {
+    const m = t.match(/^(.*?)(?:\s*)(%)\s*$/);
+    if (m && m[1].trim()) {
+      const numPart = m[1].trim();
+      const pctSize = Math.round(fontSize * 0.62);
+      ctx.font = `800 ${fontSize}px ${fam}`;
+      const numW = ctx.measureText(numPart).width;
+      ctx.font = `800 ${pctSize}px ${fam}`;
+      const pctW = ctx.measureText('%').width;
+      const gap = fontSize * 0.05;
+      return { text: t, parts: { numPart, numW, pctW, pctSize, gap }, w: numW + gap + pctW };
+    }
+    ctx.font = `800 ${fontSize}px ${fam}`;
+    return { text: t, parts: null, w: ctx.measureText(t).width };
+  }
+
   // sizeMult zvětšuje/zmenšuje celý odznak; text vyplňuje pusinku výrazně,
   // procenta jsou menší a blíž k číslu. Zachovává poměr stran pusinky.
   // Text může být víceřádkový (Enter → nový řádek); lineHeight = řádkování.
-  function badgeMetrics(ctx, text, brand, scale, sizeMult, lineHeight) {
+  // textScale mění JEN velikost textu uvnitř – velikost pusinky drží sizeMult
+  // (referenčně dle textu při textScale=1), takže text jde zmenšit/zvětšit
+  // nezávisle na odznaku.
+  function badgeMetrics(ctx, text, brand, scale, sizeMult, lineHeight, textScale) {
     // rozdělení na řádky podle Enteru, ořež krajní prázdné řádky
     let lines = String(text == null ? '' : text).split('\n').map(function (s) { return s.trim(); });
     while (lines.length && lines[0] === '') lines.shift();
@@ -389,41 +409,36 @@
     if (!lines.length) return null;
 
     const fam = brand.fonts.heading.family;
-    const fontSize = Math.max(12, Math.round(20 * scale * (sizeMult || 1)));
+    const baseFont = Math.max(12, Math.round(20 * scale * (sizeMult || 1)));
+    const ts = textScale && textScale > 0 ? textScale : 1;
+    const drawFont = Math.max(8, Math.round(baseFont * ts));
     const lh = lineHeight && lineHeight > 0 ? lineHeight : 1.1;
-    const lineGap = Math.round(fontSize * lh);
 
-    // per-řádek: buď „číslo + %" (menší %), nebo prostý text
-    const meas = lines.map(function (t) {
-      const m = t.match(/^(.*?)(?:\s*)(%)\s*$/);
-      if (m && m[1].trim()) {
-        const numPart = m[1].trim();
-        const pctSize = Math.round(fontSize * 0.62);
-        ctx.font = `800 ${fontSize}px ${fam}`;
-        const numW = ctx.measureText(numPart).width;
-        ctx.font = `800 ${pctSize}px ${fam}`;
-        const pctW = ctx.measureText('%').width;
-        const gap = fontSize * 0.05;
-        return { text: t, parts: { numPart, numW, pctW, pctSize, gap }, w: numW + gap + pctW };
-      }
-      ctx.font = `800 ${fontSize}px ${fam}`;
-      return { text: t, parts: null, w: ctx.measureText(t).width };
+    // 1) REFERENČNÍ míra při baseFont → velikost pusinky (nezávislá na textScale)
+    const refGap = Math.round(baseFont * lh);
+    let refMaxW = 0;
+    lines.forEach(function (t) {
+      refMaxW = Math.max(refMaxW, badgeLineMeasure(ctx, t, fam, baseFont).w);
     });
-
-    const maxW = meas.reduce(function (a, l) { return Math.max(a, l.w); }, 0);
-    const textH = fontSize + (meas.length - 1) * lineGap; // výška bloku textu
-
-    const needHalfW = maxW / 2 + fontSize * 0.7;
+    const refTextH = baseFont + (lines.length - 1) * refGap;
+    const needHalfW = refMaxW / 2 + baseFont * 0.7;
     let halfW = needHalfW;
     let halfH = halfW / PUSINKA_ASPECT;
-    // musí obsáhnout výšku textu (pro 1 řádek vyjde ≈ 0.82·fontSize jako dřív)
-    const reqHalfH = Math.max(fontSize * 0.82, textH / 2 + fontSize * 0.32);
+    // musí obsáhnout výšku textu (pro 1 řádek vyjde ≈ 0.82·baseFont jako dřív)
+    const reqHalfH = Math.max(baseFont * 0.82, refTextH / 2 + baseFont * 0.32);
     if (halfH < reqHalfH) {
       halfH = reqHalfH;
       halfW = halfH * PUSINKA_ASPECT;
       if (halfW < needHalfW) halfW = needHalfW;
     }
-    return { lines: meas, fontSize, halfW, halfH, lineGap };
+
+    // 2) VYKRESLOVACÍ míra při drawFont → skutečné glyfy (může přetéct, když
+    //    text úmyslně zvětšíš nad velikost pusinky)
+    const meas = lines.map(function (t) {
+      return badgeLineMeasure(ctx, t, fam, drawFont);
+    });
+    const lineGap = Math.round(drawFont * lh);
+    return { lines: meas, fontSize: drawFont, halfW, halfH, lineGap };
   }
 
   function drawBadgeAt(ctx, m, brand, color, cx, cy, textColor) {
@@ -915,7 +930,7 @@
 
     // slevový odznak ("pusinka")
     if (spec.discount && spec.discount.show) {
-      const bm = badgeMetrics(ctx, spec.discount.text, brand, scale, spec.discount.size, spec.discount.lineHeight);
+      const bm = badgeMetrics(ctx, spec.discount.text, brand, scale, spec.discount.size, spec.discount.lineHeight, spec.discount.textScale);
       if (bm) {
         const b = ov.badge || { x: 0.8, y: 0.3 };
         const cx = b.x * W;
