@@ -908,8 +908,13 @@
         rect: lastLayout.imageRect,
       };
     } else {
-      if ((hit === 'headline' || hit === 'subline' || hit === 'cta') && !ov.manual) {
-        seedManual(ov, format);
+      if (hit === 'headline' || hit === 'subline' || hit === 'cta') {
+        if (!ov.manual) seedManual(ov, format);
+        // starší uložení bez pozice prvku → naseeduj z aktuálního rozvržení
+        else if (!ov[hit] && lastLayout.boxes[hit]) {
+          const b = lastLayout.boxes[hit];
+          ov[hit] = { x: b.x / format.width, y: b.y / format.height };
+        }
       }
       if (hit === 'badge' && !ov.badge) {
         const b = lastLayout.boxes.badge;

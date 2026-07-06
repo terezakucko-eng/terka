@@ -783,12 +783,15 @@
     }
 
     const clampT = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    // kurzor pro prvky BEZ uložené ruční pozice (starší uložení) — položí se
+    // pod předchozí prvek, ať nechybí (např. subline, který nebyl „naseedován").
+    let cursorY = reg.y + pad;
 
     function place(el, isHeadline) {
-      const o = ov[el];
-      if (!o) return;
+      if (!(spec[el] && spec[el].trim())) return;
       const s = styleFor(styles, el);
       const est = scale * (ts || 1) * s.size;
+      const o = ov[el] || { x: regLeft / W, y: cursorY / H };
       const anchorX = o.x * W;
       const band = bandFor(s.align, anchorX);
       const font = isHeadline ? hFont : bFont;
@@ -807,10 +810,11 @@
       const anchorY = clampT(o.y * H, 0, Math.max(0, H - m.height));
       const r = paintTextEl(ctx, m, band.boxLeft, anchorY, band.boxW, s.align, weight, font.family, isHeadline ? colors.text : colors.muted);
       boxes[el] = { x: r.box.x, y: anchorY, w: r.box.w, h: m.height };
+      cursorY = anchorY + m.height + Math.round(6 * scale);
     }
 
-    if (spec.headline && spec.headline.trim()) place('headline', true);
-    if (spec.subline && spec.subline.trim()) place('subline', false);
+    place('headline', true);
+    place('subline', false);
 
     const cs = styleFor(styles, 'cta');
     const cta = ctaMetrics(ctx, spec, brand, scale, ts, cs.size, Math.max(40, regRight - regLeft));
