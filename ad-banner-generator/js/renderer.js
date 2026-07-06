@@ -200,17 +200,16 @@
     ctx.textBaseline = 'middle';
     ctx.fillText(m.text, contentLeft, cy + 1);
     if (m.arrow) {
+      // plný trojúhelník ▸ (jako v referenci CHCI SLEVU ▸)
       const ax = contentLeft + m.textW + m.gap;
-      const s = m.fontSize * 0.3;
-      ctx.strokeStyle = brand.colors.ctaText;
-      ctx.lineWidth = Math.max(1.5, m.fontSize * 0.12);
-      ctx.lineJoin = 'round';
-      ctx.lineCap = 'round';
+      const s = m.fontSize * 0.34;
+      ctx.fillStyle = brand.colors.ctaText;
       ctx.beginPath();
       ctx.moveTo(ax, cy - s);
       ctx.lineTo(ax + s * 0.95, cy);
       ctx.lineTo(ax, cy + s);
-      ctx.stroke();
+      ctx.closePath();
+      ctx.fill();
     }
   }
 

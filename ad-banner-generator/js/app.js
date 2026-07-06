@@ -1022,7 +1022,18 @@
 
     wireTextToolbar();
 
+    $('#btnMasterText').addEventListener('click', () => {
+      const t = textsFor(state.activeLang);
+      const master = { headline: t.headline, subline: t.subline, cta: t.cta };
+      LANGUAGES.forEach((l) => {
+        state.texts[l.code] = { headline: master.headline, subline: master.subline, cta: master.cta };
+      });
+      renderPreview();
+      setStatus('Text použit do všech jazyků. Jednotlivé si můžeš přeložit.');
+    });
+
     $('#btnResetLang').addEventListener('click', () => {
+      if (!confirm('Přepsat text tohoto jazyka výchozím placeholderem? Tvůj text se ztratí.')) return;
       const d = langByCode(state.activeLang).defaults;
       state.texts[state.activeLang] = { headline: d.headline, subline: d.subline, cta: d.cta };
       syncTextInputs();
