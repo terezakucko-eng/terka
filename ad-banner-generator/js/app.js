@@ -25,7 +25,6 @@
     ctaColor: '#2FB773', // zelená z palety manuálu
     textColor: 'auto', // 'auto' | 'light' | 'dark'
     textScale: 1, // násobič velikosti textů (0.6–2.5)
-    showLogo: true,
     showGuides: false, // vodicí středové lišty v náhledu
     showGrid: false, // jemná vodicí mřížka v náhledu
     discount: { show: false, text: '-20 %' },
@@ -101,7 +100,6 @@
       ctaColor: state.ctaColor,
       textColor: state.textColor,
       textScale: state.textScale,
-      showLogo: state.showLogo,
       badgeColor: state.badgeColor || (state.brand && state.brand.colors.primary),
     };
   }
@@ -315,6 +313,7 @@
     $('#imgY').value = Math.round((img.offsetY || 0) * 100);
     $('#imgFmtLabel').textContent = state.activeFormat;
     $('#layoutMode').textContent = ov && ov.manual ? 'ruční' : 'automatické';
+    $('#showLogo').checked = !(ov && ov.logoHidden);
   }
 
   function syncStyleControls() {
@@ -322,7 +321,6 @@
     $('#textColor').value = state.textColor;
     $('#textScale').value = Math.round(state.textScale * 100);
     $('#textScaleVal').textContent = Math.round(state.textScale * 100) + '%';
-    $('#showLogo').checked = state.showLogo;
     $('#showGuides').checked = state.showGuides;
     $('#showGrid').checked = state.showGrid;
     $('#discountShow').checked = state.discount.show;
@@ -492,7 +490,7 @@
   }
 
   function hitTest(p) {
-    const order = ['badge', 'cta', 'subline', 'headline'];
+    const order = ['badge', 'logo', 'cta', 'subline', 'headline'];
     for (const k of order) {
       const b = lastLayout.boxes[k];
       if (b && inside(p, b, 6)) return k;
@@ -533,6 +531,10 @@
       if (hit === 'badge' && !ov.badge) {
         const b = lastLayout.boxes.badge;
         ov.badge = { x: (b.x + b.w / 2) / format.width, y: (b.y + b.h / 2) / format.height };
+      }
+      if (hit === 'logo' && !ov.logo) {
+        const b = lastLayout.boxes.logo;
+        ov.logo = { x: b.x / format.width, y: b.y / format.height };
       }
       const cur = ov[hit] || { x: 0, y: 0 };
       drag = { kind: 'el', el: hit, downX: p.x, downY: p.y, origX: cur.x, origY: cur.y, W: format.width, H: format.height };
@@ -693,7 +695,6 @@
       ctaColor: state.ctaColor,
       textColor: state.textColor,
       textScale: state.textScale,
-      showLogo: state.showLogo,
       showGuides: state.showGuides,
       showGrid: state.showGrid,
       discount: state.discount,
@@ -714,7 +715,6 @@
     if (data.ctaColor) state.ctaColor = data.ctaColor;
     if (data.textColor) state.textColor = data.textColor;
     if (data.textScale) state.textScale = data.textScale;
-    if (typeof data.showLogo === 'boolean') state.showLogo = data.showLogo;
     if (typeof data.showGuides === 'boolean') state.showGuides = data.showGuides;
     if (typeof data.showGrid === 'boolean') state.showGrid = data.showGrid;
     if (data.discount) state.discount = data.discount;
@@ -948,8 +948,15 @@
       scheduleRender();
     });
     $('#showLogo').addEventListener('change', (e) => {
-      state.showLogo = e.target.checked;
+      const ov = ensureOverride(state.activeFormat);
+      ov.logoHidden = !e.target.checked;
       scheduleRender();
+    });
+    $('#btnResetLogo').addEventListener('click', () => {
+      const ov = state.overrides[state.activeFormat];
+      if (ov) { delete ov.logo; delete ov.logoHidden; }
+      syncLayoutControls();
+      renderPreview();
     });
     $('#showGuides').addEventListener('change', (e) => {
       state.showGuides = e.target.checked;

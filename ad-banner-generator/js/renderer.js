@@ -174,13 +174,14 @@
 
   function drawLogo(ctx, brand, x, y, scale, color) {
     const text = brand.logoText || brand.name || '';
-    if (!text) return;
+    if (!text) return null;
     const fontSize = Math.max(9, Math.round(12 * scale));
     ctx.font = `700 ${fontSize}px ${brand.fonts.heading.family}`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.fillStyle = color;
     ctx.fillText(text, x, y);
+    return { x: x, y: y, w: ctx.measureText(text).width, h: fontSize };
   }
 
   // ---------- barvy textu ----------
@@ -520,8 +521,11 @@
       }
     }
 
-    if (opts.showLogo !== false) {
-      drawLogo(ctx, brand, pad, pad, scale, bg.imageRect ? bg.logoColor : colors.text);
+    if (!ov.logoHidden) {
+      const lx = ov.logo ? ov.logo.x * W : pad;
+      const ly = ov.logo ? ov.logo.y * H : pad;
+      const lbox = drawLogo(ctx, brand, lx, ly, scale, bg.imageRect ? bg.logoColor : colors.text);
+      if (lbox) boxes.logo = lbox;
     }
 
     ctx.strokeStyle = 'rgba(0,0,0,0.12)';
