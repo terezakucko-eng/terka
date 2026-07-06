@@ -161,6 +161,7 @@
         height: f.h,
         safeZone: f.safeZone || null,
         maxKB: f.maxKB != null ? f.maxKB : (ch.maxKB != null ? ch.maxKB : null),
+        transparent: f.transparent != null ? f.transparent : (ch.transparent != null ? ch.transparent : false),
       });
     });
   });

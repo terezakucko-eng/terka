@@ -499,6 +499,7 @@
       $('#ttLhWrap').classList.add('hidden');
       $('#ttLogoColorWrap').classList.toggle('hidden', el !== 'logo');
       $('#ttBadgeColors').classList.toggle('hidden', el !== 'badge');
+      $('#ttCtaControls').classList.add('hidden');
       const val = el === 'logo' ? effectiveLogoScale(state.activeFormat) : effectiveBadgeSize(state.activeFormat);
       $('#ttSize').value = Math.round(val * 100);
       $('#ttSizeVal').textContent = Math.round(val * 100) + '%';
@@ -509,6 +510,9 @@
     $('#ttAlign').classList.remove('hidden');
     $('#ttLogoColorWrap').classList.add('hidden');
     $('#ttBadgeColors').classList.add('hidden');
+    // CTA má navíc: zobrazit/skrýt, barvu (dle manuálu) a šipku
+    $('#ttCtaControls').classList.toggle('hidden', el !== 'cta');
+    if (el === 'cta') syncCtaControls();
     const s = effectiveTextStyle(state.activeFormat)[el];
     $$('#ttAlign button').forEach((b) => b.classList.toggle('active', b.getAttribute('data-align') === (s.align || 'left')));
     $('#ttSize').value = Math.round((s.size || 1) * 100);
@@ -555,6 +559,16 @@
     $('#ttLogoColor').addEventListener('change', (e) => {
       state.logoColorMode = e.target.value;
       $('#logoColorMode').value = e.target.value;
+      scheduleRender();
+    });
+    $('#ttCtaShow').addEventListener('change', (e) => {
+      state.ctaHidden = !e.target.checked;
+      $('#ctaShow').checked = e.target.checked;
+      scheduleRender();
+    });
+    $('#ttCtaArrow').addEventListener('change', (e) => {
+      state.ctaArrow = e.target.checked;
+      $('#ctaArrow').checked = e.target.checked;
       scheduleRender();
     });
     $('#ttLineHeight').addEventListener('input', (e) => {
@@ -1266,20 +1280,48 @@
   // Mapa našich kódů na ISO kódy překladače.
   const ISO_LANG = { CZ: 'cs', SK: 'sk', HU: 'hu', RO: 'ro', SI: 'sl', HR: 'hr', BG: 'bg' };
 
-  // Odstraní zvýrazňovací značky (*[..]slovo*) — u překladu se neponechávají.
-  function stripHighlight(text) {
-    return String(text || '').replace(/\*\[[^\]]*\]/g, '*').replace(/\*/g, '');
-  }
-
-  // Přeloží text přes veřejný Google endpoint (CORS povolen). Vrací přeložený text.
+  // Přeloží text přes veřejný Google endpoint (CORS povolen). Překládá po
+  // řádcích, aby se zachovalo ruční zalomení (\n).
   async function translateText(text, from, to) {
     if (!text || !text.trim()) return text || '';
-    const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=' +
-      from + '&tl=' + to + '&dt=t&q=' + encodeURIComponent(text);
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    return (data && data[0] ? data[0].map((s) => s[0]).join('') : text).trim();
+    const lines = String(text).split('\n');
+    const out = [];
+    for (const ln of lines) {
+      if (!ln.trim()) { out.push(ln); continue; }
+      const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=' +
+        from + '&tl=' + to + '&dt=t&q=' + encodeURIComponent(ln);
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      out.push(data && data[0] ? data[0].map((s) => s[0]).join('') : ln);
+    }
+    return out.join('\n');
+  }
+
+  // Přeloží text a ZACHOVÁ zvýraznění (*[..]slovo*) — každý úsek přeloží zvlášť
+  // a znovu obalí stejnými značkami, takže zůstane naformátovaná ta samá část.
+  async function translateFormatted(text, from, to) {
+    const segs = String(text || '').split('*');
+    const keepSpace = async (s) => {
+      if (!s) return s;
+      const lead = (s.match(/^\s*/) || [''])[0];
+      const trail = (s.match(/\s*$/) || [''])[0];
+      const core = s.slice(lead.length, s.length - (trail.length || 0));
+      if (!core) return s;
+      return lead + (await translateText(core, from, to)) + trail;
+    };
+    const out = [];
+    for (let i = 0; i < segs.length; i++) {
+      if (i % 2 === 1) {
+        const m = segs[i].match(/^\[[^\]]*\]/);
+        const attr = m ? m[0] : '';
+        const body = m ? segs[i].slice(m[0].length) : segs[i];
+        out.push(attr + (await keepSpace(body)));
+      } else {
+        out.push(await keepSpace(segs[i]));
+      }
+    }
+    return out.join('*');
   }
 
   async function autoTranslateAll() {
@@ -1288,11 +1330,6 @@
     if (!confirm('Automaticky přeložit z „' + src + '" do všech ostatních jazyků? Přepíše to jejich současné texty (strojový překlad je nutné zkontrolovat).')) return;
     const scope = textScope();
     const base = textTarget(src);
-    const plain = {
-      headline: stripHighlight(base.headline),
-      subline: stripHighlight(base.subline),
-      cta: stripHighlight(base.cta),
-    };
     const btn = $('#btnAutoTranslate');
     btn.disabled = true;
     const targets = LANGUAGES.filter((l) => l.code !== src);
@@ -1301,9 +1338,9 @@
         const to = ISO_LANG[l.code];
         setStatus('Překládám… ' + l.code);
         const [h, s, c] = await Promise.all([
-          translateText(plain.headline, from, to),
-          translateText(plain.subline, from, to),
-          translateText(plain.cta, from, to),
+          translateFormatted(base.headline, from, to),
+          translateFormatted(base.subline, from, to),
+          translateFormatted(base.cta, from, to),
         ]);
         scope[l.code] = { headline: h, subline: s, cta: c };
       }
@@ -1360,6 +1397,44 @@
     $$('#ttBadgeText .tt-swatch').forEach((b) =>
       b.classList.toggle('sel', (b.style.background && rgbToHex(b.style.background)) === curT));
   }
+  // ---------- CTA: barvy v horní liště (dle manuálu) ----------
+  function ctaSwatchColors() {
+    const p = (state.brand && state.brand.palette) || {};
+    return [
+      { c: p.green || '#2FB773', t: 'Zelená' },
+      { c: p.primaryPink || '#DC004E', t: 'Růžová' },
+      { c: p.violet || '#985FA3', t: 'Fialová' },
+      { c: p.lightPink || '#F8C7C8', t: 'Světlá růžová' },
+      { c: p.darkViolet || '#1F0F36', t: 'Tmavá' },
+    ];
+  }
+  function buildCtaSwatches() {
+    const wrap = $('#ttCtaColor');
+    wrap.innerHTML = '';
+    ctaSwatchColors().forEach((o) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'tt-swatch';
+      b.style.background = o.c;
+      b.title = o.t;
+      b.addEventListener('click', () => {
+        state.ctaColor = o.c;
+        $('#ctaColor').value = o.c;
+        document.documentElement.style.setProperty('--brand-cta', o.c);
+        syncCtaControls();
+        scheduleRender();
+      });
+      wrap.appendChild(b);
+    });
+  }
+  function syncCtaControls() {
+    $('#ttCtaShow').checked = !state.ctaHidden;
+    $('#ttCtaArrow').checked = state.ctaArrow;
+    const cur = (state.ctaColor || '').toLowerCase();
+    $$('#ttCtaColor .tt-swatch').forEach((b) =>
+      b.classList.toggle('sel', rgbToHex(b.style.background) === cur));
+  }
+
   // pomocník: „rgb(a,b,c)" → „#rrggbb" (pro porovnání s uloženou hex barvou)
   function rgbToHex(rgb) {
     if (!rgb) return '';
@@ -1726,6 +1801,7 @@
     syncTextInputs();
     syncStyleControls();
     buildBadgeSwatches();
+    buildCtaSwatches();
     syncTextToolbar();
     updateImageThumbs();
     document.documentElement.style.setProperty('--brand-cta', state.ctaColor);

@@ -116,7 +116,7 @@
 
           <p class="hint">Styl textu (velikost, řádkování, zarovnání) najdeš v liště nad náhledem — <b>platí pro tento rozměr</b> (každý banner má vlastní).</p>
           <button class="btn" id="btnAutoTranslate">🌐 Automaticky přeložit do všech jazyků</button>
-          <p class="hint">Přeloží z aktivního jazyka (<b id="translateFromLabel">CZ</b>) do ostatních přes online překladač. Vyžaduje připojení; <b>strojový překlad zkontroluj</b>. Zvýraznění (*slovo*) se u překladů neponechává.</p>
+          <p class="hint">Přeloží z aktivního jazyka (<b id="translateFromLabel">CZ</b>) do ostatních přes online překladač. Vyžaduje připojení; <b>strojový překlad zkontroluj</b>. Naformátování (zvýrazněné slovo) se u překladu zachová.</p>
           <button class="btn ghost" id="btnResetLang">↺ Výchozí (placeholder) texty</button>
         </section>
 
@@ -192,6 +192,11 @@
           <div class="tt-badge hidden" id="ttBadgeColors">
             <div class="tt-swatch-row"><span>Pusinka</span><span class="tt-swatches" id="ttBadgeFill"></span></div>
             <div class="tt-swatch-row"><span>Text</span><span class="tt-swatches" id="ttBadgeText"></span></div>
+          </div>
+          <div class="tt-badge hidden" id="ttCtaControls">
+            <label class="tt-check"><input type="checkbox" id="ttCtaShow" checked /> Zobrazit</label>
+            <div class="tt-swatch-row"><span>Barva</span><span class="tt-swatches" id="ttCtaColor"></span></div>
+            <label class="tt-check"><input type="checkbox" id="ttCtaArrow" checked /> Šipka ▸</label>
           </div>
         </div>
         <div class="preview-stage">
