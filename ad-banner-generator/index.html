@@ -66,7 +66,7 @@
             </div>
             <label class="slider">
               <span>Zoom (oddálit ↔ přiblížit) <b id="zoomVal">100%</b></span>
-              <input type="range" id="imgZoom" min="20" max="300" value="100" />
+              <input type="range" id="imgZoom" min="20" max="600" value="100" />
             </label>
             <label class="slider"><span>Posun X</span><input type="range" id="imgX" min="-100" max="100" value="0" /></label>
             <label class="slider"><span>Posun Y</span><input type="range" id="imgY" min="-100" max="100" value="0" /></label>
@@ -192,6 +192,33 @@
           </label>
           <label class="chk block"><input type="checkbox" id="ctaShow" checked /> Zobrazit CTA tlačítko <b>(tento rozměr)</b></label>
           <label class="chk block"><input type="checkbox" id="ctaArrow" checked /> Šipka v CTA (▸)</label>
+          <hr />
+          <div class="lc-title">🎨 Barvy pozadí <small class="scope-badge">šablony Minimal / Split</small></div>
+          <label class="field">
+            <span>Barva 1 (začátek přechodu)</span>
+            <span class="color-row">
+              <input type="color" id="bgColor1" value="#DC004E" />
+              <button class="swatch-btn" data-bg1="#DC004E" style="background:#DC004E" title="Růžová"></button>
+              <button class="swatch-btn" data-bg1="#1F0F36" style="background:#1F0F36" title="Tmavá"></button>
+              <button class="swatch-btn" data-bg1="#985FA3" style="background:#985FA3" title="Fialová"></button>
+              <button class="swatch-btn" data-bg1="#11AAAA" style="background:#11AAAA" title="Tyrkysová"></button>
+              <button class="swatch-btn" data-bg1="#F4B945" style="background:#F4B945" title="Žlutá"></button>
+              <button class="swatch-btn" data-bg1="#2FB773" style="background:#2FB773" title="Zelená"></button>
+            </span>
+          </label>
+          <label class="field">
+            <span>Barva 2 (konec přechodu)</span>
+            <span class="color-row">
+              <input type="color" id="bgColor2" value="#1F0F36" />
+              <button class="swatch-btn" data-bg2="#1F0F36" style="background:#1F0F36" title="Tmavá"></button>
+              <button class="swatch-btn" data-bg2="#DC004E" style="background:#DC004E" title="Růžová"></button>
+              <button class="swatch-btn" data-bg2="#985FA3" style="background:#985FA3" title="Fialová"></button>
+              <button class="swatch-btn" data-bg2="#F8C7C8" style="background:#F8C7C8" title="Světlá růžová"></button>
+              <button class="swatch-btn" data-bg2="#114CAA" style="background:#114CAA" title="Modrá"></button>
+              <button class="swatch-btn" data-bg2="#FCEAEA" style="background:#FCEAEA" title="Nejsvětlejší"></button>
+            </span>
+          </label>
+          <p class="hint">Přechod pozadí u šablon <b>Minimal</b> a <b>Split</b>. Platí dle volby „platí pro" nahoře (tento rozměr / všechny).</p>
           <hr />
           <label class="chk block"><input type="checkbox" id="discountShow" /> Slevový odznak („pusinka")</label>
           <div class="inline2">

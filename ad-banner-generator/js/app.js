@@ -45,6 +45,8 @@
     discount: { show: false, text: '-20 %', size: 1, lineHeight: 1.1, textScale: 1 },
     badgeColor: null, // null = primární barva značky
     badgeTextColor: '#FFFFFF', // barva textu v pusince
+    bgColor1: null, // barva pozadí 1 (Minimal/Split); null = primární značky
+    bgColor2: null, // barva pozadí 2 (Minimal/Split); null = sekundární značky
     colorScope: 'format', // 'format' = barvy per rozměr, 'all' = pro všechny
     highlightColor: '#DC004E', // barva zvýrazněné části textu (*slovo*)
     highlightScale: 1.35, // násobič velikosti zvýrazněné části
@@ -222,12 +224,31 @@
     const ov = state.overrides[fmt];
     return (ov && ov.overlayShade != null) ? ov.overlayShade : 1;
   }
+  // barvy přechodu pozadí u šablon Minimal/Split — per formát, fallback značka
+  function effectiveBgColor1(fmt) {
+    const ov = state.overrides[fmt];
+    return (ov && ov.bgColor1) || state.bgColor1 || (state.brand && state.brand.colors.primary);
+  }
+  function effectiveBgColor2(fmt) {
+    const ov = state.overrides[fmt];
+    return (ov && ov.bgColor2) || state.bgColor2 || (state.brand && state.brand.colors.secondary);
+  }
 
   // Logo se liší podle země: CZ = Růžový Slon, SK = Ružový slon,
   // ostatní (zahraničí) = Sexy Elephant. Řízeno brand.logoByLang.
   function logoFor(lang) {
     const map = (state.brand && state.brand.logoByLang) || {};
     return map[lang] || map.default || (state.brand && state.brand.logoText) || '';
+  }
+
+  // Text pusinky je per jazyk: CZ = základ (state.discount.text), ostatní jazyky
+  // ho dědí, dokud nemají vlastní (state.discount.textByLang[lang]) — např. z překladu.
+  function badgeTextFor(lang) {
+    const d = state.discount;
+    if (lang && lang !== MASTER_LANG && d.textByLang && d.textByLang[lang] != null) {
+      return d.textByLang[lang];
+    }
+    return d.text;
   }
 
   function specFor(lang, fmtId) {
@@ -240,7 +261,7 @@
       template: fmtId ? effectiveTemplate(fmtId) : state.template,
       discount: {
         show: state.discount.show && !hdn('badge'),
-        text: state.discount.text,
+        text: badgeTextFor(lang),
         size: fmtId ? effectiveBadgeSize(fmtId) : (state.discount.size || 1),
         lineHeight: state.discount.lineHeight || 1.1,
         textScale: state.discount.textScale || 1,
@@ -341,6 +362,8 @@
       imageAvg: state.imageAvg,
       badgeColor: effectiveBadgeColor(fmt),
       badgeTextColor: effectiveBadgeTextColor(fmt),
+      bgColor1: effectiveBgColor1(fmt),
+      bgColor2: effectiveBgColor2(fmt),
       highlightColor: state.highlightColor,
       highlightScale: state.highlightScale,
       transparent: !!(formatById(fmt) && formatById(fmt).transparent),
@@ -508,6 +531,11 @@
     $('#templateDesc').textContent = TEMPLATES.find((t) => t.id === state.template).description;
   }
 
+  function markActiveLangTab() {
+    $$('#langTabs .lang-tab').forEach((b) =>
+      b.classList.toggle('active', b.dataset.code === state.activeLang)
+    );
+  }
   function buildLangTabs() {
     const wrap = $('#langTabs');
     wrap.innerHTML = '';
@@ -516,10 +544,11 @@
       btn.className = 'lang-tab' + (l.code === state.activeLang ? ' active' : '');
       btn.textContent = l.code;
       btn.title = l.label;
+      btn.dataset.code = l.code;
       btn.addEventListener('click', () => {
         state.activeLang = l.code;
         syncTextInputs();
-        buildLangTabs();
+        markActiveLangTab(); // jen přepni zvýraznění (nerozbourávej DOM během kliknutí)
         renderPreview();
       });
       wrap.appendChild(btn);
@@ -562,6 +591,7 @@
     $('#inHeadline').value = t.headline || '';
     $('#inSubline').value = t.subline || '';
     $('#inCta').value = t.cta || '';
+    $('#discountText').value = badgeTextFor(state.activeLang);
     $('#activeLangLabel').textContent = langByCode(state.activeLang).label;
     const tfl = $('#translateFromLabel');
     if (tfl) tfl.textContent = state.activeLang;
@@ -750,6 +780,8 @@
 
   function syncStyleControls() {
     $('#ctaColor').value = effectiveCtaColor(state.activeFormat);
+    $('#bgColor1').value = effectiveBgColor1(state.activeFormat);
+    $('#bgColor2').value = effectiveBgColor2(state.activeFormat);
     const cs = $('#colorScope'); if (cs) cs.value = state.colorScope;
     $('#textColor').value = state.textColor;
     $('#textScale').value = Math.round(state.textScale * 100);
@@ -760,7 +792,7 @@
     $('#showGuides').checked = state.showGuides;
     $('#showGrid').checked = state.showGrid;
     $('#discountShow').checked = state.discount.show;
-    $('#discountText').value = state.discount.text;
+    $('#discountText').value = badgeTextFor(state.activeLang);
     $('#discountColor').value = effectiveBadgeColor(state.activeFormat);
     $('#discountTextColor').value = effectiveBadgeTextColor(state.activeFormat);
     const dlh = state.discount.lineHeight || 1.1;
@@ -1230,6 +1262,8 @@
       discount: state.discount,
       badgeColor: state.badgeColor,
       badgeTextColor: state.badgeTextColor,
+      bgColor1: state.bgColor1,
+      bgColor2: state.bgColor2,
       colorScope: state.colorScope,
       highlightColor: state.highlightColor,
       highlightScale: state.highlightScale,
@@ -1266,6 +1300,8 @@
     if (typeof data.showGrid === 'boolean') state.showGrid = data.showGrid;
     if (data.discount) state.discount = data.discount;
     if (data.badgeColor) state.badgeColor = data.badgeColor;
+    if (data.bgColor1 !== undefined) state.bgColor1 = data.bgColor1;
+    if (data.bgColor2 !== undefined) state.bgColor2 = data.bgColor2;
     if (data.badgeTextColor) state.badgeTextColor = data.badgeTextColor;
     if (data.colorScope) state.colorScope = data.colorScope;
     if (data.highlightColor) state.highlightColor = data.highlightColor;
@@ -1569,6 +1605,20 @@
     return out.join('*');
   }
 
+  // Přeloží text pusinky po řádcích; řádky bez písmen (např. „-20 %") nechá být.
+  async function translateBadge(text, from, to) {
+    const lines = String(text == null ? '' : text).split('\n');
+    const out = [];
+    for (const ln of lines) {
+      if (/[A-Za-zÀ-ɏЀ-ӿ]/.test(ln)) {
+        out.push(matchLeadingCase(ln, await translateText(ln, from, to)));
+      } else {
+        out.push(ln);
+      }
+    }
+    return out.join('\n');
+  }
+
   async function autoTranslateAll() {
     const src = state.activeLang;
     const from = ISO_LANG[src] || 'cs';
@@ -1579,17 +1629,22 @@
     btn.disabled = true;
     const targets = LANGUAGES.filter((l) => l.code !== src);
     try {
+      const badgeBase = badgeTextFor(src);
       for (const l of targets) {
         const to = ISO_LANG[l.code];
         setStatus('Překládám… ' + l.code);
-        const [h, s, c] = await Promise.all([
+        const [h, s, c, bt] = await Promise.all([
           translateFormatted(base.headline, from, to),
           translateFormatted(base.subline, from, to),
           translateFormatted(base.cta, from, to),
+          translateBadge(badgeBase, from, to),
         ]);
         scope[l.code] = { headline: h, subline: s, cta: c };
+        if (!state.discount.textByLang) state.discount.textByLang = {};
+        state.discount.textByLang[l.code] = bt;
       }
       syncTextInputs();
+      $('#discountText').value = badgeTextFor(state.activeLang);
       renderPreview();
       setStatus('Přeloženo do všech jazyků. Zkontroluj prosím znění — je to strojový překlad.');
     } catch (e) {
@@ -1866,6 +1921,25 @@
         scheduleRender();
       })
     );
+    // barvy pozadí (Minimal/Split)
+    $('#bgColor1').addEventListener('input', (e) => { applyColor('bgColor1', e.target.value); scheduleRender(); });
+    $('#bgColor2').addEventListener('input', (e) => { applyColor('bgColor2', e.target.value); scheduleRender(); });
+    $$('.swatch-btn[data-bg1]').forEach((b) =>
+      b.addEventListener('click', () => {
+        const v = b.getAttribute('data-bg1');
+        applyColor('bgColor1', v);
+        $('#bgColor1').value = v;
+        scheduleRender();
+      })
+    );
+    $$('.swatch-btn[data-bg2]').forEach((b) =>
+      b.addEventListener('click', () => {
+        const v = b.getAttribute('data-bg2');
+        applyColor('bgColor2', v);
+        $('#bgColor2').value = v;
+        scheduleRender();
+      })
+    );
     $('#colorScope').addEventListener('change', (e) => {
       state.colorScope = e.target.value;
       setStatus(state.colorScope === 'all' ? 'Změny barev teď platí pro VŠECHNY rozměry.' : 'Změny barev teď platí jen pro tento rozměr.');
@@ -1938,7 +2012,13 @@
       scheduleRender();
     });
     $('#discountText').addEventListener('input', (e) => {
-      state.discount.text = e.target.value;
+      const v = e.target.value;
+      if (state.activeLang === MASTER_LANG) {
+        state.discount.text = v;
+      } else {
+        if (!state.discount.textByLang) state.discount.textByLang = {};
+        state.discount.textByLang[state.activeLang] = v;
+      }
       scheduleRender();
     });
     $('#discountLineHeight').addEventListener('input', (e) => {

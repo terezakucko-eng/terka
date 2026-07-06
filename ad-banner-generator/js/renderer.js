@@ -308,13 +308,24 @@
     return `rgb(${Math.round(r * f)}, ${Math.round(g * f)}, ${Math.round(b * f)})`;
   }
   // Dotónuje světlé pozadí panelu k průměrné barvě vizuálu (čitelný pastel).
+  // Panel „classic" dotónovaný podle master obrázku: víc drží barvu vizuálu
+  // (jemný pastel z průměru), ale s pojistkou světlosti, aby tmavý text zůstal
+  // čitelný i u tmavých/sytých fotek.
   function tintPanel(avg, brand) {
     if (!avg) return brand.colors.surface;
-    const mix = (a, b, t) => Math.round(a + (b - a) * t);
-    const r = mix(avg[0], 255, 0.8);
-    const g = mix(avg[1], 255, 0.8);
-    const b = mix(avg[2], 255, 0.8);
-    return `rgb(${r}, ${g}, ${b})`;
+    const mix = (a, b, t) => a + (b - a) * t;
+    let r = mix(avg[0], 255, 0.66);
+    let g = mix(avg[1], 255, 0.66);
+    let b = mix(avg[2], 255, 0.66);
+    const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    const FLOOR = 208; // minimální světlost panelu (kvůli čitelnosti textu)
+    if (lum < FLOOR) {
+      const t = (FLOOR - lum) / (255 - lum);
+      r = mix(r, 255, t);
+      g = mix(g, 255, t);
+      b = mix(b, 255, t);
+    }
+    return `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
   }
 
   // ---------- CTA ----------
@@ -532,16 +543,18 @@
     const template = spec.template || 'overlay';
 
     if (template === 'minimal' || !image) {
+      const bg1 = (opts && opts.bgColor1) || c.primary;
+      const bg2 = (opts && opts.bgColor2) || c.secondary;
       ctx.fillStyle = linearGradient(ctx, 0, 0, W, H, [
-        [0, c.primary],
-        [1, c.secondary],
+        [0, bg1],
+        [1, bg2],
       ]);
       ctx.fillRect(0, 0, W, H);
       return {
         region: { x: 0, y: 0, w: W, h: H },
         colors: { text: '#FFFFFF', muted: 'rgba(255,255,255,0.85)' },
         imageRect: null,
-        logoColor: pickLogoColor(c.primary, brand),
+        logoColor: pickLogoColor(bg1, brand),
         logoAnchor: { x: pad, y: pad },
       };
     }
@@ -627,14 +640,15 @@
     ctx.rect(region.x, region.y, region.w, region.h);
     ctx.clip();
     drawImageTransformed(ctx, image, region.x, region.y, region.w, region.h, imgT);
-    const panelTone = avg ? darken(avg, 0.5) : c.secondary;
+    const bg1 = (opts && opts.bgColor1) || c.primary;
+    const bg2 = (opts && opts.bgColor2) || (avg ? darken(avg, 0.5) : c.secondary);
     const gx1 = gv ? region.x : region.x;
     const gy1 = gv ? region.y : region.y;
     const gx2 = gv ? region.x : region.x + region.w;
     const gy2 = gv ? region.y + region.h : region.y;
     ctx.fillStyle = linearGradient(ctx, gx1, gy1, gx2, gy2, [
-      [0, rgbaStr(c.primary, 0.9)],
-      [1, rgbaStr(panelTone, 0.94)],
+      [0, rgbaStr(bg1, 0.9)],
+      [1, rgbaStr(bg2, 0.94)],
     ]);
     ctx.fillRect(region.x, region.y, region.w, region.h);
     ctx.restore();
@@ -642,7 +656,7 @@
       region: region,
       colors: { text: '#FFFFFF', muted: 'rgba(255,255,255,0.85)' },
       imageRect: imageRect,
-      logoColor: pickLogoColor(c.primary, brand),
+      logoColor: pickLogoColor(bg1, brand),
       logoAnchor: { x: region.x + pad, y: region.y + pad },
     };
   }
