@@ -17,8 +17,7 @@
     activeFormat: FORMATS[0].id,
     activeLang: 'CZ',
     template: 'overlay',
-    version: 'full', // 'safe' | 'full'
-    images: { safe: null, full: null }, // dataURL
+    image: null, // jediný nahraný vizuál (dataURL)
     texts: {}, // per jazyk: { CZ:{headline,subline,cta}, ... }
 
     // styl prvků (globální)
@@ -70,7 +69,7 @@
   }
 
   function currentImageDataURL() {
-    return state.images[state.version] || state.images.full || state.images.safe || null;
+    return state.image || null;
   }
 
   function textsFor(lang) {
@@ -222,14 +221,13 @@
   }
 
   // ---------- render offscreen ----------
-  async function renderToCanvas(formatId, lang, version) {
+  async function renderToCanvas(formatId, lang) {
     const format = formatById(formatId);
     const canvas = document.createElement('canvas');
     canvas.width = format.width;
     canvas.height = format.height;
     const ctx = canvas.getContext('2d');
-    const dataURL = state.images[version] || state.images.full || state.images.safe || null;
-    const img = await loadImage(dataURL);
+    const img = await loadImage(state.image);
     renderBanner(ctx, format, specFor(lang), state.brand, img, optsFor(formatId));
     return canvas;
   }
@@ -494,7 +492,7 @@
     };
     lastLayout = renderIntoCanvas(mainCanvas, format, state.activeLang, img, 1600, overlay);
     $('#previewMeta').textContent =
-      `${format.id} · ${format.label} · ${state.activeLang} · ${state.version.toUpperCase()}`;
+      `${format.id} · ${format.label} · ${state.activeLang}`;
     syncLayoutControls();
     renderGallery(img);
     saveAutosave();
@@ -688,45 +686,37 @@
   }
 
   async function exportCurrentPNG() {
-    const canvas = await renderToCanvas(state.activeFormat, state.activeLang, state.version);
+    const canvas = await renderToCanvas(state.activeFormat, state.activeLang);
     const { blob, ext, over } = await encodeCanvas(canvas);
-    downloadBlob(blob, `${state.activeFormat}_${state.activeLang}_${state.version}.${ext}`);
+    downloadBlob(blob, `${state.activeFormat}_${state.activeLang}.${ext}`);
     if (over) setStatus('Pozor: ani při nejnižší kvalitě se JPG nevešel pod limit.', true);
   }
 
   async function exportBatchZip() {
     const formats = $$('#exportFormats input:checked').map((i) => i.value);
     const langs = $$('#exportLangs input:checked').map((i) => i.value);
-    const versionSel = $('#exportVersion').value;
-    let versions;
-    if (versionSel === 'both') versions = ['safe', 'full'];
-    else if (versionSel === 'current') versions = [state.version];
-    else versions = [versionSel];
 
     if (!formats.length || !langs.length) {
       setStatus('Vyber alespoň jeden formát a jeden jazyk.', true);
       return;
     }
 
-    const total = formats.length * langs.length * versions.length;
+    const total = formats.length * langs.length;
     const btn = $('#btnExportZip');
     btn.disabled = true;
     let done = 0;
 
     const zip = new window.ZipWriter();
     let oversized = 0;
-    for (const version of versions) {
-      for (const fmt of formats) {
-        for (const lang of langs) {
-          const canvas = await renderToCanvas(fmt, lang, version);
-          const { blob, ext, over } = await encodeCanvas(canvas);
-          if (over) oversized++;
-          const buf = new Uint8Array(await blob.arrayBuffer());
-          const folder = versions.length > 1 ? `${version}/${fmt}` : fmt;
-          zip.addFile(`${folder}/${fmt}_${lang}.${ext}`, buf);
-          done++;
-          setStatus(`Generuji… ${done}/${total}`);
-        }
+    for (const fmt of formats) {
+      for (const lang of langs) {
+        const canvas = await renderToCanvas(fmt, lang);
+        const { blob, ext, over } = await encodeCanvas(canvas);
+        if (over) oversized++;
+        const buf = new Uint8Array(await blob.arrayBuffer());
+        zip.addFile(`${fmt}/${fmt}_${lang}.${ext}`, buf);
+        done++;
+        setStatus(`Generuji… ${done}/${total}`);
       }
     }
     const zipBlob = zip.toBlob();
@@ -753,8 +743,7 @@
       activeFormat: state.activeFormat,
       activeLang: state.activeLang,
       template: state.template,
-      version: state.version,
-      images: state.images,
+      image: state.image,
       texts: state.texts,
       ctaColor: state.ctaColor,
       textColor: state.textColor,
@@ -775,8 +764,7 @@
     state.activeFormat = data.activeFormat || state.activeFormat;
     state.activeLang = data.activeLang || state.activeLang;
     state.template = data.template || state.template;
-    state.version = data.version || state.version;
-    state.images = data.images || { safe: null, full: null };
+    state.image = data.image || (data.images && data.images.full) || null;
     state.texts = data.texts || {};
     if (data.ctaColor) state.ctaColor = data.ctaColor;
     if (data.textColor) state.textColor = data.textColor;
@@ -800,7 +788,6 @@
     $('#formatSelect').value = state.activeFormat;
     $('#templateSelect').value = state.template;
     $('#templateDesc').textContent = TEMPLATES.find((t) => t.id === state.template).description;
-    $$('input[name="version"]').forEach((r) => (r.checked = r.value === state.version));
     updateImageThumbs();
     buildLangTabs();
     syncTextInputs();
@@ -889,29 +876,26 @@
     });
   }
 
-  async function handleUpload(which, file) {
+  async function handleUpload(file) {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
       setStatus('Nahraj prosím obrázek.', true);
       return;
     }
-    const dataURL = await readFileAsDataURL(file);
-    state.images[which] = dataURL;
+    state.image = await readFileAsDataURL(file);
     updateImageThumbs();
     renderPreview();
   }
 
   function updateImageThumbs() {
-    ['safe', 'full'].forEach((which) => {
-      const thumb = $(`#thumb-${which}`);
-      if (state.images[which]) {
-        thumb.style.backgroundImage = `url("${state.images[which]}")`;
-        thumb.classList.add('has-image');
-      } else {
-        thumb.style.backgroundImage = '';
-        thumb.classList.remove('has-image');
-      }
-    });
+    const thumb = $('#thumb-full');
+    if (state.image) {
+      thumb.style.backgroundImage = `url("${state.image}")`;
+      thumb.classList.add('has-image');
+    } else {
+      thumb.style.backgroundImage = '';
+      thumb.classList.remove('has-image');
+    }
   }
 
   // ---------- události ----------
@@ -926,15 +910,6 @@
       $('#templateDesc').textContent = TEMPLATES.find((t) => t.id === state.template).description;
       scheduleRender();
     });
-
-    $$('input[name="version"]').forEach((r) =>
-      r.addEventListener('change', (e) => {
-        if (e.target.checked) {
-          state.version = e.target.value;
-          renderPreview();
-        }
-      })
-    );
 
     $('#inHeadline').addEventListener('input', (e) => {
       textsFor(state.activeLang).headline = e.target.value;
@@ -958,19 +933,11 @@
       renderPreview();
     });
 
-    $('#uploadFull').addEventListener('change', (e) => handleUpload('full', e.target.files[0]));
-    $('#uploadSafe').addEventListener('change', (e) => handleUpload('safe', e.target.files[0]));
+    $('#uploadFull').addEventListener('change', (e) => handleUpload(e.target.files[0]));
     $('#thumb-full').addEventListener('click', () => $('#uploadFull').click());
-    $('#thumb-safe').addEventListener('click', () => $('#uploadSafe').click());
     $('#btnClearFull').addEventListener('click', (e) => {
       e.stopPropagation();
-      state.images.full = null;
-      updateImageThumbs();
-      renderPreview();
-    });
-    $('#btnClearSafe').addEventListener('click', (e) => {
-      e.stopPropagation();
-      state.images.safe = null;
+      state.image = null;
       updateImageThumbs();
       renderPreview();
     });

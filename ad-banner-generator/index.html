@@ -37,37 +37,16 @@
 
         <section class="card">
           <h2>2 · Vizuál</h2>
-          <div class="version-toggle">
-            <span class="version-label">Verze vizuálu:</span>
-            <label class="radio">
-              <input type="radio" name="version" value="full" checked />
-              <span>Full</span>
-            </label>
-            <label class="radio">
-              <input type="radio" name="version" value="safe" />
-              <span>Safe</span>
-            </label>
-          </div>
-          <p class="hint">
-            „Safe" verze slouží pro display sítě s omezením citlivého/adult obsahu.
-          </p>
           <div class="uploads">
             <div class="upload-slot">
-              <div class="thumb" id="thumb-full">
-                <span class="thumb-label">Full</span>
+              <div class="thumb thumb-wide" id="thumb-full">
+                <span class="thumb-label">Vizuál</span>
                 <button class="thumb-clear" id="btnClearFull" title="Odebrat">×</button>
               </div>
               <input type="file" id="uploadFull" accept="image/*" hidden />
             </div>
-            <div class="upload-slot">
-              <div class="thumb" id="thumb-safe">
-                <span class="thumb-label">Safe</span>
-                <button class="thumb-clear" id="btnClearSafe" title="Odebrat">×</button>
-              </div>
-              <input type="file" id="uploadSafe" accept="image/*" hidden />
-            </div>
           </div>
-          <p class="hint">Klikni na dlaždici pro nahrání obrázku.</p>
+          <p class="hint">Klikni na dlaždici pro nahrání vizuálu.</p>
 
           <div class="layout-controls">
             <div class="lc-title">
@@ -210,15 +189,6 @@
             </div>
             <div class="chk-grid" id="exportLangs"></div>
           </div>
-          <label class="field">
-            <span>Verze vizuálu v exportu</span>
-            <select id="exportVersion">
-              <option value="current">Aktuální (dle přepínače)</option>
-              <option value="full">Jen Full</option>
-              <option value="safe">Jen Safe</option>
-              <option value="both">Obě (safe + full)</option>
-            </select>
-          </label>
           <button class="btn primary" id="btnExportZip">📦 Exportovat vše do ZIP</button>
         </section>
 
