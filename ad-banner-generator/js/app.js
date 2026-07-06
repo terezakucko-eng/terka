@@ -27,6 +27,7 @@
     // styl prvků (globální)
     ctaColor: '#2FB773', // zelená z palety manuálu
     ctaArrow: true, // malá šipka v CTA (jako „CHCI SLEVU ▸")
+    ctaHidden: false, // úplně skrýt CTA tlačítko
     textColor: 'auto', // 'auto' | 'light' | 'dark'
     textScale: 1, // globální násobič velikosti textů (master)
     // per-prvek styl textu (jako v Canvě): velikost, řádkování, zarovnání
@@ -124,6 +125,49 @@
     return state.texts[lang];
   }
 
+  // ----- texty PER FORMÁT -----
+  // Texty jsou standardně společné (per jazyk). Rozměr ale může mít vlastní
+  // textaci (overrides[fmt].texts[lang]). effectiveTexts = co se vykreslí,
+  // textScope/textTarget = kam se zapisuje při editaci aktivního rozměru.
+  function hasFormatText(fmt) {
+    const ov = state.overrides[fmt];
+    return !!(ov && ov.texts);
+  }
+  function effectiveTexts(fmt, lang) {
+    const ov = state.overrides[fmt];
+    if (ov && ov.texts && ov.texts[lang]) return ov.texts[lang];
+    return textsFor(lang);
+  }
+  function textScope() {
+    const ov = state.overrides[state.activeFormat];
+    return (ov && ov.texts) ? ov.texts : state.texts;
+  }
+  function textTarget(lang) {
+    const scope = textScope();
+    if (!scope[lang]) {
+      const s = textsFor(lang);
+      scope[lang] = { headline: s.headline, subline: s.subline, cta: s.cta };
+    }
+    return scope[lang];
+  }
+
+  // ----- šablona PER FORMÁT -----
+  function effectiveTemplate(fmt) {
+    const ov = state.overrides[fmt];
+    return (ov && ov.template) ? ov.template : state.template;
+  }
+
+  // ----- velikost loga a pusinky PER FORMÁT -----
+  // Globální state.logoScale / state.discount.size jsou jen výchozí hodnoty.
+  function effectiveLogoScale(fmt) {
+    const ov = state.overrides[fmt];
+    return (ov && ov.logoScale != null) ? ov.logoScale : state.logoScale;
+  }
+  function effectiveBadgeSize(fmt) {
+    const ov = state.overrides[fmt];
+    return (ov && ov.badgeSize != null) ? ov.badgeSize : (state.discount.size || 1);
+  }
+
   // Logo se liší podle země: CZ = Růžový Slon, SK = Ružový slon,
   // ostatní (zahraničí) = Sexy Elephant. Řízeno brand.logoByLang.
   function logoFor(lang) {
@@ -131,14 +175,18 @@
     return map[lang] || map.default || (state.brand && state.brand.logoText) || '';
   }
 
-  function specFor(lang) {
-    const t = textsFor(lang);
+  function specFor(lang, fmtId) {
+    const t = fmtId ? effectiveTexts(fmtId, lang) : textsFor(lang);
     return {
       headline: t.headline,
       subline: t.subline,
-      cta: t.cta,
-      template: state.template,
-      discount: state.discount,
+      cta: state.ctaHidden ? '' : t.cta,
+      template: fmtId ? effectiveTemplate(fmtId) : state.template,
+      discount: {
+        show: state.discount.show,
+        text: state.discount.text,
+        size: fmtId ? effectiveBadgeSize(fmtId) : (state.discount.size || 1),
+      },
       logoText: logoFor(lang),
       ctaArrow: state.ctaArrow,
     };
@@ -192,7 +240,7 @@
       textScale: state.textScale,
       textStyle: effectiveTextStyle(fmt),
       logoDefaultHidden: state.logoDefaultHidden,
-      logoScale: state.logoScale,
+      logoScale: effectiveLogoScale(fmt),
       logoColorMode: state.logoColorMode,
       imageFocus: state.imageFocus,
       imageAvg: state.imageAvg,
@@ -200,6 +248,7 @@
       badgeTextColor: state.badgeTextColor,
       highlightColor: state.highlightColor,
       highlightScale: state.highlightScale,
+      transparent: !!(formatById(fmt) && formatById(fmt).transparent),
     };
   }
 
@@ -315,7 +364,7 @@
     canvas.height = format.height;
     const ctx = canvas.getContext('2d');
     const img = await loadImage(state.image);
-    renderBanner(ctx, format, specFor(lang), state.brand, img, optsFor(formatId));
+    renderBanner(ctx, format, specFor(lang, formatId), state.brand, img, optsFor(formatId));
     return canvas;
   }
 
@@ -400,11 +449,23 @@
   }
 
   function syncTextInputs() {
-    const t = textsFor(state.activeLang);
+    const t = textTarget(state.activeLang);
     $('#inHeadline').value = t.headline || '';
     $('#inSubline').value = t.subline || '';
     $('#inCta').value = t.cta || '';
     $('#activeLangLabel').textContent = langByCode(state.activeLang).label;
+    syncPerFormatUI();
+    if (typeof refreshHighlightControls === 'function') refreshHighlightControls();
+  }
+
+  // Ovládací prvky, které jsou PER FORMÁT (šablona, přepínač vlastní textace).
+  function syncPerFormatUI() {
+    const tpl = effectiveTemplate(state.activeFormat);
+    $('#templateSelect').value = tpl;
+    const desc = TEMPLATES.find((t) => t.id === tpl);
+    if (desc) $('#templateDesc').textContent = desc.description;
+    const cb = $('#perFormatText');
+    if (cb) cb.checked = hasFormatText(state.activeFormat);
   }
 
   function syncLayoutControls() {
@@ -418,22 +479,27 @@
     $('#layoutMode').textContent = ov && ov.manual ? 'ruční' : 'automatické';
     const logoHidden = ov && ov.logoHidden !== undefined ? ov.logoHidden : state.logoDefaultHidden;
     $('#showLogo').checked = !logoHidden;
-    $('#logoScale').value = Math.round(state.logoScale * 100);
-    $('#logoScaleVal').textContent = Math.round(state.logoScale * 100) + '%';
+    const ls = effectiveLogoScale(state.activeFormat);
+    $('#logoScale').value = Math.round(ls * 100);
+    $('#logoScaleVal').textContent = Math.round(ls * 100) + '%';
     $('#logoColorMode').value = state.logoColorMode;
+    const bs = effectiveBadgeSize(state.activeFormat);
+    $('#discountSize').value = Math.round(bs * 100);
+    $('#discountSizeVal').textContent = Math.round(bs * 100) + '%';
   }
 
   function syncTextToolbar() {
     const el = state.selectedEl;
     $$('#ttElements button').forEach((b) => b.classList.toggle('active', b.getAttribute('data-sel') === el));
-    if (el === 'logo') {
-      // Logo: skryj zarovnání/řádkování; velikost = logoScale, přidej barvu loga.
+    if (el === 'logo' || el === 'badge') {
+      // Logo i pusinka: skryj zarovnání/řádkování; velikost = jejich měřítko.
       $('#ttAlign').classList.add('hidden');
       $('#ttLhWrap').classList.add('hidden');
-      $('#ttLogoColorWrap').classList.remove('hidden');
-      $('#ttSize').value = Math.round(state.logoScale * 100);
-      $('#ttSizeVal').textContent = Math.round(state.logoScale * 100) + '%';
-      $('#ttLogoColor').value = state.logoColorMode;
+      $('#ttLogoColorWrap').classList.toggle('hidden', el !== 'logo');
+      const val = el === 'logo' ? effectiveLogoScale(state.activeFormat) : effectiveBadgeSize(state.activeFormat);
+      $('#ttSize').value = Math.round(val * 100);
+      $('#ttSizeVal').textContent = Math.round(val * 100) + '%';
+      if (el === 'logo') $('#ttLogoColor').value = state.logoColorMode;
       return;
     }
     $('#ttAlign').classList.remove('hidden');
@@ -466,12 +532,17 @@
       })
     );
     $('#ttSize').addEventListener('input', (e) => {
+      const v = (+e.target.value) / 100;
       if (state.selectedEl === 'logo') {
-        state.logoScale = (+e.target.value) / 100;
+        ensureOverride(state.activeFormat).logoScale = v;
         $('#logoScale').value = e.target.value;
         $('#logoScaleVal').textContent = e.target.value + '%';
+      } else if (state.selectedEl === 'badge') {
+        ensureOverride(state.activeFormat).badgeSize = v;
+        $('#discountSize').value = e.target.value;
+        $('#discountSizeVal').textContent = e.target.value + '%';
       } else {
-        activeTextStyle()[state.selectedEl].size = (+e.target.value) / 100;
+        activeTextStyle()[state.selectedEl].size = v;
       }
       $('#ttSizeVal').textContent = e.target.value + '%';
       scheduleRender();
@@ -512,6 +583,7 @@
     $('#textScale').value = Math.round(state.textScale * 100);
     $('#textScaleVal').textContent = Math.round(state.textScale * 100) + '%';
     $('#ctaArrow').checked = state.ctaArrow;
+    $('#ctaShow').checked = !state.ctaHidden;
     $('#hideLogoAll').checked = state.logoDefaultHidden;
     $('#showGuides').checked = state.showGuides;
     $('#showGrid').checked = state.showGrid;
@@ -519,8 +591,9 @@
     $('#discountText').value = state.discount.text;
     $('#discountColor').value = state.badgeColor || (state.brand && state.brand.colors.primary) || '#DC004E';
     $('#discountTextColor').value = state.badgeTextColor || '#FFFFFF';
-    $('#discountSize').value = Math.round((state.discount.size || 1) * 100);
-    $('#discountSizeVal').textContent = Math.round((state.discount.size || 1) * 100) + '%';
+    const bs = effectiveBadgeSize(state.activeFormat);
+    $('#discountSize').value = Math.round(bs * 100);
+    $('#discountSizeVal').textContent = Math.round(bs * 100) + '%';
     $('#highlightColor').value = state.highlightColor || '#DC004E';
     $('#highlightScale').value = Math.round((state.highlightScale || 1.35) * 100);
     $('#highlightScaleVal').textContent = Math.round((state.highlightScale || 1.35) * 100) + '%';
@@ -549,7 +622,9 @@
     canvas.height = Math.round(format.height * k);
     const ctx = canvas.getContext('2d');
     ctx.setTransform(k, 0, 0, k, 0, 0);
-    const layout = renderBanner(ctx, format, specFor(lang), state.brand, img, optsFor(format.id));
+    // U formátů „bez pozadí" ukaž v NÁHLEDU šachovnici (průhlednost) — do exportu nejde.
+    if (format.transparent) drawCheckerboard(ctx, format);
+    const layout = renderBanner(ctx, format, specFor(lang, format.id), state.brand, img, optsFor(format.id));
     // vodítka — jen v náhledu, NIKDY se neexportují
     if (overlay) {
       if (overlay.grid) drawGrid(ctx, format);
@@ -559,6 +634,22 @@
       }
     }
     return layout;
+  }
+
+  // Šachovnice = průhlednost (jen náhled u formátů „bez pozadí").
+  function drawCheckerboard(ctx, format) {
+    const W = format.width, H = format.height;
+    const cell = Math.max(8, Math.round(Math.min(W, H) / 20));
+    ctx.save();
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#e6e9ef';
+    for (let y = 0; y < H; y += cell) {
+      for (let x = 0; x < W; x += cell) {
+        if (((x / cell) + (y / cell)) % 2 === 0) ctx.fillRect(x, y, cell, cell);
+      }
+    }
+    ctx.restore();
   }
 
   // Jemná vodicí mřížka (jen náhled). Čtvercové buňky ~1/8 kratší strany.
@@ -668,6 +759,7 @@
       cell.addEventListener('click', () => {
         state.activeFormat = f.id;
         $('#formatSelect').value = f.id;
+        syncTextInputs();
         renderPreview();
       });
       gallery.appendChild(cell);
@@ -743,7 +835,7 @@
         const b = lastLayout.boxes.logo;
         ov.logo = { x: b.x / format.width, y: b.y / format.height };
       }
-      if (hit === 'headline' || hit === 'subline' || hit === 'cta') selectElement(hit);
+      if (['headline', 'subline', 'cta', 'logo', 'badge'].indexOf(hit) !== -1) selectElement(hit);
       const cur = ov[hit] || { x: 0, y: 0 };
       drag = { kind: 'el', el: hit, downX: p.x, downY: p.y, origX: cur.x, origY: cur.y, W: format.width, H: format.height };
     }
@@ -793,6 +885,8 @@
     if (!drag) return;
     drag = null;
     $('#mainPreview').classList.remove('dragging');
+    // znovu vykresli bez tažení → vodicí lišta se po manipulaci sama skryje
+    renderPreview();
     saveAutosave();
   }
 
@@ -830,7 +924,9 @@
   // Zakóduje canvas dle zvoleného formátu. U JPG hledá kvalitu tak, aby se
   // vešel pod limit velikosti daného formátu (auto-komprese pro Sklik/Heureka/PPC).
   async function encodeCanvas(canvas, fmtId) {
-    const fmt = $('#exportFileFormat').value;
+    const f = formatById(fmtId);
+    // Formáty „bez pozadí" musí být průhledné → vždy PNG (JPG nemá průhlednost).
+    const fmt = (f && f.transparent) ? 'png' : $('#exportFileFormat').value;
     if (fmt === 'jpg') {
       const maxBytes = limitKBFor(fmtId) * 1024;
       let q = 0.92;
@@ -906,6 +1002,7 @@
       texts: state.texts,
       ctaColor: state.ctaColor,
       ctaArrow: state.ctaArrow,
+      ctaHidden: state.ctaHidden,
       textColor: state.textColor,
       textScale: state.textScale,
       textStyle: state.textStyle,
@@ -937,6 +1034,7 @@
     state.texts = data.texts || {};
     if (data.ctaColor) state.ctaColor = data.ctaColor;
     if (typeof data.ctaArrow === 'boolean') state.ctaArrow = data.ctaArrow;
+    if (typeof data.ctaHidden === 'boolean') state.ctaHidden = data.ctaHidden;
     if (data.textColor) state.textColor = data.textColor;
     if (data.textScale) state.textScale = data.textScale;
     if (data.textStyle) {
@@ -1096,80 +1194,174 @@
     }
   }
 
+  // ---------- zvýraznění slova (*[scale,color]slovo*) ----------
+  // Každé zvýrazněné slovo si nese vlastní velikost a barvu → jsou nezávislá.
+  let lastTextField = '#inHeadline';
+  let focusedRun = null; // { field, open, close } — právě upravovaný úsek
+
+  function fmtAttr(scale, color) {
+    const parts = [];
+    if (scale != null) parts.push(Math.round(scale * 100) / 100);
+    if (color) parts.push(color);
+    return parts.length ? '[' + parts.join(',') + ']' : '';
+  }
+  // Najdi zvýrazněný úsek (mezi hvězdičkami) obsahující pozici kurzoru.
+  function highlightRunAt(val, pos) {
+    const stars = [];
+    for (let i = 0; i < val.length; i++) if (val[i] === '*') stars.push(i);
+    for (let k = 0; k + 1 < stars.length; k += 2) {
+      const open = stars[k], close = stars[k + 1];
+      if (pos >= open && pos <= close + 1) return { open: open, close: close };
+    }
+    return null;
+  }
+  function readRunAttrs(val, run) {
+    const inner = val.slice(run.open + 1, run.close);
+    const m = inner.match(/^\[([^\]]*)\]/);
+    let scale = null, color = null;
+    if (m) m[1].split(',').forEach((p) => {
+      p = p.trim(); if (!p) return;
+      if (p[0] === '#') color = p; else if (!isNaN(parseFloat(p))) scale = parseFloat(p);
+    });
+    return { scale: scale, color: color, textStart: run.open + 1 + (m ? m[0].length : 0) };
+  }
+  // Přepiš parametry úseku; vrať {value, close} (close se posune dle délky attr).
+  function writeRunAttrs(val, run, scale, color) {
+    const cur = readRunAttrs(val, run);
+    const text = val.slice(cur.textStart, run.close);
+    const newInner = fmtAttr(scale, color) + text;
+    const value = val.slice(0, run.open + 1) + newInner + val.slice(run.close);
+    return { value: value, close: run.open + 1 + newInner.length };
+  }
+  function highlightKey() {
+    return lastTextField === '#inSubline' ? 'subline' : 'headline';
+  }
+  // Sesouhlas posuvníky zvýraznění s úsekem pod kurzorem (nebo s výchozími).
+  function refreshHighlightControls() {
+    const ta = $(lastTextField);
+    if (!ta) return;
+    const run = highlightRunAt(ta.value || '', ta.selectionStart);
+    let sc = state.highlightScale, col = state.highlightColor, active = false;
+    if (run) {
+      focusedRun = { field: lastTextField, open: run.open, close: run.close };
+      const a = readRunAttrs(ta.value, run);
+      if (a.scale != null) sc = a.scale;
+      if (a.color) col = a.color;
+      active = true;
+    } else {
+      focusedRun = null;
+    }
+    $('#highlightScale').value = Math.round(sc * 100);
+    $('#highlightScaleVal').textContent = Math.round(sc * 100) + '%';
+    if (/^#[0-9a-fA-F]{6}$/.test(col)) $('#highlightColor').value = col;
+    $('#btnWrapHighlight').textContent = active ? '✨ Zrušit zvýraznění tohoto slova' : '✨ Zvýraznit označené slovo';
+  }
+
   // ---------- události ----------
   function wireEvents() {
     $('#formatSelect').addEventListener('change', (e) => {
       state.activeFormat = e.target.value;
+      syncTextInputs();
       renderPreview();
     });
 
+    // Šablona je PER FORMÁT — nastavuje se jen aktivnímu rozměru.
     $('#templateSelect').addEventListener('change', (e) => {
-      state.template = e.target.value;
-      $('#templateDesc').textContent = TEMPLATES.find((t) => t.id === state.template).description;
+      const ov = ensureOverride(state.activeFormat);
+      ov.template = e.target.value;
+      const d = TEMPLATES.find((t) => t.id === e.target.value);
+      if (d) $('#templateDesc').textContent = d.description;
       scheduleRender();
     });
 
-    let lastTextField = '#inHeadline';
     $('#inHeadline').addEventListener('input', (e) => {
-      textsFor(state.activeLang).headline = e.target.value;
+      textTarget(state.activeLang).headline = e.target.value;
       scheduleRender();
     });
     $('#inSubline').addEventListener('input', (e) => {
-      textsFor(state.activeLang).subline = e.target.value;
+      textTarget(state.activeLang).subline = e.target.value;
       scheduleRender();
     });
-    $('#inHeadline').addEventListener('focus', () => { lastTextField = '#inHeadline'; });
-    $('#inSubline').addEventListener('focus', () => { lastTextField = '#inSubline'; });
+    // sleduj, ve kterém poli a úseku je kurzor (kvůli zvýraznění)
+    ['#inHeadline', '#inSubline'].forEach((sel) => {
+      const ta = $(sel);
+      ['focus', 'click', 'keyup', 'select', 'input'].forEach((ev) =>
+        ta.addEventListener(ev, () => { lastTextField = sel; refreshHighlightControls(); })
+      );
+    });
 
-    // Zvýraznit označené slovo — obalí výběr hvězdičkami (*slovo*), nebo je zase odebere.
+    // Zvýraznit označené slovo — obalí výběr *[velikost,barva]slovo* s aktuálními
+    // výchozími hodnotami (každé slovo tak je hned nezávislé). Klik uvnitř
+    // existujícího zvýraznění (bez výběru) ho zruší.
     $('#btnWrapHighlight').addEventListener('click', () => {
       const ta = $(lastTextField);
-      const key = lastTextField === '#inSubline' ? 'subline' : 'headline';
+      const key = highlightKey();
       const val = ta.value || '';
       let start = ta.selectionStart, end = ta.selectionEnd;
+
       if (start === end) {
-        setStatus('Označ nejdřív myší slovo v headline nebo subline, které chceš zvýraznit.', true);
+        const run = highlightRunAt(val, start);
+        if (run) {
+          const a = readRunAttrs(val, run);
+          const text = val.slice(a.textStart, run.close);
+          const newVal = val.slice(0, run.open) + text + val.slice(run.close + 1);
+          ta.value = newVal;
+          textTarget(state.activeLang)[key] = newVal;
+          scheduleRender(); ta.focus(); refreshHighlightControls();
+          setStatus('Zvýraznění zrušeno.');
+          return;
+        }
+        setStatus('Označ nejdřív myší slovo v headline nebo subline (nebo klikni do zvýrazněného slova pro zrušení).', true);
         ta.focus();
         return;
       }
       // ořízni okolní mezery z výběru (ať hvězdičky sedí na slovo)
       while (start < end && /\s/.test(val[start])) start++;
       while (end > start && /\s/.test(val[end - 1])) end--;
-      const selected = val.slice(start, end);
-      const before = val.slice(0, start), after = val.slice(end);
-      let newVal;
+      let selected = val.slice(start, end);
+      // už zvýrazněné → zruš (odstraň hvězdičky i případné parametry)
       if (selected.length >= 2 && selected[0] === '*' && selected[selected.length - 1] === '*') {
-        newVal = before + selected.slice(1, -1) + after; // toggle zpět
-      } else {
-        newVal = before + '*' + selected + '*' + after;
+        const inner = selected.slice(1, -1).replace(/^\[[^\]]*\]/, '');
+        const newVal = val.slice(0, start) + inner + val.slice(end);
+        ta.value = newVal;
+        textTarget(state.activeLang)[key] = newVal;
+        scheduleRender(); ta.focus(); refreshHighlightControls();
+        return;
       }
+      const attr = fmtAttr(state.highlightScale, state.highlightColor);
+      const newVal = val.slice(0, start) + '*' + attr + selected + '*' + val.slice(end);
       ta.value = newVal;
-      textsFor(state.activeLang)[key] = newVal;
-      scheduleRender();
-      ta.focus();
-      setStatus('Slovo zvýrazněno. Barvu a velikost změníš vedle tlačítka.');
+      textTarget(state.activeLang)[key] = newVal;
+      // kurzor dovnitř nového úseku → posuvníky rovnou míří na něj
+      const caret = start + 1 + attr.length + 1;
+      ta.setSelectionRange(caret, caret);
+      scheduleRender(); ta.focus(); refreshHighlightControls();
+      setStatus('Slovo zvýrazněno. Velikost i barvu teď měň jen jemu — je nezávislé na ostatních.');
     });
     $('#inCta').addEventListener('input', (e) => {
-      textsFor(state.activeLang).cta = e.target.value;
+      textTarget(state.activeLang).cta = e.target.value;
       scheduleRender();
     });
 
     wireTextToolbar();
 
     $('#btnMasterText').addEventListener('click', () => {
-      const t = textsFor(state.activeLang);
+      if (!confirm('Zkopírovat text z „' + state.activeLang + '" do VŠECH jazyků? Přepíše to případné hotové překlady v ostatních jazycích.')) return;
+      const t = textTarget(state.activeLang);
       const master = { headline: t.headline, subline: t.subline, cta: t.cta };
+      const scope = textScope(); // společné, nebo per-formát pokud je zapnuté
       LANGUAGES.forEach((l) => {
-        state.texts[l.code] = { headline: master.headline, subline: master.subline, cta: master.cta };
+        scope[l.code] = { headline: master.headline, subline: master.subline, cta: master.cta };
       });
       renderPreview();
-      setStatus('Text použit do všech jazyků. Jednotlivé si můžeš přeložit.');
+      setStatus('Text zkopírován do všech jazyků. Teď si každý přepiš na svůj překlad přes záložky jazyků nahoře.');
     });
 
     $('#btnResetLang').addEventListener('click', () => {
       if (!confirm('Přepsat text tohoto jazyka výchozím placeholderem? Tvůj text se ztratí.')) return;
       const d = langByCode(state.activeLang).defaults;
-      state.texts[state.activeLang] = { headline: d.headline, subline: d.subline, cta: d.cta };
+      const tgt = textTarget(state.activeLang);
+      tgt.headline = d.headline; tgt.subline = d.subline; tgt.cta = d.cta;
       syncTextInputs();
       renderPreview();
     });
@@ -1229,6 +1421,28 @@
       state.ctaArrow = e.target.checked;
       scheduleRender();
     });
+    $('#ctaShow').addEventListener('change', (e) => {
+      state.ctaHidden = !e.target.checked;
+      scheduleRender();
+    });
+    $('#perFormatText').addEventListener('change', (e) => {
+      const fmt = state.activeFormat;
+      if (e.target.checked) {
+        const ov = ensureOverride(fmt);
+        if (!ov.texts) ov.texts = {};
+        textTarget(state.activeLang); // nasej aktuální jazyk z dosavadních textů
+        setStatus('Texty teď platí jen pro rozměr „' + fmt + '". Ostatní rozměry mají svoje.');
+      } else {
+        const ov = state.overrides[fmt];
+        if (ov && ov.texts) {
+          if (!confirm('Zrušit vlastní texty tohoto rozměru a vrátit se ke společným?')) { e.target.checked = true; return; }
+          delete ov.texts;
+        }
+        setStatus('Rozměr „' + fmt + '" teď používá společné texty.');
+      }
+      syncTextInputs();
+      renderPreview();
+    });
     $('#textScale').addEventListener('input', (e) => {
       state.textScale = (+e.target.value) / 100;
       $('#textScaleVal').textContent = e.target.value + '%';
@@ -1246,7 +1460,7 @@
       renderPreview();
     });
     $('#logoScale').addEventListener('input', (e) => {
-      state.logoScale = (+e.target.value) / 100;
+      ensureOverride(state.activeFormat).logoScale = (+e.target.value) / 100;
       $('#logoScaleVal').textContent = e.target.value + '%';
       scheduleRender();
     });
@@ -1278,17 +1492,37 @@
       state.badgeTextColor = e.target.value;
       scheduleRender();
     });
+    // Barva/velikost zvýraznění: upraví ÚSEK pod kurzorem (je-li), jinak nastaví
+    // výchozí hodnotu pro nově zvýrazňovaná slova.
     $('#highlightColor').addEventListener('input', (e) => {
-      state.highlightColor = e.target.value;
+      const col = e.target.value;
+      if (focusedRun && $(focusedRun.field)) {
+        const ta = $(focusedRun.field);
+        const a = readRunAttrs(ta.value, focusedRun);
+        const res = writeRunAttrs(ta.value, focusedRun, a.scale, col);
+        ta.value = res.value; focusedRun.close = res.close;
+        textTarget(state.activeLang)[focusedRun.field === '#inSubline' ? 'subline' : 'headline'] = res.value;
+      } else {
+        state.highlightColor = col;
+      }
       scheduleRender();
     });
     $('#highlightScale').addEventListener('input', (e) => {
-      state.highlightScale = (+e.target.value) / 100;
+      const sc = (+e.target.value) / 100;
       $('#highlightScaleVal').textContent = e.target.value + '%';
+      if (focusedRun && $(focusedRun.field)) {
+        const ta = $(focusedRun.field);
+        const a = readRunAttrs(ta.value, focusedRun);
+        const res = writeRunAttrs(ta.value, focusedRun, sc, a.color);
+        ta.value = res.value; focusedRun.close = res.close;
+        textTarget(state.activeLang)[focusedRun.field === '#inSubline' ? 'subline' : 'headline'] = res.value;
+      } else {
+        state.highlightScale = sc;
+      }
       scheduleRender();
     });
     $('#discountSize').addEventListener('input', (e) => {
-      state.discount.size = (+e.target.value) / 100;
+      ensureOverride(state.activeFormat).badgeSize = (+e.target.value) / 100;
       $('#discountSizeVal').textContent = e.target.value + '%';
       scheduleRender();
     });

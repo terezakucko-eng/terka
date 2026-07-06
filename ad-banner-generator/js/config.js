@@ -34,12 +34,14 @@
       id: 'kategorie',
       label: '2. Banner kategorie',
       maxKB: 300,
+      transparent: true, // bez pozadí (průhledné PNG)
       formats: [{ w: 1144, h: 395 }],
     },
     {
       id: 'rozcestnik',
       label: '4. Banner rozcestník',
       maxKB: 250,
+      transparent: true, // bez pozadí (průhledné PNG)
       formats: [{ w: 500, h: 500 }],
     },
     {

@@ -33,6 +33,7 @@
             <select id="templateSelect"></select>
           </label>
           <p class="hint" id="templateDesc"></p>
+          <p class="hint">Šablona platí <b>jen pro tento rozměr</b> — každý banner můžeš mít jinak.</p>
         </section>
 
         <section class="card">
@@ -82,13 +83,14 @@
               </select>
             </label>
             <button class="btn ghost" id="btnResetLogo">↺ Reset pozice loga</button>
-            <p class="hint">Logo přetáhneš myší; skrytí i pozice platí pro tento rozměr. Velikost a barva jsou společné.</p>
+            <p class="hint">Logo přetáhneš myší; skrytí, pozice i <b>velikost</b> platí pro tento rozměr. Barva je společná.</p>
           </div>
         </section>
 
         <section class="card">
           <h2>3 · Texty <small id="activeLangLabel"></small></h2>
           <div class="lang-tabs" id="langTabs"></div>
+          <label class="chk block"><input type="checkbox" id="perFormatText" /> ✏️ Vlastní textace jen pro <b>tento rozměr</b> (jinak společná)</label>
           <label class="field">
             <span>Headline <em>(Enter = nový řádek)</em></span>
             <textarea id="inHeadline" maxlength="160" rows="2"></textarea>
@@ -130,6 +132,7 @@
               <button class="swatch-btn" data-cta="#1F0F36" style="background:#1F0F36" title="Tmavá"></button>
             </span>
           </label>
+          <label class="chk block"><input type="checkbox" id="ctaShow" checked /> Zobrazit CTA tlačítko</label>
           <label class="chk block"><input type="checkbox" id="ctaArrow" checked /> Šipka v CTA (▸)</label>
           <label class="field">
             <span>Barva textu</span>
@@ -168,6 +171,7 @@
             <button type="button" data-sel="subline">Subline</button>
             <button type="button" data-sel="cta">CTA</button>
             <button type="button" data-sel="logo">Logo</button>
+            <button type="button" data-sel="badge">Pusinka</button>
           </div>
           <div class="align-group" id="ttAlign">
             <button type="button" data-align="left" title="Vlevo">⬅</button>

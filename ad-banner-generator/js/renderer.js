@@ -99,21 +99,37 @@
   // ---------- rich text (část textu jinou velikostí/barvou přes *...*) ----------
   var richCfg = { color: '#DC004E', scale: 1.35 };
 
-  function richTokens(text) {
-    const runs = [];
-    let hl = false, buf = '';
-    const s = String(text || '');
-    for (let i = 0; i < s.length; i++) {
-      const ch = s[i];
-      if (ch === '*') { if (buf) { runs.push({ t: buf, hl: hl }); buf = ''; } hl = !hl; }
-      else buf += ch;
+  // Zvýrazněný úsek: *slovo* (výchozí barva/velikost) nebo s vlastními parametry
+  // *[1.5,#00A000]slovo* — každé slovo tak může mít NEZÁVISLE svou velikost a barvu.
+  function parseRunAttrs(seg) {
+    const m = seg.match(/^\[([^\]]*)\]/);
+    let scale = null, color = null, text = seg;
+    if (m) {
+      text = seg.slice(m[0].length);
+      m[1].split(',').forEach((p) => {
+        p = p.trim();
+        if (!p) return;
+        if (p[0] === '#') color = p;
+        else if (!isNaN(parseFloat(p))) scale = parseFloat(p);
+      });
     }
-    if (buf) runs.push({ t: buf, hl: hl });
+    return { scale: scale, color: color, text: text };
+  }
+
+  function richTokens(text) {
+    const s = String(text || '');
+    const segs = s.split('*');
     const items = [];
-    runs.forEach((r) => {
-      r.t.split('\n').forEach((seg, si) => {
-        if (si > 0) items.push({ br: true });
-        seg.split(/\s+/).forEach((w) => { if (w) items.push({ word: w, hl: r.hl }); });
+    segs.forEach((seg, idx) => {
+      const hl = idx % 2 === 1; // liché úseky = mezi hvězdičkami
+      let scale = null, color = null, body = seg;
+      if (hl) {
+        const a = parseRunAttrs(seg);
+        scale = a.scale; color = a.color; body = a.text;
+      }
+      body.split('\n').forEach((line, li) => {
+        if (li > 0) items.push({ br: true });
+        line.split(/\s+/).forEach((w) => { if (w) items.push({ word: w, hl: hl, scale: scale, color: color }); });
       });
     });
     return items;
@@ -123,21 +139,22 @@
     return String(text || '').indexOf('*') !== -1;
   }
 
-  function layoutRichAt(ctx, items, family, weight, base, hlScale, maxWidth, lh) {
-    const hlS = Math.max(6, Math.round(base * (hlScale || 1)));
-    const setFont = (hl) => { ctx.font = `${weight} ${hl ? hlS : base}px ${family}`; };
+  function layoutRichAt(ctx, items, family, weight, base, defScale, maxWidth, lh) {
+    // velikost slova: zvýrazněné má vlastní scale (nebo výchozí defScale)
+    const sizeOf = (it) => (it.hl ? Math.max(6, Math.round(base * (it.scale || defScale || 1))) : base);
     const lines = [];
     let cur = { words: [], width: 0, maxSize: 0 };
     const flush = () => { lines.push(cur); cur = { words: [], width: 0, maxSize: 0 }; };
     for (const it of items) {
       if (it.br) { flush(); continue; }
-      setFont(it.hl);
+      const size = sizeOf(it);
+      ctx.font = `${weight} ${size}px ${family}`;
       const w = ctx.measureText(it.word).width;
-      const sp = cur.words.length ? ctx.measureText(' ').width : 0;
+      const spW = ctx.measureText(' ').width;
+      const sp = cur.words.length ? spW : 0;
       if (cur.words.length && cur.width + sp + w > maxWidth) flush();
-      const sp2 = cur.words.length ? (setFont(it.hl), ctx.measureText(' ').width) : 0;
-      const size = it.hl ? hlS : base;
-      cur.words.push({ word: it.word, hl: it.hl, x: cur.width + sp2, w: w, size: size });
+      const sp2 = cur.words.length ? spW : 0;
+      cur.words.push({ word: it.word, hl: it.hl, color: it.color || null, x: cur.width + sp2, w: w, size: size });
       cur.width += sp2 + w;
       cur.maxSize = Math.max(cur.maxSize, size);
     }
@@ -171,7 +188,7 @@
       ctx.textBaseline = 'alphabetic';
       for (const w of l.words) {
         ctx.font = `${weight} ${w.size}px ${family}`;
-        ctx.fillStyle = w.hl ? hlColor : color;
+        ctx.fillStyle = w.hl ? (w.color || hlColor) : color;
         ctx.fillText(w.word, sx + w.x, baseline);
         minL = Math.min(minL, sx + w.x);
         maxR = Math.max(maxR, sx + w.x + w.w);
@@ -443,6 +460,29 @@
     const H = format.height;
     const c = brand.colors;
     const avg = opts && opts.imageAvg;
+    const transparent = opts && opts.transparent;
+
+    // Bez pozadí (kategorie, rozcestník) — jen vizuál (celý, „contain"), zbytek
+    // průhledný, aby banner splynul se stránkou. Text/odznak/logo se vykreslí přes.
+    if (transparent) {
+      let imageRect = { x: 0, y: 0, w: W, h: H };
+      if (image) {
+        const s = Math.min(W / image.width, H / image.height) * (imgT.scale || 1);
+        const dw = image.width * s, dh = image.height * s;
+        const dx = (W - dw) / 2 + (imgT.offsetX || 0) * (W / 2);
+        const dy = (H - dh) / 2 + (imgT.offsetY || 0) * (H / 2);
+        ctx.drawImage(image, dx, dy, dw, dh);
+        imageRect = { x: dx, y: dy, w: dw, h: dh };
+      }
+      return {
+        region: { x: 0, y: 0, w: W, h: H },
+        colors: { text: c.text, muted: c.textMuted },
+        imageRect: imageRect,
+        logoColor: pickLogoColor('#FFFFFF', brand),
+        logoAnchor: { x: pad, y: pad },
+      };
+    }
+
     ctx.fillStyle = c.background;
     ctx.fillRect(0, 0, W, H);
 
@@ -842,9 +882,11 @@
       if (lbox) boxes.logo = lbox;
     }
 
-    ctx.strokeStyle = 'rgba(0,0,0,0.12)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
+    if (!opts.transparent) {
+      ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
+    }
 
     return { boxes: boxes, imageRect: bg.imageRect, region: bg.region };
   }
