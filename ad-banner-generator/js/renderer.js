@@ -130,6 +130,48 @@
     return g;
   }
 
+  // ---------- barevné pomůcky ----------
+  function parseColor(col) {
+    if (Array.isArray(col)) return col;
+    if (typeof col !== 'string') return [0, 0, 0];
+    if (col[0] === '#') {
+      let h = col.slice(1);
+      if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+      return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+    }
+    const m = col.match(/(\d+(\.\d+)?)/g);
+    return m ? m.slice(0, 3).map(Number) : [0, 0, 0];
+  }
+  function relLum(col) {
+    const [r, g, b] = parseColor(col).map((v) => {
+      v /= 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+  function contrastRatio(a, b) {
+    const la = relLum(a), lb = relLum(b);
+    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+  }
+  // Logo dle manuálu: bílá (tmavé pozadí), jinak růžová (primární) pokud má
+  // dost kontrastu, jinak černá.
+  function pickLogoColor(bg, brand) {
+    const white = '#FFFFFF';
+    const black = '#141414';
+    const pink = brand.colors.primary;
+    if (relLum(bg) < 0.42) return white;
+    return contrastRatio(pink, bg) >= 2.4 ? pink : black;
+  }
+  // Dotónuje světlé pozadí panelu k průměrné barvě vizuálu (čitelný pastel).
+  function tintPanel(avg, brand) {
+    if (!avg) return brand.colors.surface;
+    const mix = (a, b, t) => Math.round(a + (b - a) * t);
+    const r = mix(avg[0], 255, 0.8);
+    const g = mix(avg[1], 255, 0.8);
+    const b = mix(avg[2], 255, 0.8);
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+
   // ---------- CTA ----------
   function ctaMetrics(ctx, spec, brand, scale, ts, sizeMult) {
     const text = (spec.cta || '').trim();
@@ -250,10 +292,11 @@
   }
 
   // ---------- pozadí (dle šablony) ----------
-  function drawBackground(ctx, format, spec, brand, image, orient, scale, pad, imgT) {
+  function drawBackground(ctx, format, spec, brand, image, orient, scale, pad, imgT, opts) {
     const W = format.width;
     const H = format.height;
     const c = brand.colors;
+    const avg = opts && opts.imageAvg;
     ctx.fillStyle = c.background;
     ctx.fillRect(0, 0, W, H);
 
@@ -269,7 +312,8 @@
         region: { x: 0, y: 0, w: W, h: H },
         colors: { text: '#FFFFFF', muted: 'rgba(255,255,255,0.85)' },
         imageRect: null,
-        logoColor: '#FFFFFF',
+        logoColor: pickLogoColor(c.primary, brand),
+        logoAnchor: { x: pad, y: pad },
       };
     }
 
@@ -293,7 +337,8 @@
         region: { x: 0, y: 0, w: W, h: H },
         colors: { text: '#FFFFFF', muted: 'rgba(255,255,255,0.9)' },
         imageRect: { x: 0, y: 0, w: W, h: H },
-        logoColor: '#FFFFFF',
+        logoColor: pickLogoColor(avg || c.secondary, brand),
+        logoAnchor: { x: pad, y: pad },
         valign: 'bottom',
       };
     }
@@ -314,18 +359,21 @@
         region = { x: 0, y: imgH, w: W, h: H - imgH };
       }
       drawImageTransformed(ctx, image, imageRect.x, imageRect.y, imageRect.w, imageRect.h, imgT);
-      ctx.fillStyle = c.surface;
+      // panel dotónovaný k vizuálu (světlý pastel), text tmavý
+      const panel = tintPanel(avg, brand);
+      ctx.fillStyle = panel;
       ctx.fillRect(region.x, region.y, region.w, region.h);
       return {
         region: region,
         colors: { text: c.text, muted: c.textMuted },
         imageRect: imageRect,
-        logoColor: '#FFFFFF',
+        logoColor: pickLogoColor(panel, brand),
+        logoAnchor: { x: region.x + pad, y: region.y + pad }, // logo NA panelu
       };
     }
 
     // split
-    let imageRect, region, logoColor;
+    let imageRect, region;
     if (orient === 'vertical') {
       const textH = Math.round(H * 0.5);
       ctx.fillStyle = linearGradient(ctx, 0, 0, 0, textH, [
@@ -335,7 +383,6 @@
       ctx.fillRect(0, 0, W, textH);
       imageRect = { x: 0, y: textH, w: W, h: H - textH };
       region = { x: 0, y: 0, w: W, h: textH };
-      logoColor = '#FFFFFF';
     } else {
       const textW = Math.round(W * (orient === 'horizontal' ? 0.5 : 0.55));
       ctx.fillStyle = linearGradient(ctx, 0, 0, textW, H, [
@@ -345,14 +392,14 @@
       ctx.fillRect(0, 0, textW, H);
       imageRect = { x: textW, y: 0, w: W - textW, h: H };
       region = { x: 0, y: 0, w: textW, h: H };
-      logoColor = '#FFFFFF';
     }
     drawImageTransformed(ctx, image, imageRect.x, imageRect.y, imageRect.w, imageRect.h, imgT);
     return {
       region: region,
       colors: { text: '#FFFFFF', muted: 'rgba(255,255,255,0.85)' },
       imageRect: imageRect,
-      logoColor: logoColor,
+      logoColor: pickLogoColor(c.primary, brand),
+      logoAnchor: { x: region.x + pad, y: region.y + pad },
     };
   }
 
@@ -564,7 +611,7 @@
     // proporcionální bezpečný okraj (~6 % kratší strany) dle grafických standardů
     const pad = Math.round(Math.max(10, Math.min(W, H) * 0.06));
 
-    const bg = drawBackground(ctx, format, spec, brand, image, orient, scale, pad, imgT);
+    const bg = drawBackground(ctx, format, spec, brand, image, orient, scale, pad, imgT, opts);
     const colors = resolveTextColors(opts.textColor, bg.colors, brand);
     const ts = opts.textScale || 1;
 
@@ -591,9 +638,10 @@
 
     const logoHidden = ov.logoHidden === undefined ? !!opts.logoDefaultHidden : ov.logoHidden;
     if (!logoHidden) {
-      const lx = ov.logo ? ov.logo.x * W : pad;
-      const ly = ov.logo ? ov.logo.y * H : pad;
-      const lbox = drawLogo(ctx, brand, lx, ly, scale, bg.imageRect ? bg.logoColor : colors.text, spec.logoText);
+      const anchor = bg.logoAnchor || { x: pad, y: pad };
+      const lx = ov.logo ? ov.logo.x * W : anchor.x;
+      const ly = ov.logo ? ov.logo.y * H : anchor.y;
+      const lbox = drawLogo(ctx, brand, lx, ly, scale, bg.logoColor || colors.text, spec.logoText);
       if (lbox) boxes.logo = lbox;
     }
 

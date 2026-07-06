@@ -640,6 +640,10 @@ select:focus {
   flex-wrap: wrap;
   gap: 6px 12px;
 }
+.head-actions {
+  display: inline-flex;
+  gap: 10px;
+}
 .exp-channel {
   margin-bottom: 10px;
 }

@@ -17,7 +17,9 @@
     activeFormat: FORMATS[0].id,
     activeLang: 'CZ',
     template: 'overlay',
-    image: null, // jediný nahraný vizuál (dataURL)
+    image: null, // jediný nahraný vizuál (dataURL, plné rozlišení v paměti)
+    imageStore: null, // zmenšená kopie pro uložení do localStorage
+    imageAvg: null, // průměrná barva vizuálu (dotónování panelu)
     imageFocus: { x: 0.5, y: 0.45 }, // těžiště motivu (master framing pro všechny rozměry)
     texts: {}, // per jazyk: { CZ:{headline,subline,cta}, ... }
 
@@ -73,6 +75,39 @@
     return state.image || null;
   }
 
+  // Průměrná barva vizuálu (pro dotónování panelu).
+  function computeAvgColor(img) {
+    try {
+      const c = document.createElement('canvas');
+      c.width = 24;
+      c.height = 24;
+      const x = c.getContext('2d');
+      x.drawImage(img, 0, 0, 24, 24);
+      const d = x.getImageData(0, 0, 24, 24).data;
+      let r = 0, g = 0, b = 0, n = 0;
+      for (let i = 0; i < d.length; i += 4) {
+        r += d[i];
+        g += d[i + 1];
+        b += d[i + 2];
+        n++;
+      }
+      return [Math.round(r / n), Math.round(g / n), Math.round(b / n)];
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Zmenšená JPEG kopie pro uložení do localStorage (base64 originál bývá moc velký).
+  function downscaleToDataURL(img, maxDim, quality) {
+    const s = Math.min(1, maxDim / Math.max(img.width, img.height));
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(img.width * s));
+    c.height = Math.max(1, Math.round(img.height * s));
+    const x = c.getContext('2d');
+    x.drawImage(img, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', quality || 0.85);
+  }
+
   function textsFor(lang) {
     if (!state.texts[lang]) {
       const d = langByCode(lang).defaults;
@@ -119,6 +154,7 @@
       textStyle: state.textStyle,
       logoDefaultHidden: state.logoDefaultHidden,
       imageFocus: state.imageFocus,
+      imageAvg: state.imageAvg,
       badgeColor: state.badgeColor || (state.brand && state.brand.colors.primary),
     };
   }
@@ -425,7 +461,7 @@
       if (overlay.grid) drawGrid(ctx, format);
       if (overlay.safeZone && format.safeZone) drawSafeZone(ctx, format.safeZone);
       if (overlay.centerGuides || overlay.snapX || overlay.snapY) {
-        drawCenterGuides(ctx, format, overlay);
+        drawCenterGuides(ctx, format, overlay, layout.region);
       }
     }
     return layout;
@@ -448,19 +484,20 @@
     ctx.restore();
   }
 
-  function drawCenterGuides(ctx, format, o) {
-    const W = format.width, H = format.height;
+  // Vodicí lišty se řídí TEXTOVOU OBLASTÍ (u panelu = uvnitř panelu).
+  function drawCenterGuides(ctx, format, o, region) {
+    const r = region || { x: 0, y: 0, w: format.width, h: format.height };
+    const cx = r.x + r.w / 2;
+    const cy = r.y + r.h / 2;
     ctx.save();
-    // svislá lišta (střed X)
-    ctx.strokeStyle = o.snapX ? 'rgba(17,170,170,1)' : 'rgba(17,170,170,0.4)';
+    ctx.strokeStyle = o.snapX ? 'rgba(17,170,170,1)' : 'rgba(17,170,170,0.45)';
     ctx.lineWidth = o.snapX ? 3 : 1.5;
     ctx.setLineDash(o.snapX ? [] : [9, 8]);
-    ctx.beginPath(); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.stroke();
-    // vodorovná lišta (střed Y)
-    ctx.strokeStyle = o.snapY ? 'rgba(17,170,170,1)' : 'rgba(17,170,170,0.4)';
+    ctx.beginPath(); ctx.moveTo(cx, r.y); ctx.lineTo(cx, r.y + r.h); ctx.stroke();
+    ctx.strokeStyle = o.snapY ? 'rgba(17,170,170,1)' : 'rgba(17,170,170,0.45)';
     ctx.lineWidth = o.snapY ? 3 : 1.5;
     ctx.setLineDash(o.snapY ? [] : [9, 8]);
-    ctx.beginPath(); ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(r.x, cy); ctx.lineTo(r.x + r.w, cy); ctx.stroke();
     ctx.restore();
   }
 
@@ -494,6 +531,8 @@
     const format = formatById(state.activeFormat);
     const mainCanvas = $('#mainPreview');
     const img = await loadImage(currentImageDataURL());
+    if (img && !state.imageAvg) state.imageAvg = computeAvgColor(img);
+    if (!img) state.imageAvg = null;
     const overlay = {
       grid: state.showGrid,
       safeZone: true,
@@ -626,14 +665,18 @@
     if (drag.kind === 'el') {
       let nx = drag.origX + (p.x - drag.downX) / drag.W;
       let ny = drag.origY + (p.y - drag.downY) / drag.H;
+      // střed = střed TEXTOVÉ OBLASTI (u panelu uvnitř panelu)
+      const rg = lastLayout.region || { x: 0, y: 0, w: drag.W, h: drag.H };
+      const rcx = (rg.x + rg.w / 2) / drag.W;
+      const rcy = (rg.y + rg.h / 2) / drag.H;
       const b = lastLayout.boxes[drag.el];
       if (drag.el === 'badge') {
-        if (Math.abs(nx - 0.5) < thr) { nx = 0.5; snapX = true; }
-        if (Math.abs(ny - 0.5) < thr) { ny = 0.5; snapY = true; }
+        if (Math.abs(nx - rcx) < thr) { nx = rcx; snapX = true; }
+        if (Math.abs(ny - rcy) < thr) { ny = rcy; snapY = true; }
       } else if (b) {
         const bw = b.w / drag.W, bh = b.h / drag.H;
-        if (Math.abs(nx + bw / 2 - 0.5) < thr) { nx = 0.5 - bw / 2; snapX = true; }
-        if (Math.abs(ny + bh / 2 - 0.5) < thr) { ny = 0.5 - bh / 2; snapY = true; }
+        if (Math.abs(nx + bw / 2 - rcx) < thr) { nx = rcx - bw / 2; snapX = true; }
+        if (Math.abs(ny + bh / 2 - rcy) < thr) { ny = rcy - bh / 2; snapY = true; }
       }
       ov[drag.el] = { x: clamp(nx, 0, 0.99), y: clamp(ny, 0, 0.99) };
     } else {
@@ -754,7 +797,7 @@
       activeFormat: state.activeFormat,
       activeLang: state.activeLang,
       template: state.template,
-      image: state.image,
+      image: state.imageStore || state.image,
       texts: state.texts,
       ctaColor: state.ctaColor,
       textColor: state.textColor,
@@ -777,6 +820,8 @@
     state.activeLang = data.activeLang || state.activeLang;
     state.template = data.template || state.template;
     state.image = data.image || (data.images && data.images.full) || null;
+    state.imageStore = state.image;
+    state.imageAvg = null; // přepočítá se při renderu
     state.texts = data.texts || {};
     if (data.ctaColor) state.ctaColor = data.ctaColor;
     if (data.textColor) state.textColor = data.textColor;
@@ -810,12 +855,24 @@
     renderPreview();
   }
 
-  function saveAutosave() {
+  // Uloží do localStorage; při přeplnění zkusí uložit bez obrázku (jen rozvržení).
+  // Vrací 'ok' | 'noimage' | 'fail'.
+  function saveToStorage(key, data) {
     try {
-      localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(serializeState()));
+      localStorage.setItem(key, JSON.stringify(data));
+      return 'ok';
     } catch (e) {
-      /* localStorage plný nebo nedostupný */
+      try {
+        localStorage.setItem(key, JSON.stringify(Object.assign({}, data, { image: null })));
+        return 'noimage';
+      } catch (e2) {
+        return 'fail';
+      }
     }
+  }
+
+  function saveAutosave() {
+    saveToStorage(AUTOSAVE_KEY, serializeState());
   }
 
   function saveNamedProject() {
@@ -824,12 +881,15 @@
       setStatus('Zadej název projektu pro uložení.', true);
       return;
     }
-    try {
-      localStorage.setItem(STORAGE_PREFIX + name, JSON.stringify(serializeState()));
+    const res = saveToStorage(STORAGE_PREFIX + name, serializeState());
+    if (res === 'ok') {
       setStatus(`Projekt „${name}" uložen.`);
       refreshProjectList();
-    } catch (e) {
-      setStatus('Uložení selhalo (localStorage plný?).', true);
+    } else if (res === 'noimage') {
+      setStatus(`Projekt „${name}" uložen, ale obrázek byl moc velký — ulož ho zvlášť (rozvržení uloženo).`, true);
+      refreshProjectList();
+    } else {
+      setStatus('Uložení selhalo — paměť prohlížeče je plná.', true);
     }
   }
 
@@ -895,7 +955,13 @@
       setStatus('Nahraj prosím obrázek.', true);
       return;
     }
-    state.image = await readFileAsDataURL(file);
+    const dataURL = await readFileAsDataURL(file);
+    state.image = dataURL;
+    state.imageAvg = null; // přepočítá se při renderu
+    const img = await loadImage(dataURL);
+    // zmenšená kopie pro localStorage (originál v paměti zůstává pro export)
+    state.imageStore = img ? downscaleToDataURL(img, 2000, 0.85) : dataURL;
+    if (img) state.imageAvg = computeAvgColor(img);
     updateImageThumbs();
     renderPreview();
   }
@@ -1075,8 +1141,14 @@
     $('#btnSelectAllFormats').addEventListener('click', () =>
       $$('#exportFormats input').forEach((i) => (i.checked = true))
     );
+    $('#btnSelectNoneFormats').addEventListener('click', () =>
+      $$('#exportFormats input').forEach((i) => (i.checked = false))
+    );
     $('#btnSelectAllLangs').addEventListener('click', () =>
       $$('#exportLangs input').forEach((i) => (i.checked = true))
+    );
+    $('#btnSelectNoneLangs').addEventListener('click', () =>
+      $$('#exportLangs input').forEach((i) => (i.checked = false))
     );
   }
 
