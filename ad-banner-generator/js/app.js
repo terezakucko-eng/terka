@@ -24,7 +24,13 @@
     // styl prvků (globální)
     ctaColor: '#2FB773', // zelená z palety manuálu
     textColor: 'auto', // 'auto' | 'light' | 'dark'
-    textScale: 1, // násobič velikosti textů (0.6–2.5)
+    textScale: 1, // globální násobič velikosti textů (master)
+    // per-prvek styl textu (jako v Canvě): velikost, řádkování, zarovnání
+    textStyle: {
+      headline: { size: 1, lineHeight: 1.15, align: 'left' },
+      subline: { size: 1, lineHeight: 1.3, align: 'left' },
+      cta: { size: 1, align: 'left' },
+    },
     showGuides: false, // vodicí středové lišty v náhledu
     showGrid: false, // jemná vodicí mřížka v náhledu
     discount: { show: false, text: '-20 %' },
@@ -100,6 +106,7 @@
       ctaColor: state.ctaColor,
       textColor: state.textColor,
       textScale: state.textScale,
+      textStyle: state.textStyle,
       badgeColor: state.badgeColor || (state.brand && state.brand.colors.primary),
     };
   }
@@ -314,6 +321,60 @@
     $('#imgFmtLabel').textContent = state.activeFormat;
     $('#layoutMode').textContent = ov && ov.manual ? 'ruční' : 'automatické';
     $('#showLogo').checked = !(ov && ov.logoHidden);
+  }
+
+  function syncTextStyleControls() {
+    $$('.text-style').forEach((blk) => {
+      const el = blk.getAttribute('data-el');
+      const s = state.textStyle[el];
+      blk.querySelectorAll('.align-group button').forEach((b) =>
+        b.classList.toggle('active', b.getAttribute('data-align') === (s.align || 'left'))
+      );
+      const sizeInput = blk.querySelector('input[data-prop="size"]');
+      if (sizeInput) {
+        sizeInput.value = Math.round((s.size || 1) * 100);
+        const v = blk.querySelector('b[data-val="size"]');
+        if (v) v.textContent = Math.round((s.size || 1) * 100) + '%';
+      }
+      const lhInput = blk.querySelector('input[data-prop="lineHeight"]');
+      if (lhInput) {
+        const lh = s.lineHeight || (el === 'headline' ? 1.15 : 1.3);
+        lhInput.value = Math.round(lh * 100);
+        const v = blk.querySelector('b[data-val="lineHeight"]');
+        if (v) v.textContent = lh.toFixed(2);
+      }
+    });
+  }
+
+  function wireTextStyle() {
+    $$('.text-style').forEach((blk) => {
+      const el = blk.getAttribute('data-el');
+      blk.querySelectorAll('.align-group button').forEach((b) => {
+        b.addEventListener('click', () => {
+          state.textStyle[el].align = b.getAttribute('data-align');
+          blk.querySelectorAll('.align-group button').forEach((x) => x.classList.toggle('active', x === b));
+          scheduleRender();
+        });
+      });
+      const sizeInput = blk.querySelector('input[data-prop="size"]');
+      if (sizeInput) {
+        sizeInput.addEventListener('input', (e) => {
+          state.textStyle[el].size = (+e.target.value) / 100;
+          const v = blk.querySelector('b[data-val="size"]');
+          if (v) v.textContent = e.target.value + '%';
+          scheduleRender();
+        });
+      }
+      const lhInput = blk.querySelector('input[data-prop="lineHeight"]');
+      if (lhInput) {
+        lhInput.addEventListener('input', (e) => {
+          state.textStyle[el].lineHeight = (+e.target.value) / 100;
+          const v = blk.querySelector('b[data-val="lineHeight"]');
+          if (v) v.textContent = ((+e.target.value) / 100).toFixed(2);
+          scheduleRender();
+        });
+      }
+    });
   }
 
   function syncStyleControls() {
@@ -695,6 +756,7 @@
       ctaColor: state.ctaColor,
       textColor: state.textColor,
       textScale: state.textScale,
+      textStyle: state.textStyle,
       showGuides: state.showGuides,
       showGrid: state.showGrid,
       discount: state.discount,
@@ -715,6 +777,11 @@
     if (data.ctaColor) state.ctaColor = data.ctaColor;
     if (data.textColor) state.textColor = data.textColor;
     if (data.textScale) state.textScale = data.textScale;
+    if (data.textStyle) {
+      ['headline', 'subline', 'cta'].forEach((el) => {
+        if (data.textStyle[el]) Object.assign(state.textStyle[el], data.textStyle[el]);
+      });
+    }
     if (typeof data.showGuides === 'boolean') state.showGuides = data.showGuides;
     if (typeof data.showGrid === 'boolean') state.showGrid = data.showGrid;
     if (data.discount) state.discount = data.discount;
@@ -733,6 +800,7 @@
     buildLangTabs();
     syncTextInputs();
     syncStyleControls();
+    syncTextStyleControls();
     document.documentElement.style.setProperty('--brand-cta', state.ctaColor);
     renderPreview();
   }
@@ -876,6 +944,8 @@
       scheduleRender();
     });
 
+    wireTextStyle();
+
     $('#btnResetLang').addEventListener('click', () => {
       const d = langByCode(state.activeLang).defaults;
       state.texts[state.activeLang] = { headline: d.headline, subline: d.subline, cta: d.cta };
@@ -1010,6 +1080,7 @@
     buildExportCheckboxes();
     syncTextInputs();
     syncStyleControls();
+    syncTextStyleControls();
     updateImageThumbs();
     document.documentElement.style.setProperty('--brand-cta', state.ctaColor);
     wireEvents();

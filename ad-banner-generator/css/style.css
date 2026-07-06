@@ -387,6 +387,54 @@ select:focus {
   cursor: grabbing !important;
 }
 
+/* ---------- text style (Canva-like) ---------- */
+.text-style {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: -4px 0 12px;
+  padding: 6px 8px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.align-group {
+  display: inline-flex;
+  gap: 2px;
+}
+.align-group button {
+  width: 27px;
+  height: 24px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--muted);
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+}
+.align-group button.active {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: #fff;
+}
+.mini {
+  flex: 1;
+  min-width: 108px;
+}
+.mini span {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+.mini input[type='range'] {
+  width: 100%;
+  accent-color: var(--brand-primary);
+}
+
 /* ---------- language tabs ---------- */
 .lang-tabs {
   display: flex;
