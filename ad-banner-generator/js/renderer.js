@@ -638,28 +638,31 @@
     const textBottom = cta ? (ctaY - gap * 1.6) : (region.y + region.h - pad);
     const textAreaH = Math.max(16, textBottom - textTop);
 
-    const headline = spec.headline && spec.headline.trim()
+    // Subline změř PRVNÍ (bývá krátký) a rezervuj mu místo; headline dostane
+    // zbytek — tak se vejdou OBA (raději menší headline než chybějící subline).
+    const hasHead = spec.headline && spec.headline.trim();
+    const hasSub = spec.subline && spec.subline.trim();
+    const subline = hasSub
+      ? measureTextEl(ctx, spec.subline, {
+          fontFamily: bFont.family, fontWeight: bFont.weight || 400,
+          maxWidth: maxWidth, maxHeight: Math.max(14, textAreaH * (hasHead ? 0.45 : 1)),
+          maxLines: region.h > 300 ? 4 : 2,
+          maxSize: Math.round(15 * sst), minSize: Math.max(8, Math.round(11 * sst)),
+          lineHeight: ss.lineHeight,
+        })
+      : null;
+    const sublineH = subline ? subline.height : 0;
+    const headMax = Math.max(18, textAreaH - (subline ? sublineH + gap : 0));
+    const headline = hasHead
       ? measureTextEl(ctx, spec.headline, {
           fontFamily: hFont.family, fontWeight: hFont.weight || 700,
-          maxWidth: maxWidth, maxHeight: textAreaH,
+          maxWidth: maxWidth, maxHeight: headMax,
           maxLines: region.h > 300 ? 5 : 3,
           maxSize: Math.round(28 * hst), minSize: Math.max(9, Math.round(13 * hst)),
           lineHeight: hs.lineHeight,
         })
       : null;
     const headlineH = headline ? headline.height : 0;
-    // subline jen pokud po headline zbývá aspoň řádek místa
-    const subRemain = textAreaH - headlineH - (headline ? gap : 0);
-    const subline = spec.subline && spec.subline.trim() && subRemain >= Math.round(11 * sst)
-      ? measureTextEl(ctx, spec.subline, {
-          fontFamily: bFont.family, fontWeight: bFont.weight || 400,
-          maxWidth: maxWidth, maxHeight: subRemain,
-          maxLines: region.h > 300 ? 5 : 3,
-          maxSize: Math.round(15 * sst), minSize: Math.max(8, Math.round(11 * sst)),
-          lineHeight: ss.lineHeight,
-        })
-      : null;
-    const sublineH = subline ? subline.height : 0;
 
     const blockH = headlineH + (subline ? (headline ? gap : 0) + sublineH : 0);
     // svislé umístění textového bloku nad CTA
@@ -706,38 +709,47 @@
     const textX = region.x + pad;
     const textMaxW = region.w - pad * 2 - ctaW;
 
-    const headline = measureTextEl(ctx, spec.headline, {
-      fontFamily: hFont.family, fontWeight: hFont.weight || 700,
-      maxWidth: textMaxW, maxHeight: region.h * 0.85,
-      maxLines: region.h < 110 ? 2 : 3,
-      maxSize: Math.round(Math.min(region.h * 0.5 * (ts || 1) * hs.size, 24 * hst)),
-      minSize: Math.max(9, Math.round(12 * hst)),
-      lineHeight: hs.lineHeight,
-    });
+    const gap = Math.round(3 * scale);
+    const usableH = region.h - pad; // aby text nepřetekl mimo oblast
     const showSub = spec.subline && spec.subline.trim() && region.h >= 90;
+    const hasHead = spec.headline && spec.headline.trim();
+    // subline nejdřív (rezervuj mu místo), headline dostane zbytek
     const subline = showSub
       ? measureTextEl(ctx, spec.subline, {
           fontFamily: bFont.family, fontWeight: bFont.weight || 400,
-          maxWidth: textMaxW, maxHeight: region.h * 0.45, maxLines: 2,
+          maxWidth: textMaxW, maxHeight: Math.max(12, usableH * (hasHead ? 0.4 : 0.9)), maxLines: 2,
           maxSize: Math.round(Math.min(region.h * 0.3 * (ts || 1) * ss.size, 14 * sst)),
           minSize: Math.max(8, Math.round(10 * sst)),
           lineHeight: ss.lineHeight,
         })
       : null;
-
-    const gap = Math.round(3 * scale);
-    const headlineH = headline.height;
     const sublineH = subline ? subline.height : 0;
-    const totalH = headlineH + (subline ? gap + sublineH : 0);
-    let y = region.y + (region.h - totalH) / 2;
+    const headMaxH = Math.max(14, usableH - (subline ? sublineH + gap : 0));
+    const headline = hasHead
+      ? measureTextEl(ctx, spec.headline, {
+          fontFamily: hFont.family, fontWeight: hFont.weight || 700,
+          maxWidth: textMaxW, maxHeight: headMaxH,
+          maxLines: region.h < 110 ? 2 : 3,
+          maxSize: Math.round(Math.min(region.h * 0.5 * (ts || 1) * hs.size, 24 * hst)),
+          minSize: Math.max(9, Math.round(12 * hst)),
+          lineHeight: hs.lineHeight,
+        })
+      : null;
 
-    let r = paintTextEl(ctx, headline, textX, y, textMaxW, hs.align, hFont.weight || 700, hFont.family, colors.text);
-    boxes.headline = { x: r.box.x, y: y, w: r.box.w, h: headlineH };
-    y = r.bottom;
+    const headlineH = headline ? headline.height : 0;
+    const totalH = headlineH + (subline ? (headline ? gap : 0) + sublineH : 0);
+    let y = region.y + Math.max(0, (region.h - totalH) / 2);
+    y = Math.max(region.y + pad / 2, Math.min(y, region.y + region.h - pad / 2 - totalH));
+
+    if (headline) {
+      const r = paintTextEl(ctx, headline, textX, y, textMaxW, hs.align, hFont.weight || 700, hFont.family, colors.text);
+      boxes.headline = { x: r.box.x, y: y, w: r.box.w, h: headlineH };
+      y = r.bottom;
+    }
 
     if (subline) {
-      y += gap;
-      r = paintTextEl(ctx, subline, textX, y, textMaxW, ss.align, bFont.weight || 400, bFont.family, colors.muted);
+      if (headline) y += gap;
+      const r = paintTextEl(ctx, subline, textX, y, textMaxW, ss.align, bFont.weight || 400, bFont.family, colors.muted);
       boxes.subline = { x: r.box.x, y: y, w: r.box.w, h: sublineH };
     }
 
