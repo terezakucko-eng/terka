@@ -272,10 +272,10 @@
     }
   }
 
-  function drawLogo(ctx, brand, x, y, scale, color, logoText) {
+  function drawLogo(ctx, brand, x, y, scale, color, logoText, logoScale) {
     const text = logoText || brand.logoText || brand.name || '';
     if (!text) return null;
-    const fontSize = Math.max(9, Math.round(12 * scale));
+    const fontSize = Math.max(9, Math.round(12 * scale * (logoScale || 1)));
     ctx.font = `700 ${fontSize}px ${brand.fonts.heading.family}`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
@@ -545,12 +545,24 @@
   }
 
   // ---------- ruční rozvržení textů (volné pozice) ----------
-  function layoutTextsManual(ctx, format, spec, brand, colors, ctaColor, ov, scale, pad, ts, styles) {
+  function layoutTextsManual(ctx, format, spec, brand, colors, ctaColor, ov, scale, pad, ts, styles, region) {
     const W = format.width;
     const H = format.height;
     const hFont = brand.fonts.heading;
     const bFont = brand.fonts.body;
     const boxes = {};
+    const reg = region || { x: 0, y: 0, w: W, h: H };
+    const regLeft = reg.x + pad;
+    const regRight = reg.x + reg.w - pad;
+
+    // Zarovnání se počítá vůči TEXTOVÉ OBLASTI (u panelu = panel), aby všechny
+    // vycentrované prvky ladily na střed (jako vodicí lišta). anchorX řídí jen
+    // levý (left) nebo pravý (right) okraj.
+    function bandFor(align, anchorX) {
+      if (align === 'center') return { boxLeft: regLeft, boxW: Math.max(20, regRight - regLeft) };
+      if (align === 'right') return { boxLeft: regLeft, boxW: Math.max(20, anchorX - regLeft) };
+      return { boxLeft: anchorX, boxW: Math.max(20, regRight - anchorX) };
+    }
 
     function place(el, isHeadline) {
       const o = ov[el];
@@ -559,12 +571,12 @@
       const est = scale * (ts || 1) * s.size;
       const anchorX = o.x * W;
       const anchorY = o.y * H;
-      const boxW = Math.max(20, W - anchorX - pad);
+      const band = bandFor(s.align, anchorX);
       const font = isHeadline ? hFont : bFont;
       const fit = fitText(ctx, spec[el], {
         fontFamily: font.family,
         fontWeight: font.weight || (isHeadline ? 700 : 400),
-        maxWidth: boxW,
+        maxWidth: band.boxW,
         maxHeight: H,
         maxLines: 6,
         maxSize: isHeadline ? Math.round(30 * est) : Math.round(15 * est),
@@ -573,17 +585,22 @@
       });
       ctx.fillStyle = isHeadline ? colors.text : colors.muted;
       ctx.font = `${font.weight || (isHeadline ? 700 : 400)} ${fit.fontSize}px ${font.family}`;
-      const r = drawLines(ctx, fit.lines, anchorX, anchorY, fit.lineHeight, s.align, boxW);
+      const r = drawLines(ctx, fit.lines, band.boxLeft, anchorY, fit.lineHeight, s.align, band.boxW);
       boxes[el] = { x: r.left, y: anchorY, w: r.width, h: fit.lines.length * fit.lineHeight };
     }
 
     if (spec.headline && spec.headline.trim()) place('headline', true);
     if (spec.subline && spec.subline.trim()) place('subline', false);
 
-    const cta = ctaMetrics(ctx, spec, brand, scale, ts, styleFor(styles, 'cta').size);
+    const cs = styleFor(styles, 'cta');
+    const cta = ctaMetrics(ctx, spec, brand, scale, ts, cs.size);
     if (cta && ov.cta) {
-      const cx = ov.cta.x * W;
+      const anchorX = ov.cta.x * W;
       const cy = ov.cta.y * H;
+      let cx;
+      if (cs.align === 'center') cx = reg.x + reg.w / 2 - cta.w / 2;
+      else if (cs.align === 'right') cx = anchorX - cta.w;
+      else cx = anchorX;
       drawCTAAt(ctx, cta, brand, ctaColor, cx, cy);
       boxes.cta = { x: cx, y: cy, w: cta.w, h: cta.h };
     }
@@ -617,7 +634,7 @@
 
     let boxes;
     if (ov.manual) {
-      boxes = layoutTextsManual(ctx, format, spec, brand, colors, opts.ctaColor, ov, scale, pad, ts, opts.textStyle);
+      boxes = layoutTextsManual(ctx, format, spec, brand, colors, opts.ctaColor, ov, scale, pad, ts, opts.textStyle, bg.region);
     } else {
       boxes = layoutTextsAuto(
         ctx, format, spec, brand, colors, opts.ctaColor, bg.region, orient, scale, pad, bg.valign, ts, opts.textStyle
@@ -641,7 +658,12 @@
       const anchor = bg.logoAnchor || { x: pad, y: pad };
       const lx = ov.logo ? ov.logo.x * W : anchor.x;
       const ly = ov.logo ? ov.logo.y * H : anchor.y;
-      const lbox = drawLogo(ctx, brand, lx, ly, scale, bg.logoColor || colors.text, spec.logoText);
+      let logoColor = bg.logoColor || colors.text;
+      const mode = opts.logoColorMode;
+      if (mode === 'white') logoColor = '#FFFFFF';
+      else if (mode === 'black') logoColor = '#141414';
+      else if (mode === 'pink') logoColor = brand.colors.primary;
+      const lbox = drawLogo(ctx, brand, lx, ly, scale, logoColor, spec.logoText, opts.logoScale);
       if (lbox) boxes.logo = lbox;
     }
 

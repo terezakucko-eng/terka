@@ -70,9 +70,19 @@
               <input type="range" id="imgY" min="-100" max="100" value="0" />
             </label>
             <button class="btn ghost" id="btnResetLayout">↺ Reset rozvržení (tento rozměr)</button>
-            <label class="chk block"><input type="checkbox" id="showLogo" checked /> Zobrazit logo „Růžový Slon" (tento rozměr)</label>
+            <label class="chk block"><input type="checkbox" id="showLogo" checked /> Zobrazit logo (tento rozměr)</label>
+            <label class="slider"><span>Velikost loga <b id="logoScaleVal">100%</b></span><input type="range" id="logoScale" min="40" max="260" value="100" /></label>
+            <label class="field" style="margin:6px 0 0">
+              <span>Barva loga</span>
+              <select id="logoColorMode">
+                <option value="auto">Auto (dle podkladu)</option>
+                <option value="white">Bílá</option>
+                <option value="black">Černá</option>
+                <option value="pink">Růžová</option>
+              </select>
+            </label>
             <button class="btn ghost" id="btnResetLogo">↺ Reset pozice loga</button>
-            <p class="hint">Logo přetáhneš myší; skrytí i pozice platí pro tento rozměr.</p>
+            <p class="hint">Logo přetáhneš myší; skrytí i pozice platí pro tento rozměr. Velikost a barva jsou společné.</p>
           </div>
         </section>
 
@@ -220,6 +230,9 @@
             <button class="btn" id="btnLoadProject">Načíst</button>
             <button class="btn ghost danger" id="btnDeleteProject">Smazat</button>
           </div>
+          <hr />
+          <button class="btn ghost danger" id="btnResetApp">🗑 Reset celého programu</button>
+          <p class="hint">Vymaže aktuální rozpracování (uložené projekty zůstanou).</p>
         </section>
       </aside>
     </main>

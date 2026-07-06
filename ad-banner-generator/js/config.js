@@ -13,6 +13,13 @@
   // Rozměry potvrzené zadavatelem; kanály bez rozměrů čekají na doplnění.
   const CHANNELS = [
     {
+      // Zdrojový „master" čtverec — tady navrhneš kompozici a těžiště,
+      // ostatní rozměry se z toho generují (cover ořez dle těžiště).
+      id: 'master',
+      label: '⭐ Master (zdrojový čtverec)',
+      formats: [{ w: 2400, h: 2400, note: 'master' }],
+    },
+    {
       id: 'web-hp',
       label: '1. Banner HP (web)',
       formats: [

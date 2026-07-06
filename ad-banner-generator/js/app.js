@@ -34,6 +34,8 @@
       cta: { size: 1, align: 'left' },
     },
     selectedEl: 'headline', // prvek editovaný horní lištou
+    logoScale: 1, // velikost loga (násobič)
+    logoColorMode: 'auto', // 'auto' | 'white' | 'black' | 'pink'
     logoDefaultHidden: false, // skrýt logo u všech (globální výchozí)
     showGuides: false, // vodicí středové lišty v náhledu
     showGrid: false, // jemná vodicí mřížka v náhledu
@@ -153,6 +155,8 @@
       textScale: state.textScale,
       textStyle: state.textStyle,
       logoDefaultHidden: state.logoDefaultHidden,
+      logoScale: state.logoScale,
+      logoColorMode: state.logoColorMode,
       imageFocus: state.imageFocus,
       imageAvg: state.imageAvg,
       badgeColor: state.badgeColor || (state.brand && state.brand.colors.primary),
@@ -374,6 +378,9 @@
     $('#layoutMode').textContent = ov && ov.manual ? 'ruční' : 'automatické';
     const logoHidden = ov && ov.logoHidden !== undefined ? ov.logoHidden : state.logoDefaultHidden;
     $('#showLogo').checked = !logoHidden;
+    $('#logoScale').value = Math.round(state.logoScale * 100);
+    $('#logoScaleVal').textContent = Math.round(state.logoScale * 100) + '%';
+    $('#logoColorMode').value = state.logoColorMode;
   }
 
   function syncTextToolbar() {
@@ -805,6 +812,8 @@
       textStyle: state.textStyle,
       imageFocus: state.imageFocus,
       logoDefaultHidden: state.logoDefaultHidden,
+      logoScale: state.logoScale,
+      logoColorMode: state.logoColorMode,
       showGuides: state.showGuides,
       showGrid: state.showGrid,
       discount: state.discount,
@@ -832,6 +841,8 @@
       });
     }
     if (data.imageFocus) state.imageFocus = data.imageFocus;
+    if (data.logoScale) state.logoScale = data.logoScale;
+    if (data.logoColorMode) state.logoColorMode = data.logoColorMode;
     if (typeof data.logoDefaultHidden === 'boolean') state.logoDefaultHidden = data.logoDefaultHidden;
     if (typeof data.showGuides === 'boolean') state.showGuides = data.showGuides;
     if (typeof data.showGrid === 'boolean') state.showGrid = data.showGrid;
@@ -1079,6 +1090,15 @@
       syncLayoutControls();
       renderPreview();
     });
+    $('#logoScale').addEventListener('input', (e) => {
+      state.logoScale = (+e.target.value) / 100;
+      $('#logoScaleVal').textContent = e.target.value + '%';
+      scheduleRender();
+    });
+    $('#logoColorMode').addEventListener('change', (e) => {
+      state.logoColorMode = e.target.value;
+      scheduleRender();
+    });
     $('#showGuides').addEventListener('change', (e) => {
       state.showGuides = e.target.checked;
       scheduleRender();
@@ -1133,6 +1153,13 @@
 
     $('#btnExportPng').addEventListener('click', exportCurrentPNG);
     $('#btnExportZip').addEventListener('click', exportBatchZip);
+
+    $('#btnResetApp').addEventListener('click', () => {
+      if (confirm('Opravdu resetovat celý program? Ztratíš aktuální rozpracování. Uložené projekty zůstanou.')) {
+        try { localStorage.removeItem(AUTOSAVE_KEY); } catch (e) {}
+        location.reload();
+      }
+    });
 
     $('#btnSaveProject').addEventListener('click', saveNamedProject);
     $('#btnLoadProject').addEventListener('click', loadNamedProject);
