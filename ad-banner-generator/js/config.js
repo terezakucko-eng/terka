@@ -10,6 +10,8 @@
   'use strict';
 
   // Kanály a jejich rozměry. note = volitelné upřesnění (desktop/mobil/feed…).
+  // maxKB = doporučený limit velikosti souboru (JPG) daného kanálu; export ho
+  // umí automaticky dodržet. null/neuvedeno = bez tvrdého limitu.
   // Rozměry potvrzené zadavatelem; kanály bez rozměrů čekají na doplnění.
   const CHANNELS = [
     {
@@ -22,6 +24,7 @@
     {
       id: 'web-hp',
       label: '1. Banner HP (web)',
+      maxKB: 500,
       formats: [
         { w: 1350, h: 480, note: 'desktop' },
         { w: 599, h: 767, note: 'mobil' },
@@ -30,16 +33,19 @@
     {
       id: 'kategorie',
       label: '2. Banner kategorie',
+      maxKB: 300,
       formats: [{ w: 1144, h: 395 }],
     },
     {
       id: 'rozcestnik',
       label: '4. Banner rozcestník',
+      maxKB: 250,
       formats: [{ w: 500, h: 500 }],
     },
     {
       id: 'newsletter',
       label: '5. Newsletter',
+      maxKB: 400,
       formats: [
         { w: 1280, h: 1800, note: 'hlavní' },
         { w: 1280, h: 400, note: 'proužek' },
@@ -49,6 +55,7 @@
       // Návrh běžných affiliate/display rozměrů (upravitelné dle sítě).
       id: 'affiliate',
       label: '6. Affiliate (návrh)',
+      maxKB: 150,
       formats: [
         { w: 300, h: 250 }, { w: 300, h: 600 }, { w: 728, h: 90 },
         { w: 970, h: 250 }, { w: 160, h: 600 }, { w: 320, h: 100 },
@@ -59,6 +66,7 @@
       // Podporované rozměry bannerů Sklik (napoveda.sklik.cz).
       id: 'sklik',
       label: '7. PPC Sklik',
+      maxKB: 150,
       formats: [
         { w: 300, h: 250 }, { w: 320, h: 100 }, { w: 480, h: 300 },
         { w: 728, h: 90 }, { w: 970, h: 210 }, { w: 970, h: 310 },
@@ -70,12 +78,14 @@
       // Firmy.cz úvodní fotografie (na šířku, min 1200×800).
       id: 'firmy-reklama',
       label: '8. Firmy.cz – reklama',
+      maxKB: 500,
       formats: [{ w: 1200, h: 800, note: 'úvodní foto' }],
     },
     {
       // Firmy.cz branding (hlavní sdělení v horních 1366×720).
       id: 'firmy-branding',
       label: '9. Firmy.cz – branding',
+      maxKB: 500,
       formats: [
         {
           w: 2000, h: 1400, note: 'safe zóna 1366×720 nahoře',
@@ -88,6 +98,7 @@
       // Google Business Profile (Google firmy).
       id: 'google-firmy',
       label: '10. Google firmy',
+      maxKB: 150,
       formats: [
         { w: 1024, h: 575, note: 'cover' },
         { w: 720, h: 720, note: 'logo/foto' },
@@ -97,6 +108,7 @@
     {
       id: 'heureka',
       label: '11. Heureka display',
+      maxKB: 150,
       formats: [
         { w: 120, h: 600 }, { w: 160, h: 600 }, { w: 200, h: 200 },
         { w: 250, h: 250 }, { w: 300, h: 50 }, { w: 300, h: 250 },
@@ -110,6 +122,7 @@
     {
       id: 'instagram',
       label: '12–13. Instagram',
+      maxKB: 500,
       formats: [
         { w: 1080, h: 1080, note: 'feed' },
         { w: 1080, h: 1920, note: 'story' },
@@ -118,6 +131,7 @@
     {
       id: 'prodejny',
       label: '15. Grafika pro prodejny',
+      maxKB: 2000,
       formats: [
         { w: 1920, h: 1080 },
         { w: 4353, h: 4535 },
@@ -144,6 +158,7 @@
         width: f.w,
         height: f.h,
         safeZone: f.safeZone || null,
+        maxKB: f.maxKB != null ? f.maxKB : (ch.maxKB != null ? ch.maxKB : null),
       });
     });
   });

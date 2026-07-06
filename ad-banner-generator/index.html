@@ -101,6 +101,17 @@
             <span>CTA tlačítko</span>
             <input type="text" id="inCta" maxlength="40" />
           </label>
+
+          <div class="hl-tools">
+            <div class="lc-title">✨ Zvýraznit slovo (větší + barevně)</div>
+            <p class="hint">V poli Headline nebo Subline <b>označ myší slovo</b> a klikni na tlačítko. (Ručně: obal slovo hvězdičkami <b>*takto*</b>.)</p>
+            <button class="btn" id="btnWrapHighlight">✨ Zvýraznit označené slovo</button>
+            <div class="inline2" style="margin-top:8px">
+              <label class="field" style="flex:1;margin:0"><span>Barva zvýraznění</span><input type="color" id="highlightColor" value="#DC004E" /></label>
+              <label class="field" style="width:120px;margin:0"><span>Velikost <b id="highlightScaleVal">135%</b></span><input type="range" id="highlightScale" min="100" max="220" value="135" /></label>
+            </div>
+          </div>
+
           <p class="hint">Styl textu (velikost, řádkování, zarovnání) najdeš v liště nad náhledem — <b>platí pro tento rozměr</b> (každý banner má vlastní).</p>
           <button class="btn" id="btnMasterText">⭐ Použít tento text do všech jazyků</button>
           <button class="btn ghost" id="btnResetLang">↺ Výchozí (placeholder) texty</button>
@@ -133,12 +144,6 @@
             <input type="range" id="textScale" min="60" max="250" value="100" />
           </label>
           <p class="hint">Tento posuvník mění velikost <b>naráz u všech</b>. Pro <b>jeden rozměr</b> použij „Velikost" v liště nad náhledem.</p>
-          <div class="lc-title" style="margin-top:8px">✨ Zvýraznění části textu</div>
-          <p class="hint">Do headline/subline napiš <b>*slovo*</b> — zvýrazní se barvou a velikostí (např. <em>Jak *žhavé* bude léto?</em>).</p>
-          <div class="inline2">
-            <label class="field" style="flex:1;margin:0"><span>Barva zvýraznění</span><input type="color" id="highlightColor" value="#DC004E" /></label>
-            <label class="field" style="width:130px;margin:0"><span>Velikost <b id="highlightScaleVal">135%</b></span><input type="range" id="highlightScale" min="100" max="220" value="135" /></label>
-          </div>
           <label class="chk block"><input type="checkbox" id="hideLogoAll" /> Skrýt logo u <b>všech</b> bannerů</label>
           <label class="chk block"><input type="checkbox" id="showGuides" /> Vodicí lišty (střed) — prvky se přichytávají na střed</label>
           <label class="chk block"><input type="checkbox" id="showGrid" /> Vodicí mřížka (jemná, jen náhled)</label>
@@ -203,10 +208,11 @@
             </label>
             <label class="field" id="maxKbField" style="width:120px;margin:0">
               <span>Max kB (JPG)</span>
-              <input type="number" id="exportMaxKB" value="250" min="30" max="2000" />
+              <input type="number" id="exportMaxKB" value="250" min="30" max="4000" />
             </label>
           </div>
-          <p class="hint">JPG se automaticky komprimuje pod zadaný limit (Sklik ≤ 250 kB, Heureka/PPC mívají 150 kB).</p>
+          <label class="chk block"><input type="checkbox" id="autoKB" checked /> kB <b>automaticky dle formátu</b> (doporučeno)</label>
+          <p class="hint" id="autoKbHint">Každý formát má vlastní limit (Sklik/Heureka/Google ≈ 150 kB, web ≈ 500 kB…). Při hromadném exportu se u každého rozměru dodrží ten jeho. Limit platí pro JPG.</p>
           <button class="btn primary" id="btnExportPng">⬇ Stáhnout aktuální banner</button>
           <hr />
           <h3>Hromadný export (ZIP)</h3>

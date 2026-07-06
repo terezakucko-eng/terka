@@ -274,6 +274,16 @@ select:focus {
   margin: 6px 0 0;
   line-height: 1.4;
 }
+.hl-tools {
+  margin: 12px 0;
+  padding: 10px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: rgba(220, 0, 78, 0.04);
+}
+.hl-tools .lc-title {
+  margin-top: 0;
+}
 
 /* ---------- buttons ---------- */
 .btn {

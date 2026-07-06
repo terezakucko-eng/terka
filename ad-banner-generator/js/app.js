@@ -46,6 +46,7 @@
     badgeTextColor: '#FFFFFF', // barva textu v pusince
     highlightColor: '#DC004E', // barva zvýrazněné části textu (*slovo*)
     highlightScale: 1.35, // násobič velikosti zvýrazněné části
+    autoKB: true, // kB limit automaticky dle formátu (jinak ruční globální)
 
     // rozvržení per formát: { manual, image:{scale,offsetX,offsetY},
     //                         headline:{x,y}, subline:{x,y}, cta:{x,y}, badge:{x,y} }
@@ -488,6 +489,23 @@
     });
   }
 
+  // Když je kB automaticky dle formátu, pole ukazuje limit aktivního rozměru
+  // a je zamčené; jinak je editovatelné (ruční globální hodnota).
+  function syncKBField() {
+    const auto = state.autoKB;
+    const inp = $('#exportMaxKB');
+    $('#autoKB').checked = auto;
+    inp.disabled = auto;
+    if (auto) {
+      const f = formatById(state.activeFormat);
+      if (f && f.maxKB) inp.value = f.maxKB;
+      $('#autoKbHint').textContent =
+        `Aktivní rozměr „${state.activeFormat}" má limit ${f && f.maxKB ? f.maxKB + ' kB' : '(bez limitu)'}. Při hromadném exportu má každý rozměr ten svůj. Platí pro JPG.`;
+    } else {
+      $('#autoKbHint').textContent = 'Ruční limit — stejná hodnota pro všechny rozměry. Platí pro JPG.';
+    }
+  }
+
   function syncStyleControls() {
     $('#ctaColor').value = state.ctaColor;
     $('#textColor').value = state.textColor;
@@ -621,6 +639,7 @@
       `${format.id} · ${format.label} · ${state.activeLang}`;
     syncLayoutControls();
     syncTextToolbar();
+    syncKBField();
     renderGallery(img);
     saveAutosave();
   }
@@ -799,12 +818,21 @@
     return new Promise((resolve) => canvas.toBlob(resolve, type, quality));
   }
 
+  // Vrátí kB limit pro daný formát: automaticky dle kanálu (formatById.maxKB),
+  // jinak ruční globální hodnotu z pole. Fallback na 250 kB.
+  function limitKBFor(fmtId) {
+    const manual = parseInt($('#exportMaxKB').value, 10) || 250;
+    if (!state.autoKB) return manual;
+    const f = formatById(fmtId);
+    return (f && f.maxKB) ? f.maxKB : manual;
+  }
+
   // Zakóduje canvas dle zvoleného formátu. U JPG hledá kvalitu tak, aby se
-  // vešel pod zadaný limit velikosti (auto-komprese pro Sklik/Heureka/PPC).
-  async function encodeCanvas(canvas) {
+  // vešel pod limit velikosti daného formátu (auto-komprese pro Sklik/Heureka/PPC).
+  async function encodeCanvas(canvas, fmtId) {
     const fmt = $('#exportFileFormat').value;
     if (fmt === 'jpg') {
-      const maxBytes = (parseInt($('#exportMaxKB').value, 10) || 250) * 1024;
+      const maxBytes = limitKBFor(fmtId) * 1024;
       let q = 0.92;
       let blob = await toBlob(canvas, 'image/jpeg', q);
       while (blob && blob.size > maxBytes && q > 0.35) {
@@ -818,7 +846,7 @@
 
   async function exportCurrentPNG() {
     const canvas = await renderToCanvas(state.activeFormat, state.activeLang);
-    const { blob, ext, over } = await encodeCanvas(canvas);
+    const { blob, ext, over } = await encodeCanvas(canvas, state.activeFormat);
     downloadBlob(blob, `${state.activeFormat}_${state.activeLang}.${ext}`);
     if (over) setStatus('Pozor: ani při nejnižší kvalitě se JPG nevešel pod limit.', true);
   }
@@ -842,7 +870,7 @@
     for (const fmt of formats) {
       for (const lang of langs) {
         const canvas = await renderToCanvas(fmt, lang);
-        const { blob, ext, over } = await encodeCanvas(canvas);
+        const { blob, ext, over } = await encodeCanvas(canvas, fmt);
         if (over) oversized++;
         const buf = new Uint8Array(await blob.arrayBuffer());
         zip.addFile(`${fmt}/${fmt}_${lang}.${ext}`, buf);
@@ -892,6 +920,7 @@
       badgeTextColor: state.badgeTextColor,
       highlightColor: state.highlightColor,
       highlightScale: state.highlightScale,
+      autoKB: state.autoKB,
       overrides: state.overrides,
       savedAt: new Date().toISOString(),
     };
@@ -926,6 +955,7 @@
     if (data.badgeTextColor) state.badgeTextColor = data.badgeTextColor;
     if (data.highlightColor) state.highlightColor = data.highlightColor;
     if (data.highlightScale) state.highlightScale = data.highlightScale;
+    if (typeof data.autoKB === 'boolean') state.autoKB = data.autoKB;
     state.overrides = data.overrides || {};
 
     // pojistka proti neplatnému uloženému formátu/jazyku (např. starší verze)
@@ -1079,6 +1109,7 @@
       scheduleRender();
     });
 
+    let lastTextField = '#inHeadline';
     $('#inHeadline').addEventListener('input', (e) => {
       textsFor(state.activeLang).headline = e.target.value;
       scheduleRender();
@@ -1086,6 +1117,37 @@
     $('#inSubline').addEventListener('input', (e) => {
       textsFor(state.activeLang).subline = e.target.value;
       scheduleRender();
+    });
+    $('#inHeadline').addEventListener('focus', () => { lastTextField = '#inHeadline'; });
+    $('#inSubline').addEventListener('focus', () => { lastTextField = '#inSubline'; });
+
+    // Zvýraznit označené slovo — obalí výběr hvězdičkami (*slovo*), nebo je zase odebere.
+    $('#btnWrapHighlight').addEventListener('click', () => {
+      const ta = $(lastTextField);
+      const key = lastTextField === '#inSubline' ? 'subline' : 'headline';
+      const val = ta.value || '';
+      let start = ta.selectionStart, end = ta.selectionEnd;
+      if (start === end) {
+        setStatus('Označ nejdřív myší slovo v headline nebo subline, které chceš zvýraznit.', true);
+        ta.focus();
+        return;
+      }
+      // ořízni okolní mezery z výběru (ať hvězdičky sedí na slovo)
+      while (start < end && /\s/.test(val[start])) start++;
+      while (end > start && /\s/.test(val[end - 1])) end--;
+      const selected = val.slice(start, end);
+      const before = val.slice(0, start), after = val.slice(end);
+      let newVal;
+      if (selected.length >= 2 && selected[0] === '*' && selected[selected.length - 1] === '*') {
+        newVal = before + selected.slice(1, -1) + after; // toggle zpět
+      } else {
+        newVal = before + '*' + selected + '*' + after;
+      }
+      ta.value = newVal;
+      textsFor(state.activeLang)[key] = newVal;
+      scheduleRender();
+      ta.focus();
+      setStatus('Slovo zvýrazněno. Barvu a velikost změníš vedle tlačítka.');
     });
     $('#inCta').addEventListener('input', (e) => {
       textsFor(state.activeLang).cta = e.target.value;
@@ -1257,6 +1319,10 @@
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
 
+    $('#autoKB').addEventListener('change', (e) => {
+      state.autoKB = e.target.checked;
+      syncKBField();
+    });
     $('#btnExportPng').addEventListener('click', exportCurrentPNG);
     $('#btnExportZip').addEventListener('click', exportBatchZip);
 
