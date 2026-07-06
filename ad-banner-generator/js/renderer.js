@@ -630,44 +630,43 @@
     const sst = scale * (ts || 1) * ss.size;
 
     const gap = Math.round(6 * scale);
-    // CTA spočítej první a REZERVUJ pro něj místo, ať ho velký text nevytlačí.
+    // CTA je UKOTVENÉ dole v oblasti (vždy viditelné) a text se vejde nad něj.
     const cta = ctaMetrics(ctx, spec, brand, scale, ts, cs.size, maxWidth);
-    const ctaBlock = cta ? cta.h + gap * 1.6 : 0;
-    const topSpaceEst = region.y === 0 ? 18 * scale : 0;
-    const textBudget = Math.max(30, region.h - pad * 2 - ctaBlock - topSpaceEst);
+    const topSpace = region.y === 0 ? pad + 18 * scale : pad;
+    const ctaY = cta ? (region.y + region.h - pad - cta.h) : null;
+    const textTop = region.y + topSpace;
+    const textBottom = cta ? (ctaY - gap * 1.6) : (region.y + region.h - pad);
+    const textAreaH = Math.max(16, textBottom - textTop);
 
     const headline = spec.headline && spec.headline.trim()
       ? measureTextEl(ctx, spec.headline, {
           fontFamily: hFont.family, fontWeight: hFont.weight || 700,
-          maxWidth: maxWidth, maxHeight: Math.min(region.h * 0.85, textBudget),
+          maxWidth: maxWidth, maxHeight: textAreaH,
           maxLines: region.h > 300 ? 5 : 3,
           maxSize: Math.round(28 * hst), minSize: Math.max(9, Math.round(13 * hst)),
           lineHeight: hs.lineHeight,
         })
       : null;
-    const subBudget = Math.max(16, textBudget - (headline ? headline.height : 0));
-    const subline = spec.subline && spec.subline.trim()
+    const headlineH = headline ? headline.height : 0;
+    // subline jen pokud po headline zbývá aspoň řádek místa
+    const subRemain = textAreaH - headlineH - (headline ? gap : 0);
+    const subline = spec.subline && spec.subline.trim() && subRemain >= Math.round(11 * sst)
       ? measureTextEl(ctx, spec.subline, {
           fontFamily: bFont.family, fontWeight: bFont.weight || 400,
-          maxWidth: maxWidth, maxHeight: Math.min(region.h * 0.55, subBudget),
+          maxWidth: maxWidth, maxHeight: subRemain,
           maxLines: region.h > 300 ? 5 : 3,
           maxSize: Math.round(15 * sst), minSize: Math.max(8, Math.round(11 * sst)),
           lineHeight: ss.lineHeight,
         })
       : null;
-
-    const headlineH = headline ? headline.height : 0;
     const sublineH = subline ? subline.height : 0;
-    const totalH = headlineH + (subline ? (headline ? gap : 0) + sublineH : 0) + (cta ? gap * 1.6 + cta.h : 0);
 
+    const blockH = headlineH + (subline ? (headline ? gap : 0) + sublineH : 0);
+    // svislé umístění textového bloku nad CTA
     let y;
-    if (valign === 'bottom') {
-      y = region.y + region.h - pad - totalH;
-    } else {
-      const topSpace = region.y === 0 ? pad + 18 * scale : pad;
-      const avail = region.h - topSpace - pad;
-      y = region.y + topSpace + Math.max(0, (avail - totalH) / 2);
-    }
+    if (valign === 'bottom') y = textBottom - blockH;
+    else y = textTop + Math.max(0, (textAreaH - blockH) / 2);
+    y = Math.max(textTop, y);
 
     if (headline) {
       const r = paintTextEl(ctx, headline, innerX, y, maxWidth, hs.align, hFont.weight || 700, hFont.family, colors.text);
@@ -683,12 +682,11 @@
     }
 
     if (cta) {
-      if (headline || subline) y += gap * 1.6;
       let cx = innerX;
       if (cs.align === 'center') cx = innerX + (maxWidth - cta.w) / 2;
       else if (cs.align === 'right') cx = innerX + (maxWidth - cta.w);
-      drawCTAAt(ctx, cta, brand, ctaColor, cx, y);
-      boxes.cta = { x: cx, y: y, w: cta.w, h: cta.h };
+      drawCTAAt(ctx, cta, brand, ctaColor, cx, ctaY);
+      boxes.cta = { x: cx, y: ctaY, w: cta.w, h: cta.h };
     }
     return boxes;
   }
