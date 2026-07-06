@@ -45,6 +45,7 @@
     discount: { show: false, text: '-20 %', size: 1 },
     badgeColor: null, // null = primární barva značky
     badgeTextColor: '#FFFFFF', // barva textu v pusince
+    colorScope: 'format', // 'format' = barvy per rozměr, 'all' = pro všechny
     highlightColor: '#DC004E', // barva zvýrazněné části textu (*slovo*)
     highlightScale: 1.35, // násobič velikosti zvýrazněné části
     autoKB: true, // kB limit automaticky dle formátu (jinak ruční globální)
@@ -181,6 +182,31 @@
     else ov[el + 'Hidden'] = hidden;
   }
 
+  // ----- barvy PER FORMÁT (s výběrem rozsahu) -----
+  // colorScope 'format' = změna barvy platí jen pro tento rozměr;
+  // 'all' = přepíše společnou barvu a smaže per-formát výjimky.
+  function effectiveCtaColor(fmt) {
+    const ov = state.overrides[fmt];
+    return (ov && ov.ctaColor) || state.ctaColor;
+  }
+  function effectiveBadgeColor(fmt) {
+    const ov = state.overrides[fmt];
+    return (ov && ov.badgeColor) || state.badgeColor || (state.brand && state.brand.colors.primary);
+  }
+  function effectiveBadgeTextColor(fmt) {
+    const ov = state.overrides[fmt];
+    return (ov && ov.badgeTextColor) || state.badgeTextColor || '#FFFFFF';
+  }
+  // kind: 'ctaColor' | 'badgeColor' | 'badgeTextColor'
+  function applyColor(kind, value) {
+    if (state.colorScope === 'all') {
+      state[kind] = value;
+      Object.values(state.overrides).forEach((o) => { if (o) delete o[kind]; });
+    } else {
+      ensureOverride(state.activeFormat)[kind] = value;
+    }
+  }
+
   // ----- velikost loga a pusinky PER FORMÁT -----
   // Globální state.logoScale / state.discount.size jsou jen výchozí hodnoty.
   function effectiveLogoScale(fmt) {
@@ -296,7 +322,7 @@
     lang = lang || state.activeLang;
     return {
       override: mergedOverride(fmt, lang),
-      ctaColor: state.ctaColor,
+      ctaColor: effectiveCtaColor(fmt),
       textColor: state.textColor,
       textScale: state.textScale,
       textStyle: effectiveTextStyle(fmt, lang),
@@ -305,8 +331,8 @@
       logoColorMode: state.logoColorMode,
       imageFocus: state.imageFocus,
       imageAvg: state.imageAvg,
-      badgeColor: state.badgeColor || (state.brand && state.brand.colors.primary),
-      badgeTextColor: state.badgeTextColor,
+      badgeColor: effectiveBadgeColor(fmt),
+      badgeTextColor: effectiveBadgeTextColor(fmt),
       highlightColor: state.highlightColor,
       highlightScale: state.highlightScale,
       transparent: !!(formatById(fmt) && formatById(fmt).transparent),
@@ -564,6 +590,11 @@
     $('#discountSize').value = Math.round(bs * 100);
     $('#discountSizeVal').textContent = Math.round(bs * 100) + '%';
     $('#ctaShow').checked = !effectiveCtaHidden(state.activeFormat);
+    // barvy dle aktivního rozměru
+    $('#ctaColor').value = effectiveCtaColor(state.activeFormat);
+    $('#discountColor').value = effectiveBadgeColor(state.activeFormat);
+    $('#discountTextColor').value = effectiveBadgeTextColor(state.activeFormat);
+    document.documentElement.style.setProperty('--brand-cta', effectiveCtaColor(state.activeFormat));
     const extra = ov && ov.extra;
     $('#extraSizeWrap').classList.toggle('hidden', !extra);
     $('#btnRemoveExtra').classList.toggle('hidden', !extra);
@@ -703,7 +734,8 @@
   }
 
   function syncStyleControls() {
-    $('#ctaColor').value = state.ctaColor;
+    $('#ctaColor').value = effectiveCtaColor(state.activeFormat);
+    const cs = $('#colorScope'); if (cs) cs.value = state.colorScope;
     $('#textColor').value = state.textColor;
     $('#textScale').value = Math.round(state.textScale * 100);
     $('#textScaleVal').textContent = Math.round(state.textScale * 100) + '%';
@@ -714,8 +746,8 @@
     $('#showGrid').checked = state.showGrid;
     $('#discountShow').checked = state.discount.show;
     $('#discountText').value = state.discount.text;
-    $('#discountColor').value = state.badgeColor || (state.brand && state.brand.colors.primary) || '#DC004E';
-    $('#discountTextColor').value = state.badgeTextColor || '#FFFFFF';
+    $('#discountColor').value = effectiveBadgeColor(state.activeFormat);
+    $('#discountTextColor').value = effectiveBadgeTextColor(state.activeFormat);
     const bs = effectiveBadgeSize(state.activeFormat);
     $('#discountSize').value = Math.round(bs * 100);
     $('#discountSizeVal').textContent = Math.round(bs * 100) + '%';
@@ -1177,6 +1209,7 @@
       discount: state.discount,
       badgeColor: state.badgeColor,
       badgeTextColor: state.badgeTextColor,
+      colorScope: state.colorScope,
       highlightColor: state.highlightColor,
       highlightScale: state.highlightScale,
       autoKB: state.autoKB,
@@ -1213,6 +1246,7 @@
     if (data.discount) state.discount = data.discount;
     if (data.badgeColor) state.badgeColor = data.badgeColor;
     if (data.badgeTextColor) state.badgeTextColor = data.badgeTextColor;
+    if (data.colorScope) state.colorScope = data.colorScope;
     if (data.highlightColor) state.highlightColor = data.highlightColor;
     if (data.highlightScale) state.highlightScale = data.highlightScale;
     if (typeof data.autoKB === 'boolean') state.autoKB = data.autoKB;
@@ -1576,12 +1610,12 @@
         wrap.appendChild(b);
       });
     };
-    mk(fill, '#ttBadgeFill', () => state.badgeColor, (v) => { state.badgeColor = v; $('#discountColor').value = v; });
-    mk(text, '#ttBadgeText', () => state.badgeTextColor, (v) => { state.badgeTextColor = v; $('#discountTextColor').value = v; });
+    mk(fill, '#ttBadgeFill', () => state.badgeColor, (v) => { applyColor('badgeColor', v); $('#discountColor').value = v; });
+    mk(text, '#ttBadgeText', () => state.badgeTextColor, (v) => { applyColor('badgeTextColor', v); $('#discountTextColor').value = v; });
   }
   function syncBadgeSwatches() {
-    const cur = (state.badgeColor || '').toLowerCase();
-    const curT = (state.badgeTextColor || '').toLowerCase();
+    const cur = (effectiveBadgeColor(state.activeFormat) || '').toLowerCase();
+    const curT = (effectiveBadgeTextColor(state.activeFormat) || '').toLowerCase();
     $$('#ttBadgeFill .tt-swatch').forEach((b) =>
       b.classList.toggle('sel', (b.style.background && rgbToHex(b.style.background)) === cur));
     $$('#ttBadgeText .tt-swatch').forEach((b) =>
@@ -1608,7 +1642,7 @@
       b.style.background = o.c;
       b.title = o.t;
       b.addEventListener('click', () => {
-        state.ctaColor = o.c;
+        applyColor('ctaColor', o.c);
         $('#ctaColor').value = o.c;
         document.documentElement.style.setProperty('--brand-cta', o.c);
         syncCtaControls();
@@ -1619,7 +1653,7 @@
   }
   function syncCtaControls() {
     $('#ttCtaArrow').checked = state.ctaArrow;
-    const cur = (state.ctaColor || '').toLowerCase();
+    const cur = (effectiveCtaColor(state.activeFormat) || '').toLowerCase();
     $$('#ttCtaColor .tt-swatch').forEach((b) =>
       b.classList.toggle('sel', rgbToHex(b.style.background) === cur));
   }
@@ -1797,18 +1831,23 @@
 
     // styl prvků
     $('#ctaColor').addEventListener('input', (e) => {
-      state.ctaColor = e.target.value;
-      document.documentElement.style.setProperty('--brand-cta', state.ctaColor);
+      applyColor('ctaColor', e.target.value);
+      document.documentElement.style.setProperty('--brand-cta', e.target.value);
       scheduleRender();
     });
     $$('.swatch-btn[data-cta]').forEach((b) =>
       b.addEventListener('click', () => {
-        state.ctaColor = b.getAttribute('data-cta');
-        $('#ctaColor').value = state.ctaColor;
-        document.documentElement.style.setProperty('--brand-cta', state.ctaColor);
+        const v = b.getAttribute('data-cta');
+        applyColor('ctaColor', v);
+        $('#ctaColor').value = v;
+        document.documentElement.style.setProperty('--brand-cta', v);
         scheduleRender();
       })
     );
+    $('#colorScope').addEventListener('change', (e) => {
+      state.colorScope = e.target.value;
+      setStatus(state.colorScope === 'all' ? 'Změny barev teď platí pro VŠECHNY rozměry.' : 'Změny barev teď platí jen pro tento rozměr.');
+    });
     $('#textColor').addEventListener('change', (e) => {
       state.textColor = e.target.value;
       scheduleRender();
@@ -1881,11 +1920,11 @@
       scheduleRender();
     });
     $('#discountColor').addEventListener('input', (e) => {
-      state.badgeColor = e.target.value;
+      applyColor('badgeColor', e.target.value);
       scheduleRender();
     });
     $('#discountTextColor').addEventListener('input', (e) => {
-      state.badgeTextColor = e.target.value;
+      applyColor('badgeTextColor', e.target.value);
       scheduleRender();
     });
     // Barva/velikost zvýraznění: upraví ÚSEK pod kurzorem (je-li), jinak nastaví
