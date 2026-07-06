@@ -157,6 +157,12 @@
     return (ov && ov.template) ? ov.template : state.template;
   }
 
+  // ----- zobrazení CTA PER FORMÁT ----- (lze skrýt u jednotlivých rozměrů)
+  function effectiveCtaHidden(fmt) {
+    const ov = state.overrides[fmt];
+    return (ov && ov.ctaHidden != null) ? ov.ctaHidden : !!state.ctaHidden;
+  }
+
   // ----- velikost loga a pusinky PER FORMÁT -----
   // Globální state.logoScale / state.discount.size jsou jen výchozí hodnoty.
   function effectiveLogoScale(fmt) {
@@ -180,7 +186,7 @@
     return {
       headline: t.headline,
       subline: t.subline,
-      cta: state.ctaHidden ? '' : t.cta,
+      cta: (fmtId ? effectiveCtaHidden(fmtId) : state.ctaHidden) ? '' : t.cta,
       template: fmtId ? effectiveTemplate(fmtId) : state.template,
       discount: {
         show: state.discount.show,
@@ -249,7 +255,18 @@
       highlightColor: state.highlightColor,
       highlightScale: state.highlightScale,
       transparent: !!(formatById(fmt) && formatById(fmt).transparent),
+      extra: extraFor(fmt),
     };
+  }
+
+  // Další obrázek daného rozměru (pokud je nahraný a načtený v paměti).
+  function extraFor(fmt) {
+    const ov = state.overrides[fmt];
+    if (ov && ov.extra && ov.extra.src) {
+      const img = imageCache.get(ov.extra.src);
+      if (img) return { img: img, x: ov.extra.x, y: ov.extra.y, scale: ov.extra.scale };
+    }
+    return null;
   }
 
   // ---------- načtení brandu ----------
@@ -364,6 +381,8 @@
     canvas.height = format.height;
     const ctx = canvas.getContext('2d');
     const img = await loadImage(state.image);
+    const ov = state.overrides[formatId];
+    if (ov && ov.extra && ov.extra.src) await loadImage(ov.extra.src);
     renderBanner(ctx, format, specFor(lang, formatId), state.brand, img, optsFor(formatId));
     return canvas;
   }
@@ -488,6 +507,14 @@
     const bs = effectiveBadgeSize(state.activeFormat);
     $('#discountSize').value = Math.round(bs * 100);
     $('#discountSizeVal').textContent = Math.round(bs * 100) + '%';
+    $('#ctaShow').checked = !effectiveCtaHidden(state.activeFormat);
+    const extra = ov && ov.extra;
+    $('#extraSizeWrap').classList.toggle('hidden', !extra);
+    $('#btnRemoveExtra').classList.toggle('hidden', !extra);
+    if (extra) {
+      $('#extraSize').value = Math.round((extra.scale || 1) * 100);
+      $('#extraSizeVal').textContent = Math.round((extra.scale || 1) * 100) + '%';
+    }
   }
 
   function syncTextToolbar() {
@@ -562,7 +589,7 @@
       scheduleRender();
     });
     $('#ttCtaShow').addEventListener('change', (e) => {
-      state.ctaHidden = !e.target.checked;
+      ensureOverride(state.activeFormat).ctaHidden = !e.target.checked;
       $('#ctaShow').checked = e.target.checked;
       scheduleRender();
     });
@@ -602,7 +629,7 @@
     $('#textScale').value = Math.round(state.textScale * 100);
     $('#textScaleVal').textContent = Math.round(state.textScale * 100) + '%';
     $('#ctaArrow').checked = state.ctaArrow;
-    $('#ctaShow').checked = !state.ctaHidden;
+    $('#ctaShow').checked = !effectiveCtaHidden(state.activeFormat);
     $('#hideLogoAll').checked = state.logoDefaultHidden;
     $('#showGuides').checked = state.showGuides;
     $('#showGrid').checked = state.showGrid;
@@ -731,10 +758,18 @@
     ctx.restore();
   }
 
+  // Načte do cache všechny „další obrázky" (per formát), ať je galerie i export vykreslí.
+  async function preloadExtras() {
+    const srcs = new Set();
+    Object.values(state.overrides).forEach((o) => { if (o && o.extra && o.extra.src) srcs.add(o.extra.src); });
+    await Promise.all(Array.from(srcs).map((s) => loadImage(s)));
+  }
+
   async function renderPreview() {
     const format = formatById(state.activeFormat);
     const mainCanvas = $('#mainPreview');
     const img = await loadImage(currentImageDataURL());
+    await preloadExtras();
     if (img && !state.imageAvg) state.imageAvg = computeAvgColor(img);
     if (!img) state.imageAvg = null;
     const overlay = {
@@ -808,7 +843,7 @@
   }
 
   function hitTest(p) {
-    const order = ['badge', 'logo', 'cta', 'subline', 'headline'];
+    const order = ['extra', 'badge', 'logo', 'cta', 'subline', 'headline'];
     for (const k of order) {
       const b = lastLayout.boxes[k];
       if (b && inside(p, b, 6)) return k;
@@ -855,7 +890,8 @@
         ov.logo = { x: b.x / format.width, y: b.y / format.height };
       }
       if (['headline', 'subline', 'cta', 'logo', 'badge'].indexOf(hit) !== -1) selectElement(hit);
-      const cur = ov[hit] || { x: 0, y: 0 };
+      let cur = ov[hit] || { x: 0, y: 0 };
+      if (hit === 'extra') cur = { x: ov.extra.x == null ? 0.5 : ov.extra.x, y: ov.extra.y == null ? 0.5 : ov.extra.y };
       drag = { kind: 'el', el: hit, downX: p.x, downY: p.y, origX: cur.x, origY: cur.y, W: format.width, H: format.height };
     }
     $('#mainPreview').classList.add('dragging');
@@ -882,7 +918,8 @@
       const rcx = (rg.x + rg.w / 2) / drag.W;
       const rcy = (rg.y + rg.h / 2) / drag.H;
       const b = lastLayout.boxes[drag.el];
-      if (drag.el === 'badge') {
+      const centerBased = (drag.el === 'badge' || drag.el === 'extra');
+      if (centerBased) {
         if (Math.abs(nx - rcx) < thr) { nx = rcx; snapX = true; }
         if (Math.abs(ny - rcy) < thr) { ny = rcy; snapY = true; }
       } else if (b) {
@@ -890,7 +927,13 @@
         if (Math.abs(nx + bw / 2 - rcx) < thr) { nx = rcx - bw / 2; snapX = true; }
         if (Math.abs(ny + bh / 2 - rcy) < thr) { ny = rcy - bh / 2; snapY = true; }
       }
-      ov[drag.el] = { x: clamp(nx, 0, 0.99), y: clamp(ny, 0, 0.99) };
+      if (drag.el === 'extra' && ov.extra) {
+        // nepřepisuj celý objekt (má src/scale) — jen posuň střed
+        ov.extra.x = clamp(nx, 0, 1);
+        ov.extra.y = clamp(ny, 0, 1);
+      } else {
+        ov[drag.el] = { x: clamp(nx, 0, 0.99), y: clamp(ny, 0, 0.99) };
+      }
     } else {
       ov.image = ov.image || { scale: 1, offsetX: 0, offsetY: 0 };
       let ox = drag.orig.offsetX + (p.x - drag.downX) / (drag.rect.w / 2);
@@ -1121,6 +1164,38 @@
 
   function saveAutosave() {
     saveToStorage(AUTOSAVE_KEY, serializeState());
+  }
+
+  // Vytvoří samostatný HTML se ZAPEČENÝM aktuálním nastavením (window.__PRESET__),
+  // aby ho příjemce po otevření viděl přesně tak, jak je teď.
+  let pristineHTML = null;
+  function exportWithPreset() {
+    const scrOpen = '<scr' + 'ipt';
+    const scrClose = '</scr' + 'ipt>';
+    if (!pristineHTML || pristineHTML.indexOf(scrOpen) === -1) {
+      setStatus('Zapečení funguje jen ze staženého (samostatného) HTML, ne z dev serveru.', true);
+      return;
+    }
+    const preset = serializeState();
+    // escapuj znaky, které by rozbily vložený skript
+    const json = JSON.stringify(preset)
+      .replace(/</g, '\\u003c')
+      .replace(/\u2028/g, '\\u2028')
+      .replace(/\u2029/g, '\\u2029');
+    // označený skript (id) + skládané „scr+ipt", ať se v tomto zdroji nevyskytne
+    // doslovná značka, kterou by prohlížeč/regex omylem chytil
+    const tag = scrOpen + ' id="__abg_preset__">window.__PRESET__=' + json + ';' + scrClose;
+    const re = new RegExp(scrOpen + ' id="__abg_preset__">[\\s\\S]*?' + scrClose + '\\s*', 'g');
+    let html = pristineHTML.replace(re, '');
+    // vlož před POSLEDNÍ uzavírací tag body (dřívější výskyty jsou jen řetězce v JS)
+    const closeTag = '</bo' + 'dy>';
+    const idx = html.lastIndexOf(closeTag);
+    if (idx !== -1) html = html.slice(0, idx) + tag + '\n' + html.slice(idx);
+    else html += '\n' + tag;
+    const blob = new Blob([html], { type: 'text/html' });
+    const brandSlug = (state.brand.name || 'brand').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    downloadBlob(blob, 'ad-banner-generator-' + brandSlug + '.html');
+    setStatus('Appka s tvým nastavením stažena — tenhle soubor můžeš poslat dál.');
   }
 
   function saveNamedProject() {
@@ -1440,7 +1515,7 @@
     });
   }
   function syncCtaControls() {
-    $('#ttCtaShow').checked = !state.ctaHidden;
+    $('#ttCtaShow').checked = !effectiveCtaHidden(state.activeFormat);
     $('#ttCtaArrow').checked = state.ctaArrow;
     const cur = (state.ctaColor || '').toLowerCase();
     $$('#ttCtaColor .tt-swatch').forEach((b) =>
@@ -1588,6 +1663,37 @@
       setStatus('Rozvržení tohoto rozměru resetováno.');
     });
 
+    // další obrázek (per formát)
+    $('#btnAddExtra').addEventListener('click', () => $('#uploadExtra').click());
+    $('#uploadExtra').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file || !file.type.startsWith('image/')) return;
+      const dataURL = await readFileAsDataURL(file);
+      const img = await loadImage(dataURL);
+      const src = img ? downscaleToDataURL(img, 1200, 0.85) : dataURL;
+      await loadImage(src); // zajisti, že je zmenšená verze v cache
+      const ov = ensureOverride(state.activeFormat);
+      const prev = ov.extra || {};
+      ov.extra = { src: src, x: prev.x == null ? 0.5 : prev.x, y: prev.y == null ? 0.5 : prev.y, scale: prev.scale || 1 };
+      e.target.value = '';
+      syncLayoutControls();
+      renderPreview();
+      setStatus('Další obrázek přidán do rozměru ' + state.activeFormat + '. Přetáhni ho myší.');
+    });
+    $('#extraSize').addEventListener('input', (e) => {
+      const ov = state.overrides[state.activeFormat];
+      if (ov && ov.extra) ov.extra.scale = (+e.target.value) / 100;
+      $('#extraSizeVal').textContent = e.target.value + '%';
+      scheduleRender();
+    });
+    $('#btnRemoveExtra').addEventListener('click', () => {
+      const ov = state.overrides[state.activeFormat];
+      if (ov && ov.extra) delete ov.extra;
+      syncLayoutControls();
+      renderPreview();
+      setStatus('Další obrázek odebrán z rozměru ' + state.activeFormat + '.');
+    });
+
     // styl prvků
     $('#ctaColor').addEventListener('input', (e) => {
       state.ctaColor = e.target.value;
@@ -1611,7 +1717,8 @@
       scheduleRender();
     });
     $('#ctaShow').addEventListener('change', (e) => {
-      state.ctaHidden = !e.target.checked;
+      ensureOverride(state.activeFormat).ctaHidden = !e.target.checked;
+      $('#ttCtaShow').checked = e.target.checked;
       scheduleRender();
     });
     $('#perFormatText').addEventListener('change', (e) => {
@@ -1759,6 +1866,8 @@
       setStatus('Výchozí rozvržení zrušeno.');
     });
 
+    $('#btnExportHtml').addEventListener('click', exportWithPreset);
+
     // Odebrat vizuál — jen smaže obrázek (dvojí potvrzení).
     $('#btnRemoveImage').addEventListener('click', () => {
       if (!confirm('Odebrat nahraný vizuál z projektu?')) return;
@@ -1805,6 +1914,9 @@
 
   // ---------- init ----------
   async function init() {
+    // zachyť čistý zdroj stránky ještě před tím, než ho JS začne měnit
+    // (pro „zapečení" nastavení do samostatného HTML)
+    try { pristineHTML = '<!DOCTYPE html>\n' + document.documentElement.outerHTML; } catch (e) {}
     await loadBrand();
     buildFormatSelect();
     buildTemplateSelect();
@@ -1821,9 +1933,19 @@
     refreshProjectList();
 
     try {
-      // přednost má rozpracovaný autosave; jinak výchozí rozvržení
-      const auto = localStorage.getItem(AUTOSAVE_KEY) || localStorage.getItem(DEFAULT_KEY);
-      if (auto) applySerialized(JSON.parse(auto));
+      // Zapečené nastavení (window.__PRESET__) se aplikuje při prvním otevření
+      // souboru; pak už má přednost rozpracovaný autosave (aby si příjemce
+      // neztratil vlastní úpravy). Jinak výchozí rozvržení.
+      const preset = window.__PRESET__;
+      const presetId = preset && preset.savedAt;
+      const applied = (function () { try { return localStorage.getItem('abg:presetApplied'); } catch (e) { return null; } })();
+      if (preset && applied !== presetId) {
+        applySerialized(preset);
+        try { localStorage.setItem('abg:presetApplied', presetId || '1'); } catch (e) {}
+      } else {
+        const auto = localStorage.getItem(AUTOSAVE_KEY) || localStorage.getItem(DEFAULT_KEY);
+        if (auto) applySerialized(JSON.parse(auto));
+      }
     } catch (e) {
       /* ignore */
     }

@@ -629,25 +629,31 @@
     const hst = scale * (ts || 1) * hs.size;
     const sst = scale * (ts || 1) * ss.size;
 
+    const gap = Math.round(6 * scale);
+    // CTA spočítej první a REZERVUJ pro něj místo, ať ho velký text nevytlačí.
+    const cta = ctaMetrics(ctx, spec, brand, scale, ts, cs.size, maxWidth);
+    const ctaBlock = cta ? cta.h + gap * 1.6 : 0;
+    const topSpaceEst = region.y === 0 ? 18 * scale : 0;
+    const textBudget = Math.max(30, region.h - pad * 2 - ctaBlock - topSpaceEst);
+
     const headline = measureTextEl(ctx, spec.headline, {
       fontFamily: hFont.family, fontWeight: hFont.weight || 700,
-      maxWidth: maxWidth, maxHeight: region.h * 0.85,
+      maxWidth: maxWidth, maxHeight: Math.min(region.h * 0.85, textBudget),
       maxLines: region.h > 300 ? 5 : 3,
       maxSize: Math.round(28 * hst), minSize: Math.max(9, Math.round(13 * hst)),
       lineHeight: hs.lineHeight,
     });
+    const subBudget = Math.max(16, textBudget - headline.height);
     const subline = spec.subline && spec.subline.trim()
       ? measureTextEl(ctx, spec.subline, {
           fontFamily: bFont.family, fontWeight: bFont.weight || 400,
-          maxWidth: maxWidth, maxHeight: region.h * 0.55,
+          maxWidth: maxWidth, maxHeight: Math.min(region.h * 0.55, subBudget),
           maxLines: region.h > 300 ? 5 : 3,
           maxSize: Math.round(15 * sst), minSize: Math.max(8, Math.round(11 * sst)),
           lineHeight: ss.lineHeight,
         })
       : null;
 
-    const gap = Math.round(6 * scale);
-    const cta = ctaMetrics(ctx, spec, brand, scale, ts, cs.size, maxWidth);
     const headlineH = headline.height;
     const sublineH = subline ? subline.height : 0;
     const totalH = headlineH + (subline ? gap + sublineH : 0) + (cta ? gap * 1.6 + cta.h : 0);
@@ -888,6 +894,20 @@
       else if (mode === 'pink') logoColor = brand.colors.primary;
       const lbox = drawLogo(ctx, brand, lx, ly, scale, logoColor, spec.logoText, opts.logoScale);
       if (lbox) boxes.logo = lbox;
+    }
+
+    // Další obrázek (nezávislý pro tento rozměr) — kreslí se nad vše, dá se
+    // přetáhnout myší a měnit velikost. Poloha x/y = STŘED (podíl plátna).
+    if (opts.extra && opts.extra.img) {
+      const ex = opts.extra;
+      const eimg = ex.img;
+      const base = Math.min(W, H) * 0.5 * (ex.scale || 1);
+      const es = base / Math.max(eimg.width, eimg.height);
+      const ew = eimg.width * es, eh = eimg.height * es;
+      const ecx = (ex.x == null ? 0.5 : ex.x) * W;
+      const ecy = (ex.y == null ? 0.5 : ex.y) * H;
+      ctx.drawImage(eimg, ecx - ew / 2, ecy - eh / 2, ew, eh);
+      boxes.extra = { x: ecx - ew / 2, y: ecy - eh / 2, w: ew, h: eh };
     }
 
     if (!opts.transparent) {

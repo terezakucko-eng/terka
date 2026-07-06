@@ -84,6 +84,13 @@
             </label>
             <button class="btn ghost" id="btnResetLogo">↺ Reset pozice loga</button>
             <p class="hint">Logo přetáhneš myší; skrytí, pozice i <b>velikost</b> platí pro tento rozměr. Barva je společná.</p>
+            <hr />
+            <div class="lc-title">➕ Další obrázek (jen tento rozměr)</div>
+            <button class="btn" id="btnAddExtra">🖼 Přidat / nahradit další obrázek</button>
+            <input type="file" id="uploadExtra" accept="image/*" hidden />
+            <label class="slider hidden" id="extraSizeWrap"><span>Velikost dalšího obrázku <b id="extraSizeVal">100%</b></span><input type="range" id="extraSize" min="15" max="400" value="100" /></label>
+            <button class="btn ghost danger hidden" id="btnRemoveExtra">Odebrat další obrázek</button>
+            <p class="hint">Přidá druhý obrázek <b>jen do tohoto rozměru</b> (nezávisle na ostatních). Přetáhneš ho myší, velikost posuvníkem.</p>
           </div>
         </section>
 
@@ -133,7 +140,7 @@
               <button class="swatch-btn" data-cta="#1F0F36" style="background:#1F0F36" title="Tmavá"></button>
             </span>
           </label>
-          <label class="chk block"><input type="checkbox" id="ctaShow" checked /> Zobrazit CTA tlačítko</label>
+          <label class="chk block"><input type="checkbox" id="ctaShow" checked /> Zobrazit CTA tlačítko <b>(tento rozměr)</b></label>
           <label class="chk block"><input type="checkbox" id="ctaArrow" checked /> Šipka v CTA (▸)</label>
           <label class="field">
             <span>Barva textu</span>
@@ -276,6 +283,9 @@
             <button class="btn ghost" id="btnClearDefault">Zrušit výchozí</button>
           </div>
           <p class="hint">Uloží aktuální rozvržení všech rozměrů jako výchozí — načte se automaticky při startu.</p>
+          <hr />
+          <button class="btn primary" id="btnExportHtml">📤 Vytvořit appku s tímto nastavením (HTML)</button>
+          <p class="hint">Stáhne <b>samostatný HTML</b> s tvými aktuálními texty, rozvržením i vizuálem uvnitř. Komu ho pošleš, uvidí přesně tohle (a může dál upravovat).</p>
           <hr />
           <button class="btn ghost danger" id="btnRemoveImage">🗑 Odebrat vizuál</button>
           <button class="btn ghost danger" id="btnResetPlacement">↺ Reset umístění (všechny rozměry)</button>
