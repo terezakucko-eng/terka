@@ -227,43 +227,79 @@
     return state.overrides[fmt];
   }
 
+  // ---------- rozvržení PER JAZYK ----------
+  // Workflow: postav vše v CZ (= master), ostatní jazyky ho zdědí; jakmile v
+  // nějakém jazyce prvek posuneš nebo zmenšíš text, drží se to jen u něj.
+  // Per jazyk jsou POZICE prvků a STYL TEXTU; zbytek (obrázek, šablona,
+  // barvy, viditelnost, velikost loga/pusinky) je společný pro rozměr.
+  const MASTER_LANG = LANGUAGES[0].code; // CZ
+  const PER_LANG_POS = ['manual', 'headline', 'subline', 'cta', 'badge', 'logo'];
+
+  function langTarget(fmt, lang) {
+    const ov = ensureOverride(fmt);
+    if (lang === MASTER_LANG) return ov;
+    if (!ov.byLang) ov.byLang = {};
+    if (!ov.byLang[lang]) ov.byLang[lang] = {};
+    return ov.byLang[lang];
+  }
+  function langGet(fmt, lang, key) {
+    const ov = state.overrides[fmt];
+    if (!ov) return undefined;
+    if (lang !== MASTER_LANG && ov.byLang && ov.byLang[lang] && ov.byLang[lang][key] !== undefined) {
+      return ov.byLang[lang][key];
+    }
+    return ov[key];
+  }
+  // Sloučený override pro renderer (základ rozměru + vrstva aktivního jazyka).
+  function mergedOverride(fmt, lang) {
+    const base = state.overrides[fmt];
+    if (!base) return null;
+    const out = Object.assign({}, base);
+    delete out.byLang;
+    if (lang && lang !== MASTER_LANG && base.byLang && base.byLang[lang]) {
+      PER_LANG_POS.forEach((k) => { if (base.byLang[lang][k] !== undefined) out[k] = base.byLang[lang][k]; });
+      if (base.byLang[lang].textStyle) out.textStyle = base.byLang[lang].textStyle;
+    }
+    return out;
+  }
+
   // Styl textu (velikost/řádkování/zarovnání) je PER FORMÁT. Globální
   // state.textStyle slouží jen jako výchozí šablona pro formáty bez vlastního
   // nastavení. effectiveTextStyle vrátí platný styl pro daný rozměr.
-  function effectiveTextStyle(fmt) {
+  function effectiveTextStyle(fmt, lang) {
     const base = state.textStyle;
-    const ov = state.overrides[fmt];
-    if (!ov || !ov.textStyle) return base;
+    const fmtStyle = langGet(fmt, lang || state.activeLang, 'textStyle');
+    if (!fmtStyle) return base;
     const out = {};
     ['headline', 'subline', 'cta'].forEach((el) => {
-      out[el] = Object.assign({}, base[el], ov.textStyle[el] || {});
+      out[el] = Object.assign({}, base[el], fmtStyle[el] || {});
     });
     return out;
   }
 
-  // Vrátí (a v případě potřeby založí) styl textu konkrétního rozměru pro zápis.
-  // Nasadí se z aktuálně platných hodnot, aby se náhled při první úpravě neposunul.
+  // Vrátí (a v případě potřeby založí) styl textu pro AKTIVNÍ rozměr+jazyk (zápis).
   function activeTextStyle() {
-    const fmt = state.activeFormat;
-    const ov = ensureOverride(fmt);
-    if (!ov.textStyle) {
-      const eff = effectiveTextStyle(fmt);
-      ov.textStyle = {
+    const fmt = state.activeFormat, lang = state.activeLang;
+    const tgt = langTarget(fmt, lang);
+    if (!tgt.textStyle) {
+      const eff = effectiveTextStyle(fmt, lang);
+      tgt.textStyle = {
         headline: Object.assign({}, eff.headline),
         subline: Object.assign({}, eff.subline),
         cta: Object.assign({}, eff.cta),
       };
     }
-    return ov.textStyle;
+    return tgt.textStyle;
   }
 
-  function optsFor(fmt) {
+  function optsFor(fmt, lang) {
+    lang = lang || state.activeLang;
     return {
-      override: state.overrides[fmt] || null,
+      override: mergedOverride(fmt, lang),
       ctaColor: state.ctaColor,
       textColor: state.textColor,
       textScale: state.textScale,
-      textStyle: effectiveTextStyle(fmt),
+      textStyle: effectiveTextStyle(fmt, lang),
       logoDefaultHidden: state.logoDefaultHidden,
       logoScale: effectiveLogoScale(fmt),
       logoColorMode: state.logoColorMode,
@@ -403,7 +439,7 @@
     const ov = state.overrides[formatId];
     if (ov && ov.extra && ov.extra.src) await loadImage(ov.extra.src);
     const mainImg = isElHidden(formatId, 'image') ? null : img;
-    renderBanner(ctx, format, specFor(lang, formatId), state.brand, mainImg, optsFor(formatId));
+    renderBanner(ctx, format, specFor(lang, formatId), state.brand, mainImg, optsFor(formatId, lang));
     return canvas;
   }
 
@@ -517,7 +553,7 @@
     $('#imgX').value = Math.round((img.offsetX || 0) * 100);
     $('#imgY').value = Math.round((img.offsetY || 0) * 100);
     $('#imgFmtLabel').textContent = state.activeFormat;
-    $('#layoutMode').textContent = ov && ov.manual ? 'ruční' : 'automatické';
+    $('#layoutMode').textContent = langGet(state.activeFormat, state.activeLang, 'manual') ? 'ruční' : 'automatické';
     const logoHidden = ov && ov.logoHidden !== undefined ? ov.logoHidden : state.logoDefaultHidden;
     $('#showLogo').checked = !logoHidden;
     const ls = effectiveLogoScale(state.activeFormat);
@@ -714,7 +750,7 @@
     // U formátů „bez pozadí" ukaž v NÁHLEDU šachovnici (průhlednost) — do exportu nejde.
     if (format.transparent) drawCheckerboard(ctx, format);
     const mainImg = isElHidden(format.id, 'image') ? null : img;
-    const layout = renderBanner(ctx, format, specFor(lang, format.id), state.brand, mainImg, optsFor(format.id));
+    const layout = renderBanner(ctx, format, specFor(lang, format.id), state.brand, mainImg, optsFor(format.id, lang));
     // vodítka — jen v náhledu, NIKDY se neexportují
     if (overlay) {
       if (overlay.grid) drawGrid(ctx, format);
@@ -898,12 +934,12 @@
     return null;
   }
 
-  function seedManual(ov, format) {
+  function seedManual(target, format) {
     ['headline', 'subline', 'cta'].forEach((el) => {
       const b = lastLayout.boxes[el];
-      if (b) ov[el] = { x: b.x / format.width, y: b.y / format.height };
+      if (b) target[el] = { x: b.x / format.width, y: b.y / format.height };
     });
-    ov.manual = true;
+    target.manual = true;
   }
 
   function onPointerDown(e) {
@@ -922,26 +958,28 @@
         rect: lastLayout.imageRect,
       };
     } else {
+      // pozice prvků jsou PER JAZYK (kromě dalšího obrázku, který je per rozměr)
+      const pos = langTarget(fmt, state.activeLang);
       if (hit === 'headline' || hit === 'subline' || hit === 'cta') {
-        if (!ov.manual) seedManual(ov, format);
-        // starší uložení bez pozice prvku → naseeduj z aktuálního rozvržení
-        else if (!ov[hit] && lastLayout.boxes[hit]) {
+        if (!langGet(fmt, state.activeLang, 'manual')) seedManual(pos, format);
+        else if (pos[hit] === undefined && lastLayout.boxes[hit]) {
           const b = lastLayout.boxes[hit];
-          ov[hit] = { x: b.x / format.width, y: b.y / format.height };
+          pos[hit] = { x: b.x / format.width, y: b.y / format.height };
         }
       }
-      if (hit === 'badge' && !ov.badge) {
+      if (hit === 'badge' && pos.badge === undefined) {
         const b = lastLayout.boxes.badge;
-        ov.badge = { x: (b.x + b.w / 2) / format.width, y: (b.y + b.h / 2) / format.height };
+        pos.badge = { x: (b.x + b.w / 2) / format.width, y: (b.y + b.h / 2) / format.height };
       }
-      if (hit === 'logo' && !ov.logo) {
+      if (hit === 'logo' && pos.logo === undefined) {
         const b = lastLayout.boxes.logo;
-        ov.logo = { x: b.x / format.width, y: b.y / format.height };
+        pos.logo = { x: b.x / format.width, y: b.y / format.height };
       }
       if (['headline', 'subline', 'cta', 'logo', 'badge'].indexOf(hit) !== -1) selectElement(hit);
-      let cur = ov[hit] || { x: 0, y: 0 };
+      let cur;
       if (hit === 'extra') cur = { x: ov.extra.x == null ? 0.5 : ov.extra.x, y: ov.extra.y == null ? 0.5 : ov.extra.y };
-      drag = { kind: 'el', el: hit, downX: p.x, downY: p.y, origX: cur.x, origY: cur.y, W: format.width, H: format.height };
+      else cur = pos[hit] || { x: 0, y: 0 };
+      drag = { kind: 'el', el: hit, downX: p.x, downY: p.y, origX: cur.x, origY: cur.y, W: format.width, H: format.height, posRef: hit === 'extra' ? null : pos };
     }
     $('#mainPreview').classList.add('dragging');
     e.preventDefault();
@@ -977,11 +1015,12 @@
         if (Math.abs(ny + bh / 2 - rcy) < thr) { ny = rcy - bh / 2; snapY = true; }
       }
       if (drag.el === 'extra' && ov.extra) {
-        // nepřepisuj celý objekt (má src/scale) — jen posuň střed
+        // další obrázek je per rozměr — jen posuň střed (má src/scale)
         ov.extra.x = clamp(nx, 0, 1);
         ov.extra.y = clamp(ny, 0, 1);
-      } else {
-        ov[drag.el] = { x: clamp(nx, 0, 0.99), y: clamp(ny, 0, 0.99) };
+      } else if (drag.posRef) {
+        // pozice prvku zapiš do vrstvy AKTIVNÍHO JAZYKA
+        drag.posRef[drag.el] = { x: clamp(nx, 0, 0.99), y: clamp(ny, 0, 0.99) };
       }
     } else {
       ov.image = ov.image || { scale: 1, offsetX: 0, offsetY: 0 };
@@ -1416,8 +1455,22 @@
   // Mapa našich kódů na ISO kódy překladače.
   const ISO_LANG = { CZ: 'cs', SK: 'sk', HU: 'hu', RO: 'ro', SI: 'sl', HR: 'hr', BG: 'bg' };
 
+  // Zarovná velikost prvního písmene překladu podle originálu (aby se zachovala
+  // velká/malá písmena hlavně na začátku věty; překladač je občas mění).
+  function matchLeadingCase(src, dst) {
+    const s = String(src), d = String(dst);
+    const si = s.search(/\S/), di = d.search(/\S/);
+    if (si < 0 || di < 0) return d;
+    const sc = s[si], dc = d[di];
+    const isLetter = (ch) => ch.toLowerCase() !== ch.toUpperCase();
+    if (!isLetter(sc) || !isLetter(dc)) return d;
+    const srcUpper = sc === sc.toUpperCase();
+    const fixed = srcUpper ? dc.toUpperCase() : dc.toLowerCase();
+    return d.slice(0, di) + fixed + d.slice(di + 1);
+  }
+
   // Přeloží text přes veřejný Google endpoint (CORS povolen). Překládá po
-  // řádcích, aby se zachovalo ruční zalomení (\n).
+  // řádcích (zachová zalomení) a srovná velikost prvního písmene dle originálu.
   async function translateText(text, from, to) {
     if (!text || !text.trim()) return text || '';
     const lines = String(text).split('\n');
@@ -1429,7 +1482,8 @@
       const res = await fetch(url);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
-      out.push(data && data[0] ? data[0].map((s) => s[0]).join('') : ln);
+      const tr = data && data[0] ? data[0].map((s) => s[0]).join('') : ln;
+      out.push(matchLeadingCase(ln, tr));
     }
     return out.join('\n');
   }
@@ -1697,10 +1751,17 @@
       scheduleRender();
     });
     $('#btnResetLayout').addEventListener('click', () => {
-      delete state.overrides[state.activeFormat];
+      const fmt = state.activeFormat, lang = state.activeLang, ov = state.overrides[fmt];
+      if (lang !== MASTER_LANG && ov && ov.byLang && ov.byLang[lang]) {
+        // vrať jen tento jazyk zpět na výchozí (dle CZ)
+        delete ov.byLang[lang];
+        setStatus('Rozvržení jazyka „' + lang + '" pro tento rozměr vráceno na výchozí (dle CZ).');
+      } else {
+        delete state.overrides[fmt];
+        setStatus('Rozvržení tohoto rozměru resetováno.');
+      }
       syncLayoutControls();
       renderPreview();
-      setStatus('Rozvržení tohoto rozměru resetováno.');
     });
 
     // další obrázek (per formát)
