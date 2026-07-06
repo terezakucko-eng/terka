@@ -100,15 +100,15 @@
           <label class="chk block"><input type="checkbox" id="perFormatText" /> ✏️ Vlastní textace jen pro <b>tento rozměr</b> (jinak společná)</label>
           <label class="field">
             <span>Headline <em>(Enter = nový řádek)</em></span>
-            <textarea id="inHeadline" maxlength="160" rows="2"></textarea>
+            <textarea id="inHeadline" maxlength="160" rows="2" placeholder="Napiš headline…"></textarea>
           </label>
           <label class="field">
             <span>Subline <em>(Enter = nový řádek)</em></span>
-            <textarea id="inSubline" maxlength="200" rows="2"></textarea>
+            <textarea id="inSubline" maxlength="200" rows="2" placeholder="Napiš subline…"></textarea>
           </label>
           <label class="field">
             <span>CTA tlačítko</span>
-            <input type="text" id="inCta" maxlength="40" />
+            <input type="text" id="inCta" maxlength="40" placeholder="Např. Nakupovat" />
           </label>
 
           <div class="hl-tools">
@@ -124,7 +124,7 @@
           <p class="hint">Styl textu (velikost, řádkování, zarovnání) najdeš v liště nad náhledem — <b>platí pro tento rozměr</b> (každý banner má vlastní).</p>
           <button class="btn" id="btnAutoTranslate">🌐 Automaticky přeložit do všech jazyků</button>
           <p class="hint">Přeloží z aktivního jazyka (<b id="translateFromLabel">CZ</b>) do ostatních přes online překladač. Vyžaduje připojení; <b>strojový překlad zkontroluj</b>. Naformátování (zvýrazněné slovo) se u překladu zachová.</p>
-          <button class="btn ghost" id="btnResetLang">↺ Výchozí (placeholder) texty</button>
+          <p class="hint">Vlastní <b>výchozí texty</b> si nastavíš přes „⭐ Uložit jako výchozí" (vpravo) — uloží tvé texty i rozvržení jako start, stejně jako master obrázek.</p>
         </section>
 
         <section class="card">
@@ -181,6 +181,7 @@
             <button type="button" data-sel="logo">Logo</button>
             <button type="button" data-sel="badge">Pusinka</button>
           </div>
+          <label class="tt-check" id="ttShowWrap"><input type="checkbox" id="ttShow" checked /> Zobrazit</label>
           <div class="align-group" id="ttAlign">
             <button type="button" data-align="left" title="Vlevo">⬅</button>
             <button type="button" data-align="center" title="Na střed">↔</button>
@@ -201,7 +202,6 @@
             <div class="tt-swatch-row"><span>Text</span><span class="tt-swatches" id="ttBadgeText"></span></div>
           </div>
           <div class="tt-badge hidden" id="ttCtaControls">
-            <label class="tt-check"><input type="checkbox" id="ttCtaShow" checked /> Zobrazit</label>
             <div class="tt-swatch-row"><span>Barva</span><span class="tt-swatches" id="ttCtaColor"></span></div>
             <label class="tt-check"><input type="checkbox" id="ttCtaArrow" checked /> Šipka ▸</label>
           </div>

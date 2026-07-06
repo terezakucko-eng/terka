@@ -167,14 +167,17 @@
   });
 
   // Jazykové mutace. Každý má výchozí texty (uživatel může přepsat).
+  // Výchozí texty jsou prázdné — vlastní „výchozí" si uživatel nastaví přes
+  // „Uložit jako výchozí" (stejně jako master obrázek). Žádné generické placeholdery.
+  const _empty = { headline: '', subline: '', cta: '' };
   const LANGUAGES = [
-    { code: 'CZ', label: 'Čeština', defaults: { headline: 'Nová kolekce', subline: 'Sleva až 50 %', cta: 'Nakupovat' } },
-    { code: 'SK', label: 'Slovenčina', defaults: { headline: 'Nová kolekcia', subline: 'Zľava až 50 %', cta: 'Nakupovať' } },
-    { code: 'HU', label: 'Magyar', defaults: { headline: 'Új kollekció', subline: 'Akár 50% kedvezmény', cta: 'Vásárlás' } },
-    { code: 'RO', label: 'Română', defaults: { headline: 'Colecție nouă', subline: 'Reduceri până la 50%', cta: 'Cumpără' } },
-    { code: 'SI', label: 'Slovenščina', defaults: { headline: 'Nova kolekcija', subline: 'Popust do 50 %', cta: 'Nakupuj' } },
-    { code: 'HR', label: 'Hrvatski', defaults: { headline: 'Nova kolekcija', subline: 'Popust do 50 %', cta: 'Kupuj' } },
-    { code: 'BG', label: 'Български', defaults: { headline: 'Нова колекция', subline: 'Отстъпка до 50%', cta: 'Пазарувай' } },
+    { code: 'CZ', label: 'Čeština', defaults: Object.assign({}, _empty) },
+    { code: 'SK', label: 'Slovenčina', defaults: Object.assign({}, _empty) },
+    { code: 'HU', label: 'Magyar', defaults: Object.assign({}, _empty) },
+    { code: 'RO', label: 'Română', defaults: Object.assign({}, _empty) },
+    { code: 'SI', label: 'Slovenščina', defaults: Object.assign({}, _empty) },
+    { code: 'HR', label: 'Hrvatski', defaults: Object.assign({}, _empty) },
+    { code: 'BG', label: 'Български', defaults: Object.assign({}, _empty) },
   ];
 
   // Šablony určují rozvržení. Renderer se přizpůsobí poměru stran formátu.

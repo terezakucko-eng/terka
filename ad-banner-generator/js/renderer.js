@@ -636,14 +636,16 @@
     const topSpaceEst = region.y === 0 ? 18 * scale : 0;
     const textBudget = Math.max(30, region.h - pad * 2 - ctaBlock - topSpaceEst);
 
-    const headline = measureTextEl(ctx, spec.headline, {
-      fontFamily: hFont.family, fontWeight: hFont.weight || 700,
-      maxWidth: maxWidth, maxHeight: Math.min(region.h * 0.85, textBudget),
-      maxLines: region.h > 300 ? 5 : 3,
-      maxSize: Math.round(28 * hst), minSize: Math.max(9, Math.round(13 * hst)),
-      lineHeight: hs.lineHeight,
-    });
-    const subBudget = Math.max(16, textBudget - headline.height);
+    const headline = spec.headline && spec.headline.trim()
+      ? measureTextEl(ctx, spec.headline, {
+          fontFamily: hFont.family, fontWeight: hFont.weight || 700,
+          maxWidth: maxWidth, maxHeight: Math.min(region.h * 0.85, textBudget),
+          maxLines: region.h > 300 ? 5 : 3,
+          maxSize: Math.round(28 * hst), minSize: Math.max(9, Math.round(13 * hst)),
+          lineHeight: hs.lineHeight,
+        })
+      : null;
+    const subBudget = Math.max(16, textBudget - (headline ? headline.height : 0));
     const subline = spec.subline && spec.subline.trim()
       ? measureTextEl(ctx, spec.subline, {
           fontFamily: bFont.family, fontWeight: bFont.weight || 400,
@@ -654,9 +656,9 @@
         })
       : null;
 
-    const headlineH = headline.height;
+    const headlineH = headline ? headline.height : 0;
     const sublineH = subline ? subline.height : 0;
-    const totalH = headlineH + (subline ? gap + sublineH : 0) + (cta ? gap * 1.6 + cta.h : 0);
+    const totalH = headlineH + (subline ? (headline ? gap : 0) + sublineH : 0) + (cta ? gap * 1.6 + cta.h : 0);
 
     let y;
     if (valign === 'bottom') {
@@ -667,19 +669,21 @@
       y = region.y + topSpace + Math.max(0, (avail - totalH) / 2);
     }
 
-    let r = paintTextEl(ctx, headline, innerX, y, maxWidth, hs.align, hFont.weight || 700, hFont.family, colors.text);
-    boxes.headline = { x: r.box.x, y: y, w: r.box.w, h: headlineH };
-    y = r.bottom;
+    if (headline) {
+      const r = paintTextEl(ctx, headline, innerX, y, maxWidth, hs.align, hFont.weight || 700, hFont.family, colors.text);
+      boxes.headline = { x: r.box.x, y: y, w: r.box.w, h: headlineH };
+      y = r.bottom;
+    }
 
     if (subline) {
-      y += gap;
-      r = paintTextEl(ctx, subline, innerX, y, maxWidth, ss.align, bFont.weight || 400, bFont.family, colors.muted);
+      if (headline) y += gap;
+      const r = paintTextEl(ctx, subline, innerX, y, maxWidth, ss.align, bFont.weight || 400, bFont.family, colors.muted);
       boxes.subline = { x: r.box.x, y: y, w: r.box.w, h: sublineH };
       y = r.bottom;
     }
 
     if (cta) {
-      y += gap * 1.6;
+      if (headline || subline) y += gap * 1.6;
       let cx = innerX;
       if (cs.align === 'center') cx = innerX + (maxWidth - cta.w) / 2;
       else if (cs.align === 'right') cx = innerX + (maxWidth - cta.w);

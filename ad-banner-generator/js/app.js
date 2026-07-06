@@ -163,6 +163,24 @@
     return (ov && ov.ctaHidden != null) ? ov.ctaHidden : !!state.ctaHidden;
   }
 
+  // ----- univerzální skrytí PRVKŮ per formát -----
+  // Každý prvek (headline, subline, cta, logo, pusinka) jde na každém rozměru
+  // samostatně zobrazit/skrýt, nezávisle na společném (master) zadání.
+  function isElHidden(fmt, el) {
+    const ov = state.overrides[fmt] || {};
+    if (el === 'logo') return ov.logoHidden !== undefined ? ov.logoHidden : !!state.logoDefaultHidden;
+    if (el === 'cta') return effectiveCtaHidden(fmt);
+    if (el === 'badge') return ov.badgeHidden === true;
+    return ov[el + 'Hidden'] === true; // headline, subline
+  }
+  function setElHidden(fmt, el, hidden) {
+    const ov = ensureOverride(fmt);
+    if (el === 'logo') ov.logoHidden = hidden;
+    else if (el === 'cta') ov.ctaHidden = hidden;
+    else if (el === 'badge') ov.badgeHidden = hidden;
+    else ov[el + 'Hidden'] = hidden;
+  }
+
   // ----- velikost loga a pusinky PER FORMÁT -----
   // Globální state.logoScale / state.discount.size jsou jen výchozí hodnoty.
   function effectiveLogoScale(fmt) {
@@ -183,13 +201,14 @@
 
   function specFor(lang, fmtId) {
     const t = fmtId ? effectiveTexts(fmtId, lang) : textsFor(lang);
+    const hdn = (el) => (fmtId ? isElHidden(fmtId, el) : false);
     return {
-      headline: t.headline,
-      subline: t.subline,
-      cta: (fmtId ? effectiveCtaHidden(fmtId) : state.ctaHidden) ? '' : t.cta,
+      headline: hdn('headline') ? '' : t.headline,
+      subline: hdn('subline') ? '' : t.subline,
+      cta: hdn('cta') ? '' : t.cta,
       template: fmtId ? effectiveTemplate(fmtId) : state.template,
       discount: {
-        show: state.discount.show,
+        show: state.discount.show && !hdn('badge'),
         text: state.discount.text,
         size: fmtId ? effectiveBadgeSize(fmtId) : (state.discount.size || 1),
       },
@@ -520,6 +539,8 @@
   function syncTextToolbar() {
     const el = state.selectedEl;
     $$('#ttElements button').forEach((b) => b.classList.toggle('active', b.getAttribute('data-sel') === el));
+    // univerzální „Zobrazit" pro vybraný prvek (per formát)
+    $('#ttShow').checked = !isElHidden(state.activeFormat, el);
     if (el === 'logo' || el === 'badge') {
       // Logo i pusinka: skryj zarovnání/řádkování; velikost = jejich měřítko.
       $('#ttAlign').classList.add('hidden');
@@ -588,10 +609,19 @@
       $('#logoColorMode').value = e.target.value;
       scheduleRender();
     });
-    $('#ttCtaShow').addEventListener('change', (e) => {
-      ensureOverride(state.activeFormat).ctaHidden = !e.target.checked;
-      $('#ctaShow').checked = e.target.checked;
-      scheduleRender();
+    $('#ttShow').addEventListener('change', (e) => {
+      const el = state.selectedEl;
+      const show = e.target.checked;
+      setElHidden(state.activeFormat, el, !show);
+      // zrcadli do levého panelu (logo/CTA mají vlastní přepínače)
+      if (el === 'logo') $('#showLogo').checked = show;
+      if (el === 'cta') $('#ctaShow').checked = show;
+      // zapnutí pusinky na rozměru zapne i společný slevový odznak, ať je vidět
+      if (el === 'badge' && show && !state.discount.show) {
+        state.discount.show = true;
+        $('#discountShow').checked = true;
+      }
+      renderPreview();
     });
     $('#ttCtaArrow').addEventListener('change', (e) => {
       state.ctaArrow = e.target.checked;
@@ -1515,7 +1545,6 @@
     });
   }
   function syncCtaControls() {
-    $('#ttCtaShow').checked = !effectiveCtaHidden(state.activeFormat);
     $('#ttCtaArrow').checked = state.ctaArrow;
     const cur = (state.ctaColor || '').toLowerCase();
     $$('#ttCtaColor .tt-swatch').forEach((b) =>
@@ -1621,14 +1650,6 @@
 
     $('#btnAutoTranslate').addEventListener('click', autoTranslateAll);
 
-    $('#btnResetLang').addEventListener('click', () => {
-      if (!confirm('Přepsat text tohoto jazyka výchozím placeholderem? Tvůj text se ztratí.')) return;
-      const d = langByCode(state.activeLang).defaults;
-      const tgt = textTarget(state.activeLang);
-      tgt.headline = d.headline; tgt.subline = d.subline; tgt.cta = d.cta;
-      syncTextInputs();
-      renderPreview();
-    });
 
     $('#uploadFull').addEventListener('change', (e) => handleUpload(e.target.files[0]));
     $('#thumb-full').addEventListener('click', () => $('#uploadFull').click());
@@ -1718,8 +1739,7 @@
     });
     $('#ctaShow').addEventListener('change', (e) => {
       ensureOverride(state.activeFormat).ctaHidden = !e.target.checked;
-      $('#ttCtaShow').checked = e.target.checked;
-      scheduleRender();
+      renderPreview();
     });
     $('#perFormatText').addEventListener('change', (e) => {
       const fmt = state.activeFormat;
