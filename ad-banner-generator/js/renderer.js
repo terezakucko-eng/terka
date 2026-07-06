@@ -181,18 +181,37 @@
     const padX = Math.round(fontSize * 1.1);
     const padY = Math.round(fontSize * 0.6);
     const textW = ctx.measureText(text).width;
-    return { text, fontSize, padX, padY, w: textW + padX * 2, h: fontSize + padY * 2 };
+    const arrow = !!spec.ctaArrow;
+    const gap = arrow ? fontSize * 0.5 : 0;
+    const arrowW = arrow ? fontSize * 0.55 : 0;
+    const contentW = textW + gap + arrowW;
+    return { text, fontSize, padX, padY, textW, gap, arrow, arrowW, contentW, w: contentW + padX * 2, h: fontSize + padY * 2 };
   }
 
   function drawCTAAt(ctx, m, brand, ctaColor, x, y) {
     roundRect(ctx, x, y, m.w, m.h, m.h / 2);
     ctx.fillStyle = ctaColor || brand.colors.ctaBackground;
     ctx.fill();
+    const cy = y + m.h / 2;
+    const contentLeft = x + m.w / 2 - m.contentW / 2;
     ctx.fillStyle = brand.colors.ctaText;
     ctx.font = `600 ${m.fontSize}px ${brand.fonts.heading.family}`;
-    ctx.textAlign = 'center';
+    ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText(m.text, x + m.w / 2, y + m.h / 2 + 1);
+    ctx.fillText(m.text, contentLeft, cy + 1);
+    if (m.arrow) {
+      const ax = contentLeft + m.textW + m.gap;
+      const s = m.fontSize * 0.3;
+      ctx.strokeStyle = brand.colors.ctaText;
+      ctx.lineWidth = Math.max(1.5, m.fontSize * 0.12);
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(ax, cy - s);
+      ctx.lineTo(ax + s * 0.95, cy);
+      ctx.lineTo(ax, cy + s);
+      ctx.stroke();
+    }
   }
 
   // Odznak "pusinka" — PŘESNÝ vektor z brand manuálu (Path2D z SVG).
@@ -623,6 +642,29 @@
     }
     const W = format.width;
     const H = format.height;
+
+    // Master = zdrojový obrázek (bez textu/CTA/odznaku/loga). Ukáže celý vizuál.
+    if (format.channel === 'master') {
+      ctx.fillStyle = '#e9edf2';
+      ctx.fillRect(0, 0, W, H);
+      if (image) {
+        const s = Math.min(W / image.width, H / image.height);
+        const dw = image.width * s;
+        const dh = image.height * s;
+        ctx.drawImage(image, (W - dw) / 2, (H - dh) / 2, dw, dh);
+      } else {
+        ctx.fillStyle = '#8a93a0';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = `600 ${Math.round(W * 0.028)}px sans-serif`;
+        ctx.fillText('Nahraj master vizuál (2400 × 2400 px)', W / 2, H / 2);
+      }
+      ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
+      return { boxes: {}, imageRect: { x: 0, y: 0, w: W, h: H }, region: { x: 0, y: 0, w: W, h: H }, source: true };
+    }
+
     const orient = orientationOf(format);
     const scale = Math.max(0.7, Math.min(2.2, Math.sqrt((W * H) / (300 * 250))));
     // proporcionální bezpečný okraj (~6 % kratší strany) dle grafických standardů

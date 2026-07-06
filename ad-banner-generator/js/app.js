@@ -10,6 +10,7 @@
 
   const STORAGE_PREFIX = 'abg:project:';
   const AUTOSAVE_KEY = 'abg:autosave';
+  const DEFAULT_KEY = 'abg:default';
 
   // ---------- stav ----------
   const state = {
@@ -25,6 +26,7 @@
 
     // styl prvků (globální)
     ctaColor: '#2FB773', // zelená z palety manuálu
+    ctaArrow: true, // malá šipka v CTA (jako „CHCI SLEVU ▸")
     textColor: 'auto', // 'auto' | 'light' | 'dark'
     textScale: 1, // globální násobič velikosti textů (master)
     // per-prvek styl textu (jako v Canvě): velikost, řádkování, zarovnání
@@ -134,6 +136,7 @@
       template: state.template,
       discount: state.discount,
       logoText: logoFor(lang),
+      ctaArrow: state.ctaArrow,
     };
   }
 
@@ -429,6 +432,7 @@
     $('#textColor').value = state.textColor;
     $('#textScale').value = Math.round(state.textScale * 100);
     $('#textScaleVal').textContent = Math.round(state.textScale * 100) + '%';
+    $('#ctaArrow').checked = state.ctaArrow;
     $('#hideLogoAll').checked = state.logoDefaultHidden;
     $('#showGuides').checked = state.showGuides;
     $('#showGrid').checked = state.showGrid;
@@ -807,6 +811,7 @@
       image: state.imageStore || state.image,
       texts: state.texts,
       ctaColor: state.ctaColor,
+      ctaArrow: state.ctaArrow,
       textColor: state.textColor,
       textScale: state.textScale,
       textStyle: state.textStyle,
@@ -833,6 +838,7 @@
     state.imageAvg = null; // přepočítá se při renderu
     state.texts = data.texts || {};
     if (data.ctaColor) state.ctaColor = data.ctaColor;
+    if (typeof data.ctaArrow === 'boolean') state.ctaArrow = data.ctaArrow;
     if (data.textColor) state.textColor = data.textColor;
     if (data.textScale) state.textScale = data.textScale;
     if (data.textStyle) {
@@ -1074,6 +1080,10 @@
       state.textColor = e.target.value;
       scheduleRender();
     });
+    $('#ctaArrow').addEventListener('change', (e) => {
+      state.ctaArrow = e.target.checked;
+      scheduleRender();
+    });
     $('#textScale').addEventListener('input', (e) => {
       state.textScale = (+e.target.value) / 100;
       $('#textScaleVal').textContent = e.target.value + '%';
@@ -1154,11 +1164,30 @@
     $('#btnExportPng').addEventListener('click', exportCurrentPNG);
     $('#btnExportZip').addEventListener('click', exportBatchZip);
 
+    $('#btnSaveDefault').addEventListener('click', () => {
+      const res = saveToStorage(DEFAULT_KEY, serializeState());
+      if (res === 'fail') setStatus('Uložení výchozího selhalo — paměť je plná.', true);
+      else setStatus('Výchozí rozvržení uloženo — načte se automaticky při startu.');
+    });
+    $('#btnClearDefault').addEventListener('click', () => {
+      try { localStorage.removeItem(DEFAULT_KEY); } catch (e) {}
+      setStatus('Výchozí rozvržení zrušeno.');
+    });
+
     $('#btnResetApp').addEventListener('click', () => {
-      if (confirm('Opravdu resetovat celý program? Ztratíš aktuální rozpracování. Uložené projekty zůstanou.')) {
-        try { localStorage.removeItem(AUTOSAVE_KEY); } catch (e) {}
-        location.reload();
-      }
+      if (!confirm('Odebrat vizuál a resetovat jeho umístění (zoom/posun/těžiště) ve všech rozměrech? Texty a rozvržení zůstanou.')) return;
+      state.image = null;
+      state.imageStore = null;
+      state.imageAvg = null;
+      state.imageFocus = { x: 0.5, y: 0.45 };
+      Object.values(state.overrides).forEach((o) => {
+        if (o) o.image = { scale: 1, offsetX: 0, offsetY: 0 };
+      });
+      updateImageThumbs();
+      syncStyleControls();
+      syncLayoutControls();
+      renderPreview();
+      setStatus('Vizuál odebrán a umístění resetováno.');
     });
 
     $('#btnSaveProject').addEventListener('click', saveNamedProject);
@@ -1195,7 +1224,8 @@
     refreshProjectList();
 
     try {
-      const auto = localStorage.getItem(AUTOSAVE_KEY);
+      // přednost má rozpracovaný autosave; jinak výchozí rozvržení
+      const auto = localStorage.getItem(AUTOSAVE_KEY) || localStorage.getItem(DEFAULT_KEY);
       if (auto) applySerialized(JSON.parse(auto));
     } catch (e) {
       /* ignore */

@@ -118,6 +118,7 @@
               <button class="swatch-btn" data-cta="#1F0F36" style="background:#1F0F36" title="Tmavá"></button>
             </span>
           </label>
+          <label class="chk block"><input type="checkbox" id="ctaArrow" checked /> Šipka v CTA (▸)</label>
           <label class="field">
             <span>Barva textu</span>
             <select id="textColor">
@@ -231,8 +232,14 @@
             <button class="btn ghost danger" id="btnDeleteProject">Smazat</button>
           </div>
           <hr />
-          <button class="btn ghost danger" id="btnResetApp">🗑 Reset celého programu</button>
-          <p class="hint">Vymaže aktuální rozpracování (uložené projekty zůstanou).</p>
+          <div class="btn-row">
+            <button class="btn" id="btnSaveDefault">⭐ Uložit jako výchozí</button>
+            <button class="btn ghost" id="btnClearDefault">Zrušit výchozí</button>
+          </div>
+          <p class="hint">Uloží aktuální rozvržení všech rozměrů jako výchozí — načte se automaticky při startu.</p>
+          <hr />
+          <button class="btn ghost danger" id="btnResetApp">🗑 Odebrat vizuál a reset umístění</button>
+          <p class="hint">Odebere obrázek a resetuje jeho zoom/posun/těžiště. Texty a rozvržení zůstanou.</p>
         </section>
       </aside>
     </main>
