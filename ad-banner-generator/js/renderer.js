@@ -770,13 +770,14 @@
       return { boxLeft: anchorX, boxW: Math.max(20, regRight - anchorX) };
     }
 
+    const clampT = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
     function place(el, isHeadline) {
       const o = ov[el];
       if (!o) return;
       const s = styleFor(styles, el);
       const est = scale * (ts || 1) * s.size;
       const anchorX = o.x * W;
-      const anchorY = o.y * H;
       const band = bandFor(s.align, anchorX);
       const font = isHeadline ? hFont : bFont;
       const weight = font.weight || (isHeadline ? 700 : 400);
@@ -790,6 +791,8 @@
         minSize: isHeadline ? Math.max(9, Math.round(13 * est)) : Math.max(8, Math.round(11 * est)),
         lineHeight: s.lineHeight,
       });
+      // udrž prvek v ploše banneru (aby nepřetekl mimo a nezmizel)
+      const anchorY = clampT(o.y * H, 0, Math.max(0, H - m.height));
       const r = paintTextEl(ctx, m, band.boxLeft, anchorY, band.boxW, s.align, weight, font.family, isHeadline ? colors.text : colors.muted);
       boxes[el] = { x: r.box.x, y: anchorY, w: r.box.w, h: m.height };
     }
@@ -801,11 +804,13 @@
     const cta = ctaMetrics(ctx, spec, brand, scale, ts, cs.size, Math.max(40, regRight - regLeft));
     if (cta && ov.cta) {
       const anchorX = ov.cta.x * W;
-      const cy = ov.cta.y * H;
       let cx;
       if (cs.align === 'center') cx = reg.x + reg.w / 2 - cta.w / 2;
       else if (cs.align === 'right') cx = anchorX - cta.w;
       else cx = anchorX;
+      // ukotvi CTA do plochy banneru, ať je vždy celé vidět
+      cx = clampT(cx, 0, Math.max(0, W - cta.w));
+      const cy = clampT(ov.cta.y * H, 0, Math.max(0, H - cta.h));
       drawCTAAt(ctx, cta, brand, ctaColor, cx, cy);
       boxes.cta = { x: cx, y: cy, w: cta.w, h: cta.h };
     }
