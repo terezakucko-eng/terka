@@ -23,6 +23,7 @@
     imageAvg: null, // průměrná barva vizuálu (dotónování panelu)
     imageFocus: { x: 0.5, y: 0.45 }, // těžiště motivu (master framing pro všechny rozměry)
     texts: {}, // per jazyk: { CZ:{headline,subline,cta}, ... }
+    brandId: null, // aktivní firma (viz js/brands.js); null = první v seznamu
 
     // styl prvků (globální)
     ctaColor: '#2FB773', // zelená z palety manuálu
@@ -381,35 +382,89 @@
     return null;
   }
 
-  // ---------- načtení brandu ----------
-  async function loadBrand() {
-    try {
-      if (window.__BRAND__) {
-        state.brand = window.__BRAND__;
-      } else {
-        const res = await fetch('brand.json', { cache: 'no-store' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        state.brand = await res.json();
-      }
-    } catch (e) {
-      console.warn('brand.json se nepodařilo načíst, používám výchozí.', e);
-      state.brand = {
-        name: 'Brand',
-        colors: {
-          primary: '#0B5FFF', secondary: '#0A2540', accent: '#FF7A00',
-          background: '#FFFFFF', surface: '#F4F7FB', text: '#0A2540',
-          textMuted: '#5A6B82', ctaBackground: '#FF7A00', ctaText: '#FFFFFF',
-        },
-        fonts: {
-          heading: { family: "'Segoe UI', Arial, sans-serif", weight: 700 },
-          body: { family: "'Segoe UI', Arial, sans-serif", weight: 400 },
-        },
-        logoText: 'BRAND',
-      };
+  // ---------- načtení brandu (firmy) ----------
+  function brandList() { return window.BANNER_BRANDS || []; }
+  function brandById(id) { return brandList().find((b) => b.id === id) || null; }
+
+  // Nastaví aktivní značku (barvy/fonty/logo) a promítne do UI.
+  async function applyBrand(brand, opts) {
+    opts = opts || {};
+    const prevPrimary = state.brand && state.brand.colors ? state.brand.colors.primary : null;
+    state.brand = brand;
+    state.brandId = brand.id || null;
+    // barvu pusinky drž na primární barvě značky, pokud ji uživatel ručně neměnil
+    if (!state.badgeColor || (opts.resetBadge && state.badgeColor === prevPrimary)) {
+      state.badgeColor = brand.colors.primary;
     }
-    if (!state.badgeColor) state.badgeColor = state.brand.colors.primary;
     await loadBrandFonts();
     applyBrandToUI();
+  }
+
+  async function loadBrand() {
+    let brand = null;
+    if (window.__BRAND__) {
+      brand = window.__BRAND__;
+    } else if (brandList().length) {
+      brand = (state.brandId && brandById(state.brandId)) || brandList()[0];
+    }
+    if (!brand) {
+      try {
+        const res = await fetch('brand.json', { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        brand = await res.json();
+      } catch (e) {
+        console.warn('Značku se nepodařilo načíst, používám výchozí.', e);
+        brand = {
+          name: 'Brand',
+          colors: {
+            primary: '#0B5FFF', secondary: '#0A2540', accent: '#FF7A00',
+            background: '#FFFFFF', surface: '#F4F7FB', text: '#0A2540',
+            textMuted: '#5A6B82', ctaBackground: '#FF7A00', ctaText: '#FFFFFF',
+          },
+          fonts: {
+            heading: { family: "'Segoe UI', Arial, sans-serif", weight: 700 },
+            body: { family: "'Segoe UI', Arial, sans-serif", weight: 400 },
+          },
+          logoText: 'BRAND',
+        };
+      }
+    }
+    await applyBrand(brand);
+  }
+
+  // Přepínač firmy v horní liště.
+  function buildBrandSelect() {
+    const sel = $('#brandSelect');
+    const wrap = $('#brandPickerWrap');
+    if (!sel) return;
+    // U exportované appky (napevno jedna značka) nebo <2 značek přepínač skryj.
+    if (window.__BRAND__ || brandList().length < 2) {
+      if (wrap) wrap.style.display = 'none';
+      return;
+    }
+    if (wrap) wrap.style.display = '';
+    sel.innerHTML = '';
+    brandList().forEach((b) => {
+      const o = document.createElement('option');
+      o.value = b.id;
+      o.textContent = b.name;
+      sel.appendChild(o);
+    });
+    sel.value = state.brandId || (brandList()[0] && brandList()[0].id) || '';
+  }
+
+  async function switchBrand(id) {
+    const br = brandById(id);
+    if (!br) return;
+    await applyBrand(br, { resetBadge: true });
+    // vzorky pusinky/CTA se berou z palety značky → přestav
+    buildBadgeSwatches();
+    buildCtaSwatches();
+    syncStyleControls();
+    syncTextToolbar();
+    renderPreview();
+    saveAutosave();
+    setStatus('Aktivní firma: ' + br.name);
   }
 
   async function loadBrandFonts() {
@@ -1265,6 +1320,7 @@
       bgColor1: state.bgColor1,
       bgColor2: state.bgColor2,
       colorScope: state.colorScope,
+      brandId: state.brandId,
       highlightColor: state.highlightColor,
       highlightScale: state.highlightScale,
       autoKB: state.autoKB,
@@ -1304,6 +1360,7 @@
     if (data.bgColor2 !== undefined) state.bgColor2 = data.bgColor2;
     if (data.badgeTextColor) state.badgeTextColor = data.badgeTextColor;
     if (data.colorScope) state.colorScope = data.colorScope;
+    if (data.brandId) state.brandId = data.brandId;
     if (data.highlightColor) state.highlightColor = data.highlightColor;
     if (data.highlightScale) state.highlightScale = data.highlightScale;
     if (typeof data.autoKB === 'boolean') state.autoKB = data.autoKB;
@@ -1944,6 +2001,8 @@
       state.colorScope = e.target.value;
       setStatus(state.colorScope === 'all' ? 'Změny barev teď platí pro VŠECHNY rozměry.' : 'Změny barev teď platí jen pro tento rozměr.');
     });
+    const brandSel = $('#brandSelect');
+    if (brandSel) brandSel.addEventListener('change', (e) => { switchBrand(e.target.value); });
     $('#textColor').addEventListener('change', (e) => {
       state.textColor = e.target.value;
       scheduleRender();
@@ -2175,6 +2234,7 @@
     // (pro „zapečení" nastavení do samostatného HTML)
     try { pristineHTML = '<!DOCTYPE html>\n' + document.documentElement.outerHTML; } catch (e) {}
     await loadBrand();
+    buildBrandSelect();
     buildFormatSelect();
     buildTemplateSelect();
     buildLangTabs();
@@ -2206,6 +2266,18 @@
     } catch (e) {
       /* ignore */
     }
+
+    // Obnovený projekt může mít jinou firmu, než byla načtena jako výchozí.
+    if (!window.__BRAND__ && state.brandId && state.brand && state.brand.id !== state.brandId) {
+      const br = brandById(state.brandId);
+      if (br) {
+        await applyBrand(br);
+        buildBadgeSwatches();
+        buildCtaSwatches();
+      }
+    }
+    buildBrandSelect();
+    syncStyleControls();
 
     renderPreview();
     setStatus('Připraveno.');

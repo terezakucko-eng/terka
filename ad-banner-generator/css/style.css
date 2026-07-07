@@ -49,6 +49,23 @@ body {
   gap: 12px;
   flex-wrap: wrap;
 }
+.brand-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.brand-picker select {
+  width: auto;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--card);
+  border: 1px solid var(--brand-primary);
+  border-radius: 6px;
+  color: var(--text);
+}
 .brand-name {
   font-weight: 600;
   color: var(--brand-accent);
