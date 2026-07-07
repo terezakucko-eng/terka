@@ -432,36 +432,54 @@
       refMaxW = Math.max(refMaxW, badgeLineMeasure(ctx, t, fam, baseFont).w);
     });
     const refTextH = baseFont + (lines.length - 1) * refGap;
-    const needHalfW = refMaxW / 2 + baseFont * 0.7;
-    let halfW = needHalfW;
-    let halfH = halfW / PUSINKA_ASPECT;
-    // musí obsáhnout výšku textu (pro 1 řádek vyjde ≈ 0.82·baseFont jako dřív)
-    const reqHalfH = Math.max(baseFont * 0.82, refTextH / 2 + baseFont * 0.32);
-    if (halfH < reqHalfH) {
-      halfH = reqHalfH;
-      halfW = halfH * PUSINKA_ASPECT;
-      if (halfW < needHalfW) halfW = needHalfW;
+    // tvar odznaku dle značky: 'pusinka' (Růžový Slon) nebo 'circle' (kolečko)
+    const shape = (brand && brand.badgeShape) || 'pusinka';
+    let halfW, halfH;
+    if (shape === 'circle') {
+      // kolečko musí obsáhnout celý blok textu (opsaná kružnice obdélníku textu)
+      const rw = refMaxW / 2, rh = refTextH / 2;
+      let r = Math.sqrt(rw * rw + rh * rh) + baseFont * 0.42;
+      r = Math.max(r, baseFont * 0.85);
+      halfW = r;
+      halfH = r;
+    } else {
+      const needHalfW = refMaxW / 2 + baseFont * 0.7;
+      halfW = needHalfW;
+      halfH = halfW / PUSINKA_ASPECT;
+      // musí obsáhnout výšku textu (pro 1 řádek vyjde ≈ 0.82·baseFont jako dřív)
+      const reqHalfH = Math.max(baseFont * 0.82, refTextH / 2 + baseFont * 0.32);
+      if (halfH < reqHalfH) {
+        halfH = reqHalfH;
+        halfW = halfH * PUSINKA_ASPECT;
+        if (halfW < needHalfW) halfW = needHalfW;
+      }
     }
 
     // 2) VYKRESLOVACÍ míra při drawFont → skutečné glyfy (může přetéct, když
-    //    text úmyslně zvětšíš nad velikost pusinky)
+    //    text úmyslně zvětšíš nad velikost odznaku)
     const meas = lines.map(function (t) {
       return badgeLineMeasure(ctx, t, fam, drawFont);
     });
     const lineGap = Math.round(drawFont * lh);
-    return { lines: meas, fontSize: drawFont, halfW, halfH, lineGap };
+    return { lines: meas, fontSize: drawFont, halfW, halfH, lineGap, shape };
   }
 
   function drawBadgeAt(ctx, m, brand, color, cx, cy, textColor) {
-    const shape = pusinkaShape();
-    const b = PUSINKA_BBOX;
-    ctx.save();
-    ctx.translate(cx - m.halfW, cy - m.halfH);
-    ctx.scale((2 * m.halfW) / b.w, (2 * m.halfH) / b.h);
-    ctx.translate(-b.x, -b.y);
     ctx.fillStyle = color || brand.colors.primary;
-    if (shape) ctx.fill(shape);
-    ctx.restore();
+    if (m.shape === 'circle') {
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, m.halfW, m.halfH, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      const shape = pusinkaShape();
+      const b = PUSINKA_BBOX;
+      ctx.save();
+      ctx.translate(cx - m.halfW, cy - m.halfH);
+      ctx.scale((2 * m.halfW) / b.w, (2 * m.halfH) / b.h);
+      ctx.translate(-b.x, -b.y);
+      if (shape) ctx.fill(shape);
+      ctx.restore();
+    }
 
     const fam = brand.fonts.heading.family;
     ctx.fillStyle = textColor || '#FFFFFF';

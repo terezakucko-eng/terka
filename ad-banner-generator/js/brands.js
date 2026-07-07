@@ -29,6 +29,7 @@
       ctaText: '#FFFFFF',
     },
     fonts: FONTS,
+    badgeShape: 'pusinka', // slevový odznak = pusinka (dle manuálu)
     logoText: 'Růžový Slon',
     logoByLang: { CZ: 'Růžový Slon', SK: 'Ružový slon', default: 'Sexy Elephant' },
     palette: {
@@ -56,6 +57,7 @@
       ctaText: '#FFFFFF',
     },
     fonts: FONTS,
+    badgeShape: 'circle', // slevový odznak = kolečko
     logoText: 'Kondomshop.sk',
     logoByLang: { SK: 'Kondomshop.sk', CZ: 'Kondomshop.cz', default: 'Kondomshop' },
     palette: {
