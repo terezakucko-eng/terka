@@ -43,8 +43,9 @@
   // světlé růžové #F4D1ED / #E493D6, zelená #2FB773, světle modrá #DCF3FF.
   var KONDOMSHOP = {
     id: 'kondomshop',
-    name: 'Kondomshop.sk',
+    name: 'kondomshop',
     source: 'Odvozeno z webu kondomshop.sk',
+    langs: ['CZ', 'SK'], // kondomshop používá jen češtinu a slovenštinu
     colors: {
       primary: '#AE0289',
       secondary: '#1F0F36',
@@ -58,13 +59,13 @@
     },
     fonts: FONTS,
     badgeShape: 'circle', // slevový odznak = kolečko
-    logoText: 'Kondomshop.sk',
-    logoByLang: { SK: 'Kondomshop.sk', CZ: 'Kondomshop.cz', default: 'Kondomshop' },
+    logoText: 'kondomshop',
+    logoByLang: { CZ: 'kondomshop', SK: 'kondomshop', default: 'kondomshop' },
     palette: {
       magenta: '#AE0289', darkMagenta: '#62014D', pinkRed: '#AA003C',
-      darkViolet: '#1F0F36', slate: '#34495E', lightPink: '#F4D1ED',
-      pink: '#E493D6', lightBlue: '#DCF3FF', blushPink: '#FEDFE4',
-      yellow: '#FFF3CC', green: '#2FB773', white: '#FFFFFF',
+      darkViolet: '#1F0F36', slate: '#34495E', blue: '#114CAA',
+      lightPink: '#F4D1ED', pink: '#E493D6', lightBlue: '#DCF3FF',
+      blushPink: '#FEDFE4', yellow: '#FFF3CC', green: '#2FB773', white: '#FFFFFF',
     },
   };
 

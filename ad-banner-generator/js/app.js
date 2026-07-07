@@ -457,9 +457,17 @@
     const br = brandById(id);
     if (!br) return;
     await applyBrand(br, { resetBadge: true });
+    // firma může mít omezené jazyky → drž aktivní jazyk v jejím seznamu
+    const langs = brandLangs();
+    if (!langs.some((l) => l.code === state.activeLang)) {
+      state.activeLang = (langs[0] && langs[0].code) || MASTER_LANG;
+    }
+    buildLangTabs();
+    buildExportCheckboxes();
     // vzorky pusinky/CTA se berou z palety značky → přestav
     buildBadgeSwatches();
     buildCtaSwatches();
+    syncTextInputs();
     syncStyleControls();
     syncTextToolbar();
     renderPreview();
@@ -586,6 +594,12 @@
     $('#templateDesc').textContent = TEMPLATES.find((t) => t.id === state.template).description;
   }
 
+  // Jazyky dostupné pro aktivní firmu (brand.langs); bez omezení = všechny.
+  function brandLangs() {
+    const allowed = state.brand && state.brand.langs;
+    if (!allowed || !allowed.length) return LANGUAGES.slice();
+    return LANGUAGES.filter((l) => allowed.indexOf(l.code) !== -1);
+  }
   function markActiveLangTab() {
     $$('#langTabs .lang-tab').forEach((b) =>
       b.classList.toggle('active', b.dataset.code === state.activeLang)
@@ -594,7 +608,7 @@
   function buildLangTabs() {
     const wrap = $('#langTabs');
     wrap.innerHTML = '';
-    LANGUAGES.forEach((l) => {
+    brandLangs().forEach((l) => {
       const btn = document.createElement('button');
       btn.className = 'lang-tab' + (l.code === state.activeLang ? ' active' : '');
       btn.textContent = l.code;
@@ -633,7 +647,7 @@
     });
     const lWrap = $('#exportLangs');
     lWrap.innerHTML = '';
-    LANGUAGES.forEach((l) => {
+    brandLangs().forEach((l) => {
       const label = document.createElement('label');
       label.className = 'chk';
       label.innerHTML = `<input type="checkbox" value="${l.code}" checked> ${l.code}`;
@@ -1684,7 +1698,7 @@
     const base = textTarget(src);
     const btn = $('#btnAutoTranslate');
     btn.disabled = true;
-    const targets = LANGUAGES.filter((l) => l.code !== src);
+    const targets = brandLangs().filter((l) => l.code !== src);
     try {
       const badgeBase = badgeTextFor(src);
       for (const l of targets) {
@@ -2276,7 +2290,14 @@
         buildCtaSwatches();
       }
     }
+    // drž aktivní jazyk v seznamu povolených pro firmu a přestav lišty
+    if (!brandLangs().some((l) => l.code === state.activeLang)) {
+      state.activeLang = (brandLangs()[0] && brandLangs()[0].code) || MASTER_LANG;
+    }
+    buildLangTabs();
+    buildExportCheckboxes();
     buildBrandSelect();
+    syncTextInputs();
     syncStyleControls();
 
     renderPreview();
