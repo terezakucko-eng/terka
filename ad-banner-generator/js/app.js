@@ -1831,6 +1831,17 @@
       syncPerFormatUI();
       scheduleRender();
     });
+    // „master" šablona: nastav aktuální šablonu na všechny rozměry
+    $('#btnTemplateAll').addEventListener('click', () => {
+      const tpl = effectiveTemplate(state.activeFormat);
+      state.template = tpl;
+      Object.values(state.overrides).forEach((o) => { if (o) delete o.template; });
+      syncPerFormatUI();
+      renderPreview();
+      saveAutosave();
+      const d = TEMPLATES.find((t) => t.id === tpl);
+      setStatus('Šablona „' + (d ? d.label : tpl) + '" nastavena pro VŠECHNY rozměry.');
+    });
 
     $('#inHeadline').addEventListener('input', (e) => {
       textTarget(state.activeLang).headline = e.target.value;
