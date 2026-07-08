@@ -234,6 +234,11 @@
     const ov = state.overrides[fmt];
     return (ov && ov.bgColor2) || state.bgColor2 || (state.brand && state.brand.colors.secondary);
   }
+  // Nastavil uživatel barvu pozadí ručně? (jinak Classic panel = auto dle vizuálu)
+  function bgUserSet(fmt) {
+    const ov = state.overrides[fmt];
+    return !!((ov && (ov.bgColor1 || ov.bgColor2)) || state.bgColor1 || state.bgColor2);
+  }
 
   // Logo se liší podle země: CZ = Růžový Slon, SK = Ružový slon,
   // ostatní (zahraničí) = Sexy Elephant. Řízeno brand.logoByLang.
@@ -365,6 +370,7 @@
       badgeTextColor: effectiveBadgeTextColor(fmt),
       bgColor1: effectiveBgColor1(fmt),
       bgColor2: effectiveBgColor2(fmt),
+      bgSet: bgUserSet(fmt),
       highlightColor: state.highlightColor,
       highlightScale: state.highlightScale,
       transparent: !!(formatById(fmt) && formatById(fmt).transparent),

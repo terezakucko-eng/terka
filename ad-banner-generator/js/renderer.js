@@ -627,15 +627,34 @@
         region = { x: 0, y: imgH, w: W, h: H - imgH };
       }
       drawImageTransformed(ctx, image, imageRect.x, imageRect.y, imageRect.w, imageRect.h, imgT);
-      // panel dotónovaný k vizuálu (světlý pastel), text tmavý
-      const panel = tintPanel(avg, brand);
-      ctx.fillStyle = panel;
-      ctx.fillRect(region.x, region.y, region.w, region.h);
+      let panelForLogo, panelColors;
+      if (opts && opts.bgSet) {
+        // uživatelská barva panelu (Barva 1 → Barva 2); stejné = jednolitá
+        const bg1 = (opts && opts.bgColor1) || c.primary;
+        const bg2 = (opts && opts.bgColor2) || c.secondary;
+        ctx.fillStyle = linearGradient(ctx, region.x, region.y, region.x, region.y + region.h, [
+          [0, bg1],
+          [1, bg2],
+        ]);
+        ctx.fillRect(region.x, region.y, region.w, region.h);
+        const lum = (relLum(bg1) + relLum(bg2)) / 2;
+        panelColors = lum > 0.5
+          ? { text: c.text, muted: c.textMuted }
+          : { text: '#FFFFFF', muted: 'rgba(255,255,255,0.9)' };
+        panelForLogo = bg1;
+      } else {
+        // výchozí: panel dotónovaný k vizuálu (světlý pastel), text tmavý
+        const panel = tintPanel(avg, brand);
+        ctx.fillStyle = panel;
+        ctx.fillRect(region.x, region.y, region.w, region.h);
+        panelColors = { text: c.text, muted: c.textMuted };
+        panelForLogo = panel;
+      }
       return {
         region: region,
-        colors: { text: c.text, muted: c.textMuted },
+        colors: panelColors,
         imageRect: imageRect,
-        logoColor: pickLogoColor(panel, brand),
+        logoColor: pickLogoColor(panelForLogo, brand),
         logoAnchor: { x: region.x + pad, y: region.y + pad }, // logo NA panelu
       };
     }
