@@ -568,9 +568,14 @@
         [1, bg2],
       ]);
       ctx.fillRect(0, 0, W, H);
+      // světlé pozadí → tmavý text (aby nezmizel bílý text na bílém pozadí)
+      const lum = (relLum(bg1) + relLum(bg2)) / 2;
+      const onLight = lum > 0.5;
       return {
         region: { x: 0, y: 0, w: W, h: H },
-        colors: { text: '#FFFFFF', muted: 'rgba(255,255,255,0.85)' },
+        colors: onLight
+          ? { text: c.text, muted: c.textMuted }
+          : { text: '#FFFFFF', muted: 'rgba(255,255,255,0.85)' },
         imageRect: null,
         logoColor: pickLogoColor(bg1, brand),
         logoAnchor: { x: pad, y: pad },
@@ -670,9 +675,14 @@
     ]);
     ctx.fillRect(region.x, region.y, region.w, region.h);
     ctx.restore();
+    // světlý panel → tmavý text
+    const splitLum = (relLum(bg1) + relLum(bg2)) / 2;
+    const splitLight = splitLum > 0.5;
     return {
       region: region,
-      colors: { text: '#FFFFFF', muted: 'rgba(255,255,255,0.85)' },
+      colors: splitLight
+        ? { text: c.text, muted: c.textMuted }
+        : { text: '#FFFFFF', muted: 'rgba(255,255,255,0.85)' },
       imageRect: imageRect,
       logoColor: pickLogoColor(bg1, brand),
       logoAnchor: { x: region.x + pad, y: region.y + pad },
