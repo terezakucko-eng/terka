@@ -40,6 +40,7 @@
     selectedEl: 'headline', // prvek editovaný horní lištou
     logoScale: 1, // velikost loga (násobič)
     logoColorMode: 'auto', // 'auto' | 'white' | 'black' | 'pink'
+    logoStyle: 'text', // 'text' (nápis) | 'monogram' (S) | 'mark' (pusinka+S)
     logoDefaultHidden: false, // skrýt logo u všech (globální výchozí)
     showGuides: false, // vodicí středové lišty v náhledu
     showGrid: false, // jemná vodicí mřížka v náhledu
@@ -366,6 +367,7 @@
       logoScale: effectiveLogoScale(fmt),
       overlayShade: effectiveOverlayShade(fmt),
       logoColorMode: state.logoColorMode,
+      logoStyle: state.logoStyle,
       imageFocus: state.imageFocus,
       imageAvg: state.imageAvg,
       badgeColor: effectiveBadgeColor(fmt),
@@ -708,6 +710,7 @@
     $('#logoScale').value = Math.round(ls * 100);
     $('#logoScaleVal').textContent = Math.round(ls * 100) + '%';
     $('#logoColorMode').value = state.logoColorMode;
+    $('#logoStyle').value = state.logoStyle || 'text';
     const bs = effectiveBadgeSize(state.activeFormat);
     $('#discountSize').value = Math.round(bs * 100);
     $('#discountSizeVal').textContent = Math.round(bs * 100) + '%';
@@ -809,6 +812,10 @@
     $('#ttLogoColor').addEventListener('change', (e) => {
       state.logoColorMode = e.target.value;
       $('#logoColorMode').value = e.target.value;
+      scheduleRender();
+    });
+    $('#logoStyle').addEventListener('change', (e) => {
+      state.logoStyle = e.target.value;
       scheduleRender();
     });
     $('#ttShow').addEventListener('change', (e) => {
@@ -1336,6 +1343,7 @@
       logoDefaultHidden: state.logoDefaultHidden,
       logoScale: state.logoScale,
       logoColorMode: state.logoColorMode,
+      logoStyle: state.logoStyle,
       showGuides: state.showGuides,
       showGrid: state.showGrid,
       discount: state.discount,
@@ -1375,6 +1383,7 @@
     if (data.imageFocus) state.imageFocus = data.imageFocus;
     if (data.logoScale) state.logoScale = data.logoScale;
     if (data.logoColorMode) state.logoColorMode = data.logoColorMode;
+    if (data.logoStyle) state.logoStyle = data.logoStyle;
     if (typeof data.logoDefaultHidden === 'boolean') state.logoDefaultHidden = data.logoDefaultHidden;
     if (typeof data.showGuides === 'boolean') state.showGuides = data.showGuides;
     if (typeof data.showGrid === 'boolean') state.showGrid = data.showGrid;

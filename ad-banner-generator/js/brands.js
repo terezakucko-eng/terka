@@ -30,6 +30,7 @@
     },
     fonts: FONTS,
     badgeShape: 'pusinka', // slevový odznak = pusinka (dle manuálu)
+    logoMark: 'S', // písmeno pro monogram / značku (pusinka + S)
     logoText: 'Růžový Slon',
     logoByLang: { CZ: 'Růžový Slon', SK: 'Ružový slon', default: 'Sexy Elephant' },
     palette: {
@@ -64,6 +65,7 @@
     },
     fonts: FONTS,
     badgeShape: 'circle', // slevový odznak = kolečko
+    logoMark: 'K', // písmeno pro monogram / značku (kolečko + K)
     logoText: 'KondomShop',
     logoByLang: { CZ: 'KondomShop', SK: 'KondomShop', default: 'KondomShop' },
     palette: {

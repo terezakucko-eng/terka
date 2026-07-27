@@ -528,11 +528,58 @@
     }
   }
 
-  function drawLogo(ctx, brand, x, y, scale, color, logoText, logoScale) {
+  function drawLogo(ctx, brand, x, y, scale, color, logoText, logoScale, style) {
+    style = style || 'text';
+    const fam = brand.fonts.heading.family;
+    const markLetter = (brand.logoMark ||
+      (logoText || brand.name || 'S').trim().charAt(0) || 'S').toUpperCase();
+
+    // Monogram: velké písmeno značky (S / K)
+    if (style === 'monogram') {
+      const fs = Math.max(16, Math.round(30 * scale * (logoScale || 1)));
+      ctx.font = `800 ${fs}px ${fam}`;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = color;
+      ctx.fillText(markLetter, x, y);
+      return { x: x, y: y, w: ctx.measureText(markLetter).width, h: fs };
+    }
+
+    // Značka: pusinka (nebo kolečko) s bílým písmenem
+    if (style === 'mark') {
+      const h = Math.max(22, Math.round(40 * scale * (logoScale || 1)));
+      const isPusinka = (brand.badgeShape || 'pusinka') !== 'circle';
+      const w = isPusinka ? h * PUSINKA_ASPECT : h;
+      const cx = x + w / 2, cy = y + h / 2;
+      ctx.fillStyle = brand.colors.primary;
+      if (isPusinka) {
+        const shape = pusinkaShape();
+        const b = PUSINKA_BBOX;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(w / b.w, h / b.h);
+        ctx.translate(-b.x, -b.y);
+        if (shape) ctx.fill(shape);
+        ctx.restore();
+      } else {
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, w / 2, h / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      const fs = Math.round(h * 0.58);
+      ctx.font = `800 ${fs}px ${fam}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillText(markLetter, cx, cy + 1);
+      return { x: x, y: y, w: w, h: h };
+    }
+
+    // Text (nápis) – výchozí
     const text = logoText || brand.logoText || brand.name || '';
     if (!text) return null;
     const fontSize = Math.max(9, Math.round(12 * scale * (logoScale || 1)));
-    ctx.font = `700 ${fontSize}px ${brand.fonts.heading.family}`;
+    ctx.font = `700 ${fontSize}px ${fam}`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.fillStyle = color;
@@ -1062,7 +1109,7 @@
       if (mode === 'white') logoColor = '#FFFFFF';
       else if (mode === 'black') logoColor = '#141414';
       else if (mode === 'pink') logoColor = brand.colors.primary;
-      const lbox = drawLogo(ctx, brand, lx, ly, scale, logoColor, spec.logoText, opts.logoScale);
+      const lbox = drawLogo(ctx, brand, lx, ly, scale, logoColor, spec.logoText, opts.logoScale, opts.logoStyle);
       if (lbox) boxes.logo = lbox;
     }
 
