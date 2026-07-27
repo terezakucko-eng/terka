@@ -307,6 +307,11 @@
     const f = 1 - t;
     return `rgb(${Math.round(r * f)}, ${Math.round(g * f)}, ${Math.round(b * f)})`;
   }
+  function lighten(col, t) {
+    const [r, g, b] = parseColor(col);
+    const mix = (v) => Math.round(v + (255 - v) * t);
+    return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
+  }
   // Dotónuje světlé pozadí panelu k průměrné barvě vizuálu (čitelný pastel).
   // Panel „classic" dotónovaný podle master obrázku: víc drží barvu vizuálu
   // (jemný pastel z průměru), ale s pojistkou světlosti, aby tmavý text zůstal
@@ -464,8 +469,23 @@
     return { lines: meas, fontSize: drawFont, halfW, halfH, lineGap, shape };
   }
 
-  function drawBadgeAt(ctx, m, brand, color, cx, cy, textColor) {
-    ctx.fillStyle = color || brand.colors.primary;
+  function drawBadgeAt(ctx, m, brand, color, cx, cy, textColor, o) {
+    o = o || {};
+    const base = color || brand.colors.primary;
+    ctx.save();
+    if (o.shadow) {
+      ctx.shadowColor = 'rgba(0,0,0,0.30)';
+      ctx.shadowBlur = m.fontSize * 0.7;
+      ctx.shadowOffsetY = m.fontSize * 0.18;
+    }
+    if (o.gradient) {
+      const g = ctx.createLinearGradient(cx - m.halfW, cy - m.halfH, cx + m.halfW, cy + m.halfH);
+      g.addColorStop(0, base);
+      g.addColorStop(1, lighten(base, 0.4));
+      ctx.fillStyle = g;
+    } else {
+      ctx.fillStyle = base;
+    }
     if (m.shape === 'circle') {
       ctx.beginPath();
       ctx.ellipse(cx, cy, m.halfW, m.halfH, 0, 0, Math.PI * 2);
@@ -480,6 +500,7 @@
       if (shape) ctx.fill(shape);
       ctx.restore();
     }
+    ctx.restore(); // stín/gradient se netýká textu
 
     const fam = brand.fonts.heading.family;
     ctx.fillStyle = textColor || '#FFFFFF';
@@ -1023,7 +1044,10 @@
         const b = ov.badge || { x: 0.8, y: 0.3 };
         const cx = b.x * W;
         const cy = b.y * H;
-        drawBadgeAt(ctx, bm, brand, opts.badgeColor, cx, cy, opts.badgeTextColor);
+        drawBadgeAt(ctx, bm, brand, opts.badgeColor, cx, cy, opts.badgeTextColor, {
+          gradient: spec.discount.gradient,
+          shadow: spec.discount.shadow,
+        });
         boxes.badge = { x: cx - bm.halfW, y: cy - bm.halfH, w: bm.halfW * 2, h: bm.halfH * 2 };
       }
     }

@@ -33,9 +33,14 @@
     logoText: 'Růžový Slon',
     logoByLang: { CZ: 'Růžový Slon', SK: 'Ružový slon', default: 'Sexy Elephant' },
     palette: {
-      primaryPink: '#DC004E', darkViolet: '#1F0F36', lightPink: '#F8C7C8',
-      lightestPink: '#FCEAEA', pink: '#F29BA8', white: '#FFFFFF', teal: '#11AAAA',
-      yellow: '#F4B945', violet: '#985FA3', blue: '#114CAA', green: '#2FB773',
+      // brand růžové + tmavá (dle manuálu)
+      primaryPink: '#DC004E', darkViolet: '#1F0F36', pink: '#F29BA8',
+      lightPink: '#F8C7C8', lightestPink: '#FCEAEA',
+      // sekundární paleta z manuálu (Tailwind)
+      violet: '#985FA3', fuchsia: '#D946EF', purple: '#8B5CF6', blue: '#114CAA',
+      sky: '#0EA5E9', cyan: '#06B6D4', teal: '#11AAAA', emerald: '#10B981',
+      green: '#2FB773', lime: '#84CC16', yellow: '#F4B945', orange: '#F97316',
+      red: '#EF4444', rose: '#F43F5E', slate: '#64748B', white: '#FFFFFF',
     },
   };
 

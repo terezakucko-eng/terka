@@ -43,7 +43,7 @@
     logoDefaultHidden: false, // skrýt logo u všech (globální výchozí)
     showGuides: false, // vodicí středové lišty v náhledu
     showGrid: false, // jemná vodicí mřížka v náhledu
-    discount: { show: false, text: '-20 %', size: 1, lineHeight: 1.1, textScale: 1 },
+    discount: { show: false, text: '-20 %', size: 1, lineHeight: 1.1, textScale: 1, gradient: false, shadow: false },
     badgeColor: null, // null = primární barva značky
     badgeTextColor: '#FFFFFF', // barva textu v pusince
     bgColor1: null, // barva pozadí 1 (Minimal/Split); null = primární značky
@@ -271,6 +271,8 @@
         size: fmtId ? effectiveBadgeSize(fmtId) : (state.discount.size || 1),
         lineHeight: state.discount.lineHeight || 1.1,
         textScale: state.discount.textScale || 1,
+        gradient: !!state.discount.gradient,
+        shadow: !!state.discount.shadow,
       },
       logoText: logoFor(lang),
       ctaArrow: state.ctaArrow,
@@ -876,6 +878,8 @@
     const dts = state.discount.textScale || 1;
     $('#discountTextScale').value = Math.round(dts * 100);
     $('#discountTextScaleVal').textContent = Math.round(dts * 100) + '%';
+    $('#discountGradient').checked = !!state.discount.gradient;
+    $('#discountShadow').checked = !!state.discount.shadow;
     const bs = effectiveBadgeSize(state.activeFormat);
     $('#discountSize').value = Math.round(bs * 100);
     $('#discountSizeVal').textContent = Math.round(bs * 100) + '%';
@@ -2130,6 +2134,17 @@
       $('#discountLhVal').textContent = lh.toFixed(2);
       scheduleRender();
     });
+    $('#discountGradient').addEventListener('change', (e) => { state.discount.gradient = e.target.checked; scheduleRender(); });
+    $('#discountShadow').addEventListener('change', (e) => { state.discount.shadow = e.target.checked; scheduleRender(); });
+    $$('.swatch-btn[data-badgefill]').forEach((b) =>
+      b.addEventListener('click', () => {
+        const v = b.getAttribute('data-badgefill');
+        applyColor('badgeColor', v);
+        $('#discountColor').value = v;
+        syncBadgeSwatches();
+        scheduleRender();
+      })
+    );
     $('#discountTextScale').addEventListener('input', (e) => {
       state.discount.textScale = (+e.target.value) / 100;
       $('#discountTextScaleVal').textContent = e.target.value + '%';
