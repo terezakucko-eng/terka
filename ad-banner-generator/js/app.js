@@ -33,6 +33,7 @@
     textScale: 1, // globální násobič velikosti textů (master)
     // per-prvek styl textu (jako v Canvě): velikost, řádkování, zarovnání
     textStyle: {
+      overline: { size: 1, lineHeight: 1.2, align: 'left' },
       headline: { size: 1, lineHeight: 1.15, align: 'left' },
       subline: { size: 1, lineHeight: 1.3, align: 'left' },
       cta: { size: 1, align: 'left' },
@@ -125,7 +126,7 @@
   function textsFor(lang) {
     if (!state.texts[lang]) {
       const d = langByCode(lang).defaults;
-      state.texts[lang] = { headline: d.headline, subline: d.subline, cta: d.cta };
+      state.texts[lang] = { overline: d.overline || '', headline: d.headline, subline: d.subline, cta: d.cta };
     }
     return state.texts[lang];
   }
@@ -151,7 +152,7 @@
     const scope = textScope();
     if (!scope[lang]) {
       const s = textsFor(lang);
-      scope[lang] = { headline: s.headline, subline: s.subline, cta: s.cta };
+      scope[lang] = { overline: s.overline || '', headline: s.headline, subline: s.subline, cta: s.cta };
     }
     return scope[lang];
   }
@@ -262,6 +263,7 @@
     const t = fmtId ? effectiveTexts(fmtId, lang) : textsFor(lang);
     const hdn = (el) => (fmtId ? isElHidden(fmtId, el) : false);
     return {
+      overline: hdn('overline') ? '' : (t.overline || ''),
       headline: hdn('headline') ? '' : t.headline,
       subline: hdn('subline') ? '' : t.subline,
       cta: hdn('cta') ? '' : t.cta,
@@ -296,7 +298,7 @@
   // Per jazyk jsou POZICE prvků a STYL TEXTU; zbytek (obrázek, šablona,
   // barvy, viditelnost, velikost loga/pusinky) je společný pro rozměr.
   const MASTER_LANG = LANGUAGES[0].code; // CZ
-  const PER_LANG_POS = ['manual', 'headline', 'subline', 'cta', 'badge', 'logo'];
+  const PER_LANG_POS = ['manual', 'overline', 'headline', 'subline', 'cta', 'badge', 'logo'];
 
   function langTarget(fmt, lang) {
     const ov = ensureOverride(fmt);
@@ -334,7 +336,7 @@
     const fmtStyle = langGet(fmt, lang || state.activeLang, 'textStyle');
     if (!fmtStyle) return base;
     const out = {};
-    ['headline', 'subline', 'cta'].forEach((el) => {
+    ['overline', 'headline', 'subline', 'cta'].forEach((el) => {
       out[el] = Object.assign({}, base[el], fmtStyle[el] || {});
     });
     return out;
@@ -347,10 +349,13 @@
     if (!tgt.textStyle) {
       const eff = effectiveTextStyle(fmt, lang);
       tgt.textStyle = {
+        overline: Object.assign({}, eff.overline),
         headline: Object.assign({}, eff.headline),
         subline: Object.assign({}, eff.subline),
         cta: Object.assign({}, eff.cta),
       };
+    } else if (!tgt.textStyle.overline) {
+      tgt.textStyle.overline = Object.assign({}, effectiveTextStyle(fmt, lang).overline);
     }
     return tgt.textStyle;
   }
@@ -667,6 +672,7 @@
 
   function syncTextInputs() {
     const t = textTarget(state.activeLang);
+    $('#inOverline').value = t.overline || '';
     $('#inHeadline').value = t.headline || '';
     $('#inSubline').value = t.subline || '';
     $('#inCta').value = t.cta || '';
@@ -1094,7 +1100,7 @@
   }
 
   function hitTest(p) {
-    const order = ['extra', 'badge', 'logo', 'cta', 'subline', 'headline'];
+    const order = ['extra', 'badge', 'logo', 'cta', 'subline', 'headline', 'overline'];
     for (const k of order) {
       const b = lastLayout.boxes[k];
       if (b && inside(p, b, 6)) return k;
@@ -1106,7 +1112,7 @@
   }
 
   function seedManual(target, format) {
-    ['headline', 'subline', 'cta'].forEach((el) => {
+    ['overline', 'headline', 'subline', 'cta'].forEach((el) => {
       const b = lastLayout.boxes[el];
       if (b) target[el] = { x: b.x / format.width, y: b.y / format.height };
     });
@@ -1131,7 +1137,7 @@
     } else {
       // pozice prvků jsou PER JAZYK (kromě dalšího obrázku, který je per rozměr)
       const pos = langTarget(fmt, state.activeLang);
-      if (hit === 'headline' || hit === 'subline' || hit === 'cta') {
+      if (hit === 'overline' || hit === 'headline' || hit === 'subline' || hit === 'cta') {
         if (!langGet(fmt, state.activeLang, 'manual')) seedManual(pos, format);
         else if (pos[hit] === undefined && lastLayout.boxes[hit]) {
           const b = lastLayout.boxes[hit];
@@ -1146,7 +1152,7 @@
         const b = lastLayout.boxes.logo;
         pos.logo = { x: b.x / format.width, y: b.y / format.height };
       }
-      if (['headline', 'subline', 'cta', 'logo', 'badge'].indexOf(hit) !== -1) selectElement(hit);
+      if (['overline', 'headline', 'subline', 'cta', 'logo', 'badge'].indexOf(hit) !== -1) selectElement(hit);
       let cur;
       if (hit === 'extra') cur = { x: ov.extra.x == null ? 0.5 : ov.extra.x, y: ov.extra.y == null ? 0.5 : ov.extra.y };
       else cur = pos[hit] || { x: 0, y: 0 };
@@ -1376,8 +1382,8 @@
     if (data.textColor) state.textColor = data.textColor;
     if (data.textScale) state.textScale = data.textScale;
     if (data.textStyle) {
-      ['headline', 'subline', 'cta'].forEach((el) => {
-        if (data.textStyle[el]) Object.assign(state.textStyle[el], data.textStyle[el]);
+      ['overline', 'headline', 'subline', 'cta'].forEach((el) => {
+        if (data.textStyle[el] && state.textStyle[el]) Object.assign(state.textStyle[el], data.textStyle[el]);
       });
     }
     if (data.imageFocus) state.imageFocus = data.imageFocus;
@@ -1723,13 +1729,14 @@
       for (const l of targets) {
         const to = ISO_LANG[l.code];
         setStatus('Překládám… ' + l.code);
-        const [h, s, c, bt] = await Promise.all([
+        const [ov, h, s, c, bt] = await Promise.all([
+          translateFormatted(base.overline || '', from, to),
           translateFormatted(base.headline, from, to),
           translateFormatted(base.subline, from, to),
           translateFormatted(base.cta, from, to),
           translateBadge(badgeBase, from, to),
         ]);
-        scope[l.code] = { headline: h, subline: s, cta: c };
+        scope[l.code] = { overline: ov, headline: h, subline: s, cta: c };
         if (!state.discount.textByLang) state.discount.textByLang = {};
         state.discount.textByLang[l.code] = bt;
       }
@@ -1862,6 +1869,10 @@
       setStatus('Šablona „' + (d ? d.label : tpl) + '" nastavena pro VŠECHNY rozměry.');
     });
 
+    $('#inOverline').addEventListener('input', (e) => {
+      textTarget(state.activeLang).overline = e.target.value;
+      scheduleRender();
+    });
     $('#inHeadline').addEventListener('input', (e) => {
       textTarget(state.activeLang).headline = e.target.value;
       scheduleRender();

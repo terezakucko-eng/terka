@@ -91,6 +91,10 @@
           <h2>3 · Texty <small id="activeLangLabel"></small></h2>
           <label class="chk block"><input type="checkbox" id="perFormatText" /> ✏️ Vlastní textace jen pro <b>tento rozměr</b> (jinak společná)</label>
           <label class="field">
+            <span>Nadčárka (overline) <em>(malá verzálka nad headline)</em></span>
+            <textarea id="inOverline" maxlength="80" rows="1" placeholder="Např. OSLAVTE MDŽ JINAK!"></textarea>
+          </label>
+          <label class="field">
             <span>Headline <em>(Enter = nový řádek)</em></span>
             <textarea id="inHeadline" maxlength="160" rows="2" placeholder="Napiš headline…"></textarea>
           </label>
@@ -124,6 +128,7 @@
         <div class="elem-bar">
           <span class="elem-bar-label">Uprav prvek:</span>
           <div class="tt-elements" id="ttElements">
+            <button type="button" data-sel="overline">Nadčárka</button>
             <button type="button" data-sel="headline" class="active">Headline</button>
             <button type="button" data-sel="subline">Subline</button>
             <button type="button" data-sel="cta">CTA</button>

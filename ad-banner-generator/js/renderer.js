@@ -587,6 +587,39 @@
     return { x: x, y: y, w: ctx.measureText(text).width, h: fontSize };
   }
 
+  // ---------- nadčárka (overline) ----------
+  // Malá prostrkaná verzálka nad headline (dle brand manuálu).
+  function fitOverline(ctx, text, maxWidth, fam, baseSize) {
+    const t = String(text == null ? '' : text).toUpperCase();
+    if (!t.trim()) return null;
+    let fs = Math.max(8, Math.round(baseSize));
+    ctx.save();
+    for (; fs >= 7; fs--) {
+      ctx.font = `600 ${fs}px ${fam}`;
+      ctx.letterSpacing = Math.max(0.5, fs * 0.14) + 'px';
+      if (ctx.measureText(t).width <= maxWidth) break;
+    }
+    ctx.font = `600 ${fs}px ${fam}`;
+    ctx.letterSpacing = Math.max(0.5, fs * 0.14) + 'px';
+    const w = Math.min(maxWidth, ctx.measureText(t).width);
+    ctx.restore();
+    return { text: t, fs: fs, w: w, h: Math.round(fs * 1.28) };
+  }
+  function paintOverline(ctx, m, x, y, maxWidth, align, fam, color) {
+    ctx.save();
+    ctx.font = `600 ${m.fs}px ${fam}`;
+    ctx.letterSpacing = Math.max(0.5, m.fs * 0.14) + 'px';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = color;
+    let tx = x;
+    if (align === 'center') tx = x + (maxWidth - m.w) / 2;
+    else if (align === 'right') tx = x + (maxWidth - m.w);
+    ctx.fillText(m.text, tx, y);
+    ctx.restore();
+    return { x: tx, y: y, w: m.w, h: m.h };
+  }
+
   // ---------- barvy textu ----------
   function resolveTextColors(mode, bgDefault, brand) {
     if (mode === 'light') return { text: '#FFFFFF', muted: 'rgba(255,255,255,0.9)' };
@@ -790,6 +823,7 @@
     const hFont = brand.fonts.heading;
     const bFont = brand.fonts.body;
     const boxes = {};
+    const os = styleFor(styles, 'overline');
     const hs = styleFor(styles, 'headline');
     const ss = styleFor(styles, 'subline');
     const cs = styleFor(styles, 'cta');
@@ -803,7 +837,12 @@
     const ctaY = cta ? (region.y + region.h - pad - cta.h) : null;
     const textTop = region.y + topSpace;
     const textBottom = cta ? (ctaY - gap * 1.6) : (region.y + region.h - pad);
-    const textAreaH = Math.max(16, textBottom - textTop);
+    const textAreaH0 = Math.max(16, textBottom - textTop);
+    // nadčárka nad headline – zabere kousek nahoře
+    const overM = fitOverline(ctx, spec.overline, maxWidth, hFont.family,
+      Math.round(11 * scale * (ts || 1) * (os.size || 1)));
+    const overBlock = overM ? overM.h + Math.round(gap * 0.7) : 0;
+    const textAreaH = Math.max(16, textAreaH0 - overBlock);
 
     // Subline změř PRVNÍ (bývá krátký) a rezervuj mu místo; headline dostane
     // zbytek — tak se vejdou OBA (raději menší headline než chybějící subline).
@@ -831,12 +870,18 @@
       : null;
     const headlineH = headline ? headline.height : 0;
 
-    const blockH = headlineH + (subline ? (headline ? gap : 0) + sublineH : 0);
+    const blockH = overBlock + headlineH + (subline ? (headline ? gap : 0) + sublineH : 0);
     // svislé umístění textového bloku nad CTA
     let y;
     if (valign === 'bottom') y = textBottom - blockH;
-    else y = textTop + Math.max(0, (textAreaH - blockH) / 2);
+    else y = textTop + Math.max(0, (textAreaH0 - blockH) / 2);
     y = Math.max(textTop, y);
+
+    if (overM) {
+      const r = paintOverline(ctx, overM, innerX, y, maxWidth, os.align, hFont.family, colors.text);
+      boxes.overline = { x: r.x, y: y, w: r.w, h: overM.h };
+      y += overBlock;
+    }
 
     if (headline) {
       const r = paintTextEl(ctx, headline, innerX, y, maxWidth, hs.align, hFont.weight || 700, hFont.family, colors.text);
@@ -865,6 +910,7 @@
     const hFont = brand.fonts.heading;
     const bFont = brand.fonts.body;
     const boxes = {};
+    const os = styleFor(styles, 'overline');
     const hs = styleFor(styles, 'headline');
     const ss = styleFor(styles, 'subline');
     const cs = styleFor(styles, 'cta');
@@ -877,7 +923,12 @@
     const textMaxW = region.w - pad * 2 - ctaW;
 
     const gap = Math.round(3 * scale);
-    const usableH = region.h - pad; // aby text nepřetekl mimo oblast
+    const usableH0 = region.h - pad; // aby text nepřetekl mimo oblast
+    const overM = (region.h >= 70)
+      ? fitOverline(ctx, spec.overline, textMaxW, hFont.family, Math.round(9 * scale * (ts || 1) * (os.size || 1)))
+      : null;
+    const overBlock = overM ? overM.h + gap : 0;
+    const usableH = Math.max(14, usableH0 - overBlock);
     const showSub = spec.subline && spec.subline.trim() && region.h >= 90;
     const hasHead = spec.headline && spec.headline.trim();
     // subline nejdřív (rezervuj mu místo), headline dostane zbytek
@@ -904,9 +955,15 @@
       : null;
 
     const headlineH = headline ? headline.height : 0;
-    const totalH = headlineH + (subline ? (headline ? gap : 0) + sublineH : 0);
+    const totalH = overBlock + headlineH + (subline ? (headline ? gap : 0) + sublineH : 0);
     let y = region.y + Math.max(0, (region.h - totalH) / 2);
     y = Math.max(region.y + pad / 2, Math.min(y, region.y + region.h - pad / 2 - totalH));
+
+    if (overM) {
+      const r = paintOverline(ctx, overM, textX, y, textMaxW, os.align, hFont.family, colors.text);
+      boxes.overline = { x: r.x, y: y, w: r.w, h: overM.h };
+      y += overBlock;
+    }
 
     if (headline) {
       const r = paintTextEl(ctx, headline, textX, y, textMaxW, hs.align, hFont.weight || 700, hFont.family, colors.text);
@@ -1002,6 +1059,25 @@
       const r = paintTextEl(ctx, m, paintLeft, anchorY, paintW, s.align, weight, font.family, isHeadline ? colors.text : colors.muted);
       boxes[el] = { x: r.box.x, y: anchorY, w: r.box.w, h: m.height };
       cursorY = anchorY + m.height + Math.round(6 * scale);
+    }
+
+    // nadčárka (overline) – ruční pozice, malá prostrkaná verzálka
+    if (spec.overline && spec.overline.trim()) {
+      const s = styleFor(styles, 'overline');
+      const stored = ov.overline;
+      const o = stored || { x: regLeft / W, y: cursorY / H };
+      const anchorX = o.x * W;
+      const om = fitOverline(ctx, spec.overline, Math.max(20, regRight - regLeft), hFont.family,
+        Math.round(11 * scale * (ts || 1) * (s.size || 1)));
+      if (om) {
+        const anchorY = clampT(o.y * H, 0, Math.max(0, H - om.h));
+        let px = anchorX;
+        if (s.align === 'center') px = clampT(anchorX, regLeft, Math.max(regLeft, regRight - om.w));
+        else if (s.align === 'right') px = anchorX - om.w;
+        const r = paintOverline(ctx, om, px, anchorY, om.w, 'left', hFont.family, colors.text);
+        boxes.overline = { x: r.x, y: anchorY, w: om.w, h: om.h };
+        cursorY = anchorY + om.h + Math.round(6 * scale);
+      }
     }
 
     place('headline', true);

@@ -169,7 +169,7 @@
   // Jazykové mutace. Každý má výchozí texty (uživatel může přepsat).
   // Výchozí texty jsou prázdné — vlastní „výchozí" si uživatel nastaví přes
   // „Uložit jako výchozí" (stejně jako master obrázek). Žádné generické placeholdery.
-  const _empty = { headline: '', subline: '', cta: '' };
+  const _empty = { overline: '', headline: '', subline: '', cta: '' };
   const LANGUAGES = [
     { code: 'CZ', label: 'Čeština', defaults: Object.assign({}, _empty) },
     { code: 'SK', label: 'Slovenčina', defaults: Object.assign({}, _empty) },
