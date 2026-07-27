@@ -236,6 +236,13 @@
             <input type="color" id="discountTextColor" value="#FFFFFF" title="Barva textu v odznaku" />
           </div>
           <p class="hint"><b>Enter</b> = nový řádek v pusince (např. „SLEVA" a pod tím „-20 %").</p>
+          <div class="badge-presets">
+            <button type="button" class="chip-btn" data-badge="SLEVA&#10;-20 %">SLEVA -20 %</button>
+            <button type="button" class="chip-btn" data-badge="ZĽAVA&#10;-20 %">ZĽAVA -20 %</button>
+            <button type="button" class="chip-btn" data-badge="-20 %">-20 %</button>
+            <button type="button" class="chip-btn" data-badge="DÁREK">DÁREK</button>
+            <button type="button" class="chip-btn" data-badge="DARČEK">DARČEK</button>
+          </div>
           <label class="slider"><span>Řádkování v pusince <b id="discountLhVal">1.10</b></span><input type="range" id="discountLineHeight" min="80" max="200" value="110" /></label>
           <label class="slider"><span>Velikost textu v pusince <b id="discountTextScaleVal">100%</b></span><input type="range" id="discountTextScale" min="40" max="200" value="100" /></label>
           <label class="slider"><span>Velikost odznaku (celá pusinka) <b id="discountSizeVal">100%</b> <small class="scope-badge">tento rozměr</small></span><input type="range" id="discountSize" min="40" max="300" value="100" /></label>

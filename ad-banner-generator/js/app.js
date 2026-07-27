@@ -2111,6 +2111,19 @@
       }
       scheduleRender();
     });
+    $$('.chip-btn[data-badge]').forEach((b) =>
+      b.addEventListener('click', () => {
+        const v = b.getAttribute('data-badge');
+        const ta = $('#discountText');
+        ta.value = v;
+        ta.dispatchEvent(new Event('input', { bubbles: true })); // uloží text per jazyk
+        if (!$('#discountShow').checked) {
+          $('#discountShow').checked = true;
+          state.discount.show = true;
+        }
+        scheduleRender();
+      })
+    );
     $('#discountLineHeight').addEventListener('input', (e) => {
       const lh = (+e.target.value) / 100;
       state.discount.lineHeight = lh;
