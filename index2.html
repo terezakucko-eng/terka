@@ -1,0 +1,3572 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="mainTitle">Kalendář kampaní</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/cs.js"></script>
+    <script src="https://unpkg.com/imask"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #334155;
+            background-color: #f8fafc;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        }
+        .campaign-card {
+            transition: all 0.2s ease-in-out;
+            cursor: move;
+            border: 1px solid rgba(0,0,0,0.05);
+            border-radius: 6px;
+        }
+        .campaign-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .campaign-overview-card.selected {
+            box-shadow: 0 0 0 3px #4f46e5;
+            transform: scale(1.02);
+        }
+        .drop-zone {
+            min-height: 100px;
+            transition: all 0.2s ease;
+        }
+        .drop-zone.drag-over {
+            background: #eef2ff !important;
+            border: 2px dashed #6366f1 !important;
+        }
+        .btn-primary {
+            background-color: #4f46e5;
+            color: white;
+            font-weight: 600;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        }
+        .btn-primary:hover {
+            background-color: #4338ca;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .btn-secondary {
+            background-color: white;
+            border: 1px solid #cbd5e1;
+            color: #334155;
+            padding: 9px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-secondary:hover {
+            background-color: #f8fafc;
+            border-color: #94a3b8;
+            transform: translateY(-1px);
+        }
+        .btn-danger {
+            background: #fee2e2;
+            color: #b91c1c;
+            font-weight: 600;
+            padding: 9px 18px;
+            border-radius: 8px;
+            border: 1px solid #fecaca;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-danger:hover {
+            background: #fecaca;
+            color: #991b1b;
+            transform: translateY(-1px);
+        }
+        .btn-delete-year {
+            background: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+            font-weight: 500;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-delete-year:hover {
+            background: #fecaca;
+            color: #991b1b;
+        }
+        #viewToggle button, .filter-btn {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-weight: 500;
+            border: 1px solid #d1d5db;
+            background-color: white;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            white-space: nowrap;
+        }
+        #viewToggle button:hover, .filter-btn:hover {
+            background-color: #f3f4f6;
+            border-color: #9ca3af;
+        }
+        #viewToggle button.active, .filter-btn.active {
+            background-color: #e0e7ff;
+            color: #3730a3;
+            border-color: #a5b4fc;
+            box-shadow: none;
+        }
+        #yearlyOverviewSection [contenteditable="true"]:focus {
+            outline: 2px solid #818cf8;
+            background-color: #f1f5f9;
+            border-radius: 4px;
+        }
+        .status-planned { color: #1e40af; }
+        .status-active { color: #047857; }
+        .status-finished { color: #52525b; }
+        .campaign-colors-0 { background-color: #ffe4e6; color: #881337; }
+        .campaign-colors-1 { background-color: #ffedd5; color: #9a3412; }
+        .campaign-colors-2 { background-color: #fef9c3; color: #854d0e; }
+        .campaign-colors-3 { background-color: #dcfce7; color: #166534; }
+        .campaign-colors-4 { background-color: #cffafe; color: #155e75; }
+        .campaign-colors-5 { background-color: #e0e7ff; color: #3730a3; }
+        .campaign-colors-6 { background-color: #fae8ff; color: #86198f; }
+        .campaign-colors-7 { background-color: #fee2e2; color: #991b1b; }
+        .campaign-colors-8 { background-color: #fef3c7; color: #92400e; }
+        .campaign-colors-9 { background-color: #ecfdf5; color: #065f46; }
+        .campaign-colors-10 { background-color: #dbeafe; color: #1e40af; }
+        .campaign-colors-11 { background-color: #f3e8ff; color: #6b21a8; }
+        .campaign-colors-12 { background-color: #fce7f3; color: #9d174d; }
+        .campaign-colors-13 { background-color: #ccfbf1; color: #115e59; }
+        .campaign-colors-14 { background-color: #e0f2fe; color: #075985; }
+        .campaign-colors-15 { background-color: #ede9fe; color: #5b21b6; }
+        .campaign-colors-none { background-color: #f1f5f9; color: #475569; border: 1px dashed #94a3b8; }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .toast-success { background-color: #16a34a; }
+        .toast-error { background-color: #dc2626; }
+        .toast-info { background-color: #2563eb; }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .modal-overlay {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+        }
+        .color-swatch {
+            width: 28px;
+            height: 28px;
+            border-radius: 9999px;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.2s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .color-swatch.selected {
+            border-color: #4f46e5;
+            transform: scale(1.15);
+        }
+        .sticky-col {
+            position: -webkit-sticky;
+            position: sticky;
+            left: 0;
+            z-index: 10;
+        }
+        [contenteditable]:empty:before {
+            content: attr(placeholder);
+            pointer-events: none;
+            display: block;
+            color: #9ca3af;
+        }
+        .campaign-tooltip-card {
+            position: absolute;
+            opacity: 0;
+            visibility: hidden;
+            z-index: 1000;
+            width: 320px;
+            max-width: 90vw;
+            background-color: #334155;
+            color: #cbd5e1;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+        }
+        .campaign-tooltip-card.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        .campaign-tooltip-card h5 {
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 0.25rem;
+        }
+        .campaign-tooltip-card p {
+            font-size: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+        .campaign-tooltip-card hr {
+            border-color: #475569;
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .campaign-tooltip-card .description-content {
+            font-size: 0.875rem;
+        }
+        .campaign-tooltip-card .description-content a {
+            color: #a5b4fc;
+            text-decoration: underline;
+        }
+        .campaign-tooltip-card .description-content a:hover {
+            color: #c7d2fe;
+        }
+        
+        #yearlyPlanTable {
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.8125rem;
+            width: 100%;
+            border: 1px solid #e2e8f0; 
+            border-radius: 0.5rem;
+        }
+        #yearlyPlanTable thead {
+            border-bottom: 2px solid #e2e8f0;
+        }
+        #yearlyPlanTable thead th {
+            position: sticky;
+            top: 0;
+            z-index: 30;
+            background-color: #f3f4f6;
+            padding: 8px 10px;
+        }
+        #yearlyPlanTable thead th:first-child {
+            left: 0;
+            z-index: 40; 
+            background-color: #e5e7eb;
+        }
+
+        #yearlyPlanTable tbody tr {
+            border-radius: 0;
+            box-shadow: none;
+            border-bottom: none; 
+            overflow: visible;
+        }
+        #yearlyPlanTable tbody tr:last-child {
+            border-bottom: none;
+        }
+        #yearlyPlanTable tbody tr td {
+            border-top: none;
+            border-right: 1px solid #f1f5f9; 
+            border-bottom: 1px solid #f1f5f9;
+            padding: 8px 10px;
+            line-height: 1.3;
+        }
+        #yearlyPlanTable tbody tr td:last-child {
+            border-right: none;
+        }
+        #yearlyPlanTable tbody tr:last-child td {
+            border-bottom: none;
+        }
+        
+        #yearlyPlanTable tbody tr:not(.month-header):hover td {
+            background-color: #f8fafc;
+        }
+        
+        .current-month-highlight {
+            background-color: #e0f2fe !important;
+        }
+        
+        .month-header {
+             background-color: #f8faff !important; 
+             border-top: 1px solid #eef2ff;
+             position: sticky;
+             top: 40px; 
+             z-index: 35;
+        }
+        .month-header td {
+            padding: 6px 10px !important;
+            border-right: none !important;
+        }
+        .month-header .sticky-col {
+            background-color: #f3f5ff !important;
+        }
+
+        #yearlyPlanTable th:nth-child(1) { min-width: 70px; }
+        #yearlyPlanTable th:nth-child(2) { min-width: 70px; }
+        #yearlyPlanTable th:nth-child(3) { min-width: 100px; }
+        #yearlyPlanTable th:nth-child(4) { min-width: 180px; }
+        #yearlyPlanTable th:nth-child(5) { min-width: 150px; }
+        #yearlyPlanTable th:nth-child(6) { min-width: 250px; width: 100%; }
+        #yearlyPlanTable th:nth-child(7) { min-width: 80px; }
+        
+        .yearly-date-input {
+            width: 70px;
+            padding: 2px 4px;
+            border-radius: 4px;
+            border: 1px solid #cbd5e1;
+            font-size: 0.75rem;
+            text-align: center;
+            background-color: white;
+            cursor: pointer;
+        }
+        .yearly-date-input:focus {
+            outline: 1px solid #818cf8;
+            background-color: white;
+        }
+
+        #yearlyPlanTable tbody tr td[data-key="status"],
+        #yearlyPlanTable tbody tr td[data-key="country"],
+        #yearlyPlanTable tbody tr td[data-key="type"],
+        #yearlyPlanTable tbody tr td[data-key="theme"],
+        #yearlyPlanTable tbody tr td[data-key="date"] {
+            pointer-events: none !important;
+            background-color: #f8fafc !important;
+            user-select: none;
+        }
+        
+        #yearlyPlanTable tbody tr td[contenteditable="true"] {
+            pointer-events: auto !important;
+            background-color: white !important;
+        }
+        #yearlyPlanTable tbody tr td span[contenteditable="true"] {
+             pointer-events: none;
+        }
+        
+        .draggable-row {
+            cursor: grab;
+        }
+        .draggable-row.dragging {
+            opacity: 0.5;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transform: scale(1.01);
+        }
+        .dropdown-menu {
+            position: absolute;
+            right: 0; 
+            top: 100%;
+            z-index: 100;
+            background-color: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            min-width: 200px;
+            padding: 4px;
+            margin-top: 4px;
+        }
+        .dropdown-item {
+            display: block;
+            width: 100%;
+            padding: 8px 12px;
+            text-align: left;
+            font-size: 0.875rem;
+            color: #334155;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .dropdown-item:hover {
+            background-color: #f1f5f9;
+        }
+        
+        .main-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .shop-card {
+            background-color: white;
+            border-radius: 1rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            padding: 3rem 2rem;
+            width: 100%;
+            max-width: 900px;
+        }
+        .link-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1.5rem;
+            margin-top: 1.5rem;
+            text-align: center;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: white;
+            border-radius: 0.75rem;
+            transition: all 0.3s ease;
+            transform: translateY(0);
+        }
+        .link-button:hover {
+             transform: translateY(-3px);
+             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .link-button-rosaslon {
+            background: linear-gradient(135deg, #fce7f3 0%, #dbeafe 100%); border: none; color: #334155; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .link-button-rosaslon:hover {
+            background: linear-gradient(135deg, #fbcfe8 0%, #bfdbfe 100%); box-shadow: 0 6px 8px -1px rgba(0, 0, 0, 0.15);
+        }
+        .shop-icon {
+            margin-right: 0.75rem;
+            font-size: 1.5rem;
+        }
+
+        #appContent:not(.visible) {
+            display: none;
+        }
+        
+        #shopSelector {
+            display: none;
+        }
+        
+        #shopSelector.visible {
+            display: flex;
+        }
+        
+        .shop-logo {
+            max-height: 60px;
+            max-width: 200px;
+            object-fit: contain;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div id="appContainer">
+
+        <div id="appContent" class="container mx-auto p-4 lg:p-6">
+            <header class="glass rounded-2xl p-4 md:p-6 mb-6 fade-in">
+                <div class="flex flex-row justify-between items-center">
+                    <div class="text-center md:text-left">
+                        <h1 class="text-3xl lg:text-4xl font-bold text-slate-800">
+                            Plán kampaní
+                        </h1>
+                        <p class="text-gray-600 font-medium mt-1">pro <span id="currentShopName"></span></p>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                    </div>
+                </div>
+            </header>
+
+            <nav class="glass rounded-2xl p-4 md:p-6 mb-6 fade-in">
+                <div class="flex flex-col lg:flex-row items-center justify-between gap-4">
+                    <div class="flex items-center gap-2 md:gap-4 w-full lg:w-auto justify-center">
+                        <button onclick="previousMonth()" class="btn-secondary flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                            <span class="hidden sm:inline">Předchozí</span>
+                        </button>
+
+                        <h2 id="monthTitle" class="text-xl md:text-2xl lg:text-3xl font-bold text-slate-700">
+                        </h2>
+
+                        <button onclick="nextMonth()" class="btn-secondary flex items-center gap-2">
+                            <span class="hidden sm:inline">Další</span>
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                     <div id="viewToggle" class="bg-slate-200/50 p-1 rounded-xl flex items-center gap-1">
+                        <button id="calendarViewBtn" class="active">📅 Kalendář</button>
+                        <button id="yearlyViewBtn">🗓️ Roční přehled</button>
+                    </div>
+
+
+                    <div class="flex items-center gap-2 md:gap-4 flex-wrap justify-center lg:justify-end">
+                        <div class="relative">
+                            <svg class="w-4 h-4 absolute left-3 top-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                            <input type="text" id="searchInput" placeholder="Hledat..."
+                                   onkeyup="filterCampaigns()"
+                                   class="pl-10 pr-4 py-2.5 border border-slate-200 bg-white/50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 w-36 sm:w-64">
+                        </div>
+
+                        <button onclick="showModal()" class="btn-primary flex-grow sm:flex-grow-0 flex items-center gap-2 justify-center">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Nová kampaň
+                        </button>
+
+                        <div class="relative">
+                            <button onclick="toggleDropdown('import')" id="importDropdownToggle" class="btn-secondary flex items-center gap-2" title="Import CSV">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                            </button>
+                            <div id="importDropdown" class="dropdown-menu hidden">
+                                <button onclick="triggerImport('campaigns')" class="dropdown-item">Import kampaní</button>
+                                <button onclick="triggerImport('yearly')" class="dropdown-item">Import ročního plánu</button>
+                            </div>
+                        </div>
+                        
+                        <div class="relative">
+                            <button onclick="toggleDropdown('export')" id="exportDropdownToggle" class="btn-secondary flex items-center gap-2" title="Export">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                            </button>
+                            <div id="exportDropdown" class="dropdown-menu hidden">
+                                 <button onclick="exportYearlyPlanToPdf()" class="dropdown-item">Export ročního plánu (PDF)</button>
+                                 <button onclick="exportData()" class="dropdown-item">Export kampaní (CSV)</button>
+                                 <button onclick="exportYearlyPlan()" class="dropdown-item">Export ročního plánu (CSV)</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="filtersContainer" class="space-y-3 mt-4 pt-4 border-t border-slate-200">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-sm font-medium text-gray-700 w-16">Status:</span>
+                        <div id="statusFilterContainer" class="flex flex-wrap items-center gap-2">
+                            </div>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-sm font-medium text-gray-700 w-16">Domény:</span>
+                        <div id="countryFilterContainer" class="flex flex-wrap items-center gap-2">
+                            </div>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-sm font-medium text-gray-700 w-16">Kanály:</span>
+                        <div id="channelFilterContainer" class="flex flex-wrap items-center gap-2">
+                            </div>
+                    </div>
+                     <button onclick="clearFilters()" class="btn-secondary text-sm mt-2">
+                        Vymazat všechny filtry
+                    </button>
+                </div>
+            </nav>
+
+            <section id="statsContainer" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="glass rounded-xl p-4 text-center fade-in">
+                    <div class="text-2xl font-bold text-indigo-600" id="totalCampaigns">0</div>
+                    <div class="text-sm text-gray-600">Celkem kampaní</div>
+                </div>
+                <div class="glass rounded-xl p-4 text-center fade-in">
+                    <div class="text-2xl font-bold text-green-600" id="activeCampaigns">0</div>
+                    <div class="text-sm text-gray-600">Aktivní</div>
+                </div>
+                <div class="glass rounded-xl p-4 text-center fade-in">
+                    <div class="text-2xl font-bold text-blue-600" id="monthCampaigns">0</div>
+                    <div class="text-sm text-gray-600">Tento měsíc</div>
+                </div>
+                <div class="glass rounded-xl p-4 text-center fade-in">
+                    <div class="text-2xl font-bold text-amber-600" id="preparingCampaigns">0</div>
+                    <div class="text-sm text-gray-600">V přípravě</div>
+                </div>
+            </section>
+
+            <section id="searchResults" class="hidden mb-6">
+            </section>
+            
+            <div id="calendarView">
+                <section id="monthOverviewSection" class="glass rounded-2xl p-4 md:p-6 mb-6 fade-in">
+                    <h3 id="monthOverviewHeader" class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2 flex-wrap">
+                        <span>📅</span>
+                        Kampaně v měsíci <span id="monthOverviewTitle"></span>
+                        (<span id="monthCampaignCount">0</span>)
+                    </h3>
+                    <div id="monthOverview" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    </div>
+                </section>
+
+                <main id="calendarContainer">
+                    <div id="calendar">
+                    </div>
+                </main>
+            </div>
+            
+             <section id="yearlyOverviewSection" class="hidden glass rounded-2xl p-4 md:p-6 mb-6 fade-in">
+                
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Roční publikační plán</h2>
+                
+                <div class="glass rounded-xl p-4 mb-6 border border-indigo-100">
+                    <h3 class="text-lg font-semibold text-indigo-700 mb-4">➕ Přidat záznam do ročního plánu</h3>
+                    <div id="yearlyFormMessage" class="hidden mb-3 p-2 rounded text-sm bg-red-100 text-red-700 border border-red-200"></div>
+
+                    <form id="yearlyPlanForm" class="space-y-3">
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                            <div class="md:col-span-1">
+                                <label class="block text-sm font-medium mb-1">Významný den</label>
+                                <input type="text" id="yearlySignificantDay" placeholder="Např. Valentýn"
+                                       class="w-full p-2 bg-white/50 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Domény</label>
+                                <input type="text" id="yearlyCountry" placeholder="Růžový Slon - CZ, Kondomshop - SK, Flagranti - CZ..."
+                                       class="w-full p-2 bg-white/50 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                             <div>
+                                <label class="block text-sm font-medium mb-1">Typ</label>
+                                <input type="text" id="yearlyType" placeholder="Soutěž, Akce, Novinka..."
+                                       class="w-full p-2 bg-white/50 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div class="lg:col-span-2">
+                                <label class="block text-sm font-medium mb-1">Hlavní témata</label>
+                                <input type="text" id="yearlyTheme" placeholder="3+2 zdarma, Valentýn, Nové produkty"
+                                       class="w-full p-2 bg-white/50 border border-gray-300 rounded-lg text-sm font-semibold focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                             <div>
+                                <label class="block text-sm font-medium mb-1">Datum od *</label>
+                                <input type="date" id="yearlyDateFrom" required
+                                       class="w-full p-2 bg-white/50 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Datum do</label>
+                                <input type="date" id="yearlyDateTo"
+                                       class="w-full p-2 bg-white/50 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div class="md:col-span-1">
+                                <label class="block text-sm font-medium mb-1">Informace o akci / Poznámky</label>
+                                <textarea id="yearlyInfo" rows="1" placeholder="Důležité detaily, odkazy, specifické požadavky..."
+                                          class="w-full p-2 bg-white/50 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Info/Poznámky (delší)</label>
+                            <textarea id="yearlyInfoLong" rows="2" placeholder="Delší detaily, odkazy, specifické požadavky..."
+                                      class="w-full p-2 bg-white/50 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                        </div>
+                    </form>
+                    
+                    <p class="text-xs text-gray-500 mt-4 border-t border-gray-200 pt-3">
+                        * **Pro jakýkoliv záznam** musí být vyplněno: **Datum od**.
+                    </p>
+
+                    <div class="flex justify-between items-center pt-4 border-t border-gray-200 mt-4">
+                        <button onclick="addYearlyPlanFromForm()" class="btn-primary flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            Přidat záznam
+                        </button>
+                         <button onclick="clearYearlyForm()" class="btn-secondary !py-2 !px-4 text-sm">
+                            Vymazat formulář
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+                     <h3 class="text-lg font-bold text-gray-800">Chronologický přehled kampaní</h3>
+                    <div class="flex flex-wrap items-center gap-2">
+                         <button onclick="deleteYearlyPlan()" class="btn-delete-year !px-3 !py-2 text-sm">🗑️ Smazat CELÝ PLÁN</button>
+                        <button onclick="saveYearlyPlanUI()" class="btn-primary !px-5 !py-2">💾 Uložit změny</button>
+                    </div>
+                </div>
+                
+                <div class="overflow-x-auto overflow-y-auto max-h-[70vh] border rounded-xl" id="yearlyPlanContainer">
+                     </div>
+            </section>
+
+
+            <div id="campaignModal" class="fixed inset-0 modal-overlay hidden flex items-center justify-center p-4 z-50">
+                <div class="glass rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+                    <header class="p-6 border-b border-gray-200">
+                        <h3 id="modalTitle" class="text-xl font-bold text-gray-800">
+                            ✨ Nová kampaň
+                        </h3>
+                    </header>
+
+                    <div class="p-6 overflow-y-auto flex-1">
+                        <form id="campaignForm" class="space-y-4">
+                            <input type="hidden" id="campaignColorIndex" value="0">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Název kampaně *</label>
+                                <input type="text" id="campaignName" required
+                                       class="w-full p-3 bg-white/50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                       placeholder="např.: LETO20">
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Datum od *</label>
+                                    <input type="date" id="campaignDateFrom" required
+                                           class="w-full p-3 bg-white/50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Datum do *</label>
+                                    <input type="date" id="campaignDateTo" required
+                                           class="w-full p-3 bg-white/50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Status</label>
+                                    <select id="campaignStatus" class="w-full p-3 bg-white/50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                        <option value="priprava">🟡 V přípravě</option>
+                                        <option value="kespusteni">🔵 Ke spuštění</option>
+                                        <option value="aktivni">🟢 Aktivní</option>
+                                        <option value="ukoncena">⚫ Ukončená</option>
+                                    </select>
+                                </div>
+                                <div>
+                                   <label class="block text-sm font-medium mb-2">Barva kampaně</label>
+                                   <div id="color-picker-container" class="p-2 flex flex-wrap gap-2 bg-white/50 border border-gray-300 rounded-lg">
+                                   </div>
+                                </div>
+                            </div>
+
+
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Domény</label>
+                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 border border-gray-300 rounded-lg bg-gray-50">
+                                    <label class="flex items-center space-x-2">
+                                        <input type="checkbox" name="countries" value="CZ - Růžový Slon" checked class="text-indigo-600 focus:ring-indigo-600">
+                                        <span class="text-sm">Růžový Slon - CZ</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2">
+                                        <input type="checkbox" name="countries" value="SK - Růžový Slon" class="text-indigo-600 focus:ring-indigo-600">
+                                        <span class="text-sm">Růžový Slon - SK</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2">
+                                        <input type="checkbox" name="countries" value="HU - Růžový Slon" class="text-indigo-600 focus:ring-indigo-600">
+                                        <span class="text-sm">Růžový Slon - HU</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2">
+                                        <input type="checkbox" name="countries" value="RO - Růžový Slon" class="text-indigo-600 focus:ring-indigo-600">
+                                        <span class="text-sm">Růžový Slon - RO</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2">
+                                        <input type="checkbox" name="countries" value="SI - Růžový Slon" class="text-indigo-600 focus:ring-indigo-600">
+                                        <span class="text-sm">Růžový Slon - SI</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2">
+                                        <input type="checkbox" name="countries" value="HR - Růžový Slon" class="text-indigo-600 focus:ring-indigo-600">
+                                        <span class="text-sm">Růžový Slon - HR</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2">
+                                        <input type="checkbox" name="countries" value="BG - Růžový Slon" class="text-indigo-600 focus:ring-indigo-600">
+                                        <span class="text-sm">Růžový Slon - BG</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2">
+                                        <input type="checkbox" name="countries" value="SK - Kondomshop" class="text-indigo-600 focus:ring-indigo-600">
+                                        <span class="text-sm">Kondomshop - SK</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2">
+                                        <input type="checkbox" name="countries" value="CZ - Kondomshop" class="text-indigo-600 focus:ring-indigo-600">
+                                        <span class="text-sm">Kondomshop - CZ</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2">
+                                        <input type="checkbox" name="countries" value="CZ - Flagranti" class="text-indigo-600 focus:ring-indigo-600">
+                                        <span class="text-sm">Flagranti - CZ</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2">
+                                        <input type="checkbox" name="countries" value="SK - Flagranti" class="text-indigo-600 focus:ring-indigo-600">
+                                        <span class="text-sm">Flagranti - SK</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Kanály *</label>
+                                <div class="border border-gray-300 rounded-lg p-4 bg-gray-50 max-h-48 overflow-y-auto">
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" name="channels" value="WEB (A/B, testy, změny, atp.)" class="text-indigo-600 focus:ring-indigo-600">
+                                            <span class="text-sm">🖥️ WEB (A/B, testy, změny, atp.)</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" name="channels" value="HP Banner" class="text-indigo-600 focus:ring-indigo-600">
+                                            <span class="text-sm">🏠 HP Banner</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" name="channels" value="Affiliate" class="text-indigo-600 focus:ring-indigo-600">
+                                            <span class="text-sm">🤝 Affiliate</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" name="channels" value="Billboardy" class="text-indigo-600 focus:ring-indigo-600">
+                                            <span class="text-sm">🏞️ Billboardy</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" name="channels" value="Doprava zdarma" class="text-indigo-600 focus:ring-indigo-600">
+                                            <span class="text-sm">🚚 Doprava zdarma</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" name="channels" value="Eventy" class="text-indigo-600 focus:ring-indigo-600">
+                                            <span class="text-sm">🎉 Eventy</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" name="channels" value="Firmy.cz Display" class="text-indigo-600 focus:ring-indigo-600">
+                                            <span class="text-sm">🏢 Firmy.cz Display</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" name="channels" value="Google firmy" class="text-indigo-600 focus:ring-indigo-600">
+                                            <span class="text-sm">📍 Google firmy</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" name="channels" value="Heureka Display" class="text-indigo-600 focus:ring-indigo-600">
+                                            <span class="text-sm">📊 Heureka Display</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" name="channels" value="IG - Influenceři" class="text-indigo-600 focus:ring-indigo-600">
+                                            <span class="text-sm">💃 IG - Influenceři</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" name="channels" value="IG - post" class="text-indigo-600 focus:ring-indigo-600">
+                                            <span class="text-sm">📸 IG - post</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" name="channels" value="IG - reels" class="text-indigo-600 focus:ring-indigo-600">
+                                            <span class="text-sm">🎬 IG - reels</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" name="channels" value="IG - stories" class="text-indigo-600 focus:ring-indigo-600">
+                                            <span class="text-sm">📲 IG - stories</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" name="channels" value="IG - prodejna" class="text-indigo-600 focus:ring-indigo-600">
+                                            <span class="text-sm">🏪 IG - prodejna</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" name="channels" value="IG - smyslný dotek" class="text-indigo-600 focus:ring-indigo-600">
+                                            <span class="text-sm">✨ IG - smyslný dotek</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" name="channels" value="IG - kouzlo intimity" class="text-indigo-600 focus:ring-indigo-600">
+                                            <span class="text-sm">🔮 IG - kouzlo intimity</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" name="channels" value="Magazín - články" class="text-indigo-600 focus:ring-indigo-600">
+                                            <span class="text-sm">✍️ Magazín - články</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" name="channels" value="Newsletter" class="text-indigo-600 focus:ring-indigo-600">
+                                            <span class="text-sm">📧 Newsletter</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" name="channels" value="Podcasty" class="text-indigo-600 focus:ring-indigo-600">
+                                            <span class="text-sm">🎙️ Podcasty</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" name="channels" value="PPC display" class="text-indigo-600 focus:ring-indigo-600">
+                                            <span class="text-sm">🎯 PPC display</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" name="channels" value="Prodejny" class="text-indigo-600 focus:ring-indigo-600">
+                                            <span class="text-sm">🏪 Prodejny</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" name="channels" value="Rádio" class="text-indigo-600 focus:ring-indigo-600">
+                                            <span class="text-sm">📻 Rádio</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" name="channels" value="Referer" class="text-indigo-600 focus:ring-indigo-600">
+                                            <span class="text-sm">🔗 Referer</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" name="channels" value="SMS" class="text-indigo-600 focus:ring-indigo-600">
+                                            <span class="text-sm">💬 SMS</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" name="channels" value="TV" class="text-indigo-600 focus:ring-indigo-600">
+                                            <span class="text-sm">📺 TV</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">Při změně dat nebo kanálů u existující kampaně se rozpis v kalendáři automaticky aktualizuje.</p>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Popis kampaně</label>
+                                <div class="bg-white/50 border border-gray-300 rounded-lg">
+                                    <div class="flex items-center gap-1 p-2 border-b border-gray-200">
+                                        <button type="button" onclick="formatDoc('bold')" class="p-2 rounded hover:bg-gray-200 transition-colors" title="Tučně (Ctrl+B)">
+                                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M8 11h4.5a2.5 2.5 0 1 0 0-5H8v5zm0 2.5h5a2.5 2.5 0 1 1 0 5H8v-5z"></path><path d="M6 4h6.5a4.5 4.5 0 1 1 0 9H6V4zm2 2v5h4.5a2.5 2.5 0 0 0 0-5H8zM6 13h7a4.5 4.5 0 1 1 0 9H6v-9zm2 2v5h5a2.5 2.5 0 0 0 0-5H8z"></path></svg>
+                                        </button>
+                                        <button type="button" onclick="formatDoc('italic')" class="p-2 rounded hover:bg-gray-200 transition-colors" title="Kurzíva (Ctrl+I)">
+                                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M10 4v3h2.21l-3.42 8H6v3h8v-3h-2.21l3.42-8H18V4z"></path></svg>
+                                        </button>
+                                        <button type="button" onclick="formatDoc('underline')" class="p-2 rounded hover:bg-gray-200 transition-colors" title="Podtržené (Ctrl+U)">
+                                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M8 4v7c0 2.21 1.79 4 4 4s4-1.79 4-4V4h-2v7c0 1.1-.9 2-2 2s-2-.9-2-2V4H8zM6 18v2h12v-2H6z"></path></svg>
+                                        </button>
+                                        <button type="button" onclick="createLink()" class="p-2 rounded hover:bg-gray-200 transition-colors" title="Vytvořit odkaz">
+                                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M12.55 4.45a.75.75 0 01.05.05l.05.05c.14.148.26.313.363.49.105.178.19.372.254.576.065.203.108.415.132.63.023.216.023.433 0 .649a4.23 4.23 0 01-.132.63c-.064.204-.15.398-.254.576a3.78 3.78 0 01-.363.49l-.05.05a.75.75 0 01-1.11-1.01l.05-.05a2.28 2.28 0 00.218-.297c.063-.106.115-.22.152-.345.038-.125.06-.253.07-.38.009-.13.009-.259 0-.389a2.73 2.73 0 00-.07-.38 2.28 2.28 0 00-.152-.345 2.28 2.28 0 00-.218-.297l-.05-.05a4.25 4.25 0 00-6.01 0l-4.243 4.243a4.25 4.25 0 006.01 6.01l1.102-1.101a.75.75 0 011.06 1.06l-1.102 1.101a5.75 5.75 0 01-8.132-8.132l4.243-4.243a5.75 5.75 0 018.132 0l.05.05a.75.75 0 01-1.01 1.11z" clip-rule="evenodd"></path></svg>
+                                        </button>
+                                    </div>
+                                    <div id="campaignDescription" contenteditable="true"
+                                         class="w-full p-3 min-h-[96px] max-h-48 overflow-y-auto focus:outline-none"
+                                         placeholder="Detaily kampaně, poznámky..."></div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Důležité odkazy</label>
+                                <div class="space-y-3 p-4 bg-gray-50 rounded-lg border border-gray-300">
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 mb-1">✅ Basecamp</label>
+                                        <input type="url" id="campaignBasecampLink"
+                                               class="w-full p-2 bg-white/50 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                                               placeholder="https://3.basecamp.com/...">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 mb-1">📝 Soupis produktů (Google Sheet)</label>
+                                        <input type="url" id="campaignProductsLink"
+                                               class="w-full p-2 bg-white/50 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                                               placeholder="https://docs.google.com/spreadsheets/...">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 mb-1">📄 Rodný list kampaně (Google Sheet)</label>
+                                        <input type="url" id="campaignBirthSheetLink"
+                                               class="w-full p-2 bg-white/50 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                                               placeholder="https://docs.google.com/spreadsheets/...">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 mb-1">🖼️ Google disk - grafika kampaně</label>
+                                        <input type="url" id="campaignGraphicsLink"
+                                               class="w-full p-2 bg-white/50 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                                               placeholder="https://drive.google.com/drive/folders/...">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 mb-1">💬 Nastavení SMS</label>
+                                        <input type="url" id="campaignSmsLink"
+                                               class="w-full p-2 bg-white/50 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                                               placeholder="Odkaz na nastavení SMS kampaně...">
+                                    </div>
+                                </div>
+                            </div>
+
+                        </form>
+                    </div>
+
+                    <footer class="p-6 border-t border-gray-200">
+                        <div class="flex justify-between items-center w-full">
+                            <button id="deleteCampaignBtn" onclick="deleteCampaign()" class="btn-danger hidden flex items-center gap-2">
+                                🗑️ Smazat
+                            </button>
+                            <div class="flex gap-3 ml-auto">
+                                <button onclick="hideModal()" class="btn-secondary">
+                                    Zrušit
+                                </button>
+                                <button onclick="saveCampaign()" class="btn-primary">
+                                    💾 Uložit kampaň
+                                </button>
+                            </div>
+                        </div>
+                    </footer>
+                </div>
+            </div>
+        </div>
+        
+        <div id="shopSelector" class="main-container">
+            <div class="shop-card">
+                <h1 class="text-4xl font-extrabold text-center text-slate-800 mb-2">📅 Kalendář kampaní</h1>
+
+                <a href="?shop=ruzovyslon" class="link-button link-button-rosaslon">
+                    <div class="flex flex-col items-center gap-3 w-full">
+                        <div class="flex items-center gap-3 sm:gap-4 justify-center flex-wrap">
+                            <img src="https://www.ruzovyslon.cz/assets/frontend/images/logo-cs.svg?v=3" alt="Růžový Slon" class="shop-logo">
+                            <span class="text-2xl font-bold">+</span>
+                            <img src="https://www.kondomshop.sk/assets/frontend/images/sk_kondomshop.png?v=1" alt="Kondomshop" class="shop-logo">
+                            <span class="text-2xl font-bold">+</span>
+                            <img src="https://www.dognet.cz/wp-content/uploads/2021/11/flagranti_logo.png" alt="Flagranti" class="shop-logo">
+                        </div>
+                        <span>Chci naplánovat kampaň</span>
+                    </div>
+                </a>
+
+                
+            </div>
+        </div>
+    </div>
+
+
+    <div id="campaignTooltip" class="campaign-tooltip-card" onmouseover="cancelTooltipHide()" onmouseout="hideTooltip()"></div>
+
+    <input type="file" id="csvCampaignsFileInput" class="hidden" accept=".csv" onchange="importData(event, 'campaigns')">
+    <input type="file" id="csvYearlyFileInput" class="hidden" accept=".csv" onchange="importData(event, 'yearly')">
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, setDoc, writeBatch, getDocs, deleteField } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+
+        const centralFirebaseConfig = {
+            apiKey: "AIzaSyBNK4BLdITsJYfaW9zzUzK51knZfvuZIRw",
+            authDomain: "publikacni-plan.firebaseapp.com",
+            projectId: "publikacni-plan",
+            storageBucket: "publikacni-plan.appspot.com",
+            messagingSenderId: "181178329527",
+            appId: "1:181178329527:web:a85dd1e9a542f03ec16032"
+        };
+        
+        const shopConfigs = {
+            'ruzovyslon': {
+                name: 'Růžový Slon & Kondomshop & Flagranti',
+                color: '#f472b6',
+                campaignsPath: 'campaigns', 
+                yearlyPlansPath: 'yearlyPlans'
+            }
+        };
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const selectedShopKey = urlParams.get('shop');
+        let currentShop = null;
+
+        let db = null;
+        let campaignsCollection = null;
+        let yearlyPlansCollection = null;
+
+        function initializeAppContent() {
+            if (selectedShopKey && shopConfigs[selectedShopKey]) {
+                currentShop = shopConfigs[selectedShopKey];
+                
+                document.getElementById('shopSelector').classList.remove('visible');
+                document.getElementById('appContent').classList.add('visible');
+                
+                document.getElementById('currentShopName').textContent = currentShop.name;
+                document.getElementById('mainTitle').textContent = `Kalendář kampaní - ${currentShop.name}`;
+                
+                try {
+                    const app = initializeApp(centralFirebaseConfig);
+                    db = getFirestore(app);
+                    
+                    campaignsCollection = collection(db, currentShop.campaignsPath);
+                    yearlyPlansCollection = collection(db, currentShop.yearlyPlansPath); 
+
+                    initCalendar();
+
+                } catch (error) {
+                    console.error("Chyba inicializace Firebase pro shop:", currentShop.name, error);
+                    showToast(`CHYBA: Nelze se připojit k Firebase. Zkontrolujte nastavení!`, 'error');
+                }
+
+            } else {
+                document.getElementById('shopSelector').classList.add('visible');
+                document.getElementById('appContent').style.display = 'none';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', initializeAppContent);
+
+        let campaigns = [];
+        const now = new Date();
+        let currentDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
+        let editingCampaignId = null;
+        let draggedCampaignId = null;
+        let draggedFromCell = null;
+        let isMonthOverviewExpanded = false;
+        let tooltipHideTimer = null;
+        let deepLinkHandled = false;
+        let selectedCampaignId = null; 
+        let draggedRowIndex = null;
+        let draggedRowMonth = null;
+        let draggedRowYear = null;
+
+        const months = ['LEDEN', 'ÚNOR', 'BŘEZEN', 'DUBEN', 'KVĚTEN', 'ČERVEN', 'ČERVENEC', 'SRPEN', 'ZÁŘÍ', 'ŘÍJEN', 'LISTOPAD', 'PROSINEC'];
+        const dayNames = ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne'];
+        
+        const channels = [
+            'HP Banner',
+            'Affiliate',
+            'Billboardy',
+            'Doprava zdarma',
+            'Eventy',
+            'Firmy.cz Display',
+            'Google firmy',
+            'Heureka Display',
+            'IG - Influenceři',
+            'IG - post',
+            'IG - reels',
+            'IG - stories',
+            'IG - prodejna',
+            'IG - smyslný dotek',
+            'IG - kouzlo intimity',
+            'Magazín - články',
+            'Newsletter',
+            'Podcasty',
+            'PPC display',
+            'Prodejny',
+            'Rádio',
+            'Referer',
+            'SMS',
+            'TV',
+            'WEB (A/B, testy, změny, atp.)'
+        ];
+        const TOTAL_CAMPAIGN_COLORS = 16;
+
+        const statusConfig = {
+            priprava: { label: 'V přípravě', color: 'bg-yellow-200 border-yellow-300 text-yellow-900', icon: '🟡' },
+            kespusteni: { label: 'Ke spuštění', color: 'bg-blue-200 border-blue-300 text-blue-900', icon: '🔵' },
+            aktivni: { label: 'Aktivní', color: 'bg-green-200 border-green-300 text-green-900', icon: '🟢' },
+            ukoncena: { label: 'Ukončená', color: 'bg-gray-200 border-gray-300 text-gray-700', icon: '⚫' }
+        };
+        
+        const countryConfig = {
+            'CZ - Růžový Slon': { label: 'Růžový Slon - CZ', icon: '' },
+            'SK - Růžový Slon': { label: 'Růžový Slon - SK', icon: '' },
+            'HU - Růžový Slon': { label: 'Růžový Slon - HU', icon: '' },
+            'RO - Růžový Slon': { label: 'Růžový Slon - RO', icon: '' },
+            'SI - Růžový Slon': { label: 'Růžový Slon - SI', icon: '' },
+            'HR - Růžový Slon': { label: 'Růžový Slon - HR', icon: '' },
+            'BG - Růžový Slon': { label: 'Růžový Slon - BG', icon: '' },
+            'SK - Kondomshop': { label: 'Kondomshop - SK', icon: '' },
+            'CZ - Kondomshop': { label: 'Kondomshop - CZ', icon: '' },
+            'CZ - Flagranti': { label: 'Flagranti - CZ', icon: '' },
+            'SK - Flagranti': { label: 'Flagranti - SK', icon: '' }
+        };
+        
+        let yearlyPlanData = {};
+
+        function loadData() {
+            if (!campaignsCollection) return;
+            onSnapshot(campaignsCollection, (snapshot) => {
+                campaigns = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                updateCampaignStatuses();
+                updateDisplay();
+                if (!deepLinkHandled) {
+                    handleDeepLink();
+                    deepLinkHandled = true;
+                }
+            });
+        }
+
+        function updateCampaignStatuses() {
+            const today = new Date();
+            const todayStr = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())).toISOString().split('T')[0];
+
+            campaigns.forEach(campaign => {
+                let changed = false;
+                let newStatus = campaign.status;
+
+                if (campaign.dateTo < todayStr && campaign.status !== 'ukoncena') {
+                    newStatus = 'ukoncena';
+                    changed = true;
+                }
+                else if (campaign.dateFrom <= todayStr && campaign.dateTo >= todayStr && (campaign.status === 'priprava' || campaign.status === 'kespusteni')) {
+                    newStatus = 'aktivni';
+                    changed = true;
+                }
+
+                if (changed) {
+                    const campaignRef = doc(db, currentShop.campaignsPath, campaign.id);
+                    updateDoc(campaignRef, { status: newStatus });
+                    showToast('Stav některých kampaní byl automaticky aktualizován.', 'info');
+                }
+            });
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        function initCalendar() { 
+            loadData();
+            populateFilters();
+            initYearlyPlan();
+            updateDisplay();
+
+            document.getElementById('campaignDescription').addEventListener('paste', handlePaste);
+            
+            document.getElementById('calendarViewBtn').addEventListener('click', () => toggleView('calendar'));
+            document.getElementById('yearlyViewBtn').addEventListener('click', () => toggleView('yearly'));
+        }
+        
+        function createEmptyYearlyPlan() {
+             const emptyPlan = {};
+             months.forEach(month => {
+                 emptyPlan[month] = { significantDay: '', campaigns: [] };
+             });
+             return emptyPlan;
+        }
+
+        function initYearlyPlan() {
+            loadYearlyPlan();
+            generateYearlyOverview();
+        }
+
+        function populateYearSelector() {}
+        
+        function convertToISODate(dateStr) {
+            if (!dateStr || dateStr.length !== 10) return null;
+            const parts = dateStr.split('.');
+            if (parts.length !== 3) return null;
+            const [day, month, year] = parts.map(p => p.trim());
+            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        }
+
+        function getStatusByDate(dateFromStr, dateToStr) {
+            const today = new Date();
+            const todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+
+            const dateFromISO = convertToISODate(dateFromStr);
+            const dateToISO = convertToISODate(dateToStr);
+
+            if (!dateFromISO || !dateToISO) return 'Plánováno';
+
+            const start = new Date(dateFromISO + 'T00:00:00Z');
+            const end = new Date(dateToISO + 'T00:00:00Z');
+            
+            const endInclusive = new Date(end.getTime());
+            endInclusive.setDate(endInclusive.getDate());
+
+            if (start > todayUTC) {
+                return 'Plánováno';
+            } else if (endInclusive < todayUTC) {
+                return 'Ukončeno';
+            } else {
+                return 'Aktivní';
+            }
+        }
+
+        function generateYearlyOverview() {
+            const container = document.getElementById('yearlyPlanContainer');
+            if (Object.keys(yearlyPlanData).length === 0) {
+                 container.innerHTML = `<p class="text-center text-gray-500 py-8">Nejsou nahrána žádná data ročního plánu. Přidejte první záznam do formuláře výše.</p>`;
+                 return;
+            }
+
+            const allMonths = [];
+            Object.keys(yearlyPlanData).forEach(year => {
+                months.forEach((monthName, monthIndex) => {
+                    const monthData = yearlyPlanData[year][monthName];
+                    if (monthData) {
+                        allMonths.push({
+                            year: parseInt(year),
+                            monthIndex: monthIndex,
+                            monthName: monthName,
+                            campaigns: monthData.campaigns || []
+                        });
+                    }
+                });
+            });
+
+            allMonths.sort((a, b) => {
+                if (a.year !== b.year) {
+                    return a.year - b.year;
+                }
+                return a.monthIndex - b.monthIndex;
+            });
+            
+            const now = new Date();
+            const currentYearMonth = now.getFullYear() * 12 + now.getMonth();
+            
+            let pastMonthsHtml = '';
+            let upcomingMonthsHtml = '';
+            let isPastSectionActive = false;
+
+            allMonths.forEach(monthItem => {
+                const monthTime = monthItem.year * 12 + monthItem.monthIndex;
+                const isPast = monthTime < currentYearMonth;
+                const isCurrentMonth = monthTime === currentYearMonth;
+                
+                if (monthItem.campaigns.length > 0 || isCurrentMonth) {
+                    let monthHtml = generateMonthTable(monthItem.year, monthItem.monthName, monthItem.campaigns, isCurrentMonth);
+
+                    if (isPast) {
+                        pastMonthsHtml += monthHtml;
+                        isPastSectionActive = true;
+                    } else {
+                        upcomingMonthsHtml += monthHtml;
+                    }
+                }
+            });
+
+            let finalHtml = '';
+            
+            const tableHeaderHtml = `
+                <table class="text-left text-gray-700 w-full" id="yearlyPlanTable">
+                <thead>
+                    <tr class="text-xs text-gray-800 uppercase">
+                        <th scope="col" class="px-4 py-2 sticky-col border-r border-slate-200">Stav</th>
+                        <th scope="col" class="px-4 py-2">Domény</th>
+                        <th scope="col" class="px-4 py-2">Typ</th>
+                        <th scope="col" class="px-4 py-2">Hlavní témata</th>
+                        <th scope="col" class="px-4 py-2">Datum od - do</th>
+                        <th scope="col" class="px-4 py-2">Informace o akci/Poznámky</th>
+                        <th scope="col" class="px-2 py-2">Akce</th>
+                    </tr>
+                </thead>
+                <tbody id="yearlyTableBodyUpcoming">
+                    ${upcomingMonthsHtml}
+                </tbody>
+                </table>
+            `;
+
+            if (upcomingMonthsHtml) {
+                finalHtml += tableHeaderHtml;
+            } else {
+                 finalHtml += `<p class="text-center text-gray-500 py-4 font-semibold">Žádné nadcházející kampaně v plánu.</p>`;
+            }
+
+            if (isPastSectionActive) {
+                finalHtml += `
+                    <div class="mt-8">
+                        <h4 class="text-xl font-bold text-gray-800 mb-3 cursor-pointer select-none flex items-center gap-2 hover:text-indigo-600"
+                            onclick="toggleArchive()">
+                            <span id="archiveToggleIcon">▶️</span> Archiv uplynulých měsíců
+                            <span class="text-sm text-gray-500 ml-2">(Celkem ${Math.floor(pastMonthsHtml.split('data-month').length / 2)} měsíců)</span>
+                        </h4>
+                        <div id="yearlyArchive" class="hidden">
+                            <table class="text-left text-gray-700 w-full">
+                                <thead>
+                                    <tr class="text-xs text-gray-800 uppercase">
+                                        <th scope="col" class="px-4 py-2 sticky-col border-r border-slate-200">Stav</th>
+                                        <th scope="col" class="px-4 py-2">Domény</th>
+                                        <th scope="col" class="px-4 py-2">Typ</th>
+                                        <th scope="col" class="px-4 py-2">Hlavní témata</th>
+                                        <th scope="col" class="px-4 py-2">Datum od - do</th>
+                                        <th scope="col" class="px-4 py-2">Informace o akci/Poznámky</th>
+                                        <th scope="col" class="px-2 py-2">Akce</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="yearlyTableBodyPast">
+                                    ${pastMonthsHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>`;
+            }
+
+            container.innerHTML = finalHtml;
+        }
+        
+        function generateMonthTable(year, monthName, campaigns, isCurrentMonth) {
+             const currentMonthClass = isCurrentMonth ? 'current-month-highlight' : '';
+             
+             let tableHtml = `
+                <tr class="month-header font-bold border-t border-indigo-100/50 ${currentMonthClass}">
+                    <td colspan="7" class="px-4 py-2 text-indigo-900 sticky-col border-r border-slate-200">${monthName} ${year} ${isCurrentMonth ? '(Aktuální)' : ''}</td>
+                </tr>`;
+                
+                if (campaigns.length === 0 && !isCurrentMonth) {
+                    return '';
+                } else if (campaigns.length === 0 && isCurrentMonth) {
+                    tableHtml += `<tr><td colspan="7" class="px-4 py-2 text-center text-gray-400">Žádné plánované kampaně v tomto měsíci.</td></tr>`;
+                }
+
+                campaigns.forEach((campaign, index) => {
+                    const highlightClass = campaign.highlight || '';
+                    
+                    const dateParts = campaign.date ? campaign.date.split(' - ').map(d => d.trim()) : ['', ''];
+                    const dateFromStr = dateParts[0];
+                    const dateToStr = dateParts.length > 1 ? dateParts[1] : '';
+
+                    const detectedStatus = getStatusByDate(dateFromStr, dateToStr);
+                    const status = (dateFromStr && dateToStr && dateFromStr.length === 10 && dateToStr.length === 10) ? detectedStatus : campaign.status; 
+                    
+                    let statusColorClass = 'status-planned';
+                    let statusText = status;
+                    
+                    const isSignificantDay = campaign.significantDay && campaign.theme === campaign.significantDay && !campaign.type;
+
+                    if (isSignificantDay) {
+                         statusColorClass = 'status-planned text-indigo-700'; 
+                         statusText = '✨ Událost';
+                    } else if (status === 'Aktivní') { 
+                        statusColorClass = 'status-active'; statusText = '🟢 Aktivní'; 
+                    } else if (status === 'Ukončeno') { 
+                        statusColorClass = 'status-finished'; statusText = '⚫ Ukončeno'; 
+                    } else { 
+                        statusText = '🔵 Plánováno'; 
+                    }
+                    
+                    tableHtml += `<tr 
+                        class="bg-white hover:bg-indigo-50/50 ${highlightClass} draggable-row"
+                        draggable="true"
+                        data-year="${year}"
+                        data-month="${monthName}"
+                        data-index="${index}"
+                        ondragstart="dragRowStart(event)"
+                        ondragover="dragRowOver(event)"
+                        ondragleave="dragRowLeave(event)"
+                        ondrop="dropRow(event)">`;
+                    
+                    tableHtml += `<td class="px-4 py-2 sticky-col bg-white border-r border-slate-200">
+                        <span class="font-semibold text-xs ${statusColorClass}" data-key="status" data-index="${index}" data-month="${monthName}">${statusText}</span>
+                    </td>`;
+                    
+                    tableHtml += `<td class="px-4 py-2" data-key="country" data-index="${index}" data-month="${monthName}">${campaign.country || ''}</td>`;
+                    tableHtml += `<td class="px-4 py-2 font-medium text-gray-900" data-key="type" data-index="${index}" data-month="${monthName}">${campaign.type || ''}</td>`;
+                    tableHtml += `<td class="px-4 py-2 font-bold" data-key="theme" data-index="${index}" data-month="${monthName}">${campaign.theme || ''}</td>`;
+                    tableHtml += `<td class="px-4 py-2 whitespace-nowrap text-center text-xs" data-key="date" data-index="${index}" data-month="${monthName}">
+                        ${campaign.date || ''}
+                    </td>`;
+
+                    tableHtml += `<td contenteditable="true" class="px-4 py-2 w-full" data-key="info" data-index="${index}" data-month="${monthName}" placeholder="Info/Poznámky">${campaign.info || ''}</td>`;
+
+                    tableHtml += `<td class="px-2 py-2 text-center whitespace-nowrap">
+                        <div class="flex items-center justify-center gap-1.5">
+                            <button onclick="editYearlyPlanRowInForm('${year}', '${monthName}', ${index})" 
+                                    class="text-indigo-500 hover:text-indigo-700 font-bold text-lg p-0.5" title="Upravit záznam">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                            </button>
+                            <button onclick="deleteYearlyPlanRow('${year}', '${monthName}', ${index})" class="text-red-500 hover:text-red-700 font-bold text-xl p-0.5" title="Smazat řádek">&times;</button>
+                        </div>
+                    </td>`;
+                    
+                    tableHtml += `</tr>`;
+                });
+                
+                return tableHtml;
+        }
+
+        function toggleArchive() {
+            const archive = document.getElementById('yearlyArchive');
+            const icon = document.getElementById('archiveToggleIcon');
+            if (archive.classList.contains('hidden')) {
+                archive.classList.remove('hidden');
+                icon.textContent = '▼';
+            } else {
+                archive.classList.add('hidden');
+                icon.textContent = '▶️';
+            }
+        }
+
+        function getMonthName(date) {
+            return months[date.getUTCMonth()];
+        }
+
+        function clearYearlyForm() {
+            document.getElementById('yearlyPlanForm').reset();
+            document.getElementById('yearlyInfo').value = '';
+            document.getElementById('yearlyFormMessage').classList.add('hidden');
+            const addButton = document.querySelector('#yearlyOverviewSection .btn-primary');
+            addButton.textContent = 'Přidat záznam';
+            addButton.onclick = addYearlyPlanFromForm;
+        }
+
+        function editYearlyPlanRowInForm(year, monthName, index) {
+            const campaign = yearlyPlanData[year]?.[monthName]?.campaigns[index];
+            if (!campaign) {
+                showToast('Chyba: Záznam nebyl nalezen.', 'error');
+                return;
+            }
+            
+            clearYearlyForm();
+
+            document.getElementById('yearlySignificantDay').value = campaign.significantDay || '';
+            document.getElementById('yearlyCountry').value = campaign.country || '';
+            document.getElementById('yearlyType').value = campaign.type || '';
+            document.getElementById('yearlyTheme').value = campaign.theme || '';
+            document.getElementById('yearlyInfo').value = campaign.info || '';
+
+            const dateParts = campaign.date ? campaign.date.split(' - ').map(d => d.trim()) : ['', ''];
+            
+            const toISO = (dateStr) => {
+                 if (!dateStr || dateStr.length !== 10) return '';
+                 const parts = dateStr.split('.');
+                 if (parts.length !== 3) return '';
+                 return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            }
+
+            document.getElementById('yearlyDateFrom').value = toISO(dateParts[0]);
+            document.getElementById('yearlyDateTo').value = toISO(dateParts.length > 1 ? dateParts[1] : dateParts[0]);
+            
+            const addButton = document.querySelector('#yearlyOverviewSection .btn-primary');
+            addButton.textContent = '💾 Uložit úpravy';
+            
+            addButton.onclick = async () => {
+                await saveYearlyPlanUpdate(year, monthName, index);
+            };
+            
+            document.getElementById('yearlyOverviewSection').scrollIntoView({ behavior: 'smooth' });
+            showToast(`Údaje záznamu: "${campaign.theme}" načteny do formuláře pro úpravu.`, 'info');
+        }
+        
+        async function saveYearlyPlanUpdate(originalYear, originalMonthName, originalIndex) {
+            const significantDay = document.getElementById('yearlySignificantDay').value.trim();
+            const country = document.getElementById('yearlyCountry').value.trim();
+            const type = document.getElementById('yearlyType').value.trim();
+            const theme = document.getElementById('yearlyTheme').value.trim();
+            let dateFromStr = document.getElementById('yearlyDateFrom').value;
+            let dateToStr = document.getElementById('yearlyDateTo').value;
+            const info = document.getElementById('yearlyInfo').value.trim();
+            
+            const messageElement = document.getElementById('yearlyFormMessage');
+            messageElement.classList.add('hidden');
+            
+            const hasThemeOrSignificantDay = theme || significantDay;
+            const hasDateFrom = dateFromStr;
+            
+            if (!hasThemeOrSignificantDay || !hasDateFrom) {
+                 messageElement.textContent = 'Pro úpravu musí být vyplněno Datum od a alespoň Významný den nebo Hlavní témata.';
+                 messageElement.classList.remove('hidden');
+                 return;
+            }
+             if (!dateToStr) {
+                dateToStr = dateFromStr;
+            }
+            if (dateFromStr > dateToStr) {
+                 messageElement.textContent = 'Datum "od" nemůže být později než datum "do".';
+                 messageElement.classList.remove('hidden');
+                 return;
+            }
+            
+            const campaignToDelete = yearlyPlanData[originalYear][originalMonthName].campaigns[originalIndex];
+            const uniqueKey = `${campaignToDelete.country}|${campaignToDelete.type}|${campaignToDelete.theme}|${campaignToDelete.date}`;
+            
+            const monthsToUpdate = new Set();
+
+            Object.keys(yearlyPlanData).forEach(y => {
+                 months.forEach(mName => {
+                     if (yearlyPlanData[y][mName]) {
+                         const monthCampaigns = yearlyPlanData[y][mName].campaigns;
+                         for (let i = monthCampaigns.length - 1; i >= 0; i--) {
+                             const currentCampaign = monthCampaigns[i];
+                             const currentKey = `${currentCampaign.country}|${currentCampaign.type}|${currentCampaign.theme}|${currentCampaign.date}`;
+
+                             if (currentKey === uniqueKey) {
+                                 monthCampaigns.splice(i, 1);
+                                 monthsToUpdate.add(`${y}|${mName}`);
+                             }
+                         }
+                     }
+                 });
+             });
+             
+            const newRecord = {
+                country: country,
+                type: type,
+                theme: theme || significantDay, 
+                date: `${formatDate(dateFromStr)} - ${formatDate(dateToStr)}`,
+                info: info,
+                status: 'Plánováno',
+                sortDate: dateFromStr
+            };
+            if (significantDay) {
+                 newRecord.significantDay = significantDay;
+                 if (!theme) {
+                    newRecord.theme = significantDay;
+                 }
+            }
+            
+            const startDate = new Date(dateFromStr + 'T00:00:00Z');
+            const endDate = new Date(dateToStr + 'T00:00:00Z');
+            let current = new Date(startDate.getTime());
+            
+            while (current <= endDate) {
+                const currentRecordYear = current.getUTCFullYear().toString();
+                const monthName = getMonthName(current);
+                
+                if (!yearlyPlanData[currentRecordYear]) {
+                    yearlyPlanData[currentRecordYear] = createEmptyYearlyPlan();
+                }
+                
+                if (yearlyPlanData[currentRecordYear] && yearlyPlanData[currentRecordYear][monthName]) {
+                     const monthCampaigns = yearlyPlanData[currentRecordYear][monthName].campaigns;
+                     const checkKey = `${newRecord.theme}|${newRecord.date}|${newRecord.country}`;
+                     
+                     const isDuplicate = monthCampaigns.some(camp => 
+                        `${camp.theme}|${camp.date}|${camp.country}` === checkKey
+                     );
+
+                     if (!isDuplicate) {
+                         monthCampaigns.push(newRecord);
+                         monthsToUpdate.add(`${currentRecordYear}|${monthName}`);
+                     }
+                }
+                
+                current.setUTCMonth(current.getUTCMonth() + 1);
+            }
+            
+            const yearsToSaveSet = new Set();
+            monthsToUpdate.forEach(key => yearsToSaveSet.add(key.split('|')[0]));
+
+            yearsToSaveSet.forEach(y => {
+                months.forEach(mName => {
+                    if (yearlyPlanData[y][mName]) {
+                         yearlyPlanData[y][mName].campaigns.sort((a, b) => new Date(a.sortDate) - new Date(b.sortDate));
+                         yearlyPlanData[y][mName].campaigns.forEach(c => delete c.sortDate);
+                    }
+                });
+            });
+
+            await saveYearlyPlanBatch(monthsToUpdate);
+            generateYearlyOverview();
+            clearYearlyForm();
+            showToast('Záznam ročního plánu byl úspěšně upraven a uložen!', 'success');
+        }
+
+        async function addYearlyPlanFromForm() {
+            const significantDay = document.getElementById('yearlySignificantDay').value.trim();
+            const country = document.getElementById('yearlyCountry').value.trim();
+            const type = document.getElementById('yearlyType').value.trim();
+            const theme = document.getElementById('yearlyTheme').value.trim();
+            let dateFromStr = document.getElementById('yearlyDateFrom').value;
+            let dateToStr = document.getElementById('yearlyDateTo').value;
+            const info = document.getElementById('yearlyInfo').value.trim();
+            
+            const messageElement = document.getElementById('yearlyFormMessage');
+            messageElement.classList.add('hidden');
+
+            const hasThemeOrSignificantDay = theme || significantDay;
+            const hasDateFrom = dateFromStr;
+            
+            if (!hasThemeOrSignificantDay || !hasDateFrom) {
+                 messageElement.textContent = 'Pro přidání záznamu musí být vyplněno Datum od a alespoň Významný den nebo Hlavní témata.';
+                 messageElement.classList.remove('hidden');
+                 return;
+            }
+
+            if (!dateToStr) {
+                dateToStr = dateFromStr;
+            }
+            
+            if (dateFromStr > dateToStr) {
+                 messageElement.textContent = 'Datum "od" nemůže být později než datum "do".';
+                 messageElement.classList.remove('hidden');
+                 return;
+            }
+            
+            const campaignYear = new Date(dateFromStr + 'T00:00:00Z').getUTCFullYear().toString();
+            const yearToSave = campaignYear; 
+            
+            if (!yearlyPlanData[yearToSave]) {
+                await addNewYear(yearToSave); 
+            }
+
+            const startDate = new Date(dateFromStr + 'T00:00:00Z');
+            const endDate = new Date(dateToStr + 'T00:00:00Z');
+            
+            const newRecord = {
+                country: country,
+                type: type,
+                theme: theme || significantDay,
+                date: `${formatDate(dateFromStr)} - ${formatDate(dateToStr)}`,
+                info: info,
+                status: 'Plánováno',
+                sortDate: startDate.toISOString().split('T')[0] 
+            };
+
+            if (significantDay) {
+                 newRecord.significantDay = significantDay;
+                 if (!theme) {
+                    newRecord.theme = significantDay;
+                 }
+            }
+            
+            let current = new Date(startDate.getTime());
+            
+            const addedMonths = new Set();
+            while (current <= endDate) {
+                const currentRecordYear = current.getUTCFullYear().toString();
+                const monthName = getMonthName(current);
+                
+                if (!yearlyPlanData[currentRecordYear]) {
+                    yearlyPlanData[currentRecordYear] = createEmptyYearlyPlan();
+                }
+
+                if (yearlyPlanData[currentRecordYear] && yearlyPlanData[currentRecordYear][monthName]) {
+                     const monthCampaigns = yearlyPlanData[currentRecordYear][monthName].campaigns;
+
+                     const checkKey = `${newRecord.theme}|${newRecord.date}|${newRecord.country}`;
+                     
+                     const isDuplicate = monthCampaigns.some(camp => 
+                        `${camp.theme}|${camp.date}|${camp.country}` === checkKey
+                     );
+
+                     if (!isDuplicate) {
+                         monthCampaigns.push(newRecord);
+                         addedMonths.add(`${currentRecordYear}|${monthName}`);
+                     }
+                }
+                
+                current.setUTCMonth(current.getUTCMonth() + 1);
+            }
+            
+            const yearsToSaveSet = new Set();
+            addedMonths.forEach(key => yearsToSaveSet.add(key.split('|')[0]));
+
+            yearsToSaveSet.forEach(y => {
+                months.forEach(mName => {
+                    if (yearlyPlanData[y][mName]) {
+                        yearlyPlanData[y][mName].campaigns.sort((a, b) => new Date(a.sortDate) - new Date(b.sortDate));
+                        yearlyPlanData[y][mName].campaigns.forEach(c => delete c.sortDate);
+                    }
+                });
+            });
+
+            await saveYearlyPlanBatch(addedMonths);
+            generateYearlyOverview();
+            clearYearlyForm();
+            showToast('Záznam úspěšně přidán do ročního plánu!', 'success');
+        }
+
+        async function saveYearlyPlanBatch(affectedMonths) {
+            const batch = writeBatch(db);
+            const affectedYears = new Set();
+
+            affectedMonths.forEach(key => {
+                const [year] = key.split('|');
+                affectedYears.add(year);
+            });
+
+            try {
+                for (const year of affectedYears) {
+                    if (yearlyPlanData[year]) {
+                         const yearRef = doc(db, currentShop.yearlyPlansPath, year);
+                         batch.set(yearRef, yearlyPlanData[year]);
+                    }
+                }
+                await batch.commit();
+            } catch (e) {
+                console.error("Chyba při dávkovém ukládání ročního plánu do Firebase:", e);
+                showToast('Chyba při ukládání dat do Firebase.', 'error');
+            }
+        }
+        
+        async function deleteYearlyPlanRow(year, monthName, index) {
+            if (!yearlyPlanData[year] || !yearlyPlanData[year][monthName] || !yearlyPlanData[year][monthName].campaigns[index]) {
+                return;
+            }
+            
+            if (confirm('Opravdu si přejete trvale smazat tento řádek? Smažou se i jeho duplicity ve všech měsících a letech, do kterých zasahuje!')) {
+                const campaignToDelete = yearlyPlanData[year][monthName].campaigns[index];
+                
+                const uniqueKey = `${campaignToDelete.country}|${campaignToDelete.type}|${campaignToDelete.theme}|${campaignToDelete.date}`;
+                
+                const yearsToSave = new Set();
+
+                Object.keys(yearlyPlanData).forEach(y => {
+                    months.forEach(mName => {
+                        if (yearlyPlanData[y][mName]) {
+                            const monthCampaigns = yearlyPlanData[y][mName].campaigns;
+                            for (let i = monthCampaigns.length - 1; i >= 0; i--) {
+                                const currentCampaign = monthCampaigns[i];
+                                const currentKey = `${currentCampaign.country}|${currentCampaign.type}|${currentCampaign.theme}|${currentCampaign.date}`;
+
+                                if (currentKey === uniqueKey) {
+                                    monthCampaigns.splice(i, 1);
+                                    yearsToSave.add(y);
+                                }
+                            }
+                        }
+                    });
+                });
+                
+                if (campaignToDelete.significantDay) {
+                     Object.keys(yearlyPlanData).forEach(y => {
+                         months.forEach(mName => {
+                             if (yearlyPlanData[y][mName] && yearlyPlanData[y][mName].significantDay === campaignToDelete.significantDay) {
+                                 yearlyPlanData[y][mName].significantDay = '';
+                                 yearsToSave.add(y);
+                             }
+                         });
+                     });
+                }
+                
+                const batch = writeBatch(db);
+                for (const y of yearsToSave) {
+                     const yearRef = doc(db, currentShop.yearlyPlansPath, y);
+                     batch.set(yearRef, yearlyPlanData[y]);
+                }
+                await batch.commit();
+
+                generateYearlyOverview();
+
+                showToast('Řádek a jeho duplicity byly odstraněny a změna uložena.', 'success');
+            }
+        }
+        
+        async function deleteYearlyPlan() {
+             
+             if (Object.keys(yearlyPlanData).length === 0) {
+                 showToast('Nejsou žádná data ročního plánu k smazání.', 'error');
+                 return;
+             }
+
+             if (confirm(`OPRAVDU CHCETE SMAZAT CELÝ ROČNÍ PLÁN (VŠECHNY ROKY)? Tato akce je nevratná!`)) {
+                 try {
+                     const batch = writeBatch(db);
+                     Object.keys(yearlyPlanData).forEach(year => {
+                         const yearRef = doc(db, currentShop.yearlyPlansPath, year);
+                         batch.delete(yearRef);
+                     });
+                     await batch.commit();
+                     
+                     yearlyPlanData = {};
+                     generateYearlyOverview();
+                     
+                     showToast(`Celý roční plán byl trvale smazán.`, 'success');
+                 } catch (e) {
+                     console.error("Chyba při mazání ročního plánu:", e);
+                     showToast('Chyba při mazání dat z Firebase.', 'error');
+                 }
+             }
+         }
+
+        function dragRowStart(event) {
+            const row = event.target.closest('.draggable-row');
+            draggedRowIndex = parseInt(row.dataset.index);
+            draggedRowMonth = row.dataset.month;
+            draggedRowYear = row.dataset.year;
+            
+            event.dataTransfer.setData('text/plain', JSON.stringify({ index: draggedRowIndex, month: draggedRowMonth, year: draggedRowYear }));
+            event.dataTransfer.effectAllowed = 'move';
+            
+            setTimeout(() => row.classList.add('dragging'), 0);
+        }
+
+        function dragRowOver(event) {
+            event.preventDefault();
+            const row = event.target.closest('.draggable-row');
+            if (!row || row.dataset.month !== draggedRowMonth || row.dataset.year !== draggedRowYear) return;
+
+            const rect = row.getBoundingClientRect();
+            const mouseY = event.clientY;
+            const halfHeight = rect.height / 2;
+
+            document.querySelectorAll('.draggable-row').forEach(r => {
+                r.classList.remove('drag-over-top', 'drag-over-bottom');
+            });
+
+            if (mouseY < rect.top + halfHeight) {
+                 row.classList.add('drag-over-top');
+            } else {
+                 row.classList.add('drag-over-bottom');
+            }
+
+            event.dataTransfer.dropEffect = 'move';
+        }
+
+        function dragRowLeave(event) {
+            const row = event.target.closest('.draggable-row');
+            if (row) {
+                row.classList.remove('drag-over-top', 'drag-over-bottom');
+            }
+        }
+
+        async function dropRow(event) {
+            event.preventDefault();
+            const targetRow = event.target.closest('.draggable-row');
+            const targetYear = targetRow.dataset.year;
+            
+            if (!targetRow || targetRow.dataset.month !== draggedRowMonth || targetYear !== draggedRowYear) {
+                resetRowDrag();
+                return;
+            }
+
+            const targetMonth = targetRow.dataset.month;
+            const targetIndex = parseInt(targetRow.dataset.index);
+            const year = targetYear;
+
+            document.querySelectorAll('.draggable-row').forEach(r => {
+                r.classList.remove('drag-over-top', 'drag-over-bottom', 'dragging');
+            });
+
+            const rect = targetRow.getBoundingClientRect();
+            const mouseY = event.clientY;
+            const halfHeight = rect.height / 2;
+            let newIndex = targetIndex;
+
+            if (mouseY > rect.top + halfHeight) {
+                newIndex = targetIndex + 1;
+            }
+
+            if (draggedRowMonth === targetMonth && draggedRowIndex !== targetIndex && draggedRowIndex + 1 !== newIndex) {
+                 const monthCampaigns = yearlyPlanData[year][draggedRowMonth].campaigns;
+                 
+                 const [movedCampaign] = monthCampaigns.splice(draggedRowIndex, 1);
+                 
+                 const finalIndex = newIndex > draggedRowIndex ? newIndex - 1 : newIndex;
+                 monthCampaigns.splice(finalIndex, 0, movedCampaign);
+
+                 await saveYearlyPlan(year);
+                 generateYearlyOverview();
+                 showToast('Řádek byl přesunut a změny uloženy!', 'success');
+            }
+
+            resetRowDrag();
+        }
+
+        function resetRowDrag() {
+            draggedRowIndex = null;
+            draggedRowMonth = null;
+            draggedRowYear = null;
+            document.querySelectorAll('.draggable-row').forEach(r => {
+                r.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom');
+            });
+        }
+
+        async function addNewYear(predefinedYear) {
+            const newYear = predefinedYear || String(new Date().getFullYear() + 1); 
+            const yearStr = String(newYear);
+
+            if (newYear && !isNaN(newYear)) {
+                if (yearlyPlanData[yearStr]) {
+                    return;
+                }
+                
+                yearlyPlanData[yearStr] = createEmptyYearlyPlan();
+                await saveYearlyPlan(yearStr);
+                generateYearlyOverview();
+            }
+        }
+
+        async function saveYearlyPlanUI() {
+            const container = document.getElementById('yearlyPlanContainer');
+            if (!container || Object.keys(yearlyPlanData).length === 0) return;
+
+            let saveNeeded = false;
+            const yearsToSave = new Set();
+            const updatedData = {};
+
+            Object.keys(yearlyPlanData).forEach(year => {
+                updatedData[year] = JSON.parse(JSON.stringify(yearlyPlanData[year]));
+            });
+            
+            container.querySelectorAll('tr.draggable-row').forEach(row => {
+                const year = row.dataset.year;
+                const monthName = row.dataset.month;
+
+                const countryText = row.querySelector('td[data-key="country"]').textContent;
+                const typeText = row.querySelector('td[data-key="type"]').textContent;
+                const themeText = row.querySelector('td[data-key="theme"]').textContent;
+                const dateText = row.querySelector('td[data-key="date"]').textContent.trim();
+                const originalKey = `${countryText}|${typeText}|${themeText}|${dateText}`;
+                
+                const originalCampaignIndex = yearlyPlanData[year][monthName].campaigns.findIndex(c => 
+                     `${c.country}|${c.type}|${c.theme}|${c.date}` === originalKey
+                );
+
+                if (originalCampaignIndex === -1) return;
+
+                const originalCampaign = yearlyPlanData[year][monthName].campaigns[originalCampaignIndex];
+                
+                const infoCell = row.querySelector('td[data-key="info"]');
+                
+                const newInfo = infoCell ? infoCell.innerText.trim() : '';
+                
+                if (originalCampaign.info !== newInfo) {
+                     saveNeeded = true;
+                }
+                
+                updatedData[year][monthName].campaigns[originalCampaignIndex].info = newInfo;
+                yearsToSave.add(year);
+            });
+            
+            if (saveNeeded) {
+                 const batch = writeBatch(db);
+                 for (const year of yearsToSave) {
+                     const yearRef = doc(db, currentShop.yearlyPlansPath, year);
+                     batch.set(yearRef, updatedData[year]);
+                     yearlyPlanData[year] = updatedData[year];
+                 }
+                 await batch.commit();
+                 
+                 generateYearlyOverview(); 
+                 showToast(`Změny v ročním plánu byly úspěšně uloženy do Firebase.`, 'success');
+            } else {
+                 showToast('Nebyly nalezeny žádné změny k uložení.', 'info');
+            }
+        }
+
+        async function saveYearlyPlan(year) {
+            if (!yearlyPlanData[year]) return;
+            try {
+                const yearRef = doc(db, currentShop.yearlyPlansPath, year);
+                await setDoc(yearRef, yearlyPlanData[year]);
+            } catch (e) {
+                console.error("Chyba při ukládání ročního plánu do Firebase:", e);
+                showToast('Chyba při ukládání dat do Firebase.', 'error');
+            }
+        }
+
+        function loadYearlyPlan() {
+            if (!yearlyPlansCollection) return;
+            onSnapshot(yearlyPlansCollection, (snapshot) => {
+                yearlyPlanData = {};
+                snapshot.docs.forEach(doc => {
+                    yearlyPlanData[doc.id] = doc.data();
+                });
+
+                generateYearlyOverview();
+            });
+        }
+
+        function toggleView(view) {
+            const calendarView = document.getElementById('calendarView');
+            const yearlyView = document.getElementById('yearlyOverviewSection');
+            const stats = document.getElementById('statsContainer');
+            const filters = document.getElementById('filtersContainer');
+            
+            const calendarBtn = document.getElementById('calendarViewBtn');
+            const yearlyBtn = document.getElementById('yearlyViewBtn');
+
+            if (view === 'yearly') {
+                calendarView.classList.add('hidden');
+                stats.classList.add('hidden');
+                filters.classList.add('hidden');
+                yearlyView.classList.remove('hidden');
+                
+                yearlyBtn.classList.add('active');
+                calendarBtn.classList.remove('active');
+                generateYearlyOverview(); 
+            } else {
+                yearlyView.classList.add('hidden');
+                calendarView.classList.remove('hidden');
+                stats.classList.remove('hidden');
+                filters.classList.remove('hidden');
+
+                calendarBtn.classList.add('active');
+                yearlyBtn.classList.remove('active');
+            }
+        }
+
+        function populateFilters() {
+            const statusContainer = document.getElementById('statusFilterContainer');
+            statusContainer.innerHTML = '';
+            for (const [key, value] of Object.entries(statusConfig)) {
+                const button = document.createElement('button');
+                button.className = 'filter-btn text-sm';
+                button.dataset.filterGroup = 'status';
+                button.dataset.value = key;
+                button.textContent = `${value.icon} ${value.label}`;
+                button.onclick = () => toggleFilter(button);
+                statusContainer.appendChild(button);
+            }
+
+            const countryContainer = document.getElementById('countryFilterContainer');
+            countryContainer.innerHTML = '';
+            for (const [key, value] of Object.entries(countryConfig)) {
+                const button = document.createElement('button');
+                button.className = 'filter-btn text-sm';
+                button.dataset.filterGroup = 'country';
+                button.dataset.value = key;
+                button.innerHTML = `${value.label}`; 
+                button.onclick = () => toggleFilter(button);
+                countryContainer.appendChild(button);
+            }
+
+            const channelContainer = document.getElementById('channelFilterContainer');
+            channelContainer.innerHTML = '';
+            channels.forEach(channel => {
+                const button = document.createElement('button');
+                button.className = 'filter-btn text-sm';
+                button.dataset.filterGroup = 'channel';
+                button.dataset.value = channel;
+                button.textContent = channel;
+                button.onclick = () => toggleFilter(button);
+                channelContainer.appendChild(button);
+            });
+        }
+
+        function getChannelsToRender() {
+            const selectedChannels = Array.from(document.querySelectorAll('.filter-btn.active[data-filter-group="channel"]')).map(btn => btn.dataset.value);
+            
+            if (selectedChannels.length > 0) {
+                return channels.filter(channel => selectedChannels.includes(channel));
+            }
+            return channels;
+        }
+
+        function updateDisplay() {
+            document.getElementById('monthTitle').textContent = `${months[currentDate.getUTCMonth()]} ${currentDate.getUTCFullYear()}`;
+            generateCalendar();
+            generateMonthOverview();
+            updateStats();
+        }
+
+        function updateStats() {
+            const campaignsInCurrentMonth = campaigns.filter(campaign => {
+                if (!campaign.dateFrom || !campaign.dateTo) return false;
+                const campaignStartDate = new Date(campaign.dateFrom + 'T00:00:00Z');
+                const campaignEndDate = new Date(campaign.dateTo + 'T00:00:00Z');
+                const currentMonth = currentDate.getUTCMonth();
+                const currentYear = currentDate.getUTCFullYear();
+                const startMonth = campaignStartDate.getUTCMonth();
+                const startYear = campaignStartDate.getUTCFullYear();
+                const endMonth = campaignEndDate.getUTCMonth();
+                const endYear = campaignEndDate.getUTCFullYear();
+
+                return (startYear === currentYear && startMonth === currentMonth) || (endYear === currentYear && endMonth === currentMonth) || (campaignStartDate < currentDate && campaignEndDate > currentDate)
+
+            });
+
+            document.getElementById('totalCampaigns').textContent = campaigns.length;
+            document.getElementById('activeCampaigns').textContent = campaigns.filter(c => c.status === 'aktivni').length;
+            document.getElementById('monthCampaigns').textContent = campaignsInCurrentMonth.length;
+            document.getElementById('preparingCampaigns').textContent = campaigns.filter(c => c.status === 'priprava').length;
+        }
+        
+        function copyCellLink(event, channel, dateStr) {
+            event.stopPropagation(); 
+            const year = currentDate.getUTCFullYear();
+            const month = currentDate.getUTCMonth() + 1;
+            
+            const hash = `#year=${year}&month=${month}&channel=${encodeURIComponent(channel)}&date=${dateStr}`;
+            const url = window.location.origin + window.location.pathname + window.location.search + hash;
+
+            navigator.clipboard.writeText(url).then(() => {
+                showToast('Odkaz na buňku zkopírován!', 'success');
+            }).catch(err => {
+                console.error('Chyba při kopírování odkazu: ', err);
+                showToast('Odkaz se nepodařilo zkopírovat.', 'error');
+            });
+        }
+
+        function copyCampaignLink(event, campaignId) {
+            event.stopPropagation();
+            const url = window.location.origin + window.location.pathname + window.location.search + '#campaign=' + campaignId;
+            navigator.clipboard.writeText(url).then(() => {
+                showToast('Odkaz na kampaň zkopírován!', 'success');
+            }).catch(err => {
+                console.error('Chyba při kopírování odkazu na kampaň: ', err);
+                showToast('Odkaz se nepodařilo zkopírovat.', 'error');
+            });
+        }
+
+        function handleDeepLink() {
+            if (!window.location.hash) return;
+
+            const params = new URLSearchParams(window.location.hash.substring(1));
+            const campaignId = params.get('campaign');
+
+            if (campaignId) {
+                const campaign = campaigns.find(c => c.id === campaignId);
+                if (campaign) {
+                    editCampaign(campaignId);
+                } else {
+                    showToast('Odkazovaná kampaň nebyla nalezena.', 'error');
+                }
+                return;
+            }
+
+            const year = parseInt(params.get('year'), 10);
+            const month = parseInt(params.get('month'), 10) - 1;
+            const channel = decodeURIComponent(params.get('channel'));
+            const date = params.get('date');
+
+            if (!year || isNaN(month) || !channel || !date) return;
+            
+            currentDate = new Date(Date.UTC(year, month, 1));
+            updateDisplay();
+
+            setTimeout(() => {
+                const rows = document.querySelectorAll('#calendarContainer tr');
+                for (const row of rows) {
+                    const channelCell = row.querySelector('td.sticky-col');
+                    if (channelCell && channelCell.innerText.trim() === channel) {
+                         const targetCell = row.querySelector(`td[ondrop*="'${date}'"]`);
+                         if (targetCell) {
+                             targetCell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                             targetCell.style.transition = 'background-color 0.3s ease';
+                             targetCell.style.backgroundColor = '#fef9c3';
+                             setTimeout(() => {
+                                 targetCell.style.backgroundColor = '';
+                             }, 2500);
+                             break;
+                         }
+                    }
+                }
+            }, 500);
+        }
+
+        function generateCalendar() {
+            const calendar = document.getElementById('calendar');
+            calendar.innerHTML = '';
+            const year = currentDate.getUTCFullYear();
+            const month = currentDate.getUTCMonth();
+            
+            const campaignsToRender = getCampaignsToRender(); 
+            const channelsToRender = getChannelsToRender();
+
+            const monthStart = new Date(Date.UTC(year, month, 1));
+            const monthEnd = new Date(Date.UTC(year, month + 1, 0));
+
+            const firstMonday = new Date(monthStart.getTime());
+            const dayOfWeek = firstMonday.getUTCDay();
+            const mondayOffset = dayOfWeek === 0 ? -6 : -(dayOfWeek - 1);
+            firstMonday.setUTCDate(firstMonday.getUTCDate() + mondayOffset);
+
+            const weeks = [];
+            let currentWeekStart = new Date(firstMonday.getTime());
+            
+            while (currentWeekStart <= monthEnd || currentWeekStart.getUTCDay() !== 1 || weeks.length < 5) {
+                const weekDays = [];
+                for (let i = 0; i < 7; i++) {
+                    const day = new Date(currentWeekStart.getTime());
+                    day.setUTCDate(currentWeekStart.getUTCDate() + i);
+                    weekDays.push(day);
+                }
+                weeks.push(weekDays);
+                currentWeekStart.setUTCDate(currentWeekStart.getUTCDate() + 7);
+                
+                if (weeks.length >= 6) break;
+            }
+            
+            const MIN_TABLE_WIDTH = weeks.length >= 6 ? 'min-w-[1400px]' : 'min-w-[1200px]';
+
+            weeks.forEach((weekDays, weekIndex) => {
+                const tableWrapper = document.createElement('div');
+                tableWrapper.className = `mb-4 glass rounded-2xl overflow-x-auto shadow-lg`;
+
+                let tableHtml = `<table class="w-full table-fixed ${MIN_TABLE_WIDTH}">`;
+
+                tableHtml += '<thead>';
+                tableHtml += '<tr class="text-slate-600">';
+                tableHtml += `<th class="p-3 font-semibold text-left text-slate-800 w-48 sticky-col bg-slate-100 border-b border-r border-slate-200">Týden ${weekIndex + 1}</th>`;
+
+                weekDays.forEach((date, dayIndex) => {
+                    const isCurrentMonth = date.getUTCMonth() === month;
+                    const today = new Date();
+                    const isToday = date.getUTCFullYear() === today.getUTCFullYear() &&
+                                  date.getUTCMonth() === today.getUTCMonth() &&
+                                  date.getUTCDate() === today.getUTCDate();
+                    
+                    tableHtml += `<th class="p-2 text-center font-semibold w-36 border-b border-slate-200 bg-white ${!isCurrentMonth ? 'text-slate-400' : 'text-slate-700'}">`;
+                    if (weekIndex === 0) {
+                        tableHtml += `<div class="text-xs">${dayNames[dayIndex]}</div>`;
+                    }
+                    tableHtml += `<div class="text-lg mt-1 ${isToday ? 'bg-indigo-600 text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto' : ''}">${date.getUTCDate()}</div>`;
+                    tableHtml += '</th>';
+                });
+                tableHtml += '</tr></thead>';
+
+                tableHtml += '<tbody>';
+                channelsToRender.forEach((channel, channelIndex) => {
+                    const rowBg = channelIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50/70';
+                    tableHtml += `<tr class="border-b border-slate-200 hover:bg-indigo-50/50 ${rowBg}">`;
+                    tableHtml += `<td class="p-3 font-medium border-r border-slate-200 w-48 sticky-col ${rowBg}">${channel}</td>`;
+
+                    weekDays.forEach((date) => {
+                        const dateString = date.toISOString().split('T')[0];
+                        const campaignsInCell = getCampaignsForCell(channel, dateString, campaignsToRender); 
+
+                        tableHtml += `<td class="border-r border-slate-200 p-1.5 align-top drop-zone w-36 ${rowBg}"
+                                ondrop="drop(event, '${channel}', '${dateString}')"
+                                ondragover="allowDrop(event)"
+                                ondragenter="dragEnter(event)"
+                                ondragleave="dragLeave(event)">
+                            <div class="min-h-[100px] flex flex-col">
+                                <div class="flex justify-end items-center mb-1 h-6">
+                                    <button onclick="addCampaignToCell('${channel}', '${dateString}')"
+                                            class="w-6 h-6 flex items-center justify-center bg-slate-100 hover:bg-indigo-100 text-slate-400 hover:text-indigo-600 rounded-full transition-all text-lg font-light opacity-50 hover:opacity-100"
+                                            title="Přidat kampaň">+</button>
+                                </div>
+                                <div class="flex-1 space-y-1">`;
+
+                        campaignsInCell.forEach(campaign => {
+                            const colorClass = campaign.colorIndex === -1 ? 'campaign-colors-none' : `campaign-colors-${campaign.colorIndex}`;
+                            tableHtml += `<div class="campaign-card w-full rounded-md text-xs px-2 py-1 ${colorClass} font-semibold"
+                                        draggable="true"
+                                        ondragstart="dragStart(event, '${campaign.id}', '${channel}-${dateString}')"
+                                        onclick="editCampaign('${campaign.id}')"
+                                        onmouseover="showTooltip(event, '${campaign.id}')"
+                                        onmouseout="hideTooltip()"
+                                        title="${campaign.name}">
+                                        <div class="flex items-center justify-between">
+                                            <span class="flex-1 whitespace-normal">${campaign.name}</span>
+                                            <div class="flex gap-1 ml-1 opacity-60 hover:opacity-100">
+                                                <button onclick="copyCellLink(event, '${channel}', '${dateString}')"
+                                                        class="p-0.5 hover:bg-black/10 rounded-full text-[10px]"
+                                                        title="Kopírovat odkaz na buňku">🔗</button>
+                                                <button onclick="event.stopPropagation(); duplicateCampaignInCell('${campaign.id}', '${channel}', '${dateString}')"
+                                                        class="p-0.5 hover:bg-black/10 rounded-full text-[10px]"
+                                                        title="Kopírovat">📋</button>
+                                                <button onclick="event.stopPropagation(); removeCampaignFromCell('${campaign.id}', '${channel}', '${dateString}')"
+                                                        class="p-0.5 hover:bg-black/10 rounded-full text-[10px]"
+                                                        title="Odstranit">🗑️</button>
+                                            </div>
+                                        </div>
+                                     </div>`;
+                        });
+
+                        tableHtml += '</div></div></td>';
+                    });
+
+                    tableHtml += '</tr>';
+                });
+                tableHtml += '</tbody></table>';
+
+                tableWrapper.innerHTML = tableHtml;
+                calendar.appendChild(tableWrapper);
+            });
+        }
+
+        function toggleMonthOverview() {
+            isMonthOverviewExpanded = !isMonthOverviewExpanded;
+            generateMonthOverview();
+        }
+
+        function generateMonthOverview() {
+            const month = currentDate.getUTCMonth();
+            const year = currentDate.getUTCFullYear();
+            
+            const displayMonthStart = new Date(Date.UTC(year, month, 1)).toISOString().split('T')[0];
+            const nextMonthStart = new Date(Date.UTC(year, month + 1, 1)).toISOString().split('T')[0];
+
+            const monthCampaigns = getFilteredCampaigns().filter(campaign => {
+                if (!campaign.dateFrom || !campaign.dateTo) return false;
+                return campaign.dateTo >= displayMonthStart && campaign.dateFrom < nextMonthStart;
+            }).sort((a, b) => new Date(a.dateFrom) - new Date(b.dateFrom));
+
+            document.getElementById('monthCampaignCount').textContent = monthCampaigns.length;
+            document.getElementById('monthOverviewTitle').textContent = months[month];
+
+            const header = document.getElementById('monthOverviewHeader');
+            const existingBtn = header.querySelector('#clearSelectionBtn');
+            if (existingBtn) existingBtn.remove();
+
+            if (selectedCampaignId) {
+                const clearBtn = document.createElement('button');
+                clearBtn.id = 'clearSelectionBtn';
+                clearBtn.className = 'btn-secondary text-sm !py-1 !px-3 ml-auto';
+                clearBtn.textContent = '❌ Zobrazit všechny';
+                clearBtn.onclick = clearCampaignView;
+                header.appendChild(clearBtn);
+            }
+
+            const overview = document.getElementById('monthOverview');
+            const campaignsToShow = isMonthOverviewExpanded ? monthCampaigns : monthCampaigns.slice(0, 8);
+            let html = '';
+
+            if (monthCampaigns.length === 0) {
+                html = `<div class="col-span-full text-center py-12 text-gray-500">
+                           <div class="text-4xl mb-4">📅</div>
+                           <p class="font-medium">Žádné kampaně v tomto měsíci</p>
+                           <button onclick="showModal()" class="btn-primary mt-4">
+                               Vytvořit první kampaň
+                           </button>
+                        </div>`;
+            } else {
+                campaignsToShow.forEach(campaign => {
+                    const statusInfo = statusConfig[campaign.status] || { icon: '❓' };
+                    const colorClass = campaign.colorIndex === -1 ? 'campaign-colors-none' : `campaign-colors-${campaign.colorIndex}`;
+                    const isSelected = campaign.id === selectedCampaignId;
+                    const selectedClass = isSelected ? 'selected' : '';
+
+                    html += `<div class="campaign-overview-card rounded-xl p-3 cursor-pointer hover:shadow-lg transition-all flex flex-col justify-between border ${colorClass} ${selectedClass}"
+                                onmouseover="showTooltip(event, '${campaign.id}')"
+                                onmouseout="hideTooltip()"
+                                onclick="selectCampaignForView('${campaign.id}')">
+                                <div>
+                                    <div class="flex items-start justify-between mb-2">
+                                        <h4 class="font-semibold text-sm truncate flex-1">${campaign.name}</h4>
+                                        <span class="text-lg ml-2">${statusInfo.icon}</span>
+                                    </div>
+                                    <div class="text-xs opacity-80 mb-2">
+                                        ${formatDate(campaign.dateFrom)} - ${formatDate(campaign.dateTo)}
+                                    </div>
+                                    <div class="flex flex-wrap gap-1 mt-2">
+                                        ${[...new Set((campaign.channels || []))].slice(0, 3).map(channel =>
+                                            `<span class="bg-black/5 px-2 py-0.5 rounded text-xs">${channel}</span>`
+                                        ).join('')}
+                                        ${[...new Set((campaign.channels || []))].length > 3 ?
+                                            `<span class="bg-black/5 px-2 py-0.5 rounded text-xs">+${[...new Set((campaign.channels || []))].length - 3}</span>` :
+                                            ''
+                                        }
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-black/10">
+                                    <div class="flex gap-1.5">
+                                        ${campaign.basecampLink ? `<a href="${campaign.basecampLink}" target="_blank" onclick="event.stopPropagation()" class="bg-black/10 hover:bg-black/20 rounded-full p-1.5 text-xs transition-all" title="Basecamp">✅</a>` : ''}
+                                        ${campaign.productsLink ? `<a href="${campaign.productsLink}" target="_blank" onclick="event.stopPropagation()" class="bg-black/10 hover:bg-black/20 rounded-full p-1.5 text-xs transition-all" title="Soupis produktů">📝</a>` : ''}
+                                        ${campaign.birthSheetLink ? `<a href="${campaign.birthSheetLink}" target="_blank" onclick="event.stopPropagation()" class="bg-black/10 hover:bg-black/20 rounded-full p-1.5 text-xs transition-all" title="Rodný list kampaně">📄</a>` : ''}
+                                        ${campaign.graphicsLink ? `<a href="${campaign.graphicsLink}" target="_blank" onclick="event.stopPropagation()" class="bg-black/10 hover:bg-black/20 rounded-full p-1.5 text-xs transition-all" title="Google disk - grafika">🖼️</a>` : ''}
+                                        ${campaign.smsLink ? `<a href="${campaign.smsLink}" target="_blank" onclick="event.stopPropagation()" class="bg-black/10 hover:bg-black/20 rounded-full p-1.5 text-xs transition-all" title="Nastavení SMS">💬</a>` : ''}
+                                    </div>
+                                     <div class="flex gap-1">
+                                        <button onclick="event.stopPropagation(); editCampaign('${campaign.id}')" class="bg-black/10 hover:bg-black/20 rounded-full p-1.5 text-xs transition-all" title="Upravit kampaň">✏️</button>
+                                        <button onclick="copyCampaignLink(event, '${campaign.id}')" class="bg-black/10 hover:bg-black/20 rounded-full p-1.5 text-xs transition-all" title="Kopírovat odkaz na kampaň">🔗</button>
+                                    </div>
+                                </div>
+                             </div>`;
+                });
+
+                if (monthCampaigns.length > 8 && !isMonthOverviewExpanded) {
+                    html += `<button onclick="toggleMonthOverview()" class="bg-slate-50 rounded-xl p-4 flex items-center justify-center text-gray-500 border-2 border-dashed border-gray-300 hover:border-indigo-400 transition-all">
+                                <div class="text-center">
+                                    <div class="text-xl mb-1">📊</div>
+                                    <div class="font-medium">+${monthCampaigns.length - 8}</div>
+                                    <div class="text-xs">dalších</div>
+                                </div>
+                             </button>`;
+                }
+
+                 if (isMonthOverviewExpanded) {
+                    html += `<button onclick="toggleMonthOverview()" class="bg-slate-50 rounded-xl p-4 flex items-center justify-center text-gray-500 border-2 border-dashed border-gray-300 hover:border-indigo-400 transition-all">
+                                <div class="text-center">
+                                    <div class="text-xl mb-1">🔼</div>
+                                    <div class="font-medium">Zobrazit méně</div>
+                                </div>
+                             </button>`;
+                }
+            }
+
+            overview.innerHTML = html;
+        }
+
+        function getCampaignsForCell(channel, dateStr, campaignList) {
+            return campaignList.filter(campaign => {
+                return campaign.placements && campaign.placements.some(placement =>
+                    placement.channel === channel && placement.date === dateStr
+                );
+            });
+        }
+        
+        function getCampaignsToRender() {
+            const allFiltered = getFilteredCampaigns();
+            if (selectedCampaignId) {
+                const selected = allFiltered.find(c => c.id === selectedCampaignId);
+                return selected ? [selected] : [];
+            }
+            return allFiltered;
+        }
+
+        function getFilteredCampaigns() {
+            const searchTerm = (document.getElementById('searchInput')?.value || '').toLowerCase();
+            
+            const selectedStatuses = Array.from(document.querySelectorAll('.filter-btn.active[data-filter-group="status"]')).map(btn => btn.dataset.value);
+            const selectedCountries = Array.from(document.querySelectorAll('.filter-btn.active[data-filter-group="country"]')).map(btn => btn.dataset.value);
+            const selectedChannels = Array.from(document.querySelectorAll('.filter-btn.active[data-filter-group="channel"]')).map(btn => btn.dataset.value);
+
+            return campaigns.filter(campaign => {
+                const matchesSearch = !searchTerm || campaign.name.toLowerCase().includes(searchTerm) ||
+                                   (campaign.description && campaign.description.toLowerCase().includes(searchTerm));
+                
+                const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(campaign.status);
+                
+                const matchesCountry = selectedCountries.length === 0 || (campaign.countries && campaign.countries.some(c => selectedCountries.includes(c)));
+                
+                const campaignChannels = campaign.channels || [];
+                const matchesChannel = selectedChannels.length === 0 || campaignChannels.some(ch => selectedChannels.includes(ch));
+
+                return matchesSearch && matchesStatus && matchesCountry && matchesChannel;
+            });
+        }
+        
+        function selectCampaignForView(campaignId) {
+            if (selectedCampaignId === campaignId) {
+                selectedCampaignId = null;
+            } else {
+                selectedCampaignId = campaignId;
+            }
+            updateDisplay();
+        }
+        
+        function clearCampaignView() {
+            selectedCampaignId = null;
+            updateDisplay();
+        }
+
+        function previousMonth() {
+            currentDate.setUTCMonth(currentDate.getUTCMonth() - 1);
+            updateDisplay();
+        }
+
+        function nextMonth() {
+            currentDate.setUTCMonth(currentDate.getUTCMonth() + 1);
+            updateDisplay();
+        }
+
+        function showModal() {
+            editingCampaignId = null;
+            document.getElementById('modalTitle').textContent = '✨ Nová kampaň';
+            clearForm();
+            const defaultColorIndex = campaigns.length % TOTAL_CAMPAIGN_COLORS;
+            renderColorPicker(defaultColorIndex);
+            document.getElementById('deleteCampaignBtn').classList.add('hidden');
+            document.getElementById('campaignModal').classList.remove('hidden');
+        }
+
+        function hideModal() {
+            document.getElementById('campaignModal').classList.add('hidden');
+            clearForm();
+        }
+
+        function clearForm() {
+            document.getElementById('campaignForm').reset();
+            document.getElementById('campaignDescription').innerHTML = '';
+            document.querySelectorAll('input[name="countries"][value="CZ - Růžový Slon"]')[0].checked = true;
+        }
+
+        function renderColorPicker(selectedIndex) {
+            const container = document.getElementById('color-picker-container');
+            container.innerHTML = '';
+            document.getElementById('campaignColorIndex').value = selectedIndex;
+
+            const noColorSwatch = document.createElement('div');
+            noColorSwatch.className = 'color-swatch campaign-colors-none !border-gray-400';
+            noColorSwatch.title = 'Bez barvy';
+            noColorSwatch.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-slash-lg" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M13.854 2.146a.5.5 0 0 1 0 .708l-11 11a.5.5 0 0 1-.708-.708l11-11a.5.5 0 0 1 .708 0z"/></svg>`;
+            if (selectedIndex === -1) {
+                noColorSwatch.classList.add('selected');
+            }
+            noColorSwatch.dataset.colorIndex = -1;
+            noColorSwatch.onclick = () => {
+                const currentSelected = document.querySelector('.color-swatch.selected');
+                if(currentSelected) currentSelected.classList.remove('selected');
+                noColorSwatch.classList.add('selected');
+                document.getElementById('campaignColorIndex').value = -1;
+            };
+            container.appendChild(noColorSwatch);
+
+            for(let i = 0; i < TOTAL_CAMPAIGN_COLORS; i++) {
+                const swatch = document.createElement('div');
+                swatch.className = `color-swatch campaign-colors-${i}`;
+                if (i === selectedIndex) {
+                    swatch.classList.add('selected');
+                }
+                swatch.dataset.colorIndex = i;
+                swatch.onclick = () => {
+                    const currentSelected = document.querySelector('.color-swatch.selected');
+                    if(currentSelected) currentSelected.classList.remove('selected');
+                    swatch.classList.add('selected');
+                    document.getElementById('campaignColorIndex').value = i;
+                };
+                container.appendChild(swatch);
+            }
+        }
+
+        async function saveCampaign() {
+            const name = document.getElementById('campaignName').value.trim();
+            const dateFrom = document.getElementById('campaignDateFrom').value;
+            const dateTo = document.getElementById('campaignDateTo').value;
+            const status = document.getElementById('campaignStatus').value;
+            const description = document.getElementById('campaignDescription').innerHTML;
+            const basecampLink = document.getElementById('campaignBasecampLink').value.trim();
+            const productsLink = document.getElementById('campaignProductsLink').value.trim();
+            const birthSheetLink = document.getElementById('campaignBirthSheetLink').value.trim();
+            const graphicsLink = document.getElementById('campaignGraphicsLink').value.trim();
+            const smsLink = document.getElementById('campaignSmsLink').value.trim();
+            const colorIndex = parseInt(document.getElementById('campaignColorIndex').value, 10);
+            
+            const selectedChannels = [...new Set(Array.from(document.querySelectorAll('input[name="channels"]:checked')).map(cb => cb.value))];
+            const countries = Array.from(document.querySelectorAll('input[name="countries"]:checked')).map(cb => cb.value);
+
+            if (!name || !dateFrom || !dateTo || selectedChannels.length === 0) {
+                showToast('Vyplňte všechna povinná pole!', 'error');
+                return;
+            }
+            if (new Date(dateFrom) > new Date(dateTo)) {
+                showToast('Datum od nemůže být později než datum do!', 'error');
+                return;
+            }
+
+            const generatePlacements = (startDateStr, endDateStr, channelsToPlace) => {
+                const placements = [];
+                const start = new Date(startDateStr + 'T00:00:00Z');
+                const end = new Date(endDateStr + 'T00:00:00Z');
+
+                for (const channel of channelsToPlace) {
+                    let currentDate = new Date(start.getTime());
+                    while (currentDate <= end) {
+                        placements.push({
+                            channel: channel,
+                            date: currentDate.toISOString().split('T')[0]
+                        });
+                        currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+                    }
+                }
+                
+                const uniquePlacements = [];
+                const placementKeys = new Set();
+
+                for (const p of placements) {
+                    const key = `${p.channel}|${p.date}`;
+                    if (!placementKeys.has(key)) {
+                        placementKeys.add(key);
+                        uniquePlacements.push(p);
+                    }
+                }
+                return uniquePlacements;
+            };
+
+            const campaignData = {
+                name, dateFrom, dateTo, status, description, countries,
+                basecampLink, productsLink, birthSheetLink, graphicsLink,
+                smsLink,
+                channels: selectedChannels,
+                colorIndex: colorIndex,
+                placements: generatePlacements(dateFrom, dateTo, selectedChannels)
+            };
+
+            if (editingCampaignId) {
+                const campaignRef = doc(db, currentShop.campaignsPath, editingCampaignId);
+                await updateDoc(campaignRef, campaignData);
+                showToast('Kampaň byla upravena!', 'success');
+            } else {
+                await addDoc(campaignsCollection, campaignData);
+                showToast('Kampaň byla vytvořena!', 'success');
+            }
+
+            hideModal();
+        }
+
+        function editCampaign(id) {
+            const campaign = campaigns.find(c => c.id === id);
+            if (!campaign) return;
+
+            editingCampaignId = id;
+            document.getElementById('modalTitle').textContent = `✏️ Upravit: ${campaign.name}`;
+
+            document.getElementById('campaignName').value = campaign.name;
+            document.getElementById('campaignDateFrom').value = campaign.dateFrom;
+            document.getElementById('campaignDateTo').value = campaign.dateTo;
+            document.getElementById('campaignStatus').value = campaign.status;
+            document.getElementById('campaignDescription').innerHTML = campaign.description || '';
+            document.getElementById('campaignBasecampLink').value = campaign.basecampLink || '';
+            document.getElementById('campaignProductsLink').value = campaign.productsLink || '';
+            document.getElementById('campaignBirthSheetLink').value = campaign.birthSheetLink || '';
+            document.getElementById('campaignGraphicsLink').value = campaign.graphicsLink || '';
+            document.getElementById('campaignSmsLink').value = campaign.smsLink || '';
+            renderColorPicker(campaign.colorIndex === undefined ? 0 : campaign.colorIndex);
+
+            const usedChannels = [...new Set([...(campaign.channels || []), ...campaign.placements.map(p => p.channel)])];
+            document.querySelectorAll('input[name="channels"]').forEach(cb => {
+                cb.checked = usedChannels.includes(cb.value);
+            });
+
+            document.querySelectorAll('input[name="countries"]').forEach(cb => {
+                cb.checked = campaign.countries && campaign.countries.includes(cb.value);
+            });
+
+            document.getElementById('deleteCampaignBtn').classList.remove('hidden');
+            document.getElementById('campaignModal').classList.remove('hidden');
+        }
+
+        async function deleteCampaign() {
+            if (!editingCampaignId) return;
+
+            if (confirm('Opravdu si přejete trvale smazat tuto kampaň? Tato akce je nevratná.')) {
+                await deleteDoc(doc(db, currentShop.campaignsPath, editingCampaignId));
+                hideModal();
+                showToast('Kampaň byla úspěšně smazána.', 'success');
+            }
+        }
+
+        function addCampaignToCell(channel, dateStr) {
+            editingCampaignId = null;
+            document.getElementById('modalTitle').textContent = `➕ Nová kampaň pro ${channel}`;
+            clearForm();
+            const defaultColorIndex = campaigns.length % TOTAL_CAMPAIGN_COLORS;
+            renderColorPicker(defaultColorIndex);
+
+            document.getElementById('campaignDateFrom').value = dateStr;
+            document.getElementById('campaignDateTo').value = dateStr;
+            const chCb = document.querySelector(`input[name="channels"][value="${channel}"]`);
+            if (chCb) chCb.checked = true;
+
+            document.getElementById('campaignModal').classList.remove('hidden');
+        }
+
+        async function duplicateCampaignInCell(campaignId, channel, date) {
+            const campaign = campaigns.find(c => c.id === campaignId);
+            if (!campaign) return;
+
+            const newPlacement = { channel, date };
+            
+            const isDuplicate = campaign.placements.some(p => p.channel === channel && p.date === date);
+
+            if (!isDuplicate) {
+                const newPlacements = [...campaign.placements, newPlacement];
+                const campaignRef = doc(db, currentShop.campaignsPath, campaignId);
+                await updateDoc(campaignRef, { placements: newPlacements });
+                showToast('Kampaň zkopírována!', 'success');
+            } else {
+                showToast('Kampaň v této buňce již je.', 'info');
+            }
+        }
+
+        async function removeCampaignFromCell(campaignId, channel, date) {
+            const campaign = campaigns.find(c => c.id === campaignId);
+            if (!campaign) return;
+
+            const newPlacements = campaign.placements.filter(p =>
+                !(p.channel === channel && p.date === date)
+            );
+            const campaignRef = doc(db, currentShop.campaignsPath, campaignId);
+            await updateDoc(campaignRef, { placements: newPlacements });
+            showToast('Kampaň odstraněna z buňky', 'info');
+        }
+
+        function dragStart(event, campaignId, cellKey) {
+            draggedCampaignId = campaignId;
+            draggedFromCell = cellKey;
+            event.dataTransfer.effectAllowed = 'move';
+            event.target.style.opacity = '0.5';
+        }
+
+        function allowDrop(event) {
+            event.preventDefault();
+        }
+
+        function dragEnter(event) {
+            const dropZone = event.target.closest('.drop-zone');
+            if (dropZone) dropZone.classList.add('drag-over');
+        }
+
+        function dragLeave(event) {
+            const dropZone = event.target.closest('.drop-zone');
+            if (dropZone && !dropZone.contains(event.relatedTarget)) {
+                dropZone.classList.remove('drag-over');
+            }
+        }
+
+        async function drop(event, channel, dateStr) {
+            event.preventDefault();
+            const dropZone = event.target.closest('.drop-zone');
+            if (dropZone) dropZone.classList.remove('drag-over');
+
+            if (!draggedCampaignId) return;
+
+            const campaign = campaigns.find(c => c.id === draggedCampaignId);
+            if (!campaign) {
+                resetDrag();
+                return;
+            }
+
+            const existingPlacement = campaign.placements.find(p =>
+                p.channel === channel && p.date === dateStr
+            );
+
+            if (existingPlacement) {
+                showToast('Kampaň už je v této buňce!', 'error');
+                resetDrag();
+                return;
+            }
+
+            const dataToUpdate = {};
+
+            let newPlacements = [...campaign.placements];
+            if (event.ctrlKey || event.metaKey) {
+                newPlacements.push({ channel, date: dateStr });
+                showToast('Kampaň zkopírována!', 'success');
+            } else {
+                if (draggedFromCell) {
+                    const [oldChannel, oldDate] = draggedFromCell.split('-');
+                    newPlacements = newPlacements.filter(p =>
+                        !(p.channel === oldChannel && p.date === oldDate)
+                    );
+                }
+                newPlacements.push({ channel, date: dateStr });
+                showToast('Kampaň přesunuta!', 'info');
+            }
+            const placementKeys = new Set();
+            newPlacements = newPlacements.filter(p => {
+                 const key = `${p.channel}|${p.date}`;
+                 if (placementKeys.has(key)) return false;
+                 placementKeys.add(key);
+                 return true;
+            });
+            dataToUpdate.placements = newPlacements;
+
+            const [oldChannel] = draggedFromCell ? draggedFromCell.split('-') : [null];
+            const newChannel = channel;
+            const campaignChannels = campaign.channels || [];
+
+            if (oldChannel !== newChannel && !campaignChannels.includes(newChannel)) {
+                const updatedChannels = [...new Set([...campaignChannels, newChannel])];
+                dataToUpdate.channels = updatedChannels;
+                showToast(`Kanál "${newChannel}" přidán do kampaně.`, 'info');
+            }
+
+            const campaignRef = doc(db, currentShop.campaignsPath, campaign.id);
+            await updateDoc(campaignRef, dataToUpdate);
+
+            resetDrag();
+        }
+
+        function resetDrag() {
+            draggedCampaignId = null;
+            draggedFromCell = null;
+            document.querySelectorAll('.campaign-card').forEach(card => {
+                card.style.opacity = '1';
+            });
+        }
+
+        function filterCampaigns() {
+            const searchInput = document.getElementById('searchInput');
+            const searchTerm = searchInput.value.trim().toLowerCase();
+
+            const searchResultsContainer = document.getElementById('searchResults');
+            const monthOverviewSection = document.getElementById('monthOverviewSection');
+            const calendarMain = document.getElementById('calendarContainer');
+            
+            selectedCampaignId = null;
+
+            if (searchTerm.length > 0) {
+                monthOverviewSection.classList.add('hidden');
+                calendarMain.classList.add('hidden');
+                searchResultsContainer.classList.remove('hidden');
+
+                const allFilteredCampaigns = getFilteredCampaigns();
+                renderSearchResults(allFilteredCampaigns, searchTerm);
+
+            } else {
+                searchResultsContainer.classList.add('hidden');
+                monthOverviewSection.classList.remove('hidden');
+                calendarMain.classList.remove('hidden');
+
+                updateDisplay();
+            }
+        }
+        
+        function toggleFilter(buttonElement) {
+            buttonElement.classList.toggle('active');
+            filterCampaigns();
+        }
+
+        function renderSearchResults(results) {
+            const container = document.getElementById('searchResults');
+            let html = `<h3 class="text-xl font-bold text-gray-800 mb-4">Výsledky vyhledávání (${results.length})</h3>`;
+
+            if (results.length === 0) {
+                html += `<div class="glass rounded-xl p-8 text-center text-gray-500">Nebyly nalezeny žádné kampaně.</div>`;
+                container.innerHTML = html;
+                return;
+            }
+
+            html += `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">`;
+            results.forEach(campaign => {
+                 const statusInfo = statusConfig[campaign.status] || { icon: '❓' };
+                 html += `
+                    <div class="glass rounded-xl p-4 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-start justify-between mb-2">
+                                <h4 class="font-semibold text-sm truncate flex-1">${campaign.name}</h4>
+                                <span class="text-lg ml-2">${statusInfo.icon}</span>
+                            </div>
+                            <div class="text-xs text-gray-500 mb-2">
+                                ${formatDate(campaign.dateFrom)} - ${formatDate(campaign.dateTo)}
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between mt-4">
+                             <button onclick="goToMonth('${campaign.dateFrom}')" class="text-xs btn-secondary !p-2">Přejít na měsíc</button>
+                             <button onclick="editCampaign('${campaign.id}')" class="text-xs btn-primary !p-2">Upravit</button>
+                        </div>
+                    </div>`;
+            });
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        function goToMonth(dateString) {
+            const date = new Date(dateString + 'T00:00:00Z');
+            currentDate = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
+
+            document.getElementById('searchInput').value = '';
+            filterCampaigns();
+        }
+
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.querySelectorAll('.filter-btn.active').forEach(btn => btn.classList.remove('active'));
+            filterCampaigns();
+            showToast('Filtry vymazány', 'info');
+        }
+        
+        function toggleDropdown(type) {
+             const dropdown = document.getElementById(`${type}Dropdown`);
+             
+             const otherType = type === 'import' ? 'export' : 'import';
+             document.getElementById(`${otherType}Dropdown`).classList.add('hidden');
+             
+             dropdown.classList.toggle('hidden');
+        }
+
+        function triggerImport(type) {
+            document.getElementById(`${type === 'campaigns' ? 'csvCampaignsFileInput' : 'csvYearlyFileInput'}`).click();
+            document.getElementById('importDropdown').classList.add('hidden');
+        }
+
+        async function importData(event, type) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const text = e.target.result;
+                try {
+                    if (type === 'campaigns') {
+                        await parseCampaignsCSV(text);
+                    } else if (type === 'yearly') {
+                        await parseYearlyPlanCSV(text);
+                    }
+                    showToast('Data byla úspěšně naimportována!', 'success');
+                } catch (error) {
+                    console.error('Chyba při importu CSV:', error);
+                    showToast(`Chyba při importu: ${error.message}`, 'error');
+                }
+            };
+            reader.onerror = function() {
+                showToast('Chyba při čtení souboru.', 'error');
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        function parseCSV(csvText, headers) {
+             const lines = csvText.replace(/\r/g, '').split('\n').filter(line => line.trim() !== '');
+             if (lines.length < 2) {
+                 throw new Error('CSV soubor je prázdný nebo obsahuje pouze hlavičku.');
+             }
+
+             const fileHeaders = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+
+             if (JSON.stringify(fileHeaders) !== JSON.stringify(headers)) {
+                 throw new Error(`CSV soubor má nesprávnou strukturu sloupců. Očekáváno: ${headers.join(', ')}`);
+             }
+
+             const importedData = [];
+             for (let i = 1; i < lines.length; i++) {
+                 const data = lines[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
+                 const row = data.map(cell => cell.replace(/^"|"$/g, '').trim());
+
+                 if (row.length === 0) continue;
+
+                 const rowData = {};
+                 headers.forEach((header, index) => {
+                     rowData[header] = row[index] || '';
+                 });
+                 importedData.push(rowData);
+             }
+             return importedData;
+         }
+
+        async function parseCampaignsCSV(csvText) {
+            const headers = ['Název', 'Status', 'Datum od', 'Datum do', 'Kanály', 'Domény', 'Popis', 'Odkaz na grafiku', 'Odkaz na SMS', 'Umístění'];
+            const importedRows = parseCSV(csvText, headers);
+            const importedCampaigns = [];
+
+            const toISODate = (dateStr) => {
+                 if (!dateStr) return '';
+                 const cleanedDateStr = dateStr.replace(/\s/g, '');
+                 const parts = cleanedDateStr.split('.');
+                 if (parts.length !== 3) return null;
+                 const day = parts[0].padStart(2, '0');
+                 const month = parts[1].padStart(2, '0');
+                 const year = parts[2];
+                 if (year.length !== 4) return '';
+                 return `${year}-${month}-${day}`;
+            };
+            
+            const getStatusKey = (label) => {
+                return Object.keys(statusConfig).find(key => statusConfig[key].label === label) || 'priprava';
+            };
+
+            importedRows.forEach((rowData, index) => {
+                const name = rowData['Název'];
+                const dateFromStr = rowData['Datum od'];
+                const dateToStr = rowData['Datum do'];
+                
+                if (!name || !dateFromStr || !dateToStr) {
+                     console.warn(`Přeskočena řádka ${index + 2}: Chybí název nebo data.`);
+                     return;
+                }
+                
+                const dateFromISO = toISODate(dateFromStr);
+                const dateToISO = toISODate(dateToStr);
+
+                if (!dateFromISO || !dateToISO) {
+                     console.warn(`Přeskočena řádka ${index + 2}: Neplatný formát datumu.`);
+                     return;
+                }
+                
+                const placementsStr = rowData['Umístění'];
+                let placements = [];
+                if(placementsStr) {
+                    placements = placementsStr.split(';').map(p => {
+                        const parts = p.split(':');
+                        if (parts.length !== 2) return null;
+                        const channel = parts[0].trim();
+                        const date = toISODate(parts[1].trim());
+                        if (!channel || !date) return null;
+                        return { channel, date };
+                    }).filter(p => p !== null);
+                }
+
+                const channelList = rowData['Kanály'] ? rowData['Kanály'].split(';').map(c => c.trim()).filter(c => c) : [];
+                const uniqueChannelList = [...new Set(channelList)];
+
+                if (placements.length === 0 && uniqueChannelList.length > 0) {
+                    const startDate = new Date(dateFromISO + 'T00:00:00Z');
+                    const endDate = new Date(dateToISO + 'T00:00:00Z');
+
+                    for (const channel of uniqueChannelList) {
+                        let currentDate = new Date(startDate.getTime());
+                        while (currentDate <= endDate) {
+                            placements.push({
+                                channel: channel,
+                                date: currentDate.toISOString().split('T')[0]
+                            });
+                            currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+                        }
+                    }
+                }
+                
+                const uniquePlacements = [];
+                const placementKeys = new Set();
+
+                for (const p of placements) {
+                    const key = `${p.channel}|${p.date}`;
+                    if (!placementKeys.has(key)) {
+                        placementKeys.add(key);
+                        uniquePlacements.push(p);
+                    }
+                }
+
+                const newCampaign = {
+                    name: name,
+                    dateFrom: dateFromISO,
+                    dateTo: dateToISO,
+                    status: getStatusKey(rowData['Status']),
+                    description: rowData['Popis'],
+                    countries: rowData['Domény'] ? rowData['Domény'].split(';').map(c => c.trim()).filter(c => c) : [],
+                    basecampLink: '',
+                    productsLink: '',
+                    birthSheetLink: '',
+                    graphicsLink: rowData['Odkaz na grafiku'],
+                    smsLink: rowData['Odkaz na SMS'],
+                    channels: uniqueChannelList,
+                    colorIndex: (campaigns.length + importedCampaigns.length) % TOTAL_CAMPAIGN_COLORS,
+                    placements: uniquePlacements
+                };
+                importedCampaigns.push(newCampaign);
+            });
+            
+            if (importedCampaigns.length > 0) {
+                 if (confirm(`Nalezeno ${importedCampaigns.length} kampaní. Chcete je přidat k existujícím?`)) {
+                    importedCampaigns.forEach(camp => addDoc(campaignsCollection, camp));
+                }
+            } else {
+                 throw new Error('V souboru nebyly nalezeny žádné platné kampaně.');
+            }
+        }
+        
+        async function parseYearlyPlanCSV(csvText) {
+            const headers = ['Měsíc', 'Rok', 'Významný den', 'Domény', 'Typ', 'Hlavní témata', 'Datum', 'Informace o akci/Poznámky'];
+            
+            let originalHeaders = ['Měsíc', 'Rok', 'Významný den', 'Domény', 'Typ', 'Hlavní témata', 'Datum', 'Dárek', 'Informace o akci/Poznámky'];
+            let fileHeaders = csvText.replace(/\r/g, '').split('\n').filter(line => line.trim() !== '')[0].split(',').map(h => h.replace(/"/g, '').trim());
+
+            if (JSON.stringify(fileHeaders) === JSON.stringify(originalHeaders)) {
+                 console.warn("Nalezen CSV se starou strukturou (včetně Dárku). Bude parsováno, ale Dárek bude ignorován.");
+                 const importedRowsWithGift = parseCSV(csvText, originalHeaders);
+                 const groupedData = {};
+
+                 importedRowsWithGift.forEach((row, index) => {
+                     const year = row['Rok'];
+                     const monthName = row['Měsíc'].toUpperCase();
+                     
+                     if (!year || !monthName || !months.includes(monthName)) {
+                          console.warn(`Přeskočena řádka ${index + 2}: Chybí nebo je neplatný Měsíc/Rok.`);
+                          return;
+                     }
+                     
+                     if (!groupedData[year]) {
+                         groupedData[year] = createEmptyYearlyPlan();
+                     }
+                     
+                     const existingSigDay = groupedData[year][monthName].significantDay;
+                     if (!existingSigDay || existingSigDay === row['Významný den']) {
+                         groupedData[year][monthName].significantDay = row['Významný den'];
+                     }
+
+                     if (row['Hlavní témata'].trim()) {
+                         groupedData[year][monthName].campaigns.push({
+                             country: row['Domény'],
+                             type: row['Typ'],
+                             theme: row['Hlavní témata'],
+                             date: row['Datum'],
+                             info: row['Informace o akci/Poznámky'],
+                             status: 'Plánováno'
+                         });
+                     }
+                 });
+                 
+                 if (Object.keys(groupedData).length === 0) {
+                      throw new Error('V souboru nebyly nalezeny žádné platné řádky ročního plánu.');
+                 }
+                 
+                 if (confirm(`Nalezeno ${Object.keys(groupedData).length} let k importu. Chcete přepsat data ročního plánu těmito novými daty? (Pole Dárek bude ignorováno)`)) {
+                     
+                     const batch = writeBatch(db);
+                     
+                     const existingPlans = await getDocs(yearlyPlansCollection);
+                     existingPlans.docs.forEach(doc => {
+                          batch.delete(doc.ref);
+                     });
+
+                     for (const year in groupedData) {
+                         const yearRef = doc(db, currentShop.yearlyPlansPath, year);
+                         batch.set(yearRef, groupedData[year]);
+                     }
+
+                     await batch.commit();
+                     loadYearlyPlan(); 
+                 } else {
+                      throw new Error('Import byl zrušen uživatelem.');
+                 }
+                 return;
+            }
+            
+            const importedRows = parseCSV(csvText, headers);
+            const groupedData = {};
+
+            importedRows.forEach((row, index) => {
+                const year = row['Rok'];
+                const monthName = row['Měsíc'].toUpperCase();
+                
+                if (!year || !monthName || !months.includes(monthName)) {
+                     console.warn(`Přeskočena řádka ${index + 2}: Chybí nebo je neplatný Měsíc/Rok.`);
+                     return;
+                }
+                
+                if (!groupedData[year]) {
+                    groupedData[year] = createEmptyYearlyPlan();
+                }
+                
+                const existingSigDay = groupedData[year][monthName].significantDay;
+                if (!existingSigDay || existingSigDay === row['Významný den']) {
+                    groupedData[year][monthName].significantDay = row['Významný den'];
+                }
+
+                if (row['Hlavní témata'].trim()) {
+                    groupedData[year][monthName].campaigns.push({
+                        country: row['Domény'],
+                        type: row['Typ'],
+                        theme: row['Hlavní témata'],
+                        date: row['Datum'],
+                        info: row['Informace o akci/Poznámky'],
+                        status: 'Plánováno'
+                    });
+                }
+            });
+
+            if (Object.keys(groupedData).length === 0) {
+                 throw new Error('V souboru nebyly nalezeny žádné platné řádky ročního plánu.');
+            }
+            
+            if (confirm(`Nalezeno ${Object.keys(groupedData).length} let k importu. Chcete přepsat data ročního plánu těmito novými daty?`)) {
+                
+                const batch = writeBatch(db);
+                
+                const existingPlans = await getDocs(yearlyPlansCollection);
+                existingPlans.docs.forEach(doc => {
+                     batch.delete(doc.ref);
+                });
+
+                for (const year in groupedData) {
+                    const yearRef = doc(db, currentShop.yearlyPlansPath, year);
+                    batch.set(yearRef, groupedData[year]);
+                }
+
+                await batch.commit();
+                loadYearlyPlan(); 
+            } else {
+                 throw new Error('Import byl zrušen uživatelem.');
+            }
+        }
+
+        function exportCampaignsToPdf() {
+            console.warn("Funkce exportCampaignsToPdf() byla přesunuta/deaktivována v menu.");
+        }
+
+        function exportYearlyPlanToPdf() {
+             document.getElementById('exportDropdown').classList.add('hidden');
+             const allYearlyRows = [];
+             
+             const allMonths = [];
+             Object.keys(yearlyPlanData).forEach(year => {
+                 months.forEach((monthName, monthIndex) => {
+                     const monthData = yearlyPlanData[year][monthName];
+                     if (monthData && monthData.campaigns.length > 0) {
+                         allMonths.push({ year: parseInt(year), monthIndex: monthIndex, monthName: monthName, campaigns: monthData.campaigns });
+                     }
+                 });
+             });
+
+             allMonths.sort((a, b) => {
+                 if (a.year !== b.year) {
+                     return a.year - b.year;
+                 }
+                 return a.monthIndex - b.monthIndex;
+             });
+
+             allMonths.forEach(monthItem => {
+                 allYearlyRows.push([
+                     { content: `${monthItem.monthName} ${monthItem.year}`, colSpan: 6, styles: { fillColor: [243, 245, 255], fontStyle: 'bold', textColor: [63, 63, 63] } },
+                     null 
+                 ]);
+                 
+                 monthItem.campaigns.forEach(campaign => {
+                     const statusText = getStatusByDate(campaign.date?.split(' - ')[0], campaign.date?.split(' - ')[1]);
+                     
+                     allYearlyRows.push([
+                         statusText,
+                         campaign.country || '',
+                         campaign.type || '',
+                         campaign.theme || '',
+                         campaign.date || '',
+                         campaign.info || ''
+                     ]);
+                 });
+             });
+
+             if (allYearlyRows.length === 0) {
+                 showToast('Roční plán je prázdný, není co exportovat.', 'info');
+                 return;
+             }
+
+             const { jsPDF } = window.jspdf;
+             const doc = new jsPDF({
+                 orientation: 'landscape', 
+                 unit: 'pt',
+                 format: 'a4'
+             });
+             
+             const headerTitles = [
+                 'Stav', 'Domény', 'Typ', 'Hlavní témata', 'Datum od - do', 'Informace o akci/Poznámky'
+             ];
+
+             doc.setFontSize(14);
+             doc.text(`Roční publikační plán - ${currentShop.name}`, 40, 40);
+
+             doc.autoTable({
+                 head: [headerTitles],
+                 body: allYearlyRows,
+                 startY: 60,
+                 styles: {
+                     fontSize: 8,
+                     cellPadding: 4,
+                     font: 'Helvetica',
+                     overflow: 'linebreak',
+                     halign: 'left',
+                     valign: 'middle'
+                 },
+                 headStyles: {
+                     fillColor: [79, 70, 229],
+                     textColor: 255,
+                     fontStyle: 'bold',
+                     valign: 'middle'
+                 },
+                 columnStyles: {
+                    0: { cellWidth: 50 },
+                    1: { cellWidth: 60 },
+                    2: { cellWidth: 70 },
+                    3: { cellWidth: 100 },
+                    4: { cellWidth: 80 },
+                    5: { cellWidth: 'auto' }
+                 },
+                 margin: { top: 50, left: 20, right: 20, bottom: 20 }
+             });
+
+             doc.save(`rocni-plan-${currentShop.yearlyPlansPath}-${new Date().toISOString().split('T')[0]}.pdf`);
+             showToast('Roční plán úspěšně exportován do PDF!', 'success');
+        }
+
+        function exportData() {
+            document.getElementById('exportDropdown').classList.add('hidden');
+            try {
+                if (campaigns.length === 0) {
+                    showToast('Není co exportovat.', 'info');
+                    return;
+                }
+                const headers = ['Název', 'Status', 'Datum od', 'Datum do', 'Kanály', 'Domény', 'Popis', 'Odkaz na grafiku', 'Odkaz na SMS', 'Umístění'];
+                const rows = campaigns.map(campaign => [
+                    campaign.name,
+                    statusConfig[campaign.status].label,
+                    formatDate(campaign.dateFrom),
+                    formatDate(campaign.dateTo),
+                    (campaign.channels || [...new Set(campaign.placements?.map(p => p.channel) || [])]).join('; '),
+                    campaign.countries.join('; '),
+                    campaign.description || '',
+                    campaign.graphicsLink || '',
+                    campaign.smsLink || '',
+                    (campaign.placements || []).map(p => `${p.channel}: ${formatDate(p.date)}`).join('; ')
+                ]);
+
+                const csvContent = [headers, ...rows]
+                    .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+                    .join('\n');
+
+                downloadCSV(csvContent, `${currentShop.campaignsPath}-kampane-${new Date().toISOString().split('T')[0]}.csv`);
+
+                showToast('Data kampaní úspěšně exportována!', 'success');
+            } catch (error) {
+                console.error("Chyba při exportu kampaní:", error)
+                showToast('Chyba při exportu dat kampaní.', 'error');
+            }
+        }
+        
+        function exportYearlyPlan() {
+            document.getElementById('exportDropdown').classList.add('hidden');
+            try {
+                const yearData = yearlyPlanData;
+
+                if (Object.keys(yearData).length === 0) {
+                    showToast(`Nejsou k dispozici žádná data ročního plánu k exportu.`, 'info');
+                    return;
+                }
+
+                const headers = ['Měsíc', 'Rok', 'Významný den', 'Domény', 'Typ', 'Hlavní témata', 'Datum', 'Informace o akci/Poznámky'];
+                const rows = [];
+                
+                const sortedYears = Object.keys(yearData).sort((a, b) => parseInt(a) - parseInt(b));
+
+                sortedYears.forEach(y => {
+                    const currentYearData = yearData[y];
+                    months.forEach(monthName => {
+                        const monthData = currentYearData[monthName];
+                        if (monthData) {
+                            monthData.campaigns.forEach(campaign => {
+                                rows.push([
+                                    monthName,
+                                    y,
+                                    campaign.significantDay || '',
+                                    campaign.country || '',
+                                    campaign.type || '',
+                                    campaign.theme || '',
+                                    campaign.date || '',
+                                    campaign.info || ''
+                                ]);
+                            });
+                        }
+                    });
+                });
+                
+                 const csvContent = [headers, ...rows]
+                    .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+                    .join('\n');
+                
+                downloadCSV(csvContent, `${currentShop.yearlyPlansPath}-rocni-plan-all.csv`);
+                showToast(`Roční plán úspěšně exportován!`, 'success');
+
+            } catch (error) {
+                 console.error("Chyba při exportu ročního plánu:", error)
+                 showToast('Chyba při exportu dat ročního plánu.', 'error');
+            }
+        }
+
+        function downloadCSV(csvContent, filename) {
+             const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+             const link = document.createElement('a');
+             link.href = URL.createObjectURL(blob);
+             link.download = filename;
+             document.body.appendChild(link);
+             link.click();
+             document.body.removeChild(link);
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            if (dateStr.match(/^\d{2}\.\d{2}\.\d{4}$/)) return dateStr;
+            
+            const date = new Date(dateStr + 'T00:00:00Z');
+            const day = date.getUTCDate().toString().padStart(2, '0');
+            const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+            const year = date.getUTCFullYear();
+            return `${day}.${month}.${year}`;
+        }
+
+        function formatDoc(command) {
+            document.execCommand(command, false, null);
+        }
+
+        function createLink() {
+            const selection = window.getSelection();
+            if (!selection.toString()) {
+                showToast('Nejprve označte text, který chcete prolinkovat.', 'info');
+                return;
+            }
+            const url = prompt("Zadejte URL odkazu:", "https://");
+            if (url) {
+                document.execCommand('createLink', false, url);
+            }
+        }
+
+        function handlePaste(e) {
+            e.preventDefault();
+
+            let pasteHtml = (e.clipboardData || window.clipboardData).getData('text/html');
+
+            if (pasteHtml) {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(pasteHtml, 'text/html');
+
+                doc.body.querySelectorAll('*').forEach(el => {
+                    const allowedAttrs = (el.tagName.toLowerCase() === 'a') ? ['href'] : [];
+                    for (const attr of [...el.attributes]) {
+                        if (!allowedAttrs.includes(attr.name.toLowerCase())) {
+                            el.removeAttribute(attr.name);
+                        }
+                    }
+                });
+
+                document.execCommand('insertHTML', false, doc.body.innerHTML);
+            } else {
+                const pasteText = (e.clipboardData || window.clipboardData).getData('text/plain');
+                document.execCommand('insertText', false, pasteText);
+            }
+        }
+
+        function showTooltip(event, campaignId) {
+            if (tooltipHideTimer) clearTimeout(tooltipHideTimer);
+
+            const tooltip = document.getElementById('campaignTooltip');
+            const campaign = campaigns.find(c => c.id === campaignId);
+
+            if (!campaign || !campaign.description || !campaign.description.trim()) {
+                hideTooltip();
+                return;
+            }
+
+            const card = event.currentTarget;
+            const cardRect = card.getBoundingClientRect();
+
+            tooltip.innerHTML = `
+                <h5>${campaign.name}</h5>
+                <p>${formatDate(campaign.dateFrom)} - ${formatDate(campaign.dateTo)}</p>
+                <hr>
+                <div class="description-content">${campaign.description}</div>
+            `;
+
+            tooltip.classList.add('visible');
+            const tooltipRect = tooltip.getBoundingClientRect();
+
+            let top = cardRect.bottom + 8;
+            let left = cardRect.left;
+
+            if (left + tooltipRect.width > window.innerWidth) {
+                left = cardRect.right - tooltipRect.width;
+            }
+            if (left < 0) {
+                left = 8;
+            }
+
+            tooltip.style.top = `${top + window.scrollY}px`;
+            tooltip.style.left = `${left + window.scrollX}px`;
+        }
+
+        function hideTooltip() {
+            tooltipHideTimer = setTimeout(() => {
+                const tooltip = document.getElementById('campaignTooltip');
+                tooltip.classList.remove('visible');
+            }, 300);
+        }
+
+        function cancelTooltipHide() {
+            if (tooltipHideTimer) {
+                clearTimeout(tooltipHideTimer);
+            }
+        }
+
+        document.addEventListener('click', function(event) {
+            if (event.target.id === 'campaignModal') {
+                hideModal();
+            }
+
+            const importBtn = document.getElementById('importDropdownToggle');
+            const exportBtn = document.getElementById('exportDropdownToggle');
+            const importDrop = document.getElementById('importDropdown');
+            const exportDrop = document.getElementById('exportDropdown');
+            
+             if (importBtn && !importBtn.contains(event.target) && !importDrop.contains(event.target)) {
+                 importDrop.classList.add('hidden');
+             }
+             if (exportBtn && !exportBtn.contains(event.target) && !exportDrop.contains(event.target)) {
+                 exportDrop.classList.add('hidden');
+             }
+
+        });
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                hideModal();
+                hideTooltip();
+                document.getElementById('importDropdown')?.classList.add('hidden');
+                document.getElementById('exportDropdown')?.classList.add('hidden');
+            }
+
+            if ((event.ctrlKey || event.metaKey) && event.key === 'n' && currentShop) {
+                event.preventDefault();
+                showModal();
+            }
+        });
+
+        window.previousMonth = previousMonth;
+        window.nextMonth = nextMonth;
+        window.showModal = showModal;
+        window.hideModal = hideModal;
+        window.saveCampaign = saveCampaign;
+        window.editCampaign = editCampaign;
+        window.deleteCampaign = deleteCampaign;
+        window.addCampaignToCell = addCampaignToCell;
+        window.duplicateCampaignInCell = duplicateCampaignInCell;
+        window.removeCampaignFromCell = removeCampaignFromCell;
+        window.dragStart = dragStart;
+        window.allowDrop = allowDrop;
+        window.dragEnter = dragEnter;
+        window.dragLeave = dragLeave;
+        window.drop = drop;
+        window.filterCampaigns = filterCampaigns;
+        window.clearFilters = clearFilters;
+        window.triggerImport = triggerImport;
+        window.importData = importData;
+        window.exportData = exportData;
+        window.exportYearlyPlan = exportYearlyPlan;
+        window.exportYearlyPlanToPdf = exportYearlyPlanToPdf;
+        window.toggleMonthOverview = toggleMonthOverview;
+        window.goToMonth = goToMonth;
+        window.formatDoc = formatDoc;
+        window.createLink = createLink;
+        window.showTooltip = showTooltip;
+        window.hideTooltip = hideTooltip;
+        window.cancelTooltipHide = cancelTooltipHide;
+        window.saveYearlyPlanUI = saveYearlyPlanUI;
+        window.addNewYear = addNewYear;
+        window.deleteYearlyPlanRow = deleteYearlyPlanRow;
+        window.deleteYearlyPlan = deleteYearlyPlan;
+        window.toggleFilter = toggleFilter;
+        window.copyCellLink = copyCellLink;
+        window.copyCampaignLink = copyCampaignLink;
+        window.selectCampaignForView = selectCampaignForView;
+        window.clearCampaignView = clearCampaignView;
+        window.toggleDropdown = toggleDropdown;
+        window.dragRowStart = dragRowStart;
+        window.dragRowOver = dragRowOver;
+        window.dragRowLeave = dragRowLeave;
+        window.dropRow = dropRow;
+        window.toggleArchive = toggleArchive;
+        
+        window.addYearlyPlanFromForm = addYearlyPlanFromForm;
+        window.clearYearlyForm = clearYearlyForm;
+        window.editYearlyPlanRowInForm = editYearlyPlanRowInForm;
+        window.saveYearlyPlanUpdate = saveYearlyPlanUpdate;
+
+    </script>
+</body>
+</html>
