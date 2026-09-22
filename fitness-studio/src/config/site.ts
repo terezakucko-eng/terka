@@ -9,7 +9,7 @@ export const site = {
   description:
     "Studio pohybu a rovnováhy. Tanec, pilates, silový trénink a komunita lidí, kteří jdou svou cestou. Rezervuj si lekci online během pár vteřin.",
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
-  email: "ahoj@octopush.cz",
+  email: "ahoj@octopush.fit",
   phone: "+420 777 000 000",
   address: {
     street: "Doplňte ulici 123",

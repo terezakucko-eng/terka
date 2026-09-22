@@ -17,15 +17,21 @@ export async function registerUser(
     phone?: string | null;
     passwordHash: string;
     marketingConsent?: boolean;
+    smsConsent?: boolean;
+    whatsappConsent?: boolean;
   },
   now = new Date(),
 ) {
   const email = normalizeEmail(input.email);
   return db.transaction(async (tx) => {
     const [exists] = await tx
-      .select({ id: users.id })
+      .select({ id: users.id, importedAt: users.importedAt, passwordHash: users.passwordHash })
       .from(users)
       .where(eq(users.email, email));
+    if (exists?.importedAt && exists.passwordHash.startsWith("!"))
+      throw new UserError(
+        "Tenhle e-mail už máme ze starého systému – nastav si heslo přes „Zapomenuté heslo“ a vše najdeš na účtu.",
+      );
     if (exists) throw new UserError("Účet s tímto e-mailem už existuje.");
 
     const [user] = await tx
@@ -36,6 +42,8 @@ export async function registerUser(
         phone: input.phone?.trim() || null,
         passwordHash: input.passwordHash,
         marketingConsent: input.marketingConsent ?? false,
+        smsConsent: input.smsConsent ?? false,
+        whatsappConsent: input.whatsappConsent ?? false,
       })
       .returning();
 

@@ -1,6 +1,5 @@
 "use server";
 
-import { createHash, randomBytes } from "node:crypto";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -8,6 +7,8 @@ import { z } from "zod";
 import { site } from "@/config/site";
 import { getDb } from "@/db";
 import { passwordResets, users } from "@/db/schema";
+import { unsubscribe } from "@/domain/campaigns";
+import { IMPORTED_PASSWORD } from "@/domain/import";
 import { normalizeEmail, registerUser } from "@/domain/users";
 import {
   endSession,
@@ -19,6 +20,8 @@ import {
 import { UserError } from "@/lib/errors";
 import { attempt, field, type FormState } from "@/lib/form";
 import { sendMail } from "@/lib/mail";
+import { createPasswordLink, hashToken } from "@/lib/password-links";
+import { normalizePhone } from "@/lib/phone";
 
 /** Only allow local redirects after login. */
 function safeNext(v: string) {
@@ -35,6 +38,10 @@ export async function loginAction(_: FormState, fd: FormData): Promise<FormState
       .select()
       .from(users)
       .where(eq(users.email, normalizeEmail(field.str(fd, "email"))));
+    if (u?.passwordHash === IMPORTED_PASSWORD)
+      throw new UserError(
+        "Tvůj účet jsme převedli ze starého systému. Nastav si heslo přes „Zapomenuté heslo“.",
+      );
     // same message for unknown e-mail & wrong password
     if (!u || !(await verifyPassword(field.str(fd, "password"), u.passwordHash)))
       throw new UserError("Nesprávný e-mail nebo heslo.");
@@ -63,9 +70,11 @@ export async function registerAction(_: FormState, fd: FormData): Promise<FormSt
     const user = await registerUser(db, {
       email: d.email,
       name: d.name,
-      phone: d.phone,
+      phone: normalizePhone(d.phone) ?? (d.phone || null),
       passwordHash: await hashPassword(d.password),
       marketingConsent: field.bool(fd, "marketing"),
+      smsConsent: field.bool(fd, "sms"),
+      whatsappConsent: field.bool(fd, "whatsapp"),
     });
     await startSession(user.id);
     await sendMail({
@@ -84,7 +93,7 @@ export async function logoutAction() {
   redirect("/");
 }
 
-const hashToken = (t: string) => createHash("sha256").update(t).digest("hex");
+
 
 export async function requestResetAction(_: FormState, fd: FormData): Promise<FormState> {
   return attempt(async () => {
@@ -92,16 +101,11 @@ export async function requestResetAction(_: FormState, fd: FormData): Promise<Fo
     const email = normalizeEmail(field.str(fd, "email"));
     const [u] = await db.select().from(users).where(eq(users.email, email));
     if (u) {
-      const token = randomBytes(32).toString("base64url");
-      await db.insert(passwordResets).values({
-        userId: u.id,
-        tokenHash: hashToken(token),
-        expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-      });
+      const link = await createPasswordLink(u.id, 1);
       await sendMail({
         to: u.email,
         subject: "Obnovení hesla",
-        text: `Ahoj ${u.name},\n\nnové heslo si nastavíš zde (odkaz platí 1 hodinu):\n${site.url}/obnova-hesla?token=${token}\n\nPokud jsi o změnu nežádal/a, e-mail ignoruj.`,
+        text: `Ahoj ${u.name},\n\nnové heslo si nastavíš zde (odkaz platí 1 hodinu):\n${link}\n\nPokud jsi o změnu nežádal/a, e-mail ignoruj.`,
       });
     }
     // don't reveal whether the account exists
@@ -142,7 +146,13 @@ export async function updateProfileAction(_: FormState, fd: FormData): Promise<F
     if (name.length < 2) throw new UserError("Vyplň jméno.");
     await (await getDb())
       .update(users)
-      .set({ name, phone: field.optional(fd, "phone"), marketingConsent: field.bool(fd, "marketing") })
+      .set({
+        name,
+        phone: normalizePhone(field.str(fd, "phone")) ?? field.optional(fd, "phone"),
+        marketingConsent: field.bool(fd, "marketing"),
+        smsConsent: field.bool(fd, "sms"),
+        whatsappConsent: field.bool(fd, "whatsapp"),
+      })
       .where(eq(users.id, user.id));
     return "Profil uložen.";
   });
@@ -162,5 +172,13 @@ export async function changePasswordAction(_: FormState, fd: FormData): Promise<
       .set({ passwordHash: await hashPassword(pw.data) })
       .where(eq(users.id, user.id));
     return "Heslo změněno.";
+  });
+}
+
+export async function unsubscribeAction(_: FormState, fd: FormData): Promise<FormState> {
+  return attempt(async () => {
+    const ok = await unsubscribe(await getDb(), field.str(fd, "token"));
+    if (!ok) throw new UserError("Odkaz je neplatný.");
+    return "Hotovo – už ti nebudeme posílat žádné novinky.";
   });
 }

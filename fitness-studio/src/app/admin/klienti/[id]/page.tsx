@@ -42,7 +42,7 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
     <>
       <Link href="/admin/klienti" className="eyebrow text-les/60 hover:text-les">← Klienti</Link>
       <AdminTitle title={u.name}>
-        <span className="text-sm text-les/60">{u.email} · {u.phone ?? "bez telefonu"}</span>
+        <span className="text-sm text-les/60">{u.email} · {u.phone ?? "bez telefonu"}{u.passwordHash.startsWith("!") && " · převedený účet, heslo zatím nenastaveno"}</span>
       </AdminTitle>
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -184,6 +184,12 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
               <option value="admin">Administrátor</option>
             </Select>
           </Field>
+          <fieldset className="flex flex-wrap gap-5 text-sm sm:col-span-2">
+            <legend className="mb-2 text-xs font-semibold uppercase tracking-wider text-les/70">Souhlas s novinkami</legend>
+            <label className="flex items-center gap-2"><input type="checkbox" name="marketingConsent" defaultChecked={u.marketingConsent} /> E-mail</label>
+            <label className="flex items-center gap-2"><input type="checkbox" name="smsConsent" defaultChecked={u.smsConsent} /> SMS</label>
+            <label className="flex items-center gap-2"><input type="checkbox" name="whatsappConsent" defaultChecked={u.whatsappConsent} /> WhatsApp</label>
+          </fieldset>
           <div className="sm:col-span-2"><Field label="Interní poznámka"><Textarea name="adminNote" rows={2} defaultValue={u.adminNote ?? ""} /></Field></div>
           <div className="sm:col-span-2"><SubmitButton>Uložit</SubmitButton></div>
         </ActionForm>

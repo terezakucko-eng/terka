@@ -28,10 +28,13 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registr
           <input type="checkbox" name="terms" required className="mt-1 accent-[#674329]" />
           <span>Souhlasím s <Link href="/obchodni-podminky" className="underline" target="_blank">obchodními podmínkami</Link> a beru na vědomí <Link href="/ochrana-osobnich-udaju" className="underline" target="_blank">zpracování osobních údajů</Link>.</span>
         </label>
-        <label className="flex gap-3 text-sm text-les/80">
-          <input type="checkbox" name="marketing" className="mt-1 accent-[#674329]" />
-          <span>Chci dostávat novinky a akce e-mailem.</span>
-        </label>
+        <fieldset className="space-y-2 rounded-xl border border-linka/60 p-4 text-sm text-les/80">
+          <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-les/60">Novinky a akce (nepovinné)</legend>
+          <label className="flex gap-3"><input type="checkbox" name="marketing" className="mt-1 accent-[#674329]" /> E-mailem (newsletter)</label>
+          <label className="flex gap-3"><input type="checkbox" name="sms" className="mt-1 accent-[#674329]" /> SMS</label>
+          <label className="flex gap-3"><input type="checkbox" name="whatsapp" className="mt-1 accent-[#674329]" /> WhatsApp</label>
+          <p className="text-xs text-les/50">Odhlásit se můžeš kdykoliv v profilu nebo odkazem ve zprávě.</p>
+        </fieldset>
         <SubmitButton variant="gold" className="w-full">Vytvořit účet</SubmitButton>
       </ActionForm>
       <p className="mt-6 text-sm">Už máš účet? <Link href="/prihlaseni" className="font-semibold text-zeme underline underline-offset-4">Přihlas se</Link></p>

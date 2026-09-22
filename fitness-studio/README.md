@@ -27,6 +27,29 @@ Tailwind CSS 4 · Stripe (platby kartou, Apple/Google Pay, předplatné) · Rese
 - klienti: hledání, prodej na recepci, úprava kreditu, přidělení vstupů zdarma / permanentky / členství, role
 - ceník, typy lekcí, lektoři, aktuality na úvodní stránce, pravidla (storno, okno rezervací…)
 - role **Lektor** vidí jen rozvrh a docházku
+- **Zprávy klientům** – newsletter (e-mail), SMS a WhatsApp: cílové skupiny (všichni, členové,
+  permanentky, neaktivní X dní, noví, podle typu lekce, přihlášení na termín), personalizace
+  `{{jmeno}}`, `{{kredit}}`, testovací zpráva, odesílání po dávkách s průběhem, přehled chyb
+- souhlasy zvlášť pro e-mail / SMS / WhatsApp, odhlášení jedním klikem (i v e-mailovém klientovi)
+- **Import klientů** z CSV (Excel, i starší české kódování) – jména, e-maily, telefony, kredit,
+  zbývající vstupy, souhlasy; opakovatelný bez duplicit; pozvánka k nastavení hesla
+
+## Komunikace s klienty – co je potřeba založit
+
+| Kanál | Služba | Co udělat |
+|---|---|---|
+| E-mail / newsletter | [Resend](https://resend.com) | ověřit doménu `octopush.fit` (DNS), klíč `RESEND_API_KEY` |
+| SMS | [BulkGate](https://www.bulkgate.com) (CZ) | účet, dobít kredit, vytvořit API aplikaci → `BULKGATE_APP_ID`, `BULKGATE_APP_TOKEN`; schválit odesílatele „OCTOPUSH“ |
+| WhatsApp | [WhatsApp Business Platform](https://business.whatsapp.com/products/business-platform) (Meta) | Meta Business účet + ověření firmy, telefonní číslo pro WhatsApp API, **schválit šablony zpráv**, trvalý token → `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` |
+
+Hromadné zprávy přes WhatsApp jdou legálně **jen** přes oficiální API se schválenými šablonami
+a jen klientům, kteří dali souhlas (opt-in). Rozesílání z běžné aplikace/WhatsApp Business
+na telefonu porušuje podmínky a končí zablokováním čísla. Placené jsou za doručenou zprávu (Meta).
+
+Bez klíčů se zprávy jen vypíšou do logu serveru – dá se vše vyzkoušet nanečisto.
+
+**GDPR:** newsletter a marketingové SMS/WhatsApp jen se souhlasem. „Provozní“ zprávy (zrušená lekce,
+zavřeno) smí jít i bez souhlasu – ne však reklama převlečená za provozní zprávu.
 
 ## Lokální spuštění
 
@@ -47,9 +70,8 @@ npm run lint && npm run typecheck
 
 ## Nasazení do provozu (krok za krokem)
 
-1. **Doména** – `octopush.cz` a `octopush.com` jsou obsazené. Volné byly např.
-   `octopushstudio.cz`, `octopush-studio.cz`, `octopush-ostrava.cz`
-   (ověřit a koupit u registrátora, např. Wedos, Forpsi, Active24).
+1. **Doména** – zvolená **`octopush.fit`** (koupit např. u Cloudflare, Namecheap, Porkbun).
+   Doporučeno přikoupit `octopushstudio.cz` jako přesměrování (`octopush.cz`/`.com` jsou obsazené).
 2. **Databáze** – založ projekt na [Neon](https://neon.tech) (region Frankfurt), zkopíruj connection string.
 3. **Hosting** – na [Vercel](https://vercel.com) importuj repozitář, *Root Directory* = `fitness-studio`.
    Nastav proměnné z `.env.example`.
@@ -77,6 +99,9 @@ src/config/site.ts       značka, kontakty, hodnoty z moodboardu
 src/db/schema.ts         datový model (Drizzle) → migrace v drizzle/
 src/domain/              pravidla: rezervace, storno, pořadník, objednávky, kredit
 src/lib/payments.ts      Stripe Checkout + webhooky
+src/domain/campaigns.ts  cílové skupiny, souhlasy, dávkové odesílání
+src/domain/import.ts     import klientů z CSV
+src/lib/messaging.ts     poskytovatelé: Resend, BulkGate, WhatsApp Cloud API
 src/app/(web)/           veřejný web a klientský účet
 src/app/admin/           administrace
 tests/                   testy rezervační logiky (vestavěný Postgres v paměti)

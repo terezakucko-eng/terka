@@ -5,6 +5,8 @@ import {
   Cog,
   LayoutDashboard,
   Megaphone,
+  MessageSquare,
+  Upload,
   Receipt,
   Sparkles,
   Tag,
@@ -22,10 +24,12 @@ const items = [
   { href: "/admin/rozvrh", label: "Rozvrh", icon: CalendarDays, admin: false },
   { href: "/admin/klienti", label: "Klienti", icon: Users, admin: true },
   { href: "/admin/objednavky", label: "Platby", icon: Receipt, admin: true },
+  { href: "/admin/zpravy", label: "Zprávy", icon: MessageSquare, admin: true },
   { href: "/admin/cenik", label: "Ceník", icon: Tag, admin: true },
   { href: "/admin/lekce", label: "Typy lekcí", icon: Sparkles, admin: true },
   { href: "/admin/lektori", label: "Lektoři", icon: UserRound, admin: true },
   { href: "/admin/aktuality", label: "Aktuality", icon: Megaphone, admin: true },
+  { href: "/admin/import", label: "Import klientů", icon: Upload, admin: true },
   { href: "/admin/nastaveni", label: "Nastavení", icon: Cog, admin: true },
 ];
 

@@ -13,7 +13,12 @@ export default async function ProfilePage() {
           <Field label="E-mail" hint="E-mail změní recepce."><Input value={user.email} disabled /></Field>
           <Field label="Jméno a příjmení"><Input name="name" defaultValue={user.name} required /></Field>
           <Field label="Telefon"><Input name="phone" type="tel" defaultValue={user.phone ?? ""} /></Field>
-          <label className="flex gap-3 text-sm"><input type="checkbox" name="marketing" defaultChecked={user.marketingConsent} className="accent-[#674329]" /> Chci dostávat novinky e-mailem</label>
+          <fieldset className="space-y-2 text-sm">
+            <legend className="mb-1 text-xs font-semibold uppercase tracking-wider text-les/70">Chci dostávat novinky a akce</legend>
+            <label className="flex gap-3"><input type="checkbox" name="marketing" defaultChecked={user.marketingConsent} className="accent-[#674329]" /> E-mailem</label>
+            <label className="flex gap-3"><input type="checkbox" name="sms" defaultChecked={user.smsConsent} className="accent-[#674329]" /> SMS</label>
+            <label className="flex gap-3"><input type="checkbox" name="whatsapp" defaultChecked={user.whatsappConsent} className="accent-[#674329]" /> WhatsApp</label>
+          </fieldset>
           <SubmitButton>Uložit</SubmitButton>
         </ActionForm>
       </Card>

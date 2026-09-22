@@ -79,6 +79,20 @@ export const creditReason = pgEnum("credit_reason", [
   "bonus",
 ]);
 
+export const channel = pgEnum("channel", ["email", "sms", "whatsapp"]);
+
+export const campaignStatus = pgEnum("campaign_status", [
+  "draft",
+  "sending",
+  "sent",
+]);
+
+export const messageStatus = pgEnum("message_status", [
+  "queued",
+  "sent",
+  "failed",
+]);
+
 /* ----------------------------------------------------------------- tables */
 
 const createdAt = () =>
@@ -92,7 +106,17 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   role: userRole("role").notNull().default("client"),
   creditBalance: integer("credit_balance").notNull().default(0),
+  /** souhlas s newsletterem (e-mail) */
   marketingConsent: boolean("marketing_consent").notNull().default(false),
+  smsConsent: boolean("sms_consent").notNull().default(false),
+  whatsappConsent: boolean("whatsapp_consent").notNull().default(false),
+  /** pro odhlašovací odkaz v newsletteru/SMS bez přihlášení */
+  unsubscribeToken: text("unsubscribe_token")
+    .notNull()
+    .unique()
+    .default(sql`replace(gen_random_uuid()::text, '-', '')`),
+  /** převzato ze starého systému – účet čeká na nastavení hesla */
+  importedAt: timestamp("imported_at", { withTimezone: true }),
   adminNote: text("admin_note"),
   stripeCustomerId: text("stripe_customer_id"),
   createdAt: createdAt(),
@@ -297,6 +321,65 @@ export const announcements = pgTable("announcements", {
   createdAt: createdAt(),
 });
 
+/** Hromadná zpráva – newsletter, SMS nebo WhatsApp. */
+export const campaigns = pgTable("campaigns", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  channel: channel("channel").notNull(),
+  /** marketing = jen se souhlasem; service = provozní info klientům (zrušená lekce, zavřeno…) */
+  purpose: text("purpose").notNull().default("marketing"),
+  name: text("name").notNull(),
+  subject: text("subject"),
+  body: text("body").notNull().default(""),
+  /** WhatsApp: schválená šablona Meta + parametry (mohou obsahovat {{jmeno}}) */
+  waTemplate: text("wa_template"),
+  waLanguage: text("wa_language"),
+  waParams: jsonb("wa_params").$type<string[]>(),
+  audience: jsonb("audience").$type<Audience>().notNull(),
+  status: campaignStatus("status").notNull().default("draft"),
+  recipientCount: integer("recipient_count").notNull().default(0),
+  sentCount: integer("sent_count").notNull().default(0),
+  failedCount: integer("failed_count").notNull().default(0),
+  createdBy: uuid("created_by").references(() => users.id),
+  createdAt: createdAt(),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+});
+
+export type Audience = {
+  segment:
+    | "all"
+    | "members"
+    | "passes"
+    | "inactive"
+    | "new"
+    | "class_type"
+    | "session";
+  days?: number;
+  classTypeId?: string;
+  sessionId?: string;
+};
+
+export const campaignMessages = pgTable(
+  "campaign_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    campaignId: uuid("campaign_id")
+      .notNull()
+      .references(() => campaigns.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    to: text("to").notNull(),
+    status: messageStatus("status").notNull().default("queued"),
+    providerRef: text("provider_ref"),
+    error: text("error"),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("campaign_messages_unique").on(t.campaignId, t.userId),
+    index("campaign_messages_status_idx").on(t.campaignId, t.status),
+  ],
+);
+
 export const settings = pgTable("settings", {
   key: text("key").primaryKey(),
   value: jsonb("value").notNull(),
@@ -311,3 +394,4 @@ export type Order = typeof orders.$inferSelect;
 export type Entitlement = typeof entitlements.$inferSelect;
 export type Booking = typeof bookings.$inferSelect;
 export type Announcement = typeof announcements.$inferSelect;
+export type Campaign = typeof campaigns.$inferSelect;

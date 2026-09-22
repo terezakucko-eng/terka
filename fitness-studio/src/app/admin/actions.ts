@@ -28,6 +28,7 @@ import { addDays, pragueLocalToDate, weekdayOf, isDateKey } from "@/lib/dates";
 import { UserError } from "@/lib/errors";
 import { attempt, field, type FormState } from "@/lib/form";
 import { notifyBooked, notifyPromoted, notifySessionCancelled } from "@/lib/notify";
+import { normalizePhone } from "@/lib/phone";
 import { defaultSettings, saveSettings, type Settings } from "@/lib/settings";
 
 const done = (msg?: string) => {
@@ -397,9 +398,12 @@ export async function updateClientAction(_: FormState, fd: FormData): Promise<Fo
       .set({
         name: required(field.str(fd, "name"), "Vyplň jméno."),
         email,
-        phone: field.optional(fd, "phone"),
+        phone: normalizePhone(field.str(fd, "phone")) ?? field.optional(fd, "phone"),
         role,
         adminNote: field.optional(fd, "adminNote"),
+        marketingConsent: field.bool(fd, "marketingConsent"),
+        smsConsent: field.bool(fd, "smsConsent"),
+        whatsappConsent: field.bool(fd, "whatsappConsent"),
       })
       .where(eq(users.id, id));
     return done("Klient uložen.");
