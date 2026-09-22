@@ -24,7 +24,12 @@ type Handle = { db: DB; kind: "pg" | "pglite"; close: () => Promise<void> };
  * `pglite://memory` → in-memory embedded Postgres (tests)
  * `pglite://./.data/db` or empty → embedded Postgres on disk (local dev)
  */
-export function createDb(url = process.env.DATABASE_URL ?? ""): Handle {
+export function databaseUrl() {
+  // Vercel's Neon integration may expose the URL under either name
+  return process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
+}
+
+export function createDb(url = databaseUrl()): Handle {
   if (url.startsWith("postgres://") || url.startsWith("postgresql://")) {
     const pool = new Pool({ connectionString: url, max: 5 });
     return {
@@ -33,6 +38,10 @@ export function createDb(url = process.env.DATABASE_URL ?? ""): Handle {
       close: () => pool.end(),
     };
   }
+  if (process.env.VERCEL && !url.startsWith("pglite://"))
+    throw new Error(
+      "Chybí DATABASE_URL – na Vercelu připoj databázi (Storage → Neon), viz README.",
+    );
   const target = url.replace(/^pglite:\/\//, "") || "./.data/db";
   if (target !== "memory") fs.mkdirSync(target, { recursive: true });
   const client = target === "memory" ? new PGlite() : new PGlite(target);

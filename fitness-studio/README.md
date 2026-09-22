@@ -77,6 +77,28 @@ npm test          # testy rezervační logiky
 npm run lint && npm run typecheck
 ```
 
+## Testovací verze (devel) zdarma – Vercel + Neon
+
+1. [vercel.com](https://vercel.com) → **Add New… → Project** → vyber repozitář `terka`
+   → **Root Directory: `fitness-studio`** → Deploy (první build může spadnout, chybí databáze – nevadí).
+2. V projektu **Storage → Create Database → Neon** (Free) → připojit k projektu.
+   `DATABASE_URL` se nastaví sám.
+3. **Settings → Environment Variables** (pro Preview i Production):
+   - `AUTH_SECRET` – libovolný dlouhý náhodný text (min. 32 znaků)
+   - `ADMIN_EMAIL`, `ADMIN_PASSWORD` – tvůj přístup do administrace
+   - `SEED_DEMO` = `true` – naplní demo rozvrh a ceník (jen jednou, pokud je DB prázdná)
+   - `ALLOW_TEST_PAYMENTS` = `true` – testovací platební brána místo Stripe
+4. **Deployments → Redeploy.** Build sám založí tabulky (`scripts/prebuild.mts`).
+5. Každý push do větve se nasadí automaticky; náhledové adresy chrání Vercel přihlášením
+   (vidíš je jen ty) – dá se vypnout v *Settings → Deployment Protection*.
+
+Bez klíčů Resend/BulkGate/WhatsApp se e-maily a zprávy jen vypisují do logu (Vercel → Logs).
+
+**Náklady provozu (orientačně):** Vercel Hobby a Neon Free = 0 Kč, ale Hobby je podle podmínek
+Vercelu jen pro nekomerční použití – na ostrý provoz s platbami je potřeba Vercel Pro
+(~20 USD/měs.) nebo levnější VPS. Resend zdarma do 3 000 e-mailů/měs., Stripe bez měsíčního
+poplatku (jen % z plateb), SMS/WhatsApp za kus, doména `.fit` ~26 USD/rok.
+
 ## Nasazení do provozu (krok za krokem)
 
 1. **Doména** – zvolená **`octopush.fit`** (koupit např. u Cloudflare, Namecheap, Porkbun).
@@ -98,13 +120,13 @@ npm run lint && npm run typecheck
    `checkout.session.expired`, `invoice.paid`, `customer.subscription.updated`,
    `customer.subscription.deleted`. Klíče do `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET`.
 7. **E-maily** – [Resend](https://resend.com): ověř doménu (DNS záznamy), klíč do `RESEND_API_KEY`.
-8. **Texty** – zkontroluj `src/config/site.ts` (adresa, IČO, kontakty, sítě) a nech
+8. **Texty** – v Admin → Obsah webu doplň adresu, IČO, kontakty, sítě a nech
    právníkovi zkontrolovat obchodní podmínky a GDPR.
 
 ## Struktura
 
 ```
-src/config/site.ts       značka, kontakty, hodnoty z moodboardu
+src/config/site.ts       název a adresa webu (ostatní v src/content/definitions.ts)
 src/db/schema.ts         datový model (Drizzle) → migrace v drizzle/
 src/domain/              pravidla: rezervace, storno, pořadník, objednávky, kredit
 src/lib/payments.ts      Stripe Checkout + webhooky

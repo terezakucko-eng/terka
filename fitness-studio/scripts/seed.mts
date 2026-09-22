@@ -25,6 +25,12 @@ if ((await db.select({ id: users.id }).from(users).limit(1)).length) {
   process.exit(0);
 }
 
+const onServer = !!process.env.VERCEL;
+if (onServer && !process.env.ADMIN_PASSWORD) {
+  // the default demo password is public in the repo – never use it online
+  console.error("✗ Seed on Vercel needs ADMIN_EMAIL and ADMIN_PASSWORD env vars.");
+  process.exit(1);
+}
 const adminEmail = process.env.ADMIN_EMAIL ?? "admin@octopush.cz";
 const adminPassword = process.env.ADMIN_PASSWORD ?? "octopush-admin";
 await db.insert(users).values({
@@ -33,7 +39,7 @@ await db.insert(users).values({
   role: "admin",
   passwordHash: await bcrypt.hash(adminPassword, 10),
 });
-await db.insert(users).values({
+if (!onServer) await db.insert(users).values({
   email: "klient@octopush.cz",
   name: "Testovací Klientka",
   passwordHash: await bcrypt.hash("klient123", 10),

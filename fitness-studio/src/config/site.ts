@@ -5,7 +5,12 @@
  */
 export const site = {
   name: "OCTOPUSH",
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+  url:
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    // Vercel preview/devel: stable per-branch address, else this deployment's
+    (process.env.VERCEL_BRANCH_URL && `https://${process.env.VERCEL_BRANCH_URL}`) ||
+    (process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`) ||
+    "http://localhost:3000",
   /** Fallback sender for e-mails when MAIL_FROM isn't set. */
   email: "ahoj@octopush.fit",
   // used in e-mail footers (e-mails are sent outside page requests)
