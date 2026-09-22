@@ -99,7 +99,45 @@ Vercelu jen pro nekomerční použití – na ostrý provoz s platbami je potře
 (~20 USD/měs.) nebo levnější VPS. Resend zdarma do 3 000 e-mailů/měs., Stripe bez měsíčního
 poplatku (jen % z plateb), SMS/WhatsApp za kus, doména `.fit` ~26 USD/rok.
 
-## Nasazení do provozu (krok za krokem)
+## Ostrý provoz nejlevněji – vlastní server (~170 Kč/měs.)
+
+Celé studio běží na jednom malém virtuálním serveru: web, databáze PostgreSQL, HTTPS
+certifikát (Caddy + Let's Encrypt), úklidový cron a noční zálohy databáze – `compose.yaml`.
+
+**Doporučený server:** [Hetzner Cloud](https://www.hetzner.com/cloud) **CX23** (2 vCPU, 4 GB RAM,
+40 GB disk, datacentrum v Německu/Finsku) – 5,49 € bez DPH měsíčně (cena od června 2026).
+
+1. Hetzner Cloud → nový server **CX23**, obraz **Ubuntu 24.04**, přidej svůj SSH klíč.
+   (Doporučeno zapnout i placené *Backups* – kopie celého serveru mimo něj.)
+2. U registrátora domény nastav DNS: `A  @  <IP serveru>` a `A  www  <IP serveru>`.
+3. Na serveru:
+   ```bash
+   curl -fsSL https://get.docker.com | sh
+   git clone https://github.com/terezakucko-eng/terka.git && cd terka/fitness-studio
+   cp .env.example .env && nano .env   # DOMAIN, POSTGRES_PASSWORD, AUTH_SECRET, CRON_SECRET, ADMIN_EMAIL, ADMIN_PASSWORD…
+   docker compose up -d --build
+   ```
+   Při startu se sama založí databáze i admin účet. Za minutu běží web na `https://<doména>`.
+4. **Aktualizace:** `git pull && docker compose up -d --build`
+5. **Zálohy:** každou noc do `fitness-studio/backups/` (14 dní). Jednou za čas si je stáhni
+   i mimo server (`scp`), nebo zapni Hetzner Backups. Obnova:
+   `docker compose exec -T db pg_restore -U octopush -d octopush --clean < backups/<soubor>.dump`
+
+**Měsíční náklady ostrého provozu:**
+
+| Položka | Cena |
+|---|---|
+| Server Hetzner CX23 | 5,49 € + DPH (~165 Kč) |
+| Doména `.fit` | ~26 USD/rok (~50 Kč/měs.) |
+| Databáze, HTTPS, zálohy na serveru | 0 Kč (součást serveru) |
+| E-maily Resend | 0 Kč do 3 000/měs. a 100/den; newsletter pro víc lidí → placený tarif |
+| Platby Stripe | bez paušálu; 1,5 % + 6,50 Kč z platby běžnou evropskou kartou |
+| SMS / WhatsApp | jen za odeslané zprávy |
+
+**Nejlevnější platby:** u permanentek a členství se vyplatí i platba převodem s QR kódem –
+u Fio banky je API pro automatické párování plateb zdarma (zatím není implementováno).
+
+## Nasazení do provozu přes Vercel (bez správy serveru)
 
 1. **Doména** – zvolená **`octopush.fit`** (koupit např. u Cloudflare, Namecheap, Porkbun).
    Doporučeno přikoupit `octopushstudio.cz` jako přesměrování (`octopush.cz`/`.com` jsou obsazené).

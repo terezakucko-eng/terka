@@ -6,6 +6,8 @@
 export const site = {
   name: "OCTOPUSH",
   url:
+    // SITE_URL is read at runtime (Docker); NEXT_PUBLIC_ is baked in at build
+    process.env.SITE_URL ||
     process.env.NEXT_PUBLIC_SITE_URL ||
     // Vercel preview/devel: stable per-branch address, else this deployment's
     (process.env.VERCEL_BRANCH_URL && `https://${process.env.VERCEL_BRANCH_URL}`) ||

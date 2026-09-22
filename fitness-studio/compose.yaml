@@ -1,0 +1,77 @@
+# Self-hosting on one small VPS: web + PostgreSQL + HTTPS + cron + nightly backups.
+# Usage: cp .env.example .env (fill in) && docker compose up -d --build
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: octopush
+      POSTGRES_USER: octopush
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?nastav POSTGRES_PASSWORD v .env}
+    volumes:
+      - db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U octopush -d octopush"]
+      interval: 5s
+      retries: 20
+
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://octopush:${POSTGRES_PASSWORD}@db:5432/octopush
+      SITE_URL: https://${DOMAIN:?nastav DOMAIN v .env}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # HTTPS certificate from Let's Encrypt, renewed automatically
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+  # housekeeping every 10 minutes (unpaid holds, unfinished campaigns)
+  cron:
+    image: curlimages/curl:8.10.1
+    restart: unless-stopped
+    environment:
+      CRON_SECRET: ${CRON_SECRET:?nastav CRON_SECRET v .env}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - 'while true; do curl -fsS -H "Authorization: Bearer $$CRON_SECRET" http://app:3000/api/cron || true; sleep 600; done'
+    depends_on:
+      - app
+
+  # nightly database dump to ./backups, kept 14 days
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./backups:/backups
+    entrypoint:
+      - /bin/sh
+      - -c
+      - 'while true; do pg_dump -h db -U octopush -d octopush -Fc -f /backups/octopush-$$(date +%F).dump && find /backups -name "*.dump" -mtime +14 -delete; sleep 86400; done'
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db:
+  caddy_data:
+  caddy_config:
