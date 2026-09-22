@@ -73,7 +73,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
         </div>
         <div className="mt-5 space-y-3">
           {upcoming.length === 0 && <Empty>Zatím nemáš žádnou rezervaci. Vyber si lekci v rozvrhu.</Empty>}
-          {upcoming.map(({ b, s, ct, ins }) => (
+          {upcoming.map(({ b, s, ct }) => (
             <Card key={b.id} className="flex flex-wrap items-center justify-between gap-4 p-4 sm:p-5">
               <Link href={`/rozvrh/${s.id}`} className="flex items-center gap-4">
                 <span className="h-12 w-1 rounded-full" style={{ background: ct.color }} />
@@ -81,7 +81,6 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
                   <span className="block font-semibold">{ct.name}</span>
                   <span className="block text-sm text-les/60">
                     {formatDay(s.startsAt)} · {formatRange(s.startsAt, s.durationMin)}
-                    {ins && ` · ${ins.name}`}
                   </span>
                 </span>
               </Link>

@@ -12,7 +12,7 @@ const pageNames: Record<string, string> = {
   "/": "Úvodní stránka",
   "/rozvrh": "Rozvrh",
   "/lekce": "Lekce",
-  "/lektori": "Lektoři",
+  "/o-mne": "O mně",
   "/cenik": "Ceník",
   "/prihlaseni": "Přihlášení a registrace",
   "/obchodni-podminky": "Obchodní podmínky",

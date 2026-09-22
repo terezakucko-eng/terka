@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CalendarPlus, Clock, MapPin, UserRound } from "lucide-react";
+import { ArrowLeft, CalendarPlus, Clock, MapPin } from "lucide-react";
 import { site } from "@/config/site";
 import { getDb } from "@/db";
 import { bookAction, cancelBookingAction, waitlistAction } from "@/app/actions/booking";
@@ -43,7 +43,7 @@ export default async function SessionPage({ params }: PageProps<"/rozvrh/[id]">)
   const [user, c] = await Promise.all([getCurrentUser(), getContent()]);
   const address = `${c("site.street")}, ${c("site.city")}`;
   const view = (await sessionForUser(db, id, user?.id ?? null))!;
-  const { s, ct, ins } = detail;
+  const { s, ct } = detail;
   const left = Math.max(0, s.capacity - view.occupied);
 
   return (
@@ -58,9 +58,6 @@ export default async function SessionPage({ params }: PageProps<"/rozvrh/[id]">)
             <h1 className="mt-4 text-4xl font-medium tracking-tight sm:text-6xl">{ct.name}</h1>
             <ul className="mt-8 space-y-3 text-papir/80">
               <li className="flex items-center gap-3"><Clock className="size-5 text-zlato" /> {formatRange(s.startsAt, s.durationMin)} ({s.durationMin} min)</li>
-              {ins && (
-                <li className="flex items-center gap-3"><UserRound className="size-5 text-zlato" /> {ins.name}{ins.specialties && <span className="text-papir/50">· {ins.specialties}</span>}</li>
-              )}
               <li className="flex items-center gap-3"><MapPin className="size-5 text-zlato" /> {s.room ? `${s.room}, ` : ""}{address}</li>
             </ul>
             {s.note && <p className="mt-6 rounded-xl border border-zlato/40 bg-zlato/10 p-4 text-zlato-light">{s.note}</p>}

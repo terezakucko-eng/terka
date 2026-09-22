@@ -40,32 +40,19 @@ await db.insert(users).values({
   creditBalance: 5,
 });
 
-const [anna, marek, eva] = await db
+// one instructor runs the studio; more can be added in Admin → Lektoři
+const [anna] = await db
   .insert(instructors)
-  .values([
-    {
-      name: "Anna",
-      slug: "anna",
-      specialties: "Pilates · Mobilita",
-      bio: "Certifikovaná lektorka pilates. Věří, že síla začíná v kontrole a dechu.",
-      sortOrder: 1,
-    },
-    {
-      name: "Marek",
-      slug: "marek",
-      specialties: "Silový trénink · Kondice",
-      bio: "Trenér, který tě naučí zvedat činky správně a s radostí.",
-      sortOrder: 2,
-    },
-    {
-      name: "Eva",
-      slug: "eva",
-      specialties: "Tanec · Energie",
-      bio: "Tanečnice a lektorka, jejíž hodiny jsou čistá radost z pohybu.",
-      sortOrder: 3,
-    },
-  ])
+  .values({
+    name: "Lektorka",
+    slug: "lektorka",
+    specialties: "Tanec · Pilates · Síla",
+    bio: "Zakladatelka studia.",
+    sortOrder: 1,
+  })
   .returning();
+const marek = anna;
+const eva = anna;
 
 const [tanec, pilates, sila, mobilita, funkcni] = await db
   .insert(classTypes)

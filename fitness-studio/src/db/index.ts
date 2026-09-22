@@ -70,8 +70,23 @@ function handle(): Handle {
   return globalForDb.__db;
 }
 
+/**
+ * Tells Next.js the caller needs a live request, so pages that read the DB are
+ * never prerendered at build time. Outside a request (scripts, tests) it's a no-op.
+ */
+async function requireRequest() {
+  try {
+    const { connection } = await import("next/server");
+    await connection();
+  } catch (e) {
+    const { unstable_rethrow } = await import("next/navigation");
+    unstable_rethrow(e); // let Next's "render dynamically" signal through
+  }
+}
+
 /** Lazily-initialised app-wide database. */
 export async function getDb(): Promise<DB> {
+  await requireRequest();
   const h = handle();
   if (globalForDb.__dbReady) await globalForDb.__dbReady;
   return h.db;

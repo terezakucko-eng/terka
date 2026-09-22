@@ -39,7 +39,6 @@ export function SessionCard({ s, compact }: { s: ScheduleItem; compact?: boolean
       <p className={cx("mt-1 font-semibold leading-tight", !compact && "text-lg")}>
         {s.classType.name}
       </p>
-      {s.instructor && <p className="mt-0.5 text-sm text-les/60">{s.instructor.name}</p>}
       <div className="mt-3 flex flex-wrap gap-1.5">
         {s.myStatus ? (
           <Badge tone="dark">{myLabel[s.myStatus] ?? s.myStatus}</Badge>

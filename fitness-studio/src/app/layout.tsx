@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Allura, Inter } from "next/font/google";
 import { site } from "@/config/site";
+import { connection } from "next/server";
 import { getContent } from "@/content";
 import "./globals.css";
 
@@ -16,6 +17,7 @@ const allura = Allura({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
+  await connection(); // texts are editable in the DB – resolve per request, not at build
   const c = await getContent();
   const title = `${site.name} – ${c("site.tagline")}`;
   return {

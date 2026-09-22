@@ -4,6 +4,10 @@ const nextConfig: NextConfig = {
   // embedded Postgres (local dev) ships WASM – keep it out of the bundle
   serverExternalPackages: ["@electric-sql/pglite"],
   poweredByHeader: false,
+  // studio is run by one instructor – the old team page lives on as "O mně"
+  async redirects() {
+    return [{ source: "/lektori", destination: "/o-mne", permanent: true }];
+  },
   experimental: {
     // photo uploads in the admin (resized on the server)
     serverActions: { bodySizeLimit: "13mb" },

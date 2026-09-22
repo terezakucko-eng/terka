@@ -11,7 +11,7 @@ export async function SiteHeader() {
     { href: "/rozvrh", label: c("nav.schedule") },
     { href: "/lekce", label: c("nav.classes") },
     { href: "/cenik", label: c("nav.pricing") },
-    { href: "/lektori", label: c("nav.instructors") },
+    { href: "/o-mne", label: c("nav.about") },
     { href: "/#kontakt", label: c("nav.contact") },
   ];
   const account = user

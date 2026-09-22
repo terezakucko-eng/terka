@@ -71,7 +71,7 @@ export const SECTIONS = {
       schedule: t("Menu – Rozvrh", "Rozvrh"),
       classes: t("Menu – Lekce", "Lekce"),
       pricing: t("Menu – Ceník", "Ceník"),
-      instructors: t("Menu – Lektoři", "Lektoři"),
+      about: t("Menu – O mně", "O mně"),
       contact: t("Menu – Kontakt", "Kontakt"),
       book: t("Tlačítko Rezervovat", "Rezervovat"),
       footerStudio: t("Patička – nadpis kontaktů", "Studio"),
@@ -177,13 +177,30 @@ export const SECTIONS = {
       intro: ta("Úvodní text", "Tanec, pilates, síla i regenerace. Vyber si podle nálady – nebo zkus všechno."),
     },
   },
-  instructors: {
-    title: "Lektoři",
-    page: "/lektori",
+  about: {
+    title: "O mně",
+    page: "/o-mne",
     fields: {
-      eyebrow: t("Malý nadpis", "Lektoři"),
-      title: t("Nadpis", "Lidé, kteří tě povedou."),
-      intro: ta("Úvodní text", "Každý z nás má svou cestu. Rádi tě kus té tvojí doprovodíme."),
+      eyebrow: t("Malý nadpis", "O mně"),
+      title: t("Nadpis", "Ahoj, tady tvoje lektorka."),
+      intro: ta("Úvodní text", "Každý má svou cestu. Ráda tě kus té tvojí doprovodím."),
+      image: img("Moje fotka", "/img/pohyb.webp"),
+      imageAlt: t("Popis fotky", "Lektorka studia OCTOPUSH"),
+      caption: t("Popisek fotky", "Lektorka & zakladatelka"),
+      body: rich(
+        "Příběh",
+        `## Proč OCTOPUSH
+Napiš sem, jak studio vzniklo a co pro tebe pohyb znamená.
+
+## Co u mě najdeš
+- tanec, který spojuje
+- pilates – síla v rovnováze
+- silový trénink pro běžný život
+
+## Vzdělání a certifikace
+- doplň své kurzy a certifikáty`,
+      ),
+      cta: t("Tlačítko", "Přijď si zacvičit"),
     },
   },
   pricing: {
