@@ -9,6 +9,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { credits, entries, formatPrice } from "@/lib/money";
 import { activeClassTypes, activeProducts } from "@/lib/queries";
 import { getSettings } from "@/lib/settings";
+import { getContent, type Content } from "@/content";
 
 export const metadata: Metadata = { title: "Ceník, členství a permanentky" };
 
@@ -35,36 +36,35 @@ function perks(p: Product): string[] {
   }
 }
 
-const groups: { kind: Product["kind"]; n: string; title: string; text: string }[] = [
-  { kind: "membership", n: "01", title: "Členství", text: "Pro ty, kdo chodí pravidelně. Měsíční platba kartou, bez závazku." },
-  { kind: "pass", n: "02", title: "Permanentky", text: "Balíček vstupů s delší platností – ideální, když chodíš nepravidelně." },
-  { kind: "credit_pack", n: "03", title: "Kredit", text: "Dobij si peněženku a plať kreditem za jakoukoliv lekci." },
+const groups = (c: Content): { kind: Product["kind"]; n: string; title: string; text: string }[] => [
+  { kind: "membership", n: "01", title: c("pricing.membershipTitle"), text: c("pricing.membershipText") },
+  { kind: "pass", n: "02", title: c("pricing.passTitle"), text: c("pricing.passText") },
+  { kind: "credit_pack", n: "03", title: c("pricing.creditTitle"), text: c("pricing.creditText") },
 ];
 
 export default async function PricingPage() {
   const db = await getDb();
-  const [list, types, user, cfg] = await Promise.all([
+  const [list, types, user, cfg, c] = await Promise.all([
     activeProducts(db),
     activeClassTypes(db),
     getCurrentUser(),
     getSettings(db),
+    getContent(),
   ]);
 
   return (
     <>
-      <PageHeader eyebrow="Ceník" title="Každý má svou cestu. I k ceníku.">
-        Členství, permanentka, kredit nebo jednorázový vstup – vyber si, co sedí tvému rytmu.
+      <PageHeader eyebrow={c("pricing.eyebrow")} title={c("pricing.title")}>
+        {c("pricing.intro")}
       </PageHeader>
 
       {cfg.welcomeFreeEntries > 0 && (
         <section className="bg-forest text-papir">
           <Container className="flex flex-col items-start justify-between gap-6 py-10 md:flex-row md:items-center">
             <div>
-              <Eyebrow className="text-zlato">Vstup zdarma</Eyebrow>
-              <p className="mt-2 text-2xl font-medium">
-                {cfg.welcomeFreeEntries === 1 ? "První lekce je na nás." : `Prvních ${cfg.welcomeFreeEntries} lekcí je na nás.`}
-              </p>
-              <p className="mt-1 text-papir/70">Po registraci ti ji připíšeme na účet, platí {cfg.welcomeFreeValidityDays} dní. Sleduj také lekce označené „Zdarma“ v rozvrhu.</p>
+              <Eyebrow className="text-zlato">{c("pricing.freeEyebrow")}</Eyebrow>
+              <p className="mt-2 text-2xl font-medium">{c("pricing.freeTitle")}</p>
+              <p className="mt-1 text-papir/70">{c("pricing.freeText")}</p>
             </div>
             <ButtonLink href={user ? "/rozvrh" : "/registrace"} variant="gold">
               {user ? "Vybrat lekci" : "Zaregistrovat se"}
@@ -74,7 +74,7 @@ export default async function PricingPage() {
       )}
 
       <Container className="space-y-20 py-16">
-        {groups.map((g) => {
+        {groups(c).map((g) => {
           const items = list.filter((p) => p.kind === g.kind);
           if (!items.length) return null;
           return (
@@ -126,8 +126,8 @@ export default async function PricingPage() {
         })}
 
         <section>
-          <Eyebrow n="04" className="text-zeme">Jednorázový vstup</Eyebrow>
-          <p className="mt-3 max-w-xl text-les/70">Bez závazku – zaplatíš kartou přímo při rezervaci lekce.</p>
+          <Eyebrow n="04" className="text-zeme">{c("pricing.dropInTitle")}</Eyebrow>
+          <p className="mt-3 max-w-xl text-les/70">{c("pricing.dropInText")}</p>
           <div className="mt-8 divide-y divide-linka/60 border-y border-linka/60">
             {types.map((t) => (
               <div key={t.id} className="flex items-center justify-between py-4">
@@ -143,9 +143,12 @@ export default async function PricingPage() {
         </section>
 
         <section className="grid gap-6 rounded-2xl bg-krem/50 p-8 text-sm text-les/80 md:grid-cols-3">
-          <div><p className="eyebrow mb-2 text-zeme">Storno</p>Zdarma nejpozději {cfg.cancellationHours} h před začátkem lekce – vstup/kredit se vrátí na účet. Později vstup propadá.</div>
-          <div><p className="eyebrow mb-2 text-zeme">Pořadník</p>Plná lekce? Zapiš se, a když se místo uvolní, automaticky tě přihlásíme a strhneme vstup.</div>
-          <div><p className="eyebrow mb-2 text-zeme">Na recepci</p>Permanentky i kredit koupíš také hotově nebo kartou přímo ve studiu.</div>
+          {[1, 2, 3].map((n) => (
+            <div key={n}>
+              <p className="eyebrow mb-2 text-zeme">{c(`pricing.info${n}Title`)}</p>
+              {c(`pricing.info${n}Text`)}
+            </div>
+          ))}
         </section>
       </Container>
     </>

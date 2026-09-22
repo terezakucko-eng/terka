@@ -28,6 +28,7 @@ import { addDays, pragueLocalToDate, weekdayOf, isDateKey } from "@/lib/dates";
 import { UserError } from "@/lib/errors";
 import { attempt, field, type FormState } from "@/lib/form";
 import { notifyBooked, notifyPromoted, notifySessionCancelled } from "@/lib/notify";
+import { storeImage, uploadedFile } from "@/lib/media";
 import { normalizePhone } from "@/lib/phone";
 import { defaultSettings, saveSettings, type Settings } from "@/lib/settings";
 
@@ -43,6 +44,14 @@ const slugify = (s: string) =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
+
+/** Uploaded file wins; `remove` checkbox clears; otherwise field untouched. */
+async function imageField<K extends string>(fd: FormData, fileName: string, removeName: string | null, key: K) {
+  const file = uploadedFile(fd, fileName);
+  if (file) return { [key]: await storeImage(await getDb(), file, 1600) } as Record<K, string>;
+  if (removeName && field.bool(fd, removeName)) return { [key]: null } as Record<K, null>;
+  return {};
+}
 
 function required<T>(v: T | null | undefined, msg: string): T {
   if (v === null || v === undefined || v === "") throw new UserError(msg);
@@ -68,6 +77,7 @@ export async function saveClassTypeAction(_: FormState, fd: FormData): Promise<F
       level: field.str(fd, "level") || "Pro všechny",
       sortOrder: field.int(fd, "sortOrder") ?? 0,
       isActive: field.bool(fd, "isActive"),
+      ...(await imageField(fd, "image", "removeImage", "imageUrl")),
     };
     const id = field.str(fd, "id");
     if (id) await db.update(classTypes).set(values).where(eq(classTypes.id, id));
@@ -87,6 +97,7 @@ export async function saveInstructorAction(_: FormState, fd: FormData): Promise<
       specialties: field.str(fd, "specialties"),
       bio: field.str(fd, "bio"),
       photoUrl: field.optional(fd, "photoUrl"),
+      ...(await imageField(fd, "photo", null, "photoUrl")),
       sortOrder: field.int(fd, "sortOrder") ?? 0,
       isActive: field.bool(fd, "isActive"),
     };

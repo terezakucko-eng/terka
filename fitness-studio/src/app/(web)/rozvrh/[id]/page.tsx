@@ -12,6 +12,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { formatDay, formatRange } from "@/lib/dates";
 import { credits, formatPrice } from "@/lib/money";
 import { sessionDetail } from "@/lib/queries";
+import { getContent } from "@/content";
 
 const UUID = /^[0-9a-f-]{36}$/i;
 
@@ -22,14 +23,14 @@ export async function generateMetadata({ params }: PageProps<"/rozvrh/[id]">): P
   return r ? { title: `${r.ct.name} – ${formatDay(r.s.startsAt)}` } : {};
 }
 
-function gcalLink(title: string, start: Date, durationMin: number) {
+function gcalLink(title: string, start: Date, durationMin: number, location: string) {
   const f = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
   const end = new Date(start.getTime() + durationMin * 60_000);
   return `https://calendar.google.com/calendar/render?${new URLSearchParams({
     action: "TEMPLATE",
     text: `${title} · ${site.name}`,
     dates: `${f(start)}/${f(end)}`,
-    location: `${site.address.street}, ${site.address.city}`,
+    location,
   })}`;
 }
 
@@ -39,7 +40,8 @@ export default async function SessionPage({ params }: PageProps<"/rozvrh/[id]">)
   const db = await getDb();
   const detail = await sessionDetail(db, id);
   if (!detail) notFound();
-  const user = await getCurrentUser();
+  const [user, c] = await Promise.all([getCurrentUser(), getContent()]);
+  const address = `${c("site.street")}, ${c("site.city")}`;
   const view = (await sessionForUser(db, id, user?.id ?? null))!;
   const { s, ct, ins } = detail;
   const left = Math.max(0, s.capacity - view.occupied);
@@ -59,7 +61,7 @@ export default async function SessionPage({ params }: PageProps<"/rozvrh/[id]">)
               {ins && (
                 <li className="flex items-center gap-3"><UserRound className="size-5 text-zlato" /> {ins.name}{ins.specialties && <span className="text-papir/50">· {ins.specialties}</span>}</li>
               )}
-              <li className="flex items-center gap-3"><MapPin className="size-5 text-zlato" /> {s.room ? `${s.room}, ` : ""}{site.address.street}, {site.address.city}</li>
+              <li className="flex items-center gap-3"><MapPin className="size-5 text-zlato" /> {s.room ? `${s.room}, ` : ""}{address}</li>
             </ul>
             {s.note && <p className="mt-6 rounded-xl border border-zlato/40 bg-zlato/10 p-4 text-zlato-light">{s.note}</p>}
             <p className="mt-8 max-w-xl leading-relaxed text-papir/70">{ct.description}</p>
@@ -76,7 +78,7 @@ export default async function SessionPage({ params }: PageProps<"/rozvrh/[id]">)
               view={view}
               loggedIn={!!user}
               sessionId={s.id}
-              gcal={gcalLink(ct.name, s.startsAt, s.durationMin)}
+              gcal={gcalLink(ct.name, s.startsAt, s.durationMin, address)}
             />
           </Card>
         </div>

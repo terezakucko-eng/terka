@@ -24,6 +24,16 @@ function ClassTypeForm({ t }: { t?: ClassType }) {
         <Field label="Pořadí"><Input name="sortOrder" type="number" defaultValue={t?.sortOrder ?? 0} /></Field>
       </div>
       <Field label="Popis"><Textarea name="description" rows={3} defaultValue={t?.description} /></Field>
+      <div className="flex flex-wrap items-center gap-4">
+        {t?.imageUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={t.imageUrl} alt="" className="h-20 w-32 rounded-lg object-cover" />
+        )}
+        <Field label="Fotka lekce (na stránce Lekce)">
+          <input type="file" name="image" accept="image/*" className="block text-sm file:mr-3 file:rounded-full file:border-0 file:bg-les file:px-4 file:py-2 file:text-xs file:font-semibold file:text-papir" />
+        </Field>
+        {t?.imageUrl && <label className="flex items-center gap-2 text-xs"><input type="checkbox" name="removeImage" /> Odebrat fotku</label>}
+      </div>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="isActive" defaultChecked={t?.isActive ?? true} /> Aktivní (zobrazit na webu)</label>
       <SubmitButton>Uložit</SubmitButton>
     </ActionForm>

@@ -23,7 +23,13 @@ function bodyToHtml(text: string) {
 }
 
 /** Branded newsletter e-mail in the OCTOPUSH style. */
-export function renderNewsletter(opts: { subject: string; body: string; unsubscribeUrl: string }) {
+export function renderNewsletter(opts: {
+  subject: string;
+  body: string;
+  unsubscribeUrl: string;
+  /** "Firma · adresa" line in the footer */
+  footer: string;
+}) {
   const logo = `${site.url}/brand/email-logo.png`;
   const html = `<!doctype html><html lang="cs"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${esc(opts.subject)}</title></head>
 <body style="margin:0;background:#f3ebde;font-family:Helvetica,Arial,sans-serif;color:#151a13">
@@ -33,7 +39,7 @@ export function renderNewsletter(opts: { subject: string; body: string; unsubscr
 <tr><td style="background:#fffaf2;padding:36px 32px;font-size:16px">${bodyToHtml(opts.body)}</td></tr>
 <tr><td align="center" style="padding:24px;font-size:12px;color:#606350;letter-spacing:.2em;text-transform:uppercase">${esc(site.tagline)}</td></tr>
 <tr><td align="center" style="padding:0 24px 24px;font-size:12px;color:#606350;line-height:1.6">
-${esc(site.company.name)} · ${esc(site.address.street)}, ${esc(site.address.city)}<br>
+${esc(opts.footer)}<br>
 Tento e-mail dostáváš, protože jsi souhlasil/a se zasíláním novinek. <a href="${opts.unsubscribeUrl}" style="color:#674329">Odhlásit odběr</a>
 </td></tr></table></td></tr></table></body></html>`;
   const text = `${opts.body}\n\n—\n${site.name} · ${site.tagline}\nOdhlásit odběr: ${opts.unsubscribeUrl}`;

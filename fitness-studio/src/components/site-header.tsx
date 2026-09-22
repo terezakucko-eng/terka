@@ -1,19 +1,19 @@
 import Link from "next/link";
 import { Menu, UserRound, X } from "lucide-react";
+import { getContent } from "@/content";
 import { getCurrentUser } from "@/lib/auth";
 import { LogoLink } from "./brand";
 import { buttonClass } from "./ui";
 
-const nav = [
-  { href: "/rozvrh", label: "Rozvrh" },
-  { href: "/lekce", label: "Lekce" },
-  { href: "/cenik", label: "Ceník" },
-  { href: "/lektori", label: "Lektoři" },
-  { href: "/#kontakt", label: "Kontakt" },
-];
-
 export async function SiteHeader() {
-  const user = await getCurrentUser();
+  const [user, c] = await Promise.all([getCurrentUser(), getContent()]);
+  const nav = [
+    { href: "/rozvrh", label: c("nav.schedule") },
+    { href: "/lekce", label: c("nav.classes") },
+    { href: "/cenik", label: c("nav.pricing") },
+    { href: "/lektori", label: c("nav.instructors") },
+    { href: "/#kontakt", label: c("nav.contact") },
+  ];
   const account = user
     ? { href: user.role === "client" ? "/ucet" : "/admin", label: user.role === "client" ? "Můj účet" : "Administrace" }
     : { href: "/prihlaseni", label: "Přihlásit" };
@@ -24,27 +24,17 @@ export async function SiteHeader() {
         <LogoLink />
         <nav className="hidden items-center gap-8 md:flex" aria-label="Hlavní menu">
           {nav.map((n) => (
-            <Link
-              key={n.href}
-              href={n.href}
-              className="eyebrow text-papir/75 transition hover:text-zlato-light"
-            >
+            <Link key={n.href} href={n.href} className="eyebrow text-papir/75 transition hover:text-zlato-light">
               {n.label}
             </Link>
           ))}
         </nav>
         <div className="flex items-center gap-2">
-          <Link
-            href={account.href}
-            className={buttonClass("outline-light", "px-4 py-2 max-sm:hidden")}
-          >
+          <Link href={account.href} className={buttonClass("outline-light", "px-4 py-2 max-sm:hidden")}>
             <UserRound className="size-4" /> {account.label}
           </Link>
-          <Link
-            href="/rozvrh"
-            className={buttonClass("gold", "px-4 py-2 max-lg:hidden")}
-          >
-            Rezervovat
+          <Link href="/rozvrh" className={buttonClass("gold", "px-4 py-2 max-lg:hidden")}>
+            {c("nav.book")}
           </Link>
           {/* mobile menu without client JS */}
           <details className="group relative md:hidden">
@@ -64,7 +54,7 @@ export async function SiteHeader() {
                 ))}
               </ul>
               <Link href="/rozvrh" className={buttonClass("gold", "mt-6 w-full")}>
-                Rezervovat lekci
+                {c("nav.book")}
               </Link>
             </nav>
           </details>

@@ -5,6 +5,7 @@ import { loginAction } from "@/app/actions/auth";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { Eyebrow, Field, Input } from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
+import { getContent } from "@/content";
 
 export const metadata: Metadata = { title: "Přihlášení" };
 
@@ -15,7 +16,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/prihlaseni
   return (
     <>
       <Eyebrow className="text-zeme">Můj účet</Eyebrow>
-      <h1 className="mt-3 text-4xl font-medium tracking-tight">Vítej zpět.</h1>
+      <h1 className="mt-3 text-4xl font-medium tracking-tight">{(await getContent())("auth.loginTitle")}</h1>
       <ActionForm action={loginAction} className="mt-8 space-y-4">
         <input type="hidden" name="next" value={typeof next === "string" ? next : ""} />
         <Field label="E-mail"><Input name="email" type="email" autoComplete="email" required /></Field>

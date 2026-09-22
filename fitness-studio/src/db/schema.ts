@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  customType,
   index,
   integer,
   jsonb,
@@ -156,6 +157,7 @@ export const classTypes = pgTable("class_types", {
   dropInPrice: integer("drop_in_price"),
   capacity: integer("capacity").notNull().default(12),
   color: text("color").notNull().default("#7F40FF"),
+  imageUrl: text("image_url"),
   level: text("level").notNull().default("Pro všechny"),
   isActive: boolean("is_active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
@@ -379,6 +381,29 @@ export const campaignMessages = pgTable(
     index("campaign_messages_status_idx").on(t.campaignId, t.status),
   ],
 );
+
+/** Editovatelné texty a obrázky webu (klíč → hodnota); chybějící klíč = výchozí text z kódu. */
+export const content = pgTable("content", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType: () => "bytea",
+});
+
+/** Nahrané obrázky (zmenšené, WebP) – servírované z /media/<id>.webp */
+export const media = pgTable("media", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  filename: text("filename").notNull(),
+  mime: text("mime").notNull(),
+  width: integer("width"),
+  height: integer("height"),
+  size: integer("size").notNull(),
+  data: bytea("data").notNull(),
+  createdAt: createdAt(),
+});
 
 export const settings = pgTable("settings", {
   key: text("key").primaryKey(),

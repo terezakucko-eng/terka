@@ -34,6 +34,15 @@ Tailwind CSS 4 · Stripe (platby kartou, Apple/Google Pay, předplatné) · Rese
 - **Import klientů** z CSV (Excel, i starší české kódování) – jména, e-maily, telefony, kredit,
   zbývající vstupy, souhlasy; opakovatelný bez duplicit; pozvánka k nastavení hesla
 
+## Obsah webu
+
+Všechny texty a fotky webu (úvod, hodnoty značky, rozvrh, ceník, lekce, lektoři, přihlášení,
+menu, patička, kontakty, obchodní podmínky, GDPR, stránka 404) se upravují v **Admin → Obsah webu**.
+Přihlášený admin vidí na každé stránce tlačítko **Upravit tuto stránku**. Fotky se nahrávají
+z počítače/mobilu, server je zmenší (max. 2400 px, WebP) a uloží do databáze (`/media/…`).
+Fotky lektorů a typů lekcí se nahrávají v jejich sekcích. Seznam polí a výchozí texty:
+`src/content/definitions.ts`; prázdné pole = návrat k výchozímu textu.
+
 ## Komunikace s klienty – co je potřeba založit
 
 | Kanál | Služba | Co udělat |

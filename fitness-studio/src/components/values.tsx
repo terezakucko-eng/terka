@@ -1,5 +1,4 @@
 import { Compass, Dumbbell, HeartPulse, PersonStanding, Salad, Sun, Users } from "lucide-react";
-import { site } from "@/config/site";
 
 function YinYang({ className }: { className?: string }) {
   return (
@@ -15,11 +14,11 @@ function YinYang({ className }: { className?: string }) {
 const icons = [Compass, Dumbbell, HeartPulse, Salad, Users, Sun, YinYang, PersonStanding];
 
 /** The eight brand values from the moodboard. */
-export function Values() {
+export function Values({ values }: { values: { title: string; sub: string }[] }) {
   return (
     <ul className="grid grid-cols-2 gap-y-10 sm:grid-cols-4 lg:grid-cols-8">
-      {site.values.map((v, i) => {
-        const Icon = icons[i];
+      {values.map((v, i) => {
+        const Icon = icons[i % icons.length];
         return (
           <li key={v.title} className="flex flex-col items-center text-center lg:border-l lg:border-linka/60 lg:first:border-l-0">
             <span className="flex size-16 items-center justify-center rounded-full border border-les/70">

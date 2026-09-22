@@ -14,8 +14,17 @@ function InstructorForm({ i }: { i?: Instructor }) {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Field label="Jméno"><Input name="name" defaultValue={i?.name} required /></Field>
         <Field label="Zaměření"><Input name="specialties" defaultValue={i?.specialties} placeholder="Pilates · Mobilita" /></Field>
-        <Field label="URL fotky" hint="Odkaz na obrázek (https://…)"><Input name="photoUrl" type="url" defaultValue={i?.photoUrl ?? ""} /></Field>
+        <Field label="Odkaz na fotku" hint="Nebo nahraj fotku níže"><Input name="photoUrl" defaultValue={i?.photoUrl ?? ""} /></Field>
         <Field label="Pořadí"><Input name="sortOrder" type="number" defaultValue={i?.sortOrder ?? 0} /></Field>
+      </div>
+      <div className="flex items-center gap-4">
+        {i?.photoUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={i.photoUrl} alt="" className="size-20 rounded-lg object-cover" />
+        )}
+        <Field label="Nahrát fotku">
+          <input type="file" name="photo" accept="image/*" className="block text-sm file:mr-3 file:rounded-full file:border-0 file:bg-les file:px-4 file:py-2 file:text-xs file:font-semibold file:text-papir" />
+        </Field>
       </div>
       <Field label="Medailonek"><Textarea name="bio" rows={3} defaultValue={i?.bio} /></Field>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="isActive" defaultChecked={i?.isActive ?? true} /> Zobrazit na webu</label>

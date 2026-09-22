@@ -14,6 +14,7 @@ import {
   pragueLocalToDate,
 } from "@/lib/dates";
 import { activeClassTypes, listSessions } from "@/lib/queries";
+import { getContent } from "@/content";
 
 export const metadata: Metadata = { title: "Rozvrh a rezervace" };
 
@@ -27,7 +28,7 @@ export default async function SchedulePage({ searchParams }: PageProps<"/rozvrh"
   const lekce = typeof sp.lekce === "string" ? sp.lekce : undefined;
 
   const db = await getDb();
-  const user = await getCurrentUser();
+  const [user, c] = await Promise.all([getCurrentUser(), getContent()]);
   const types = await activeClassTypes(db);
   const filter = types.find((t) => t.slug === lekce);
   const sessions = await listSessions(
@@ -44,8 +45,8 @@ export default async function SchedulePage({ searchParams }: PageProps<"/rozvrh"
 
   return (
     <>
-      <PageHeader eyebrow="Rozvrh" title="Najdi si svou lekci.">
-        Klikni na lekci a rezervuj. Storno zdarma v termínu, plné lekce mají pořadník.
+      <PageHeader eyebrow={c("schedule.eyebrow")} title={c("schedule.title")}>
+        {c("schedule.intro")}
       </PageHeader>
       <Container className="py-10">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -78,7 +79,7 @@ export default async function SchedulePage({ searchParams }: PageProps<"/rozvrh"
 
         {sessions.length === 0 ? (
           <div className="mt-10">
-            <Empty>Na tento týden zatím nejsou vypsané žádné lekce.</Empty>
+            <Empty>{c("schedule.empty")}</Empty>
           </div>
         ) : (
           <div className="mt-8 grid gap-6 lg:grid-cols-7 lg:gap-3">

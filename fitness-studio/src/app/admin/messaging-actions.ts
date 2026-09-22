@@ -18,7 +18,7 @@ import {
   type ImportRow,
 } from "@/domain/import";
 import { requireAdmin } from "@/lib/auth";
-import { campaignSender } from "@/lib/campaign-sender";
+import { campaignSender, newsletterFooter } from "@/lib/campaign-sender";
 import { UserError, errorMessage } from "@/lib/errors";
 import { attempt, field, type FormState } from "@/lib/form";
 import { unsubscribeUrl } from "@/lib/links";
@@ -108,7 +108,7 @@ export async function sendTestAction(_: FormState, fd: FormData): Promise<FormSt
       unsubscribeToken: admin.unsubscribeToken,
     };
     const unsub = unsubscribeUrl(admin.unsubscribeToken);
-    const sender = campaignSender(c);
+    const sender = campaignSender(c, await newsletterFooter());
     let result;
     if (c.channel === "email") {
       if (!/@/.test(to)) throw new UserError("Zadej e-mail pro test.");
@@ -142,7 +142,7 @@ export async function sendBatchAction(campaignId: string) {
     const db = await getDb();
     const [c] = await db.select().from(campaigns).where(eq(campaigns.id, campaignId));
     if (!c) return { error: "Kampaň neexistuje.", remaining: 0, sent: 0, failed: 0 };
-    const r = await processCampaign(db, c.id, campaignSender(c), unsubscribeUrl, c.channel === "email" ? 100 : 25);
+    const r = await processCampaign(db, c.id, campaignSender(c, await newsletterFooter()), unsubscribeUrl, c.channel === "email" ? 100 : 25);
     return { ...r, error: null as string | null };
   } catch (e) {
     return { error: errorMessage(e), remaining: 0, sent: 0, failed: 0 };

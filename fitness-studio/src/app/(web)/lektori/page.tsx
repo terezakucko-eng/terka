@@ -1,25 +1,26 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import { getDb } from "@/db";
 import { Symbol } from "@/components/brand";
 import { Container, PageHeader } from "@/components/ui";
 import { activeInstructors } from "@/lib/queries";
+import { getContent } from "@/content";
+import { ContentImage } from "@/components/content-image";
 
 export const metadata: Metadata = { title: "Lektoři" };
 
 export default async function InstructorsPage() {
-  const list = await activeInstructors(await getDb());
+  const [list, c] = await Promise.all([activeInstructors(await getDb()), getContent()]);
   return (
     <>
-      <PageHeader eyebrow="Lektoři" title="Lidé, kteří tě povedou.">
-        Každý z nás má svou cestu. Rádi tě kus té tvojí doprovodíme.
+      <PageHeader eyebrow={c("instructors.eyebrow")} title={c("instructors.title")}>
+        {c("instructors.intro")}
       </PageHeader>
       <Container className="grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-3">
         {list.map((i) => (
           <article key={i.id}>
             <div className="relative flex aspect-[4/5] items-center justify-center overflow-hidden bg-forest">
               {i.photoUrl ? (
-                <Image src={i.photoUrl} alt={i.name} fill sizes="(min-width: 1024px) 33vw, 50vw" className="object-cover" unoptimized />
+                <ContentImage src={i.photoUrl} alt={i.name} fill sizes="(min-width: 1024px) 33vw, 50vw" className="object-cover" />
               ) : (
                 <Symbol className="w-1/2 opacity-60" />
               )}

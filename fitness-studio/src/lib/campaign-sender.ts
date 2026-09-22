@@ -1,4 +1,5 @@
 import "server-only";
+import { getContent } from "@/content";
 import type { Campaign } from "@/db/schema";
 import { personalize, type Recipient, type Sender } from "@/domain/campaigns";
 import { oneClickUnsubscribeUrl } from "./links";
@@ -6,7 +7,7 @@ import { sendEmailBatch, sendSms, sendWhatsAppTemplate } from "./messaging";
 import { renderNewsletter } from "./newsletter";
 
 /** Wires a campaign's content to the real delivery providers. */
-export function campaignSender(c: Campaign): Sender {
+export function campaignSender(c: Campaign, footer: string): Sender {
   const smsText = (r: Recipient, unsub: string) => {
     const body = personalize(c.body, r, unsub);
     // marketing SMS must offer an opt-out
@@ -22,6 +23,7 @@ export function campaignSender(c: Campaign): Sender {
             subject: personalize(c.subject ?? "", r, unsubscribeUrl),
             body: personalize(c.body, r, unsubscribeUrl),
             unsubscribeUrl,
+            footer,
           });
           return {
             to,
@@ -42,4 +44,10 @@ export function campaignSender(c: Campaign): Sender {
             (c.waParams ?? []).map((p) => personalize(p, r, unsub)),
           ),
   };
+}
+
+/** Footer line for newsletters from the editable contact details. */
+export async function newsletterFooter() {
+  const c = await getContent();
+  return `${c("site.companyName")} · ${c("site.street")}, ${c("site.zip")} ${c("site.city")}`;
 }

@@ -5,18 +5,19 @@ import { ActionForm, SubmitButton } from "@/components/forms";
 import { Eyebrow, Field, Input } from "@/components/ui";
 import { getDb } from "@/db";
 import { getSettings } from "@/lib/settings";
+import { getContent } from "@/content";
 
 export const metadata: Metadata = { title: "Registrace" };
 
 export default async function RegisterPage({ searchParams }: PageProps<"/registrace">) {
   const { next } = await searchParams;
-  const cfg = await getSettings(await getDb());
+  const [cfg, c] = await Promise.all([getSettings(await getDb()), getContent()]);
   return (
     <>
       <Eyebrow className="text-zeme">Nový účet</Eyebrow>
-      <h1 className="mt-3 text-4xl font-medium tracking-tight">Začni svou cestu.</h1>
+      <h1 className="mt-3 text-4xl font-medium tracking-tight">{c("auth.registerTitle")}</h1>
       {cfg.welcomeFreeEntries > 0 && (
-        <p className="mt-3 text-les/70">Po registraci máš první lekci zdarma.</p>
+        <p className="mt-3 text-les/70">{c("auth.registerText")}</p>
       )}
       <ActionForm action={registerAction} className="mt-8 space-y-4">
         <input type="hidden" name="next" value={typeof next === "string" ? next : ""} />
