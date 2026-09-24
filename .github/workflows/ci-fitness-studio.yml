@@ -1,0 +1,52 @@
+name: fitness-studio CI
+
+on:
+  push:
+    paths:
+      - 'fitness-studio/**'
+      - '.github/workflows/ci-fitness-studio.yml'
+  pull_request:
+    paths:
+      - 'fitness-studio/**'
+      - '.github/workflows/ci-fitness-studio.yml'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fitness-studio
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: fitness-studio/package-lock.json
+      - run: npm ci
+      - run: npx next typegen
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build production image
+        run: docker build -t octopush fitness-studio
+      - name: Smoke test against PostgreSQL
+        run: |
+          docker network create t
+          docker run -d --name db --network t -e POSTGRES_DB=octopush -e POSTGRES_USER=octopush -e POSTGRES_PASSWORD=pw postgres:16-alpine
+          for i in $(seq 1 30); do docker exec db pg_isready -U octopush -d octopush && break; sleep 1; done
+          docker run -d --name app --network t -p 3000:3000 \
+            -e DATABASE_URL=postgres://octopush:pw@db:5432/octopush \
+            -e AUTH_SECRET=ci-secret-0123456789abcdef0123456789 \
+            -e ADMIN_EMAIL=admin@example.cz -e ADMIN_PASSWORD=ci-password \
+            octopush
+          for i in $(seq 1 30); do curl -fsS -o /dev/null http://localhost:3000/ && break; sleep 2; done
+          curl -fsS -o /dev/null -w "home %{http_code}\n" http://localhost:3000/
+          curl -fsS -o /dev/null -w "rozvrh %{http_code}\n" http://localhost:3000/rozvrh
+          docker logs app | grep "admin account admin@example.cz ready"

@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+/* OCTOPUSH – barevnost dle moodboardu „Vizuální směr" */
+@theme {
+  --color-les: #151a13; /* LES – nejtmavší */
+  --color-les-2: #1a281b;
+  --color-mech: #394330; /* horní tón zeleného přechodu */
+  --color-salvej: #606350; /* ŠALVĚJ */
+  --color-zeme: #674329; /* ZEMĚ */
+  --color-zlato: #d2a772; /* ZLATO */
+  --color-zlato-light: #f7dbb4;
+  --color-zlato-dark: #c19966;
+  --color-pisek: #d1b89a; /* PÍSEK */
+  --color-krem: #e2d1bd; /* KRÉM */
+  --color-papir: #f3ebde; /* pozadí stránek */
+  --color-linka: #bfb29c;
+  --color-ok: #4f6b3a;
+  --color-chyba: #9b3b2a;
+
+  --font-sans: var(--font-inter), "Nimbus Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-script: var(--font-allura), cursive;
+}
+
+@layer base {
+  html {
+    background: var(--color-les);
+  }
+  body {
+    background: var(--color-papir);
+    color: var(--color-les);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection {
+    background: var(--color-zlato);
+    color: var(--color-les);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-zlato);
+    outline-offset: 2px;
+  }
+}
+
+@utility eyebrow {
+  font-size: 0.72rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+@utility bg-forest {
+  background: linear-gradient(180deg, #394330 0%, #243020 45%, #1a281b 100%);
+}
+
+@utility text-gold {
+  background: linear-gradient(90deg, #d2a772, #f7dbb4 52%, #c19966);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility bg-gold {
+  background: linear-gradient(90deg, #d2a772, #f7dbb4 52%, #c19966);
+}
