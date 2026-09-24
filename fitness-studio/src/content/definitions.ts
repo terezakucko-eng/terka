@@ -50,7 +50,7 @@ export const SECTIONS = {
     page: "*",
     fields: {
       tagline: t("Claim (tagline)", "Každý má svou cestu."),
-      claim: t("Psaný claim", "More life. Better humans."),
+      claim: opt("Claim (motto)", "More life. Better humans."),
       description: ta(
         "Popis webu pro Google a sdílení",
         "Studio pohybu a rovnováhy. Tanec, pilates, silový trénink a komunita lidí, kteří jdou svou cestou. Rezervuj si lekci online během pár vteřin.",

@@ -46,9 +46,9 @@ export async function SiteFooter() {
             </p>
           </div>
         </div>
-        <div className="mt-12 flex flex-col gap-2 border-t border-zlato/15 pt-6 text-xs text-papir/40 sm:flex-row sm:justify-between">
+        <p className="mt-12 max-w-xl text-base leading-relaxed text-krem/90 empty:hidden">{c("site.claim")}</p>
+        <div className="mt-8 flex flex-col gap-2 border-t border-zlato/15 pt-6 text-xs text-papir/40 sm:flex-row sm:justify-between">
           <p>© {new Date().getFullYear()} {c("site.companyName")} · IČO {c("site.ico")}</p>
-          <p className="font-script text-2xl text-zlato/70">{c("site.claim")}</p>
         </div>
       </div>
     </footer>

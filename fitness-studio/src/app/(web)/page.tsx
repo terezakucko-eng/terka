@@ -118,7 +118,7 @@ export default async function Home() {
               </figure>
             ))}
           </div>
-          <p className="mx-auto mt-14 max-w-3xl text-center font-script text-4xl leading-snug text-zeme empty:hidden sm:text-5xl">
+          <p className="mt-14 max-w-2xl text-xl leading-relaxed text-les/85 empty:hidden sm:text-2xl sm:leading-relaxed">
             {c("site.claim")}
           </p>
         </Container>
