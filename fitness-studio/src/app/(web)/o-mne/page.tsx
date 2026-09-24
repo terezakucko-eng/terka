@@ -18,7 +18,7 @@ export default async function AboutPage() {
           <div className="relative aspect-[4/5] overflow-hidden">
             <ContentImage src={c("about.image")} alt={c("about.imageAlt")} fill priority sizes="(min-width: 768px) 40vw, 100vw" className="object-cover" />
           </div>
-          <figcaption className="eyebrow mt-4 text-les/70">{c("about.caption")}</figcaption>
+          <figcaption className="eyebrow empty:hidden mt-4 text-les/70">{c("about.caption")}</figcaption>
         </figure>
         <div>
           <div className="space-y-4 text-lg leading-relaxed text-les/80 [&_h2]:mt-10 [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:tracking-tight [&_h2]:text-les [&_h2:first-child]:mt-0 [&_li]:ml-5 [&_li]:list-disc [&_ul]:space-y-1">

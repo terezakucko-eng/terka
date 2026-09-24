@@ -19,7 +19,7 @@ export async function SiteFooter() {
               <Wordmark className="w-44" />
             </div>
             <p className="eyebrow mt-6 text-zlato-light/80">{c("site.tagline")}</p>
-            <p className="eyebrow mt-3 text-papir/50">{c("site.pillars")}</p>
+            <p className="eyebrow empty:hidden mt-3 text-papir/50">{c("site.pillars")}</p>
           </div>
           <div className="space-y-2 text-sm">
             <p className="eyebrow mb-4 text-zlato">{c("nav.footerStudio")}</p>
@@ -46,9 +46,9 @@ export async function SiteFooter() {
             </p>
           </div>
         </div>
-        <div className="mt-12 flex flex-col gap-2 border-t border-zlato/15 pt-6 text-xs text-papir/40 sm:flex-row sm:justify-between">
+        <p className="mt-12 max-w-xl text-base leading-relaxed text-krem/90 empty:hidden">{c("site.claim")}</p>
+        <div className="mt-8 flex flex-col gap-2 border-t border-zlato/15 pt-6 text-xs text-papir/40 sm:flex-row sm:justify-between">
           <p>© {new Date().getFullYear()} {c("site.companyName")} · IČO {c("site.ico")}</p>
-          <p className="font-script text-2xl text-zlato/70">{c("site.claim")}</p>
         </div>
       </div>
     </footer>

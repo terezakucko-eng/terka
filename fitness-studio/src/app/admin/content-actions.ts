@@ -46,7 +46,10 @@ export async function saveContentAction(_: FormState, fd: FormData): Promise<For
       const raw = fd.get(`f_${name}`);
       if (typeof raw !== "string") continue;
       const value = raw.replace(/\r\n/g, "\n").trim();
-      if (value === "" || value === def.default.trim()) await reset(key);
+      if (def.optional && field.bool(fd, `reset_${name}`)) await reset(key);
+      // An optional line saved empty stays hidden on the website.
+      else if (value === "" && def.optional) await set(key, "");
+      else if (value === "" || value === def.default.trim()) await reset(key);
       else await set(key, value);
     }
     return changed ? "Uloženo – změny jsou hned vidět na webu." : "Uloženo (vše na výchozích textech).";

@@ -67,6 +67,11 @@ export default async function EditSection({ params }: PageProps<"/admin/obsah/[s
                     className={def.type === "richtext" ? "font-mono text-[13px] leading-relaxed" : undefined}
                   />
                 )}
+                {def.optional && values[name] !== def.default && (
+                  <label className="mt-2 flex items-center gap-2 text-xs text-les/70">
+                    <input type="checkbox" name={`reset_${name}`} /> Vrátit původní text „{def.default.replace(/\n/g, " ")}“
+                  </label>
+                )}
               </Field>
             ),
           )}
