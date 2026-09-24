@@ -41,7 +41,7 @@ export default async function AdminDashboard() {
       )}
       <section className="mt-10">
         <div className="flex items-end justify-between">
-          <h2 className="text-xl font-medium">Dnešní lekce</h2>
+          <h2 className="text-xl font-semibold">Dnešní lekce</h2>
           <Link href="/admin/rozvrh" className="eyebrow text-zeme underline underline-offset-4">Celý rozvrh</Link>
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

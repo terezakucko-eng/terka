@@ -15,7 +15,7 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registr
   return (
     <>
       <Eyebrow className="text-zeme">Nový účet</Eyebrow>
-      <h1 className="mt-3 text-4xl font-medium tracking-tight">{c("auth.registerTitle")}</h1>
+      <h1 className="mt-3 text-4xl font-semibold tracking-tight">{c("auth.registerTitle")}</h1>
       {cfg.welcomeFreeEntries > 0 && (
         <p className="mt-3 text-les/70">{c("auth.registerText")}</p>
       )}

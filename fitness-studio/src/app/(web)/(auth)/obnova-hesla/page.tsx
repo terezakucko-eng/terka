@@ -10,7 +10,7 @@ export default async function ResetPage({ searchParams }: PageProps<"/obnova-hes
   return (
     <>
       <Eyebrow className="text-zeme">Heslo</Eyebrow>
-      <h1 className="mt-3 text-4xl font-medium tracking-tight">Nastav si nové heslo</h1>
+      <h1 className="mt-3 text-4xl font-semibold tracking-tight">Nastav si nové heslo</h1>
       <ActionForm action={resetPasswordAction} className="mt-8 space-y-4">
         <input type="hidden" name="token" value={typeof token === "string" ? token : ""} />
         <Field label="Nové heslo" hint="Alespoň 8 znaků."><Input name="password" type="password" autoComplete="new-password" minLength={8} required /></Field>

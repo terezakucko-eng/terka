@@ -55,7 +55,7 @@ export default async function SessionPage({ params }: PageProps<"/rozvrh/[id]">)
         <div className="mt-8 grid gap-10 lg:grid-cols-[1.2fr_1fr]">
           <div>
             <Eyebrow className="text-zlato">{formatDay(s.startsAt)}</Eyebrow>
-            <h1 className="mt-4 text-4xl font-medium tracking-tight sm:text-6xl">{ct.name}</h1>
+            <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-6xl">{ct.name}</h1>
             <ul className="mt-8 space-y-3 text-papir/80">
               <li className="flex items-center gap-3"><Clock className="size-5 text-zlato" /> {formatRange(s.startsAt, s.durationMin)} ({s.durationMin} min)</li>
               <li className="flex items-center gap-3"><MapPin className="size-5 text-zlato" /> {s.room ? `${s.room}, ` : ""}{address}</li>
@@ -103,7 +103,7 @@ function BookingPanel({
     return (
       <div>
         <Badge tone={b.status === "pending_payment" ? "gold" : "green"}>{label}</Badge>
-        <h2 className="mt-4 text-2xl font-medium">Těšíme se na tebe!</h2>
+        <h2 className="mt-4 text-2xl font-semibold">Těšíme se na tebe!</h2>
         {view.state !== "past" && view.state !== "cancelled" && (
           <>
             <a href={gcal} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-zeme underline underline-offset-4">
@@ -127,7 +127,7 @@ function BookingPanel({
   if (view.state !== "bookable" && view.state !== "full") {
     return (
       <div>
-        <h2 className="text-2xl font-medium">Rezervace</h2>
+        <h2 className="text-2xl font-semibold">Rezervace</h2>
         <p className="mt-3 text-les/70">{stateMessage[view.state]}</p>
         <ButtonLink href="/rozvrh" variant="outline" className="mt-6">Jiné lekce</ButtonLink>
       </div>
@@ -137,7 +137,7 @@ function BookingPanel({
   if (!loggedIn) {
     return (
       <div>
-        <h2 className="text-2xl font-medium">Rezervuj si místo</h2>
+        <h2 className="text-2xl font-semibold">Rezervuj si místo</h2>
         <p className="mt-3 text-les/70">Pro rezervaci se přihlas. Nový? Registrace trvá minutu a první lekce je zdarma.</p>
         <div className="mt-6 flex flex-col gap-3">
           <ButtonLink href={`/prihlaseni?next=/rozvrh/${sessionId}`}>Přihlásit se</ButtonLink>
@@ -150,7 +150,7 @@ function BookingPanel({
   if (view.state === "full") {
     return (
       <div>
-        <h2 className="text-2xl font-medium">Lekce je plná</h2>
+        <h2 className="text-2xl font-semibold">Lekce je plná</h2>
         {b?.status === "waitlist" ? (
           <ActionForm action={cancelBookingAction} className="mt-4">
             <input type="hidden" name="bookingId" value={b.id} />
@@ -172,7 +172,7 @@ function BookingPanel({
   return (
     <ActionForm action={bookAction}>
       <input type="hidden" name="sessionId" value={sessionId} />
-      <h2 className="text-2xl font-medium">Jak chceš zaplatit?</h2>
+      <h2 className="text-2xl font-semibold">Jak chceš zaplatit?</h2>
       <fieldset className="mt-5 space-y-2">
         <legend className="sr-only">Způsob platby</legend>
         {view.options.map((o) => {

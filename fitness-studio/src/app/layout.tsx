@@ -1,12 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Allura, Inter } from "next/font/google";
+import { Allura, DM_Sans } from "next/font/google";
 import { site } from "@/config/site";
 import { connection } from "next/server";
 import { getContent } from "@/content";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
   subsets: ["latin", "latin-ext"],
 });
 
@@ -39,7 +39,7 @@ export const viewport: Viewport = { themeColor: "#1a281b" };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="cs" className={`${inter.variable} ${allura.variable} h-full`}>
+    <html lang="cs" className={`${dmSans.variable} ${allura.variable} h-full`}>
       <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );

@@ -22,7 +22,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
     <div className="space-y-12">
       {vitej && (
         <p className="rounded-2xl bg-forest p-6 text-papir">
-          <span className="text-gold text-xl font-medium">Vítej v OCTOPUSH!</span>
+          <span className="text-gold text-xl font-semibold">Vítej v OCTOPUSH!</span>
           <br />
           Na účtu máš připravenou úvodní lekci zdarma. <Link href="/rozvrh" className="underline">Vyber si ji v rozvrhu →</Link>
         </p>
@@ -68,7 +68,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
 
       <section>
         <div className="flex items-end justify-between">
-          <h2 className="text-2xl font-medium">Moje nadcházející lekce</h2>
+          <h2 className="text-2xl font-semibold">Moje nadcházející lekce</h2>
           <Link href="/rozvrh" className="eyebrow text-zeme underline underline-offset-4">Rezervovat další</Link>
         </div>
         <div className="mt-5 space-y-3">

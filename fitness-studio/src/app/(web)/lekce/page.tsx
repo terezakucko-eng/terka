@@ -27,7 +27,7 @@ export default async function ClassesPage() {
               )}
               <div className="flex flex-1 flex-col p-8">
               <p className="eyebrow text-les/50">{String(i + 1).padStart(2, "0")} / {t.level}</p>
-              <h2 className="mt-4 flex items-center gap-3 text-3xl font-medium tracking-tight">
+              <h2 className="mt-4 flex items-center gap-3 text-3xl font-semibold tracking-tight">
                 <span className="size-3 rounded-full" style={{ background: t.color }} /> {t.name}
               </h2>
               <p className="mt-4 flex-1 text-les/70">{t.description}</p>

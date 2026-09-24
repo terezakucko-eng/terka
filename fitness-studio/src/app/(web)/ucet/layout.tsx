@@ -17,7 +17,7 @@ export default async function AccountLayout({ children }: LayoutProps<"/ucet">) 
         <Container className="pt-10">
           <Eyebrow className="text-zeme">Můj účet</Eyebrow>
           <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
-            <h1 className="text-4xl font-medium tracking-tight">Ahoj, {user.name.split(" ")[0]}.</h1>
+            <h1 className="text-4xl font-semibold tracking-tight">Ahoj, {user.name.split(" ")[0]}.</h1>
             <form action={logoutAction}>
               <button className="eyebrow text-les/60 underline underline-offset-4 hover:text-les">Odhlásit</button>
             </form>

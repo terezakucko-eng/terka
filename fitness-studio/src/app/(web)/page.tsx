@@ -68,7 +68,7 @@ export default async function Home() {
         <Container className="py-16 sm:py-20">
           <Eyebrow className="text-zeme">{c("homeCharacter.eyebrow")}</Eyebrow>
           <div className="mt-6 flex flex-col justify-between gap-6 md:flex-row md:items-end">
-            <h2 className="text-5xl font-medium tracking-tight sm:text-7xl">{c("homeCharacter.headline")}</h2>
+            <h2 className="text-5xl font-semibold tracking-tight sm:text-7xl">{c("homeCharacter.headline")}</h2>
             <p className="eyebrow max-w-xs whitespace-pre-line leading-7 text-les/70">{c("homeCharacter.side")}</p>
           </div>
           <hr className="my-12 border-linka/60" />
@@ -82,7 +82,7 @@ export default async function Home() {
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div>
               <Eyebrow className="text-zeme">{c("homeSchedule.eyebrow")}</Eyebrow>
-              <h2 className="mt-3 text-3xl font-medium tracking-tight sm:text-4xl">{c("homeSchedule.title")}</h2>
+              <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{c("homeSchedule.title")}</h2>
             </div>
             <Link href="/rozvrh" className="eyebrow inline-flex items-center gap-2 text-zeme hover:text-les">
               {c("homeSchedule.link")} <ArrowRight className="size-4" />
@@ -132,12 +132,12 @@ export default async function Home() {
       <section className="bg-forest text-papir">
         <Container className="py-16 sm:py-20">
           <Eyebrow className="text-zlato">{c("homeSteps.eyebrow")}</Eyebrow>
-          <h2 className="mt-3 text-3xl font-medium tracking-tight sm:text-4xl">{c("homeSteps.title")}</h2>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{c("homeSteps.title")}</h2>
           <ol className="mt-12 grid gap-10 md:grid-cols-3">
             {steps.map((s, i) => (
               <li key={i} className="border-t border-zlato/30 pt-6">
                 <span className="text-gold text-5xl font-light">0{i + 1}</span>
-                <h3 className="mt-4 text-xl font-medium">{s.title}</h3>
+                <h3 className="mt-4 text-xl font-semibold">{s.title}</h3>
                 <p className="mt-2 text-papir/70">{s.text}</p>
               </li>
             ))}
@@ -160,7 +160,7 @@ export default async function Home() {
               {news.map((a) => (
                 <article key={a.id} className="border-t border-les/80 pt-5">
                   <p className="eyebrow text-les/50">{formatDate(a.createdAt)}</p>
-                  <h3 className="mt-2 text-xl font-medium">{a.title}</h3>
+                  <h3 className="mt-2 text-xl font-semibold">{a.title}</h3>
                   <p className="mt-2 whitespace-pre-line text-les/70">{a.body}</p>
                 </article>
               ))}

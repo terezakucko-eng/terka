@@ -10,7 +10,7 @@ export default async function NotFound() {
     <main className="bg-forest flex min-h-screen flex-col items-center justify-center px-4 text-center text-papir">
       <Symbol className="w-40" />
       <p className="eyebrow mt-10 text-zlato">404</p>
-      <h1 className="mt-3 text-3xl font-medium">{c("notFound.title")}</h1>
+      <h1 className="mt-3 text-3xl font-semibold">{c("notFound.title")}</h1>
       <ButtonLink href="/" variant="gold" className="mt-8">{c("notFound.button")}</ButtonLink>
     </main>
   );

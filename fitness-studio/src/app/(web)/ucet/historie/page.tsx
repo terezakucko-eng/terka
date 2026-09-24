@@ -19,7 +19,7 @@ export default async function HistoryPage() {
   return (
     <div className="grid gap-10 lg:grid-cols-2">
       <section>
-        <h2 className="text-xl font-medium">Proběhlé lekce</h2>
+        <h2 className="text-xl font-semibold">Proběhlé lekce</h2>
         <Card className="mt-4 p-0">
           {past.length === 0 ? <div className="p-6"><Empty>Zatím žádné.</Empty></div> : (
             <ul className="divide-y divide-linka/60">
@@ -35,7 +35,7 @@ export default async function HistoryPage() {
       </section>
       <section className="space-y-10">
         <div>
-          <h2 className="text-xl font-medium">Platby</h2>
+          <h2 className="text-xl font-semibold">Platby</h2>
           <Card className="mt-4 p-0">
             {orderList.length === 0 ? <div className="p-6"><Empty>Žádné platby.</Empty></div> : (
               <ul className="divide-y divide-linka/60">
@@ -50,7 +50,7 @@ export default async function HistoryPage() {
           </Card>
         </div>
         <div>
-          <h2 className="text-xl font-medium">Pohyby kreditu</h2>
+          <h2 className="text-xl font-semibold">Pohyby kreditu</h2>
           <Card className="mt-4 p-0">
             {ledger.length === 0 ? <div className="p-6"><Empty>Žádné pohyby.</Empty></div> : (
               <ul className="divide-y divide-linka/60">
@@ -65,7 +65,7 @@ export default async function HistoryPage() {
           </Card>
         </div>
         <div>
-          <h2 className="text-xl font-medium">Všechny permanentky</h2>
+          <h2 className="text-xl font-semibold">Všechny permanentky</h2>
           <Card className="mt-4 p-0">
             {ents.length === 0 ? <div className="p-6"><Empty>Žádné.</Empty></div> : (
               <ul className="divide-y divide-linka/60">

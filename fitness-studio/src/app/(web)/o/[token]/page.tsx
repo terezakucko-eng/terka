@@ -24,7 +24,7 @@ export default async function UnsubscribePage({ params }: PageProps<"/o/[token]"
     <Container className="max-w-lg py-16">
       <Card>
         <Eyebrow className="text-zeme">Odběr novinek</Eyebrow>
-        <h1 className="mt-3 text-3xl font-medium">Ahoj {u.name.split(" ")[0]},</h1>
+        <h1 className="mt-3 text-3xl font-semibold">Ahoj {u.name.split(" ")[0]},</h1>
         {active.length ? (
           <>
             <p className="mt-3 text-les/70">Teď od nás dostáváš novinky {active.join(", ")}. Mrzí nás, že odcházíš – odhlásit se můžeš jedním kliknutím.</p>
