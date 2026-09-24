@@ -56,6 +56,7 @@ export function Eyebrow({
   children: ReactNode;
   className?: string;
 }) {
+  if (!n && !children) return null;
   return (
     <p className={cx("eyebrow", className)}>
       {n && <span className="mr-2">{n} /</span>}

@@ -14,6 +14,8 @@ export type FieldDef = {
   type: FieldType;
   default: string;
   hint?: string;
+  /** May be left empty – the line then disappears from the website. */
+  optional?: boolean;
 };
 
 export type SectionDef = {
@@ -31,6 +33,9 @@ const rich = (label: string, def: string): FieldDef => ({
   default: def,
   hint: "## Nadpis · - odrážka · **tučně** · prázdný řádek = nový odstavec · odkazy se vytvoří samy",
 });
+const OPT_HINT = "Můžeš nechat prázdné – řádek na webu zmizí.";
+const opt = (label: string, def: string): FieldDef => ({ label, type: "text", default: def, hint: OPT_HINT, optional: true });
+const optArea = (label: string, def: string): FieldDef => ({ label, type: "textarea", default: def, hint: OPT_HINT, optional: true });
 const img = (label: string, def: string): FieldDef => ({ label, type: "image", default: def });
 const url = (label: string, def: string): FieldDef => ({ label, type: "url", default: def });
 
@@ -50,7 +55,7 @@ export const SECTIONS = {
         "Popis webu pro Google a sdílení",
         "Studio pohybu a rovnováhy. Tanec, pilates, silový trénink a komunita lidí, kteří jdou svou cestou. Rezervuj si lekci online během pár vteřin.",
       ),
-      pillars: t("Pilíře (patička)", "Pohyb · Lidé · Příroda · Harmonie"),
+      pillars: opt("Pilíře (patička)", "Pohyb · Lidé · Příroda · Harmonie"),
       email: t("E-mail", "ahoj@octopush.fit"),
       phone: t("Telefon", "+420 777 000 000"),
       street: t("Ulice a číslo", "Doplňte ulici 123"),
@@ -82,21 +87,21 @@ export const SECTIONS = {
     title: "Úvod – hlavní část",
     page: "/",
     fields: {
-      eyebrow: t("Malý nadpis", "OCTOPUSH / Studio pohybu"),
+      eyebrow: opt("Malý nadpis", "OCTOPUSH / Studio pohybu"),
       ctaPrimary: t("Hlavní tlačítko", "Rezervovat lekci"),
       ctaSecondary: t("Druhé tlačítko (nepřihlášený)", "První lekce zdarma"),
       image: img("Fotka", "/img/priroda.webp"),
       imageAlt: t("Popis fotky (pro nevidomé)", "List s kapkami rosy"),
-      caption: t("Popisek fotky", "01 / Příroda"),
+      caption: opt("Popisek fotky", "01 / Příroda"),
     },
   },
   homeCharacter: {
     title: "Úvod – charakter značky a hodnoty",
     page: "/",
     fields: {
-      eyebrow: t("Malý nadpis", "02 / Charakter značky"),
+      eyebrow: opt("Malý nadpis", "02 / Charakter značky"),
       headline: t("Velký nadpis", "Síla v rovnováze."),
-      side: ta("Text vpravo", "Pohyb · Lidé\nPříroda · Harmonie"),
+      side: optArea("Text vpravo", "Pohyb · Lidé\nPříroda · Harmonie"),
       ...value(1, "Směr", "Tvá cesta"),
       ...value(2, "Síla", "V tvém těle"),
       ...value(3, "Zdraví", "Vitalita"),
@@ -111,7 +116,7 @@ export const SECTIONS = {
     title: "Úvod – nejbližší lekce",
     page: "/",
     fields: {
-      eyebrow: t("Malý nadpis", "Nejbližší lekce"),
+      eyebrow: opt("Malý nadpis", "Nejbližší lekce"),
       title: t("Nadpis", "Vyber si svou lekci"),
       link: t("Odkaz na rozvrh", "Celý rozvrh"),
     },
@@ -120,22 +125,25 @@ export const SECTIONS = {
     title: "Úvod – fotogalerie",
     page: "/",
     fields: {
-      image1: img("Velká fotka", "/img/pohyb.webp"),
-      alt1: t("Velká fotka – popis", "Pilates reformer ve studiu"),
-      caption1: t("Velká fotka – popisek", "03 / Pohyb"),
-      image2: img("Fotka vpravo nahoře", "/img/jidlo.webp"),
-      alt2: t("Vpravo nahoře – popis", "Salát s avokádem"),
-      caption2: t("Vpravo nahoře – popisek", "04 / Jídlo"),
-      image3: img("Fotka vpravo dole (s claimem)", "/img/prostor.webp"),
-      alt3: t("Vpravo dole – popis", "Pobřeží při západu slunce"),
-      caption3: t("Vpravo dole – popisek", "05 / Prostor"),
+      image1: img("Fotka 1", "/img/pohyb.webp"),
+      alt1: t("Fotka 1 – popis", "Pilates reformer ve studiu"),
+      caption1: opt("Fotka 1 – popisek", "Pohyb"),
+      image2: img("Fotka 2", "/img/jidlo.webp"),
+      alt2: t("Fotka 2 – popis", "Salát s avokádem"),
+      caption2: opt("Fotka 2 – popisek", "Lidé"),
+      image3: img("Fotka 3", "/img/priroda.webp"),
+      alt3: t("Fotka 3 – popis", "Příroda"),
+      caption3: opt("Fotka 3 – popisek", "Příroda"),
+      image4: img("Fotka 4", "/img/prostor.webp"),
+      alt4: t("Fotka 4 – popis", "Pobřeží při západu slunce"),
+      caption4: opt("Fotka 4 – popisek", "Harmonie"),
     },
   },
   homeSteps: {
     title: "Úvod – jak to funguje",
     page: "/",
     fields: {
-      eyebrow: t("Malý nadpis", "Jak to funguje"),
+      eyebrow: opt("Malý nadpis", "Jak to funguje"),
       title: t("Nadpis", "Tři kroky na podložku"),
       s1Title: t("Krok 1 – nadpis", "Zaregistruj se"),
       s1Text: ta("Krok 1 – text", "Účet máš za minutu – a první lekci od nás dostaneš zdarma."),
@@ -156,13 +164,13 @@ export const SECTIONS = {
   homeNews: {
     title: "Úvod – aktuality",
     page: "/",
-    fields: { eyebrow: t("Malý nadpis", "Aktuality") },
+    fields: { eyebrow: opt("Malý nadpis", "Aktuality") },
   },
   schedule: {
     title: "Rozvrh",
     page: "/rozvrh",
     fields: {
-      eyebrow: t("Malý nadpis", "Rozvrh"),
+      eyebrow: opt("Malý nadpis", "Rozvrh"),
       title: t("Nadpis", "Najdi si svou lekci."),
       intro: ta("Úvodní text", "Klikni na lekci a rezervuj. Storno zdarma v termínu, plné lekce mají pořadník."),
       empty: t("Prázdný týden", "Na tento týden zatím nejsou vypsané žádné lekce."),
@@ -172,7 +180,7 @@ export const SECTIONS = {
     title: "Lekce",
     page: "/lekce",
     fields: {
-      eyebrow: t("Malý nadpis", "Lekce"),
+      eyebrow: opt("Malý nadpis", "Lekce"),
       title: t("Nadpis", "Pohyb pro tělo i mysl."),
       intro: ta("Úvodní text", "Tanec, pilates, síla i regenerace. Vyber si podle nálady – nebo zkus všechno."),
     },
@@ -181,12 +189,12 @@ export const SECTIONS = {
     title: "O mně",
     page: "/o-mne",
     fields: {
-      eyebrow: t("Malý nadpis", "O mně"),
+      eyebrow: opt("Malý nadpis", "O mně"),
       title: t("Nadpis", "Ahoj, tady tvoje lektorka."),
       intro: ta("Úvodní text", "Každý má svou cestu. Ráda tě kus té tvojí doprovodím."),
       image: img("Moje fotka", "/img/pohyb.webp"),
       imageAlt: t("Popis fotky", "Lektorka studia OCTOPUSH"),
-      caption: t("Popisek fotky", "Lektorka & zakladatelka"),
+      caption: opt("Popisek fotky", "Lektorka & zakladatelka"),
       body: rich(
         "Příběh",
         `## Proč OCTOPUSH
@@ -207,7 +215,7 @@ Napiš sem, jak studio vzniklo a co pro tebe pohyb znamená.
     title: "Ceník",
     page: "/cenik",
     fields: {
-      eyebrow: t("Malý nadpis", "Ceník"),
+      eyebrow: opt("Malý nadpis", "Ceník"),
       title: t("Nadpis", "Každý má svou cestu. I k ceníku."),
       intro: ta("Úvodní text", "Členství, permanentka, kredit nebo jednorázový vstup – vyber si, co sedí tvému rytmu."),
       freeEyebrow: t("Pruh „vstup zdarma“ – malý nadpis", "Vstup zdarma"),

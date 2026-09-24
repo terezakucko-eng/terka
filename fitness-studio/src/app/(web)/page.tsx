@@ -37,23 +37,23 @@ export default async function Home() {
     <>
       {/* HERO */}
       <section className="bg-forest text-papir">
-        <Container className="grid items-center gap-10 py-14 md:grid-cols-[1fr_1.1fr] md:py-20">
+        <Container className="grid items-center gap-10 py-14 md:grid-cols-[1fr_1.1fr] md:py-8">
           <figure className="order-2 md:order-1">
-            <div className="relative aspect-[4/5] overflow-hidden">
+            <div className="relative aspect-[4/5] overflow-hidden md:aspect-auto md:h-[calc(100svh-9rem)] md:max-h-[720px] md:min-h-[420px]">
               <ContentImage src={c("homeHero.image")} alt={c("homeHero.imageAlt")} fill priority sizes="(min-width: 768px) 45vw, 100vw" className="object-cover" />
             </div>
-            <figcaption className="eyebrow mt-4 text-papir/60">{c("homeHero.caption")}</figcaption>
+            <figcaption className="eyebrow empty:hidden mt-4 text-papir/60">{c("homeHero.caption")}</figcaption>
           </figure>
           <div className="order-1 text-center md:order-2">
-            <p className="eyebrow text-papir/60">{c("homeHero.eyebrow")}</p>
-            <Symbol className="mx-auto mt-10 w-48 sm:w-64" />
-            <h1 className="mt-8">
-              <Wordmark className="mx-auto w-full max-w-md" />
+            <p className="eyebrow empty:hidden text-papir/60">{c("homeHero.eyebrow")}</p>
+            <Symbol className="mx-auto mt-10 w-48 sm:w-64 md:mt-6 md:w-40 lg:w-52" />
+            <h1 className="mt-8 md:mt-5">
+              <Wordmark className="mx-auto w-full max-w-md md:max-w-sm" />
               <span className="sr-only">{site.name}</span>
             </h1>
             <div className="mx-auto mt-6 h-px max-w-md bg-zlato/40" />
             <p className="eyebrow mt-5 text-papir/85">{c("site.tagline")}</p>
-            <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
+            <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row md:mt-7">
               <ButtonLink href="/rozvrh" variant="gold">{c("homeHero.ctaPrimary")}</ButtonLink>
               <ButtonLink href={user ? "/ucet" : "/registrace"} variant="outline-light">
                 {user ? "Můj účet" : c("homeHero.ctaSecondary")}
@@ -69,7 +69,7 @@ export default async function Home() {
           <Eyebrow className="text-zeme">{c("homeCharacter.eyebrow")}</Eyebrow>
           <div className="mt-6 flex flex-col justify-between gap-6 md:flex-row md:items-end">
             <h2 className="text-5xl font-semibold tracking-tight sm:text-7xl">{c("homeCharacter.headline")}</h2>
-            <p className="eyebrow max-w-xs whitespace-pre-line leading-7 text-les/70">{c("homeCharacter.side")}</p>
+            <p className="eyebrow empty:hidden max-w-xs whitespace-pre-line leading-7 text-les/70">{c("homeCharacter.side")}</p>
           </div>
           <hr className="my-12 border-linka/60" />
           <Values values={values} />
@@ -99,32 +99,28 @@ export default async function Home() {
         </Container>
       </section>
 
-      {/* GALERIE */}
+      {/* GALERIE – čtyři fotky jako čtyři pilíře */}
       <section>
-        <Container className="grid gap-6 py-16 sm:py-20 md:grid-cols-[1.1fr_1fr]">
-          <figure>
-            <div className="relative aspect-[5/4] overflow-hidden md:aspect-auto md:h-full md:min-h-[520px]">
-              <ContentImage src={c("homeGallery.image1")} alt={c("homeGallery.alt1")} fill sizes="(min-width: 768px) 55vw, 100vw" className="object-cover" />
-            </div>
-            <figcaption className="eyebrow mt-4 text-les/70">{c("homeGallery.caption1")}</figcaption>
-          </figure>
-          <div className="grid gap-6">
-            <figure>
-              <div className="relative aspect-[16/8] overflow-hidden">
-                <ContentImage src={c("homeGallery.image2")} alt={c("homeGallery.alt2")} fill sizes="(min-width: 768px) 45vw, 100vw" className="object-cover" />
-              </div>
-              <figcaption className="eyebrow mt-4 text-les/70">{c("homeGallery.caption2")}</figcaption>
-            </figure>
-            <figure>
-              <div className="relative aspect-[16/8] overflow-hidden">
-                <ContentImage src={c("homeGallery.image3")} alt={c("homeGallery.alt3")} fill sizes="(min-width: 768px) 45vw, 100vw" className="object-cover" />
-                <p className="absolute inset-0 flex items-center justify-center text-center font-script text-5xl text-zlato-light drop-shadow sm:text-6xl">
-                  {c("site.claim")}
-                </p>
-              </div>
-              <figcaption className="eyebrow mt-4 text-les/70">{c("homeGallery.caption3")}</figcaption>
-            </figure>
+        <Container className="py-16 sm:py-20">
+          <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-4">
+            {([1, 2, 3, 4] as const).map((n) => (
+              <figure key={n}>
+                <div className="relative aspect-[3/4] overflow-hidden">
+                  <ContentImage
+                    src={c(`homeGallery.image${n}`)}
+                    alt={c(`homeGallery.alt${n}`)}
+                    fill
+                    sizes="(min-width: 768px) 25vw, 50vw"
+                    className="object-cover"
+                  />
+                </div>
+                <figcaption className="eyebrow empty:hidden mt-4 text-center text-les/70">{c(`homeGallery.caption${n}`)}</figcaption>
+              </figure>
+            ))}
           </div>
+          <p className="mx-auto mt-14 max-w-3xl text-center font-script text-4xl leading-snug text-zeme empty:hidden sm:text-5xl">
+            {c("site.claim")}
+          </p>
         </Container>
       </section>
 

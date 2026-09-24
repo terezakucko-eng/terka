@@ -19,7 +19,7 @@ export async function SiteFooter() {
               <Wordmark className="w-44" />
             </div>
             <p className="eyebrow mt-6 text-zlato-light/80">{c("site.tagline")}</p>
-            <p className="eyebrow mt-3 text-papir/50">{c("site.pillars")}</p>
+            <p className="eyebrow empty:hidden mt-3 text-papir/50">{c("site.pillars")}</p>
           </div>
           <div className="space-y-2 text-sm">
             <p className="eyebrow mb-4 text-zlato">{c("nav.footerStudio")}</p>
