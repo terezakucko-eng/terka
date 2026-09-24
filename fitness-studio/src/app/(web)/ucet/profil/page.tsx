@@ -8,7 +8,7 @@ export default async function ProfilePage() {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <Card>
-        <h2 className="text-xl font-medium">Osobní údaje</h2>
+        <h2 className="text-xl font-semibold">Osobní údaje</h2>
         <ActionForm action={updateProfileAction} className="mt-5 space-y-4">
           <Field label="E-mail" hint="E-mail změní recepce."><Input value={user.email} disabled /></Field>
           <Field label="Jméno a příjmení"><Input name="name" defaultValue={user.name} required /></Field>
@@ -23,7 +23,7 @@ export default async function ProfilePage() {
         </ActionForm>
       </Card>
       <Card>
-        <h2 className="text-xl font-medium">Změna hesla</h2>
+        <h2 className="text-xl font-semibold">Změna hesla</h2>
         <ActionForm action={changePasswordAction} className="mt-5 space-y-4" resetOnSuccess>
           <Field label="Současné heslo"><Input name="current" type="password" autoComplete="current-password" required /></Field>
           <Field label="Nové heslo" hint="Alespoň 8 znaků."><Input name="password" type="password" autoComplete="new-password" minLength={8} required /></Field>

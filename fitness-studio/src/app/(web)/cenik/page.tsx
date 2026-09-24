@@ -63,7 +63,7 @@ export default async function PricingPage() {
           <Container className="flex flex-col items-start justify-between gap-6 py-10 md:flex-row md:items-center">
             <div>
               <Eyebrow className="text-zlato">{c("pricing.freeEyebrow")}</Eyebrow>
-              <p className="mt-2 text-2xl font-medium">{c("pricing.freeTitle")}</p>
+              <p className="mt-2 text-2xl font-semibold">{c("pricing.freeTitle")}</p>
               <p className="mt-1 text-papir/70">{c("pricing.freeText")}</p>
             </div>
             <ButtonLink href={user ? "/rozvrh" : "/registrace"} variant="gold">

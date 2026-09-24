@@ -81,7 +81,7 @@ export function PageHeader({
     <section className="border-b border-linka/60">
       <Container className="py-12 sm:py-16">
         <Eyebrow className="text-zeme">{eyebrow}</Eyebrow>
-        <h1 className="mt-4 text-4xl font-medium tracking-tight sm:text-6xl">{title}</h1>
+        <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-6xl">{title}</h1>
         {children && <div className="mt-5 max-w-2xl text-lg text-les/70">{children}</div>}
       </Container>
     </section>

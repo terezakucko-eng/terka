@@ -182,5 +182,5 @@ Změna schématu: uprav `schema.ts` → `npm run db:generate` → commit nové m
 
 Barvy (moodboard „Vizuální směr“): Les `#151A13`, Šalvěj `#606350`, Země `#674329`,
 Zlato `#D2A772`, Písek `#D1B89A`, Krém `#E2D1BD`, pozadí `#F3EBDE`.
-Písmo: Inter (náhrada Nimbus Sans / Helvetica z moodboardu) + Allura pro claim.
+Písmo: DM Sans (Regular pro běžný text, SemiBold pro nadpisy a názvy lekcí) + Allura pro claim. Nápis OCTOPUSH v logu zůstává vlastní vektorový (SVG v `public/brand`).
 Logo v `public/brand/`. Fotky v `public/img/` jsou z moodboardu – nahraďte vlastními.

@@ -19,7 +19,7 @@ export default async function PaymentResultPage({ searchParams }: PageProps<"/pl
     <Container className="max-w-lg py-16">
       <Card className="text-center">
         <Eyebrow className="text-zeme">Platba</Eyebrow>
-        <h1 className="mt-4 text-3xl font-medium">
+        <h1 className="mt-4 text-3xl font-semibold">
           {paid ? "Děkujeme, zaplaceno!" : cancelled ? "Platba byla zrušena" : "Platbu ověřujeme…"}
         </h1>
         <p className="mt-3 text-les/70">

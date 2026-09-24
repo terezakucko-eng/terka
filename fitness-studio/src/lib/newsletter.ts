@@ -32,7 +32,7 @@ export function renderNewsletter(opts: {
 }) {
   const logo = `${site.url}/brand/email-logo.png`;
   const html = `<!doctype html><html lang="cs"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${esc(opts.subject)}</title></head>
-<body style="margin:0;background:#f3ebde;font-family:Helvetica,Arial,sans-serif;color:#151a13">
+<body style="margin:0;background:#f3ebde;font-family:'DM Sans',Helvetica,Arial,sans-serif;color:#151a13">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3ebde"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
 <tr><td align="center" style="background:#1a281b;padding:28px"><img src="${logo}" width="180" alt="${site.name}" style="display:block;width:180px;height:auto"></td></tr>

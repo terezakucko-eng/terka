@@ -4,7 +4,7 @@ import { cx } from "./ui";
 export function AdminTitle({ title, children }: { title: string; children?: ReactNode }) {
   return (
     <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-      <h1 className="text-3xl font-medium tracking-tight">{title}</h1>
+      <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
       {children && <div className="flex flex-wrap gap-2">{children}</div>}
     </div>
   );

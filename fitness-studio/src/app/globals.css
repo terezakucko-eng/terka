@@ -17,7 +17,7 @@
   --color-ok: #4f6b3a;
   --color-chyba: #9b3b2a;
 
-  --font-sans: var(--font-inter), "Nimbus Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-sans: var(--font-dm-sans), "Nimbus Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-script: var(--font-allura), cursive;
 }
 

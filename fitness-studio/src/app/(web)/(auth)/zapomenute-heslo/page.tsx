@@ -9,7 +9,7 @@ export default function ForgotPage() {
   return (
     <>
       <Eyebrow className="text-zeme">Heslo</Eyebrow>
-      <h1 className="mt-3 text-4xl font-medium tracking-tight">Zapomenuté heslo</h1>
+      <h1 className="mt-3 text-4xl font-semibold tracking-tight">Zapomenuté heslo</h1>
       <p className="mt-3 text-les/70">Pošleme ti odkaz pro nastavení nového hesla.</p>
       <ActionForm action={requestResetAction} className="mt-8 space-y-4">
         <Field label="E-mail"><Input name="email" type="email" autoComplete="email" required /></Field>
