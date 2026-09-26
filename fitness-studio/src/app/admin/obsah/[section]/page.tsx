@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { saveContentAction } from "@/app/admin/content-actions";
 import { AdminTitle } from "@/components/admin";
 import { ActionForm, SubmitButton } from "@/components/forms";
+import { ImageInput } from "@/components/image-input";
 import { Card, Field, Input, Textarea } from "@/components/ui";
 import { sectionValues } from "@/content";
 import { SECTIONS, type SectionDef } from "@/content/definitions";
@@ -37,13 +38,8 @@ export default async function EditSection({ params }: PageProps<"/admin/obsah/[s
                     <img src={values[name]} alt="" className="h-32 w-48 shrink-0 rounded-lg object-cover" />
                   )}
                   <div className="flex-1 space-y-3">
-                    <input
-                      type="file"
-                      name={`file_${name}`}
-                      accept="image/*"
-                      className="block w-full text-sm file:mr-3 file:rounded-full file:border-0 file:bg-les file:px-4 file:py-2 file:text-xs file:font-semibold file:text-papir"
-                    />
-                    <p className="text-xs text-les/50">JPG/PNG z mobilu i foťáku – web ji sám zmenší. Fotka se ořízne podle rámečku na stránce, hlavní motiv dej doprostřed.</p>
+                    <ImageInput name={`file_${name}`} />
+                    <p className="text-xs text-les/50">JPG/PNG z mobilu i foťáku – web ji sám zmenší, takže můžeš nahrát víc fotek najednou. Fotka se ořízne podle rámečku na stránce, hlavní motiv dej doprostřed.</p>
                     <Field label="…nebo odkaz na obrázek">
                       <Input name={`f_${name}`} defaultValue={values[name]} />
                     </Field>

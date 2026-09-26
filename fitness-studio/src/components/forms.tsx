@@ -9,6 +9,16 @@ import { Button, cx } from "./ui";
  * <form> bound to a server action `(prev, formData) => FormState`,
  * showing its error / success message.
  */
+/** Hosting (Vercel) rejects requests over ~4.5 MB – keep a safety margin. */
+const MAX_REQUEST = 4.2 * 1024 * 1024;
+
+function uploadSize(form: HTMLFormElement) {
+  let total = 0;
+  for (const el of Array.from(form.querySelectorAll<HTMLInputElement>('input[type="file"]')))
+    for (const f of Array.from(el.files ?? [])) total += f.size;
+  return total;
+}
+
 export function ActionForm({
   action,
   children,
@@ -35,7 +45,11 @@ export function ActionForm({
       action={formAction}
       className={className}
       onSubmit={(e) => {
-        if (confirm && !window.confirm(confirm)) e.preventDefault();
+        if (confirm && !window.confirm(confirm)) return e.preventDefault();
+        if (uploadSize(e.currentTarget) > MAX_REQUEST) {
+          e.preventDefault();
+          window.alert("Fotky jsou dohromady moc velké na jedno uložení. Ulož je prosím po menších dávkách (např. 2–3 najednou).");
+        }
       }}
     >
       {children}

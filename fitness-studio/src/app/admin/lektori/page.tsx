@@ -6,6 +6,7 @@ import { Field, Input, Textarea } from "@/components/ui";
 import { getDb } from "@/db";
 import { instructors, type Instructor } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
+import { ImageInput } from "@/components/image-input";
 
 function InstructorForm({ i }: { i?: Instructor }) {
   return (
@@ -23,7 +24,7 @@ function InstructorForm({ i }: { i?: Instructor }) {
           <img src={i.photoUrl} alt="" className="size-20 rounded-lg object-cover" />
         )}
         <Field label="Nahrát fotku">
-          <input type="file" name="photo" accept="image/*" className="block text-sm file:mr-3 file:rounded-full file:border-0 file:bg-les file:px-4 file:py-2 file:text-xs file:font-semibold file:text-papir" />
+          <ImageInput name="photo" />
         </Field>
       </div>
       <Field label="Medailonek"><Textarea name="bio" rows={3} defaultValue={i?.bio} /></Field>

@@ -7,6 +7,7 @@ import { Field, Input, Textarea } from "@/components/ui";
 import { getDb } from "@/db";
 import { classTypes, type ClassType } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
+import { ImageInput } from "@/components/image-input";
 
 function ClassTypeForm({ t }: { t?: ClassType }) {
   return (
@@ -30,7 +31,7 @@ function ClassTypeForm({ t }: { t?: ClassType }) {
           <img src={t.imageUrl} alt="" className="h-20 w-32 rounded-lg object-cover" />
         )}
         <Field label="Fotka lekce (na stránce Lekce)">
-          <input type="file" name="image" accept="image/*" className="block text-sm file:mr-3 file:rounded-full file:border-0 file:bg-les file:px-4 file:py-2 file:text-xs file:font-semibold file:text-papir" />
+          <ImageInput name="image" />
         </Field>
         {t?.imageUrl && <label className="flex items-center gap-2 text-xs"><input type="checkbox" name="removeImage" /> Odebrat fotku</label>}
       </div>
