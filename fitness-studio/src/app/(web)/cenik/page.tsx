@@ -4,7 +4,7 @@ import { ProductCard } from "@/components/product-card";
 import { ButtonLink, Container, Eyebrow, PageHeader } from "@/components/ui";
 import type { Product } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
-import { credits, formatPrice } from "@/lib/money";
+import { creditPackPrice, credits, formatPrice } from "@/lib/money";
 import { activeClassTypes, activeProducts } from "@/lib/queries";
 import { getSettings } from "@/lib/settings";
 import { getContent, type Content } from "@/content";
@@ -81,6 +81,9 @@ export default async function PricingPage() {
                 </span>
                 <span className="text-right text-sm tabular-nums text-les/70">
                   {t.dropInPrice !== null ? formatPrice(t.dropInPrice) : "jen s permanentkou"} · {credits(t.creditCost)}
+                  {creditPackPrice(t.creditCost, list) !== null && (
+                    <span className="block text-xs">z bodové permanentky {formatPrice(creditPackPrice(t.creditCost, list)!)}</span>
+                  )}
                   {t.firstVisitPrice !== null && (
                     <span className="block text-xs">první lekce {formatPrice(t.firstVisitPrice)}</span>
                   )}
