@@ -211,6 +211,8 @@ export const products = pgTable("products", {
   highlight: boolean("highlight").notNull().default(false),
   isActive: boolean("is_active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
+  /** Smazaný produkt, který už někdo koupil – skrytý, historie zůstává. */
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: createdAt(),
 });
 
@@ -419,8 +421,10 @@ export const massageServices = pgTable("massage_services", {
   slug: text("slug").notNull().unique(),
   description: text("description").notNull().default(""),
   durationMin: integer("duration_min").notNull().default(60),
-  /** Cena v haléřích */
+  /** Jednorázová cena v haléřích */
   price: integer("price").notNull(),
+  /** Cena pro členy (aktivní členství) v haléřích; null = stejná jako jednorázová */
+  memberPrice: integer("member_price"),
   imageUrl: text("image_url"),
   isActive: boolean("is_active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
@@ -453,6 +457,8 @@ export const massageBookings = pgTable(
     /** Snapshot v době rezervace */
     serviceName: text("service_name").notNull(),
     price: integer("price").notNull(),
+    /** Účtována cena pro členy */
+    memberRate: boolean("member_rate").notNull().default(false),
     startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
     endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
     payment: massagePayment("payment").notNull(),

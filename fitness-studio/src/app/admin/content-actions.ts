@@ -9,6 +9,7 @@ import { requireAdmin } from "@/lib/auth";
 import { UserError } from "@/lib/errors";
 import { attempt, field, type FormState } from "@/lib/form";
 import { storeImage, uploadedFile } from "@/lib/media";
+import { toSafeHtml } from "@/lib/rich-html";
 
 /** Saves one section of website content (texts + image uploads). */
 export async function saveContentAction(_: FormState, fd: FormData): Promise<FormState> {
@@ -45,7 +46,11 @@ export async function saveContentAction(_: FormState, fd: FormData): Promise<For
       }
       const raw = fd.get(`f_${name}`);
       if (typeof raw !== "string") continue;
-      const value = raw.replace(/\r\n/g, "\n").trim();
+      const value = def.type === "richtext" ? toSafeHtml(raw) : raw.replace(/\r\n/g, "\n").trim();
+      if (def.type === "richtext" && (value === "" || value === toSafeHtml(def.default))) {
+        await reset(key);
+        continue;
+      }
       if (def.optional && field.bool(fd, `reset_${name}`)) await reset(key);
       // An optional line saved empty stays hidden on the website.
       else if (value === "" && def.optional) await set(key, "");

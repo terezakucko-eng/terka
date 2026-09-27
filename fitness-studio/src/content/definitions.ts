@@ -31,7 +31,7 @@ const rich = (label: string, def: string): FieldDef => ({
   label,
   type: "richtext",
   default: def,
-  hint: "## Nadpis · - odrážka · **tučně** · prázdný řádek = nový odstavec · odkazy se vytvoří samy",
+  hint: "Formátuj tlačítky nad textem. Enter = nový odstavec, Shift+Enter = nový řádek.",
 });
 const OPT_HINT = "Můžeš nechat prázdné – řádek na webu zmizí.";
 const opt = (label: string, def: string): FieldDef => ({ label, type: "text", default: def, hint: OPT_HINT, optional: true });
@@ -69,6 +69,28 @@ export const SECTIONS = {
       whatsapp: url("WhatsApp skupina/kontakt", "", ),
     },
   },
+  promoBar: {
+    title: "Akční lišta (nahoře na webu)",
+    page: "/",
+    fields: {
+      text: {
+        label: "Text lišty",
+        type: "text",
+        default: "",
+        optional: true,
+        hint: "Např. „−20 % na první permanentku do neděle“. Prázdné = lišta se nezobrazuje.",
+      },
+      linkLabel: opt("Text odkazu", "Chci to"),
+      linkUrl: t("Kam odkaz vede", "/cenik", "Stránka webu (/cenik, /masaze…) nebo celá adresa https://…"),
+      until: {
+        label: "Zobrazovat do (včetně)",
+        type: "text",
+        default: "",
+        optional: true,
+        hint: "Datum ve tvaru 2026-10-31. Po něm lišta sama zmizí. Prázdné = pořád.",
+      },
+    },
+  },
   nav: {
     title: "Menu a patička",
     page: "*",
@@ -100,17 +122,18 @@ export const SECTIONS = {
     title: "Úvod – charakter značky a hodnoty",
     page: "/",
     fields: {
-      eyebrow: opt("Malý nadpis", "02 / Charakter značky"),
-      headline: t("Velký nadpis", "Síla v rovnováze."),
+      eyebrow: opt("Malý nadpis", "Charakter značky"),
+      headline: t("Velký nadpis", "Osm chapadel OCTOPUSH."),
+      lead: optArea("Věta pod nadpisem", "Každé chapadlo je jedna věc, kterou ti pohyb dává."),
       side: optArea("Text vpravo", "Pohyb · Lidé\nPříroda · Harmonie"),
       ...value(1, "Směr", "Tvá cesta"),
       ...value(2, "Síla", "V tvém těle"),
-      ...value(3, "Zdraví", "Vitalita"),
-      ...value(4, "Výživa", "Palivo"),
-      ...value(5, "Komunita", "Společně"),
-      ...value(6, "Energie", "Každý den"),
+      ...value(3, "Zdraví", "Základ všeho"),
+      ...value(4, "Výživa", "Co tě pohání"),
+      ...value(5, "Komunita", "Držíme spolu"),
+      ...value(6, "Energie", "Na celý den"),
       ...value(7, "Rovnováha", "Tělo i mysl"),
-      ...value(8, "Svoboda", "V pohybu"),
+      ...value(8, "Svoboda", "Hýbej se po svém"),
     },
   },
   homeSchedule: {
@@ -212,7 +235,7 @@ export const SECTIONS = {
     fields: {
       eyebrow: opt("Malý nadpis", "O mně"),
       title: t("Nadpis", "Ahoj, tady tvoje lektorka."),
-      intro: ta("Úvodní text", "Každý má svou cestu. Ráda tě kus té tvojí doprovodím."),
+      intro: rich("Úvodní text", "Každý má svou cestu. Ráda tě kus té tvojí doprovodím."),
       image: img("Moje fotka", "/img/pohyb.webp"),
       imageAlt: t("Popis fotky", "Lektorka studia OCTOPUSH"),
       caption: opt("Popisek fotky", "Lektorka & zakladatelka"),

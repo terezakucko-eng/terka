@@ -1,6 +1,6 @@
 import { and, eq, gt, inArray, isNull, notExists, sql } from "drizzle-orm";
 import type { DB } from "@/db";
-import { bookings, classSessions, classTypes, orders } from "@/db/schema";
+import { bookings, classSessions, classTypes, entitlements, orders, products } from "@/db/schema";
 import { UserError } from "@/lib/errors";
 
 /**
@@ -52,6 +52,28 @@ export async function deleteClassType(db: DB, id: string, now = new Date()) {
       .update(classTypes)
       .set({ isActive: false, archivedAt: now, slug: sql`${classTypes.slug} || '-smazano-' || substr(${classTypes.id}::text, 1, 8)` })
       .where(and(eq(classTypes.id, id), isNull(classTypes.archivedAt)));
+    return "archived" as const;
+  });
+}
+
+/**
+ * Deletes a price-list product. If anyone already bought it (orders or
+ * passes/memberships point to it), it is archived instead: hidden from the
+ * price list and admin, while bought passes keep working.
+ */
+export async function deleteProduct(db: DB, id: string, now = new Date()) {
+  return db.transaction(async (tx) => {
+    const [ordered] = await tx.select({ id: orders.id }).from(orders).where(eq(orders.productId, id)).limit(1);
+    const [owned] = await tx
+      .select({ id: entitlements.id })
+      .from(entitlements)
+      .where(eq(entitlements.productId, id))
+      .limit(1);
+    if (!ordered && !owned) {
+      await tx.delete(products).where(eq(products.id, id));
+      return "deleted" as const;
+    }
+    await tx.update(products).set({ isActive: false, archivedAt: now }).where(eq(products.id, id));
     return "archived" as const;
   });
 }

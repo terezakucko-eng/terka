@@ -11,7 +11,7 @@ export default async function AboutPage() {
   return (
     <>
       <PageHeader eyebrow={c("about.eyebrow")} title={c("about.title")}>
-        {c("about.intro")}
+        <RichText text={c("about.intro")} />
       </PageHeader>
       <Container className="grid gap-12 py-14 md:grid-cols-[1fr_1.2fr] md:items-start">
         <figure className="md:sticky md:top-24">
@@ -21,9 +21,7 @@ export default async function AboutPage() {
           <figcaption className="eyebrow empty:hidden mt-4 text-les/70">{c("about.caption")}</figcaption>
         </figure>
         <div>
-          <div className="space-y-4 text-lg leading-relaxed text-les/80 [&_h2]:mt-10 [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:tracking-tight [&_h2]:text-les [&_h2:first-child]:mt-0 [&_li]:ml-5 [&_li]:list-disc [&_ul]:space-y-1">
-            <RichText text={c("about.body")} />
-          </div>
+          <RichText text={c("about.body")} className="text-lg leading-relaxed text-les/80" />
           <ButtonLink href="/rozvrh" variant="gold" className="mt-10">{c("about.cta")}</ButtonLink>
         </div>
       </Container>
