@@ -31,7 +31,7 @@ const rich = (label: string, def: string): FieldDef => ({
   label,
   type: "richtext",
   default: def,
-  hint: "## Nadpis · - odrážka · **tučně** · prázdný řádek = nový odstavec · odkazy se vytvoří samy",
+  hint: "Formátuj tlačítky nad textem. Enter = nový odstavec, Shift+Enter = nový řádek.",
 });
 const OPT_HINT = "Můžeš nechat prázdné – řádek na webu zmizí.";
 const opt = (label: string, def: string): FieldDef => ({ label, type: "text", default: def, hint: OPT_HINT, optional: true });
@@ -212,7 +212,7 @@ export const SECTIONS = {
     fields: {
       eyebrow: opt("Malý nadpis", "O mně"),
       title: t("Nadpis", "Ahoj, tady tvoje lektorka."),
-      intro: ta("Úvodní text", "Každý má svou cestu. Ráda tě kus té tvojí doprovodím."),
+      intro: rich("Úvodní text", "Každý má svou cestu. Ráda tě kus té tvojí doprovodím."),
       image: img("Moje fotka", "/img/pohyb.webp"),
       imageAlt: t("Popis fotky", "Lektorka studia OCTOPUSH"),
       caption: opt("Popisek fotky", "Lektorka & zakladatelka"),

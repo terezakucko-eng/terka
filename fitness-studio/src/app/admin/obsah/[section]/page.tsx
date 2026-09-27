@@ -4,6 +4,8 @@ import { saveContentAction } from "@/app/admin/content-actions";
 import { AdminTitle } from "@/components/admin";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { ImageInput } from "@/components/image-input";
+import { RichEditor } from "@/components/rich-editor";
+import { toSafeHtml } from "@/lib/rich-html";
 import { Card, Field, Input, Textarea } from "@/components/ui";
 import { sectionValues } from "@/content";
 import { SECTIONS, type SectionDef } from "@/content/definitions";
@@ -55,13 +57,14 @@ export default async function EditSection({ params }: PageProps<"/admin/obsah/[s
               <Field key={name} label={def.label} hint={def.hint}>
                 {def.type === "text" || def.type === "url" ? (
                   <Input name={`f_${name}`} type={def.type === "url" ? "url" : "text"} defaultValue={values[name]} />
-                ) : (
-                  <Textarea
+                ) : def.type === "richtext" ? (
+                  <RichEditor
                     name={`f_${name}`}
-                    defaultValue={values[name]}
-                    rows={def.type === "richtext" ? 22 : 3}
-                    className={def.type === "richtext" ? "font-mono text-[13px] leading-relaxed" : undefined}
+                    defaultValue={toSafeHtml(values[name])}
+                    minHeight={def.default.length > 200 ? 360 : 120}
                   />
+                ) : (
+                  <Textarea name={`f_${name}`} defaultValue={values[name]} rows={3} />
                 )}
                 {def.optional && values[name] !== def.default && (
                   <label className="mt-2 flex items-center gap-2 text-xs text-les/70">
