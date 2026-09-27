@@ -68,7 +68,10 @@ export default async function Home() {
         <Container className="py-16 sm:py-20">
           <Eyebrow className="text-zeme">{c("homeCharacter.eyebrow")}</Eyebrow>
           <div className="mt-6 flex flex-col justify-between gap-6 md:flex-row md:items-end">
-            <h2 className="text-5xl font-semibold tracking-tight sm:text-7xl">{c("homeCharacter.headline")}</h2>
+            <div>
+              <h2 className="text-5xl font-semibold tracking-tight sm:text-7xl">{c("homeCharacter.headline")}</h2>
+              <p className="mt-5 max-w-2xl text-lg text-les/70 empty:hidden">{c("homeCharacter.lead")}</p>
+            </div>
             <p className="eyebrow empty:hidden max-w-xs whitespace-pre-line leading-7 text-les/70">{c("homeCharacter.side")}</p>
           </div>
           <hr className="my-12 border-linka/60" />
