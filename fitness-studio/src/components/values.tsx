@@ -1,4 +1,4 @@
-import { Compass, Dumbbell, HeartPulse, PersonStanding, Salad, Sun, Users } from "lucide-react";
+import { Dumbbell, HeartPulse, PersonStanding, Salad, Sun, Users } from "lucide-react";
 
 function YinYang({ className }: { className?: string }) {
   return (
@@ -7,6 +7,19 @@ function YinYang({ className }: { className?: string }) {
       <path d="M12 2a5 5 0 0 1 0 10a5 5 0 0 0 0 10" />
       <circle cx="12" cy="7" r="1" fill="currentColor" />
       <circle cx="12" cy="17" r="1" />
+    </svg>
+  );
+}
+
+/** Classic compass: ring with N-E-S-W ticks and a two-tone needle pointing north. */
+function Compass({ className, strokeWidth = 1.5 }: { className?: string; strokeWidth?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinejoin="round" className={className} aria-hidden>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 2v2.2M12 19.8V22M2 12h2.2M19.8 12H22" strokeLinecap="round" />
+      <path d="M12 5.2 14.4 12H9.6Z" fill="currentColor" />
+      <path d="M9.6 12h4.8L12 18.8Z" />
+      <circle cx="12" cy="12" r="0.9" fill="currentColor" stroke="none" />
     </svg>
   );
 }
