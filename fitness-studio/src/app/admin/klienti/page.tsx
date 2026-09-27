@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { whatsappLink } from "@/lib/phone";
 import { desc, ilike, or } from "drizzle-orm";
 import { AdminTitle, Table, Td } from "@/components/admin";
 import { Badge, Input } from "@/components/ui";
@@ -32,7 +33,14 @@ export default async function ClientsPage({ searchParams }: PageProps<"/admin/kl
           <tr key={u.id}>
             <Td><Link href={`/admin/klienti/${u.id}`} className="font-semibold text-zeme underline-offset-4 hover:underline">{u.name}</Link></Td>
             <Td>{u.email}</Td>
-            <Td>{u.phone ?? "—"}</Td>
+            <Td className="whitespace-nowrap">
+              {u.phone ?? "—"}
+              {whatsappLink(u.phone) && (
+                <a href={whatsappLink(u.phone)!} target="_blank" rel="noopener noreferrer" className="ml-2 text-xs font-semibold text-zeme underline">
+                  WhatsApp
+                </a>
+              )}
+            </Td>
             <Td className="tabular-nums">{u.creditBalance}</Td>
             <Td>{u.role !== "client" && <Badge tone="dark">{u.role === "admin" ? "Admin" : "Lektor"}</Badge>}</Td>
             <Td>{formatDate(u.createdAt)}</Td>

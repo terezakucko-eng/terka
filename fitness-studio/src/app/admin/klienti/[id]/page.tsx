@@ -13,7 +13,7 @@ import {
 import { AdminTitle, Stat, Table, Td } from "@/components/admin";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { bookingStatusLabel, creditReasonLabel, entitlementKindLabel, methodLabel, orderStatusLabel } from "@/components/labels";
-import { Badge, Card, Field, Input, Select, Textarea } from "@/components/ui";
+import { Badge, Button, Card, Field, Input, Select, Textarea } from "@/components/ui";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import { userBookings, userEntitlements, userLedger, userOrders } from "@/lib/account";
@@ -21,6 +21,7 @@ import { requireAdmin } from "@/lib/auth";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { formatPrice } from "@/lib/money";
 import { sellableProducts } from "@/lib/queries";
+import { normalizePhone } from "@/lib/phone";
 import { recentSolariumUses, solariumPasses } from "@/domain/solarium";
 
 export default async function ClientDetail({ params }: PageProps<"/admin/klienti/[id]">) {
@@ -55,6 +56,8 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
         <Stat label="Nadcházející rezervace" value={upcoming.length} />
         <Stat label="Účast (posl. 30 lekcí)" value={attended} sub={`registrace ${formatDate(u.createdAt)}`} />
       </div>
+
+      <WhatsAppCard phone={u.phone} name={u.name} consent={u.whatsappConsent} />
 
       <Card className="mt-6 flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -240,5 +243,32 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
         </Card>
       )}
     </>
+  );
+}
+
+/**
+ * Plain GET form to wa.me – opens WhatsApp (app or web.whatsapp.com) with the
+ * client's chat and the text prefilled; you just press Send there.
+ */
+function WhatsAppCard({ phone, name, consent }: { phone: string | null; name: string; consent: boolean }) {
+  const e164 = normalizePhone(phone);
+  return (
+    <Card className="mt-6">
+      <h2 className="font-semibold">Napsat na WhatsApp</h2>
+      {e164 ? (
+        <form action={`https://wa.me/${e164.slice(1)}`} method="get" target="_blank" className="mt-3 space-y-3">
+          <Textarea name="text" rows={3} defaultValue={`Ahoj ${name.split(" ")[0]}, `} aria-label="Text zprávy" />
+          <div className="flex flex-wrap items-center gap-4">
+            <Button type="submit" variant="outline">Otevřít WhatsApp</Button>
+            <span className="text-xs text-les/60">
+              Otevře se chat s klientem a text předvyplněný – odešleš ho ve WhatsAppu.
+              {!consent && " Klient nemá souhlas s novinkami přes WhatsApp – piš jen provozní věci."}
+            </span>
+          </div>
+        </form>
+      ) : (
+        <p className="mt-2 text-sm text-les/60">Klient nemá vyplněný platný telefon.</p>
+      )}
+    </Card>
   );
 }
