@@ -154,6 +154,12 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
                   <input type="hidden" name="id" value={s.id} />
                   <Field label="Začátek"><Input name="startsAt" type="datetime-local" defaultValue={toLocalInput(s.startsAt)} required /></Field>
                   <SessionFields types={types} instructorList={instructorList} s={s} />
+                  {s.seriesId && (
+                    <div className="space-y-1 text-sm">
+                      <label className="flex items-center gap-2"><input type="radio" name="scope" value="one" defaultChecked /> Jen tuhle lekci</label>
+                      <label className="flex items-center gap-2"><input type="radio" name="scope" value="series" /> Tuhle a všechny další v opakování</label>
+                    </div>
+                  )}
                   <SubmitButton>Uložit</SubmitButton>
                 </ActionForm>
               </Panel>

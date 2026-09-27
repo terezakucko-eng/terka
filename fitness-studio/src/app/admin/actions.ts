@@ -28,7 +28,7 @@ import { deductSolarium } from "@/domain/solarium";
 import { grantEntitlement, normalizeEmail } from "@/domain/users";
 import { changeCredits } from "@/domain/wallet";
 import { requireAdmin, requireStaff } from "@/lib/auth";
-import { addDays, pragueLocalToDate, weekdayOf, isDateKey } from "@/lib/dates";
+import { addDays, dateKey, pragueLocalToDate, weekdayOf, isDateKey } from "@/lib/dates";
 import { UserError } from "@/lib/errors";
 import { attempt, field, type FormState } from "@/lib/form";
 import { notifyBooked, notifyPromoted, notifySessionCancelled } from "@/lib/notify";
@@ -283,11 +283,27 @@ export async function updateSessionAction(_: FormState, fd: FormData): Promise<F
     const { values } = await sessionValues(fd);
     const local = field.str(fd, "startsAt");
     if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(local)) throw new UserError("Neplatný čas.");
-    await (await getDb())
-      .update(classSessions)
-      .set({ ...values, startsAt: pragueLocalToDate(local) })
-      .where(eq(classSessions.id, field.str(fd, "id")));
-    return done("Termín uložen.");
+    const db = await getDb();
+    const id = field.str(fd, "id");
+    if (field.str(fd, "scope") !== "series") {
+      await db.update(classSessions).set({ ...values, startsAt: pragueLocalToDate(local) }).where(eq(classSessions.id, id));
+      return done("Termín uložen.");
+    }
+    // This and the following classes of the series: same settings, same new
+    // start time, and moved by the same number of days if the date changed.
+    const list = await seriesFrom(db, id);
+    const [me] = list.filter((s) => s.id === id);
+    if (!me) throw new UserError("Termín nenalezen.");
+    const [newDay, newTime] = local.split("T");
+    const shift = Math.round((Date.parse(newDay) - Date.parse(dateKey(me.startsAt))) / 86_400_000);
+    await db.transaction(async (tx) => {
+      for (const s of list)
+        await tx
+          .update(classSessions)
+          .set({ ...values, startsAt: pragueLocalToDate(`${addDays(dateKey(s.startsAt), shift)}T${newTime}`) })
+          .where(eq(classSessions.id, s.id));
+    });
+    return done(`Uloženo pro ${list.length} ${list.length === 1 ? "termín" : list.length < 5 ? "termíny" : "termínů"}.`);
   });
 }
 
