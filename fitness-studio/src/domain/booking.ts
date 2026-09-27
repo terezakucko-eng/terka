@@ -525,16 +525,44 @@ export async function joinWaitlist(
   });
 }
 
-/** Fills free spots from the waitlist, charging each client automatically. */
-async function promoteWaitlist(tx: Executor, s: ClassSession, now: Date) {
-  const promoted: Booking[] = [];
-  if (s.status !== "scheduled" || s.startsAt <= now) return promoted;
-
+/**
+ * The waitlist in the order it is served: clients with an active membership
+ * at the time of the class first (the membership perk), then everyone else;
+ * within each group whoever joined earlier.
+ */
+export async function waitlistQueue(tx: Executor, s: ClassSession) {
   const waiting = await tx
     .select()
     .from(bookings)
     .where(and(eq(bookings.sessionId, s.id), eq(bookings.status, "waitlist")))
     .orderBy(asc(bookings.createdAt));
+  if (!waiting.length) return waiting;
+  const members = new Set(
+    (
+      await tx
+        .select({ userId: entitlements.userId })
+        .from(entitlements)
+        .where(
+          and(
+            inArray(entitlements.userId, waiting.map((w) => w.userId)),
+            eq(entitlements.kind, "membership"),
+            eq(entitlements.status, "active"),
+            lte(entitlements.validFrom, s.startsAt),
+            gt(entitlements.validUntil, s.startsAt),
+          ),
+        )
+    ).map((r) => r.userId),
+  );
+  // stable sort keeps the join order inside each group
+  return [...waiting].sort((a, b) => Number(members.has(b.userId)) - Number(members.has(a.userId)));
+}
+
+/** Fills free spots from the waitlist, charging each client automatically. */
+async function promoteWaitlist(tx: Executor, s: ClassSession, now: Date) {
+  const promoted: Booking[] = [];
+  if (s.status !== "scheduled" || s.startsAt <= now) return promoted;
+
+  const waiting = await waitlistQueue(tx, s);
 
   let free = s.capacity - (await occupancy(tx, s.id));
   for (const w of waiting) {
@@ -721,17 +749,8 @@ export async function sessionForUser(
   if (userId) {
     myBooking = await activeBooking(db, userId, s.id);
     if (myBooking?.status === "waitlist") {
-      const [r] = await db
-        .select({ n: count() })
-        .from(bookings)
-        .where(
-          and(
-            eq(bookings.sessionId, s.id),
-            eq(bookings.status, "waitlist"),
-            lte(bookings.createdAt, myBooking.createdAt),
-          ),
-        );
-      waitlistPosition = r.n;
+      const queue = await waitlistQueue(db, s);
+      waitlistPosition = queue.findIndex((b) => b.id === myBooking!.id) + 1 || null;
     }
     if (state === "bookable" && (!myBooking || myBooking.status === "waitlist"))
       options = await bookingOptions(db, userId, s);

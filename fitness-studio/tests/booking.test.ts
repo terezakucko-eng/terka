@@ -9,6 +9,7 @@ import {
   cancelSession,
   joinWaitlist,
   sessionForUser,
+  waitlistQueue,
 } from "@/domain/booking";
 import {
   createProductOrder,
@@ -99,6 +100,24 @@ describe("capacity & waitlist", () => {
     expect(await balance(b.id)).toBe(0);
     const [bw] = await h.db.select().from(bookings).where(eq(bookings.id, w.id));
     expect(bw.status).toBe("confirmed");
+  });
+
+  it("members with an active membership go first on the waitlist", async () => {
+    const s = await makeSession(h.db, { capacity: 1 });
+    const a = await makeUser(h.db, 1);
+    const early = await makeUser(h.db, 1); // joins first, no membership
+    const member = await makeUser(h.db, 0);
+    await grantEntitlement(h.db, { userId: member.id, kind: "membership", name: "Členství", entries: null, validityDays: 30 }, NOW);
+    const { booking } = await bookSession(h.db, { userId: a.id, sessionId: s.id, method: "credits" }, NOW);
+    const we = await joinWaitlist(h.db, { userId: early.id, sessionId: s.id }, NOW);
+    const wm = await joinWaitlist(h.db, { userId: member.id, sessionId: s.id }, NOW);
+
+    const view = await sessionForUser(h.db, s.id, early.id, NOW);
+    expect(view!.waitlistPosition).toBe(2);
+    expect((await waitlistQueue(h.db, s)).map((b) => b.id)).toEqual([wm.id, we.id]);
+
+    const r = await cancelBooking(h.db, { bookingId: booking.id, actorId: a.id }, NOW);
+    expect(r.promoted.map((p) => p.userId)).toEqual([member.id]);
   });
 
   it("does not book outside the booking window or in the past", async () => {
