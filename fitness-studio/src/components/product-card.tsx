@@ -48,12 +48,15 @@ export function ProductCard({
   loggedIn,
   next,
   passNotes = [],
+  creditNotes = [],
 }: {
   p: Product;
   loggedIn: boolean;
   next: string;
   /** e.g. "Reformer fusion = 2 vstupy" – shown on pass cards */
   passNotes?: string[];
+  /** e.g. "Většina lekcí: 220 kreditů" – shown on credit pack cards */
+  creditNotes?: string[];
 }) {
   return (
     <article
@@ -72,7 +75,7 @@ export function ProductCard({
                       {p.kind === "membership" && p.recurring && <span className="text-base"> / měsíc</span>}
                     </p>
                     <ul className="mt-5 flex-1 space-y-2 text-sm">
-                      {[...perks(p), ...(p.kind === "pass" ? passNotes : [])].map((x) => (
+                      {[...perks(p), ...(p.kind === "pass" ? passNotes : p.kind === "credit_pack" ? creditNotes : [])].map((x) => (
                         <li key={x} className="flex gap-2">
                           <Check className={cx("mt-0.5 size-4 shrink-0", p.highlight ? "text-zlato" : "text-salvej")} /> {x}
                         </li>

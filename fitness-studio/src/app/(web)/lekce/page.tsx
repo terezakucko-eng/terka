@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getDb } from "@/db";
 import { Container, PageHeader } from "@/components/ui";
-import { creditPackPrice, credits, formatPrice } from "@/lib/money";
+import { credits, entriesLabel, formatPrice, passLessonPrice } from "@/lib/money";
 import { formatDate, pragueLocalToDate } from "@/lib/dates";
 import { activeClassTypes, activeProducts } from "@/lib/queries";
 import { getContent } from "@/content";
@@ -13,6 +13,7 @@ export const metadata: Metadata = { title: "Lekce" };
 export default async function ClassesPage() {
   const db = await getDb();
   const [types, packs, c] = await Promise.all([activeClassTypes(db), activeProducts(db), getContent()]);
+  const hasPass = packs.some((p) => p.kind === "pass");
   return (
     <>
       <PageHeader eyebrow={c("classes.eyebrow")} title={c("classes.title")}>
@@ -35,11 +36,14 @@ export default async function ClassesPage() {
               <p className="mt-4 flex-1 text-les/70">{t.description}</p>
               <p className="mt-6 text-sm text-les/60">
                 {t.durationMin} min · {credits(t.creditCost)}
-                {creditPackPrice(t.creditCost, packs, t.dropInPrice) !== null &&
-                  ` (z bodové permanentky ${formatPrice(creditPackPrice(t.creditCost, packs, t.dropInPrice)!)})`}
                 {t.dropInPrice !== null && ` · jednorázově ${formatPrice(t.dropInPrice)}`}
                 {t.firstVisitPrice !== null && ` · první lekce ${formatPrice(t.firstVisitPrice)}`}
-                {t.passEntries > 1 && ` · z permanentky se strhnou ${t.passEntries} vstupy`}
+                {(hasPass || t.passEntries > 1) &&
+                  ` · bodová permanentka: ${entriesLabel(t.passEntries)}` +
+                    (passLessonPrice(t.passEntries, packs, t.dropInPrice) !== null
+                      ? ` (${formatPrice(passLessonPrice(t.passEntries, packs, t.dropInPrice)!)})`
+                      : "")}
+                {t.noFreeEntry && " · úvodní vstup zdarma na tuto lekci neplatí"}
               </p>
               {t.memberSurcharge !== null && t.memberSurcharge > 0 && (
                 <p className="mt-1 text-sm text-les/60">

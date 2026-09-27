@@ -19,18 +19,19 @@ export const credits = (n: number) => pluralCs(n, "kredit", "kredity", "kreditů
 export const entries = (n: number) => pluralCs(n, "vstup", "vstupy", "vstupů");
 
 /**
- * What `creditCost` credits cost when bought in the cheapest credit pack on
- * offer ("bodová permanentka"), in haléře rounded to whole Kč. Null when no
- * pack is sold, or when it wouldn't be cheaper than the single entry
- * `dropIn` (then the price list is still half set up and the number is noise).
+ * Price of one class paid with the cheapest entry pass on offer ("bodová
+ * permanentka"): pass price per entry × entries the class takes, rounded to
+ * whole Kč. Null when no pass is sold or it wouldn't beat the single entry.
  */
-export function creditPackPrice(
-  creditCost: number,
-  packs: { kind: string; price: number; credits: number | null }[],
+export function passLessonPrice(
+  entriesNeeded: number,
+  packs: { kind: string; price: number; entries: number | null }[],
   dropIn?: number | null,
 ): number | null {
-  const rates = packs.filter((p) => p.kind === "credit_pack" && p.credits).map((p) => p.price / p.credits!);
-  if (!rates.length || creditCost <= 0) return null;
-  const price = Math.round((creditCost * Math.min(...rates)) / 100) * 100;
+  const rates = packs.filter((p) => p.kind === "pass" && p.entries).map((p) => p.price / p.entries!);
+  if (!rates.length || entriesNeeded <= 0) return null;
+  const price = Math.round((entriesNeeded * Math.min(...rates)) / 100) * 100;
   return dropIn != null && price >= dropIn ? null : price;
 }
+
+export const entriesLabel = (n: number) => `${n} ${n === 1 ? "vstup" : n < 5 ? "vstupy" : "vstupů"}`;
