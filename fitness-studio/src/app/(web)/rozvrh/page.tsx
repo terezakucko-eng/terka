@@ -15,6 +15,7 @@ import {
 } from "@/lib/dates";
 import { activeClassTypes, listSessions } from "@/lib/queries";
 import { getContent } from "@/content";
+import { getSettings } from "@/lib/settings";
 
 export const metadata: Metadata = { title: "Rozvrh a rezervace" };
 
@@ -29,9 +30,13 @@ export default async function SchedulePage({ searchParams }: PageProps<"/rozvrh"
 
   const db = await getDb();
   const [user, c] = await Promise.all([getCurrentUser(), getContent()]);
-  const types = await activeClassTypes(db);
+  const [types, cfg] = await Promise.all([activeClassTypes(db), getSettings(db)]);
   const filter = types.find((t) => t.slug === lekce);
   const now = new Date();
+  // Classes are visible only as far ahead as anyone (members) can book them.
+  const lastDay = addDays(today, Math.max(cfg.bookingWindowDays, cfg.memberBookingWindowDays));
+  const horizon = pragueLocalToDate(addDays(lastDay, 1));
+  const hasNextWeek = addDays(monday, 7) <= lastDay;
   // clients see only what's still ahead: no cancelled and no finished classes
   const sessions = (
     await listSessions(db, pragueLocalToDate(monday), pragueLocalToDate(addDays(monday, 7)), {
@@ -39,7 +44,7 @@ export default async function SchedulePage({ searchParams }: PageProps<"/rozvrh"
       userId: user?.id,
       includeCancelled: false,
     })
-  ).filter((s) => +s.startsAt + s.durationMin * 60_000 > +now);
+  ).filter((s) => +s.startsAt + s.durationMin * 60_000 > +now && s.startsAt < horizon);
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
   const byDay = new Map(days.map((d) => [d, sessions.filter((s) => dateKey(s.startsAt) === d)]));
@@ -60,9 +65,15 @@ export default async function SchedulePage({ searchParams }: PageProps<"/rozvrh"
             <p className="min-w-44 text-center font-semibold tabular-nums">
               {short.format(keyToUtc(monday))} – {short.format(keyToUtc(addDays(monday, 6)))}
             </p>
-            <Link aria-label="Další týden" href={q(addDays(monday, 7), lekce)} className="flex size-10 items-center justify-center rounded-full border border-linka hover:border-les">
-              <ChevronRight className="size-5" />
-            </Link>
+            {hasNextWeek ? (
+              <Link aria-label="Další týden" href={q(addDays(monday, 7), lekce)} className="flex size-10 items-center justify-center rounded-full border border-linka hover:border-les">
+                <ChevronRight className="size-5" />
+              </Link>
+            ) : (
+              <span aria-hidden className="flex size-10 items-center justify-center rounded-full border border-linka/40 text-les/25">
+                <ChevronRight className="size-5" />
+              </span>
+            )}
             {monday !== mondayOf(today) && (
               <Link href={q(today, lekce)} className="eyebrow ml-2 text-zeme underline underline-offset-4">
                 Dnes

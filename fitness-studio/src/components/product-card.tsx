@@ -11,7 +11,7 @@ function perks(p: Product): string[] {
       return [
         p.weeklyLimit ? `Až ${p.weeklyLimit} lekce týdně` : "Neomezeně lekcí",
         p.recurring ? "Obnovuje se automaticky každý měsíc" : `Platnost ${p.validityDays ?? 30} dní`,
-        "Přednostní místo v pořadníku díky automatické platbě",
+        "Přednost v pořadníku, když je lekce plná",
       ];
     case "pass":
       return [

@@ -53,15 +53,35 @@ export function sessionState(
   occupied: number,
   cfg: Settings,
   now: Date,
+  windowDays = cfg.bookingWindowDays,
 ): SessionState {
   if (s.status === "cancelled") return "cancelled";
   if (s.startsAt <= now) return "past";
   if (s.startsAt.getTime() - cfg.bookingCutoffMinutes * MIN <= now.getTime())
     return "closed";
-  if (s.startsAt.getTime() > now.getTime() + cfg.bookingWindowDays * DAY)
+  if (s.startsAt.getTime() > now.getTime() + windowDays * DAY)
     return "not_open";
   if (occupied >= s.capacity) return "full";
   return "bookable";
+}
+
+/** How many days ahead this client may book: members get the longer window. */
+export async function bookingWindowFor(tx: Executor, cfg: Settings, userId: string | null, now: Date) {
+  if (!userId || cfg.memberBookingWindowDays <= cfg.bookingWindowDays) return cfg.bookingWindowDays;
+  const [m] = await tx
+    .select({ id: entitlements.id })
+    .from(entitlements)
+    .where(
+      and(
+        eq(entitlements.userId, userId),
+        eq(entitlements.kind, "membership"),
+        eq(entitlements.status, "active"),
+        lte(entitlements.validFrom, now),
+        gt(entitlements.validUntil, now),
+      ),
+    )
+    .limit(1);
+  return m ? cfg.memberBookingWindowDays : cfg.bookingWindowDays;
 }
 
 export function isLateCancel(s: ClassSession, cfg: Settings, now: Date) {
@@ -433,7 +453,8 @@ export async function bookSession(db: DB, input: BookInput, now = new Date()) {
     const s = await lockSession(tx, input.sessionId);
     await expireStalePending(tx, now, s.id);
 
-    const state = sessionState(s, await occupancy(tx, s.id), cfg, now);
+    const window = await bookingWindowFor(tx, cfg, input.userId, now);
+    const state = sessionState(s, await occupancy(tx, s.id), cfg, now, window);
     if (state === "full")
       throw new UserError("Lekce je plná – můžeš se zapsat do pořadníku.");
     if (state !== "bookable") throw new UserError(stateMessage[state]);
@@ -511,7 +532,8 @@ export async function joinWaitlist(
     const cfg = await getSettings(tx);
     const s = await lockSession(tx, input.sessionId);
     await expireStalePending(tx, now, s.id);
-    const state = sessionState(s, await occupancy(tx, s.id), cfg, now);
+    const window = await bookingWindowFor(tx, cfg, input.userId, now);
+    const state = sessionState(s, await occupancy(tx, s.id), cfg, now, window);
     if (state === "bookable")
       throw new UserError("Na lekci je volné místo – rezervuj rovnou.");
     if (state !== "full") throw new UserError(stateMessage[state]);
@@ -525,16 +547,44 @@ export async function joinWaitlist(
   });
 }
 
-/** Fills free spots from the waitlist, charging each client automatically. */
-async function promoteWaitlist(tx: Executor, s: ClassSession, now: Date) {
-  const promoted: Booking[] = [];
-  if (s.status !== "scheduled" || s.startsAt <= now) return promoted;
-
+/**
+ * The waitlist in the order it is served: clients with an active membership
+ * at the time of the class first (the membership perk), then everyone else;
+ * within each group whoever joined earlier.
+ */
+export async function waitlistQueue(tx: Executor, s: ClassSession) {
   const waiting = await tx
     .select()
     .from(bookings)
     .where(and(eq(bookings.sessionId, s.id), eq(bookings.status, "waitlist")))
     .orderBy(asc(bookings.createdAt));
+  if (!waiting.length) return waiting;
+  const members = new Set(
+    (
+      await tx
+        .select({ userId: entitlements.userId })
+        .from(entitlements)
+        .where(
+          and(
+            inArray(entitlements.userId, waiting.map((w) => w.userId)),
+            eq(entitlements.kind, "membership"),
+            eq(entitlements.status, "active"),
+            lte(entitlements.validFrom, s.startsAt),
+            gt(entitlements.validUntil, s.startsAt),
+          ),
+        )
+    ).map((r) => r.userId),
+  );
+  // stable sort keeps the join order inside each group
+  return [...waiting].sort((a, b) => Number(members.has(b.userId)) - Number(members.has(a.userId)));
+}
+
+/** Fills free spots from the waitlist, charging each client automatically. */
+async function promoteWaitlist(tx: Executor, s: ClassSession, now: Date) {
+  const promoted: Booking[] = [];
+  if (s.status !== "scheduled" || s.startsAt <= now) return promoted;
+
+  const waiting = await waitlistQueue(tx, s);
 
   let free = s.capacity - (await occupancy(tx, s.id));
   for (const w of waiting) {
@@ -713,7 +763,7 @@ export async function sessionForUser(
     .where(eq(classSessions.id, sessionId));
   if (!s) return null;
   const occupied = await occupancy(db, s.id);
-  const state = sessionState(s, occupied, cfg, now);
+  const state = sessionState(s, occupied, cfg, now, await bookingWindowFor(db, cfg, userId, now));
 
   let myBooking: Booking | undefined;
   let waitlistPosition: number | null = null;
@@ -721,17 +771,8 @@ export async function sessionForUser(
   if (userId) {
     myBooking = await activeBooking(db, userId, s.id);
     if (myBooking?.status === "waitlist") {
-      const [r] = await db
-        .select({ n: count() })
-        .from(bookings)
-        .where(
-          and(
-            eq(bookings.sessionId, s.id),
-            eq(bookings.status, "waitlist"),
-            lte(bookings.createdAt, myBooking.createdAt),
-          ),
-        );
-      waitlistPosition = r.n;
+      const queue = await waitlistQueue(db, s);
+      waitlistPosition = queue.findIndex((b) => b.id === myBooking!.id) + 1 || null;
     }
     if (state === "bookable" && (!myBooking || myBooking.status === "waitlist"))
       options = await bookingOptions(db, userId, s);
