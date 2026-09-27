@@ -30,6 +30,7 @@ export default async function PricingPage() {
     getContent(),
   ]);
 
+  const passNotes = types.filter((t) => t.passEntries > 1).map((t) => `${t.name} = ${t.passEntries} vstupy`);
   // number only the sections that actually have something in them
   const shown = groups(c).filter((g) => list.some((p) => p.kind === g.kind));
 
@@ -63,7 +64,7 @@ export default async function PricingPage() {
               <p className="mt-3 max-w-xl text-les/70">{g.text}</p>
               <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                 {items.map((p) => (
-                  <ProductCard key={p.id} p={p} loggedIn={!!user} next="/cenik" />
+                  <ProductCard key={p.id} p={p} loggedIn={!!user} next="/cenik" passNotes={passNotes} />
                 ))}
               </div>
             </section>
@@ -83,6 +84,9 @@ export default async function PricingPage() {
                   {t.dropInPrice !== null ? formatPrice(t.dropInPrice) : "jen s permanentkou"} · {credits(t.creditCost)}
                   {creditPackPrice(t.creditCost, list, t.dropInPrice) !== null && (
                     <span className="block text-xs">z bodové permanentky {formatPrice(creditPackPrice(t.creditCost, list, t.dropInPrice)!)}</span>
+                  )}
+                  {t.passEntries > 1 && (
+                    <span className="block text-xs">z permanentky {t.passEntries} vstupy</span>
                   )}
                   {t.firstVisitPrice !== null && (
                     <span className="block text-xs">první lekce {formatPrice(t.firstVisitPrice)}</span>

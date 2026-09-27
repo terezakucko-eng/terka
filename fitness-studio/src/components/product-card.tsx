@@ -43,7 +43,18 @@ function perks(p: Product): string[] {
 }
 
 /** Price list card with the buy button (shared by /cenik and link-only /cenik/[id]). */
-export function ProductCard({ p, loggedIn, next }: { p: Product; loggedIn: boolean; next: string }) {
+export function ProductCard({
+  p,
+  loggedIn,
+  next,
+  passNotes = [],
+}: {
+  p: Product;
+  loggedIn: boolean;
+  next: string;
+  /** e.g. "Reformer fusion = 2 vstupy" – shown on pass cards */
+  passNotes?: string[];
+}) {
   return (
     <article
                     className={cx(
@@ -61,7 +72,7 @@ export function ProductCard({ p, loggedIn, next }: { p: Product; loggedIn: boole
                       {p.kind === "membership" && p.recurring && <span className="text-base"> / měsíc</span>}
                     </p>
                     <ul className="mt-5 flex-1 space-y-2 text-sm">
-                      {perks(p).map((x) => (
+                      {[...perks(p), ...(p.kind === "pass" ? passNotes : [])].map((x) => (
                         <li key={x} className="flex gap-2">
                           <Check className={cx("mt-0.5 size-4 shrink-0", p.highlight ? "text-zlato" : "text-salvej")} /> {x}
                         </li>

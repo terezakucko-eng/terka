@@ -39,6 +39,7 @@ export default async function ClassesPage() {
                   ` (z bodové permanentky ${formatPrice(creditPackPrice(t.creditCost, packs, t.dropInPrice)!)})`}
                 {t.dropInPrice !== null && ` · jednorázově ${formatPrice(t.dropInPrice)}`}
                 {t.firstVisitPrice !== null && ` · první lekce ${formatPrice(t.firstVisitPrice)}`}
+                {t.passEntries > 1 && ` · z permanentky se strhnou ${t.passEntries} vstupy`}
               </p>
               {t.memberSurcharge !== null && t.memberSurcharge > 0 && (
                 <p className="mt-1 text-sm text-les/60">

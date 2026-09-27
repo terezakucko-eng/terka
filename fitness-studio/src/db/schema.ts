@@ -177,6 +177,8 @@ export const classTypes = pgTable("class_types", {
   noFreeEntry: boolean("no_free_entry").notNull().default(false),
   /** Cena první lekce tohoto typu pro klienta, který na ní ještě nebyl (haléře) */
   firstVisitPrice: integer("first_visit_price"),
+  /** Kolik vstupů se strhne z permanentky (např. Reformer = 2) */
+  passEntries: integer("pass_entries").notNull().default(1),
   isActive: boolean("is_active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
   /** Smazaný typ, který má v historii rezervace – skrytý všude, data zůstávají. */
@@ -310,6 +312,8 @@ export const bookings = pgTable(
     status: bookingStatus("status").notNull(),
     method: bookingMethod("method"),
     creditsCharged: integer("credits_charged").notNull().default(0),
+    /** Kolik vstupů se strhlo z permanentky (při zrušení se vrací totéž) */
+    entriesCharged: integer("entries_charged").notNull().default(0),
     entitlementId: uuid("entitlement_id").references(() => entitlements.id, { onDelete: "set null" }),
     orderId: uuid("order_id").references(() => orders.id),
     lateCancel: boolean("late_cancel").notNull().default(false),
