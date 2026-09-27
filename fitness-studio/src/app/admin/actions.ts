@@ -22,7 +22,7 @@ import {
   setAttendance,
 } from "@/domain/booking";
 import { deleteClassType, deleteProduct } from "@/domain/catalog";
-import { deleteClient, deleteOrder, deleteOrders, purgeSession, seriesFrom } from "@/domain/cleanup";
+import { deleteClient, deleteClients, deleteOrder, deleteOrders, purgeSession, seriesFrom } from "@/domain/cleanup";
 import { fulfillOrder, sellAtReception } from "@/domain/orders";
 import { deductSolarium } from "@/domain/solarium";
 import { grantEntitlement, normalizeEmail } from "@/domain/users";
@@ -552,6 +552,29 @@ export async function deleteClientAction(_: FormState, fd: FormData): Promise<Fo
     redirect("/admin/klienti");
   }
   return res;
+}
+
+export async function deleteClientsAction(_: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  return attempt(async () => {
+    const ids = fd.getAll("ids").map(String).filter(Boolean);
+    if (!ids.length) throw new UserError("Zaškrtni klienty, které chceš smazat.");
+    const n = await deleteClients(await getDb(), { ids });
+    return done(`Smazáno klientů: ${n}.`);
+  });
+}
+
+export async function deleteAllClientsAction(_: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  return attempt(async () => {
+    if (field.str(fd, "confirm").trim().toUpperCase() !== "SMAZAT")
+      throw new UserError("Pro potvrzení napiš do políčka SMAZAT.");
+    const n = await deleteClients(await getDb(), {
+      all: true,
+      importedOnly: field.str(fd, "scope") === "imported",
+    });
+    return done(`Smazáno klientů: ${n}. Účty adminů a lektorů zůstaly.`);
+  });
 }
 
 export async function updateClientAction(_: FormState, fd: FormData): Promise<FormState> {

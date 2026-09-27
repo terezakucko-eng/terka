@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { bookings, classSessions, entitlements, orders, users } from "@/db/schema";
 import { bookSession } from "@/domain/booking";
-import { deleteClient, deleteOrder, deleteOrders, purgeSession, seriesFrom } from "@/domain/cleanup";
+import { deleteClient, deleteClients, deleteOrder, deleteOrders, purgeSession, seriesFrom } from "@/domain/cleanup";
 import { sellAtReception } from "@/domain/orders";
 import { NOW, makeProduct, makeSession, makeUser, testDb } from "./helpers";
 
@@ -71,5 +71,18 @@ describe("cleanup", () => {
     await purgeSession(h.db, s1.id);
     expect(await h.db.select().from(classSessions).where(eq(classSessions.id, s1.id))).toHaveLength(0);
     expect(await h.db.select().from(bookings).where(eq(bookings.sessionId, s1.id))).toHaveLength(0);
+  });
+
+  it("bulk-deletes clients but never staff", async () => {
+    const a = await makeUser(h.db);
+    const b2 = await makeUser(h.db);
+    const staff = await makeUser(h.db);
+    await h.db.update(users).set({ role: "admin" }).where(eq(users.id, staff.id));
+    await h.db.update(users).set({ importedAt: NOW }).where(eq(users.id, a.id));
+    expect(await deleteClients(h.db, { all: true, importedOnly: true })).toBe(1);
+    expect(await h.db.select().from(users).where(eq(users.id, b2.id))).toHaveLength(1);
+    await deleteClients(h.db, { all: true });
+    expect(await h.db.select().from(users).where(eq(users.role, "client"))).toHaveLength(0);
+    expect(await h.db.select().from(users).where(eq(users.id, staff.id))).toHaveLength(1);
   });
 });
