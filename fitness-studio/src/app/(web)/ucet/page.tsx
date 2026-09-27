@@ -2,7 +2,7 @@ import Link from "next/link";
 import { and, asc, eq, gt } from "drizzle-orm";
 import { cancelBookingAction, cancelMembershipAction } from "@/app/actions/booking";
 import { cancelMassageAction } from "@/app/actions/massages";
-import { massageBookings } from "@/db/schema";
+import { massageBookings, orders } from "@/db/schema";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { entitlementKindLabel } from "@/components/labels";
 import { Badge, ButtonLink, Card, Empty, Eyebrow } from "@/components/ui";
@@ -16,7 +16,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
   const { vitej } = await searchParams;
   const user = await requireUser("/ucet");
   const db = await getDb();
-  const [upcoming, ents, massages] = await Promise.all([
+  const [upcoming, ents, massages, unpaid] = await Promise.all([
     userBookings(db, user.id, "upcoming"),
     userEntitlements(db, user.id, true),
     db
@@ -30,6 +30,11 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
         ),
       )
       .orderBy(asc(massageBookings.startsAt)),
+    db
+      .select()
+      .from(orders)
+      .where(and(eq(orders.userId, user.id), eq(orders.status, "pending"), eq(orders.provider, "transfer")))
+      .orderBy(asc(orders.createdAt)),
   ]);
 
   return (
@@ -82,6 +87,23 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
           )}
         </Card>
       </div>
+
+      {unpaid.length > 0 && (
+        <section>
+          <h2 className="text-2xl font-semibold">Čeká na platbu</h2>
+          <ul className="mt-4 divide-y divide-linka/60 rounded-2xl border border-zlato/50 bg-white/60">
+            {unpaid.map((o) => (
+              <li key={o.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
+                <span>
+                  <span className="font-semibold">{o.description}</span>
+                  <span className="block text-sm text-les/60">{formatPrice(o.amount)} · VS {o.number}</span>
+                </span>
+                <ButtonLink href={`/platba/prevod?order=${o.id}`} variant="gold">Zaplatit převodem (QR)</ButtonLink>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section>
         <div className="flex items-end justify-between">

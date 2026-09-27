@@ -10,7 +10,7 @@ function perks(p: Product): string[] {
     case "membership":
       return [
         p.weeklyLimit ? `Až ${p.weeklyLimit} lekce týdně` : "Neomezeně lekcí",
-        p.recurring ? "Obnovuje se automaticky každý měsíc" : `Platnost ${p.validityDays ?? 30} dní`,
+        p.recurring ? "Platí se každý měsíc" : `Platnost ${p.validityDays ?? 30} dní`,
         "Přednost v pořadníku, když je lekce plná",
       ];
     case "pass":
@@ -84,8 +84,8 @@ export function ProductCard({
                     {loggedIn ? (
                       <ActionForm action={buyProductAction} className="mt-6">
                         <input type="hidden" name="productId" value={p.id} />
-                        <SubmitButton variant={p.highlight ? "gold" : "dark"} className="w-full" pendingText="Přesměrovávám…">
-                          Koupit online
+                        <SubmitButton variant={p.highlight ? "gold" : "dark"} className="w-full" pendingText="Moment…">
+                          Koupit – platba převodem
                         </SubmitButton>
                       </ActionForm>
                     ) : (

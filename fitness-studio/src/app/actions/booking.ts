@@ -34,8 +34,10 @@ export async function bookAction(_: FormState, fd: FormData): Promise<FormState>
       sessionId,
       method: method as Method,
       entitlementId: entitlementId || undefined,
+      payLater: paymentProvider() === "transfer",
     });
     if (order) {
+      if (booking.status === "confirmed") await notifyBooked(db, booking);
       try {
         checkoutUrl = await startCheckout(db, order, user);
       } catch (e) {
@@ -84,7 +86,6 @@ export async function buyProductAction(_: FormState, fd: FormData): Promise<Form
   let url: string | null = null;
   const res = await attempt(async () => {
     const db = await getDb();
-    if (!paymentProvider()) throw new UserError("Online platby zatím nejsou spuštěné – zastav se na recepci.");
     const { order, product } = await createProductOrder(db, {
       userId: user.id,
       productId: field.str(fd, "productId"),

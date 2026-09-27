@@ -55,6 +55,7 @@ export default async function MassageBookingPage({ params, searchParams }: PageP
         <Card className="mt-8 grid gap-6 sm:grid-cols-[1fr_auto] sm:items-center">
           <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
             <dt className="text-les/60">Částka</dt><dd className="font-semibold">{formatPrice(b.price)}{b.memberRate && " (cena pro členy)"}</dd>
+            <dt className="text-les/60">Příjemce</dt><dd>{c("massages.bankHolder")}</dd>
             <dt className="text-les/60">Číslo účtu</dt><dd className="font-semibold tabular-nums">{transfer.account}</dd>
             {transfer.iban && (<><dt className="text-les/60">IBAN</dt><dd className="tabular-nums">{transfer.iban}</dd></>)}
             <dt className="text-les/60">Variabilní symbol</dt><dd className="font-semibold tabular-nums">{transfer.vs}</dd>

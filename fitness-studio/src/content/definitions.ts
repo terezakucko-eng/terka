@@ -224,9 +224,10 @@ export const SECTIONS = {
       bankAccount: {
         label: "Číslo účtu pro platby převodem",
         type: "text",
-        default: "",
-        hint: "Např. 123456789/0800. Prázdné = platba převodem se nenabízí, jen na místě.",
+        default: "5072631349/0800",
+        hint: "Platí pro všechny platby převodem (lekce, permanentky, kredit, masáže).",
       },
+      bankHolder: t("Majitel účtu (ukáže se u platby)", "MOVE IN ZONE s.r.o."),
     },
   },
   about: {

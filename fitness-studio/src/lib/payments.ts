@@ -12,15 +12,15 @@ import {
 } from "@/domain/orders";
 
 /**
- * Payment gateway. Production uses Stripe Checkout (karty, Apple Pay,
- * Google Pay; CZK). Without STRIPE_SECRET_KEY a local test gateway is used,
- * which is disabled in production unless ALLOW_TEST_PAYMENTS=true.
+ * How clients pay online. By default by bank transfer with a QR code – the
+ * order waits until reception marks it paid (Admin → Platby). Stripe cards
+ * only when STRIPE_SECRET_KEY is set; ALLOW_TEST_PAYMENTS=true switches on a
+ * fake gateway for trying things out.
  */
-export function paymentProvider(): "stripe" | "test" | null {
+export function paymentProvider(): "stripe" | "test" | "transfer" {
   if (process.env.STRIPE_SECRET_KEY) return "stripe";
-  if (process.env.NODE_ENV !== "production" || process.env.ALLOW_TEST_PAYMENTS === "true")
-    return "test";
-  return null;
+  if (process.env.ALLOW_TEST_PAYMENTS === "true") return "test";
+  return "transfer";
 }
 
 let _stripe: Stripe | null = null;
@@ -37,7 +37,12 @@ export async function startCheckout(
   product?: Product | null,
 ): Promise<string> {
   const provider = paymentProvider();
-  if (!provider) throw new Error("Online platby nejsou nastavené.");
+
+  if (provider === "transfer") {
+    // no time limit: a bank transfer takes a day or two
+    await db.update(orders).set({ provider: "transfer", expiresAt: null }).where(eq(orders.id, order.id));
+    return `/platba/prevod?order=${order.id}`;
+  }
 
   if (provider === "test") {
     await db.update(orders).set({ provider: "test" }).where(eq(orders.id, order.id));

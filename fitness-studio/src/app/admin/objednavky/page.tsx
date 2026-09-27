@@ -31,10 +31,10 @@ export default async function OrdersPage() {
             <Td><Link href={`/admin/klienti/${u.id}`} className="underline-offset-4 hover:underline">{u.name}</Link></Td>
             <Td>{o.description}</Td>
             <Td className="whitespace-nowrap tabular-nums">{formatPrice(o.amount)}</Td>
-            <Td>{{ stripe: "Karta online", reception: "Recepce", manual: "Ručně", test: "Test" }[o.provider] ?? o.provider}</Td>
+            <Td>{{ stripe: "Karta online", transfer: `Převodem · VS ${o.number}`, reception: "Recepce", manual: "Ručně", test: "Test", pending: "—" }[o.provider] ?? o.provider}</Td>
             <Td><Badge tone={o.status === "paid" ? "green" : o.status === "pending" ? "gold" : "neutral"}>{orderStatusLabel[o.status]}</Badge></Td>
             <Td className="space-y-1 text-right">
-              {o.status === "pending" && o.kind === "product" && (
+              {o.status === "pending" && (o.kind === "product" || o.kind === "drop_in") && (
                 <ActionForm action={markOrderPaidAction} confirm="Označit jako zaplacené a připsat klientovi?">
                   <input type="hidden" name="orderId" value={o.id} />
                   <button className="text-xs font-semibold text-zeme underline">Zaplaceno</button>
