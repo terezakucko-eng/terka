@@ -3,6 +3,7 @@ import Link from "next/link";
 import {
   CalendarDays,
   Cog,
+  Flower2,
   LayoutDashboard,
   FileText,
   Megaphone,
@@ -23,6 +24,7 @@ export const metadata: Metadata = { title: "Administrace", robots: { index: fals
 const items = [
   { href: "/admin", label: "Přehled", icon: LayoutDashboard, admin: false },
   { href: "/admin/rozvrh", label: "Rozvrh", icon: CalendarDays, admin: false },
+  { href: "/admin/masaze", label: "Masáže", icon: Flower2, admin: false },
   { href: "/admin/klienti", label: "Klienti", icon: Users, admin: true },
   { href: "/admin/objednavky", label: "Platby", icon: Receipt, admin: true },
   { href: "/admin/zpravy", label: "Zprávy", icon: MessageSquare, admin: true },

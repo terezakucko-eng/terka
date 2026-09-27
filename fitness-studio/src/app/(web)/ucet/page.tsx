@@ -1,21 +1,35 @@
 import Link from "next/link";
+import { and, asc, eq, gt } from "drizzle-orm";
 import { cancelBookingAction, cancelMembershipAction } from "@/app/actions/booking";
+import { cancelMassageAction } from "@/app/actions/massages";
+import { massageBookings } from "@/db/schema";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { entitlementKindLabel } from "@/components/labels";
 import { Badge, ButtonLink, Card, Empty, Eyebrow } from "@/components/ui";
 import { getDb } from "@/db";
 import { userBookings, userEntitlements } from "@/lib/account";
 import { requireUser } from "@/lib/auth";
-import { formatDate, formatDay, formatRange } from "@/lib/dates";
+import { formatDate, formatDay, formatRange, formatTime } from "@/lib/dates";
 import { credits } from "@/lib/money";
 
 export default async function AccountPage({ searchParams }: PageProps<"/ucet">) {
   const { vitej } = await searchParams;
   const user = await requireUser("/ucet");
   const db = await getDb();
-  const [upcoming, ents] = await Promise.all([
+  const [upcoming, ents, massages] = await Promise.all([
     userBookings(db, user.id, "upcoming"),
     userEntitlements(db, user.id, true),
+    db
+      .select()
+      .from(massageBookings)
+      .where(
+        and(
+          eq(massageBookings.userId, user.id),
+          eq(massageBookings.status, "confirmed"),
+          gt(massageBookings.endsAt, new Date()),
+        ),
+      )
+      .orderBy(asc(massageBookings.startsAt)),
   ]);
 
   return (
@@ -99,6 +113,40 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
           ))}
         </div>
       </section>
+
+      {massages.length > 0 && (
+        <section>
+          <div className="flex items-end justify-between">
+            <h2 className="text-2xl font-semibold">Moje masáže</h2>
+            <Link href="/masaze" className="eyebrow text-zeme underline underline-offset-4">Další masáž</Link>
+          </div>
+          <div className="mt-5 space-y-3">
+            {massages.map((m) => (
+              <Card key={m.id} className="flex flex-wrap items-center justify-between gap-4 p-4 sm:p-5">
+                <Link href={`/masaze/rezervace/${m.id}`}>
+                  <span className="block font-semibold">{m.serviceName}</span>
+                  <span className="block text-sm text-les/60">
+                    {formatDay(m.startsAt)} · {formatTime(m.startsAt)} – {formatTime(m.endsAt)}
+                  </span>
+                </Link>
+                <div className="flex items-center gap-3">
+                  {m.paidAt ? (
+                    <Badge tone="green">Zaplaceno</Badge>
+                  ) : m.payment === "transfer" ? (
+                    <Link href={`/masaze/rezervace/${m.id}`}><Badge tone="gold">Zaplatit převodem</Badge></Link>
+                  ) : (
+                    <Badge>Platba na místě</Badge>
+                  )}
+                  <ActionForm action={cancelMassageAction} confirm="Opravdu zrušit masáž?">
+                    <input type="hidden" name="bookingId" value={m.id} />
+                    <SubmitButton variant="ghost" className="px-3 py-2 text-[0.65rem]">Zrušit</SubmitButton>
+                  </ActionForm>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

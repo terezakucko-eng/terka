@@ -19,6 +19,9 @@ Tailwind CSS 4 · Stripe (platby kartou, Apple/Google Pay, předplatné) · Rese
 - nákup kreditu, permanentek a členství online (členství se obnovuje měsíčně)
 - účet: kredit, permanentky, nadcházející lekce, historie, platby, pohyby kreditu, profil
 - e-maily: potvrzení, storno, přesun z pořadníku, zrušení lekce, obnova hesla
+- **masáže** (`/masaze`): výběr masáže a volného času (termíny se počítají z „oken“, kdy se masíruje,
+  podle délky masáže a pauzy mezi masážemi), platba na místě kartou nebo předem převodem
+  s QR platbou a variabilním symbolem; zrušení online do storno lhůty
 
 **Recepce / admin (`/admin`)**
 - přehled: dnešní lekce, tržby, členové, obsazenost
@@ -26,6 +29,9 @@ Tailwind CSS 4 · Stripe (platby kartou, Apple/Google Pay, předplatné) · Rese
 - docházka (přišel / nepřišel), přidání klienta i nad kapacitu, odhlášení s vrácením / bez
 - klienti: hledání, prodej na recepci, úprava kreditu, přidělení vstupů zdarma / permanentky / členství, role
 - ceník, typy lekcí, lektoři, aktuality na úvodní stránce, pravidla (storno, okno rezervací…)
+- **masáže**: nabídka (druh, délka, cena, fotka), okna „kdy masíruju“ (i opakovaně po týdnech),
+  přehled rezervací, označení platby, zrušení, ruční zápis z telefonu; číslo účtu pro převody
+  v Obsah webu → Masáže
 - role **Lektor** vidí jen rozvrh a docházku
 - **Zprávy klientům** – newsletter (e-mail), SMS a WhatsApp: cílové skupiny (všichni, členové,
   permanentky, neaktivní X dní, noví, podle typu lekce, přihlášení na termín), personalizace
