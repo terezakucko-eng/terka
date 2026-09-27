@@ -18,7 +18,7 @@ import { userBookings, userEntitlements, userLedger, userOrders } from "@/lib/ac
 import { requireAdmin } from "@/lib/auth";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { formatPrice } from "@/lib/money";
-import { activeProducts } from "@/lib/queries";
+import { sellableProducts } from "@/lib/queries";
 
 export default async function ClientDetail({ params }: PageProps<"/admin/klienti/[id]">) {
   await requireAdmin();
@@ -33,7 +33,7 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
     userEntitlements(db, u.id, false),
     userOrders(db, u.id),
     userLedger(db, u.id),
-    activeProducts(db),
+    sellableProducts(db),
   ]);
   const now = new Date();
   const attended = past.filter(({ b }) => b.status === "attended").length;

@@ -2,6 +2,8 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { bookings, classSessions, classTypes, entitlements, products } from "@/db/schema";
 import { deleteClassType, deleteProduct } from "@/domain/catalog";
+import { createProductOrder } from "@/domain/orders";
+import { activeProducts, sellableProducts } from "@/lib/queries";
 import { NOW, hours, makeProduct, makeSession, makeUser, testDb } from "./helpers";
 
 let h: Awaited<ReturnType<typeof testDb>>;
@@ -63,5 +65,16 @@ describe("deleting products", () => {
     expect(await deleteProduct(h.db, bought.id, NOW)).toBe("archived");
     const [p] = await h.db.select().from(products).where(eq(products.id, bought.id));
     expect([p.isActive, p.archivedAt !== null]).toEqual([false, true]);
+  });
+});
+
+describe("link-only products", () => {
+  it("are hidden from the price list but can be bought and sold", async () => {
+    const p = await makeProduct(h.db, { kind: "membership", validityDays: 30, linkOnly: true, name: "Členství pro vybrané" });
+    expect((await activeProducts(h.db)).some((x) => x.id === p.id)).toBe(false);
+    expect((await sellableProducts(h.db)).some((x) => x.id === p.id)).toBe(true);
+    const u = await makeUser(h.db);
+    const { order } = await createProductOrder(h.db, { userId: u.id, productId: p.id }, NOW);
+    expect(order.productId).toBe(p.id);
   });
 });

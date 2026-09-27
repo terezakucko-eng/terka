@@ -1,0 +1,1 @@
+ALTER TABLE "products" ADD COLUMN "link_only" boolean DEFAULT false NOT NULL;

@@ -150,6 +150,7 @@ export async function saveProductAction(_: FormState, fd: FormData): Promise<For
       weeklyLimit: kind === "membership" ? field.int(fd, "weeklyLimit") : null,
       recurring: kind === "membership" && field.bool(fd, "recurring"),
       highlight: field.bool(fd, "highlight"),
+      linkOnly: field.bool(fd, "linkOnly"),
       isActive: field.bool(fd, "isActive"),
       sortOrder: field.int(fd, "sortOrder") ?? 0,
     };
