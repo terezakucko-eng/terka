@@ -31,7 +31,7 @@ export default async function SchedulePage({ searchParams }: PageProps<"/rozvrh"
   const [user, c] = await Promise.all([getCurrentUser(), getContent()]);
   const types = await activeClassTypes(db);
   const filter = types.find((t) => t.slug === lekce);
-  const now = Date.now();
+  const now = new Date();
   // clients see only what's still ahead: no cancelled and no finished classes
   const sessions = (
     await listSessions(db, pragueLocalToDate(monday), pragueLocalToDate(addDays(monday, 7)), {
@@ -39,7 +39,7 @@ export default async function SchedulePage({ searchParams }: PageProps<"/rozvrh"
       userId: user?.id,
       includeCancelled: false,
     })
-  ).filter((s) => +s.startsAt + s.durationMin * 60_000 > now);
+  ).filter((s) => +s.startsAt + s.durationMin * 60_000 > +now);
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
   const byDay = new Map(days.map((d) => [d, sessions.filter((s) => dateKey(s.startsAt) === d)]));
