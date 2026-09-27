@@ -1,9 +1,10 @@
+import { AnimatedOctopus } from "@/components/animated-octopus";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { getContent } from "@/content";
 import { site } from "@/config/site";
 import { getDb } from "@/db";
-import { Symbol, Wordmark } from "@/components/brand";
+import { Wordmark } from "@/components/brand";
 import { ContentImage } from "@/components/content-image";
 import { SessionCard } from "@/components/session-card";
 import { ButtonLink, Container, Eyebrow } from "@/components/ui";
@@ -46,7 +47,7 @@ export default async function Home() {
           </figure>
           <div className="order-1 text-center md:order-2">
             <p className="eyebrow empty:hidden text-papir/60">{c("homeHero.eyebrow")}</p>
-            <Symbol className="octo-swim mx-auto mt-10 w-48 sm:w-64 md:mt-6 md:w-40 lg:w-52" />
+            <AnimatedOctopus className="octo-swim mx-auto mt-10 w-48 sm:w-64 md:mt-6 md:w-40 lg:w-52" />
             <h1 className="mt-8 md:mt-5">
               <Wordmark className="mx-auto w-full max-w-md md:max-w-sm" />
               <span className="sr-only">{site.name}</span>
