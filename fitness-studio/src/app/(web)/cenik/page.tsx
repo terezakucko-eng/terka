@@ -11,13 +11,14 @@ import { getContent, type Content } from "@/content";
 
 export const metadata: Metadata = { title: "Ceník, členství a permanentky" };
 
-const groups = (c: Content): { kind: Product["kind"]; n: string; title: string; text: string }[] => [
-  { kind: "membership", n: "01", title: c("pricing.membershipTitle"), text: c("pricing.membershipText") },
-  { kind: "pass", n: "02", title: c("pricing.passTitle"), text: c("pricing.passText") },
-  { kind: "credit_pack", n: "03", title: c("pricing.creditTitle"), text: c("pricing.creditText") },
-  { kind: "solarium", n: "04", title: c("pricing.solariumTitle"), text: c("pricing.solariumText") },
-  { kind: "massage_pass", n: "05", title: c("pricing.massagePassTitle"), text: c("pricing.massagePassText") },
+const groups = (c: Content): { kind: Product["kind"]; title: string; text: string }[] => [
+  { kind: "membership", title: c("pricing.membershipTitle"), text: c("pricing.membershipText") },
+  { kind: "pass", title: c("pricing.passTitle"), text: c("pricing.passText") },
+  { kind: "credit_pack", title: c("pricing.creditTitle"), text: c("pricing.creditText") },
+  { kind: "solarium", title: c("pricing.solariumTitle"), text: c("pricing.solariumText") },
+  { kind: "massage_pass", title: c("pricing.massagePassTitle"), text: c("pricing.massagePassText") },
 ];
+const nth = (i: number) => String(i + 1).padStart(2, "0");
 
 export default async function PricingPage() {
   const db = await getDb();
@@ -28,6 +29,9 @@ export default async function PricingPage() {
     getSettings(db),
     getContent(),
   ]);
+
+  // number only the sections that actually have something in them
+  const shown = groups(c).filter((g) => list.some((p) => p.kind === g.kind));
 
   return (
     <>
@@ -51,12 +55,11 @@ export default async function PricingPage() {
       )}
 
       <Container className="space-y-20 py-16">
-        {groups(c).map((g) => {
+        {shown.map((g, i) => {
           const items = list.filter((p) => p.kind === g.kind);
-          if (!items.length) return null;
           return (
             <section key={g.kind}>
-              <Eyebrow n={g.n} className="text-zeme">{g.title}</Eyebrow>
+              <Eyebrow n={nth(i)} className="text-zeme">{g.title}</Eyebrow>
               <p className="mt-3 max-w-xl text-les/70">{g.text}</p>
               <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                 {items.map((p) => (
@@ -68,7 +71,7 @@ export default async function PricingPage() {
         })}
 
         <section>
-          <Eyebrow n="06" className="text-zeme">{c("pricing.dropInTitle")}</Eyebrow>
+          <Eyebrow n={nth(shown.length)} className="text-zeme">{c("pricing.dropInTitle")}</Eyebrow>
           <p className="mt-3 max-w-xl text-les/70">{c("pricing.dropInText")}</p>
           <div className="mt-8 divide-y divide-linka/60 border-y border-linka/60">
             {types.map((t) => (
@@ -76,8 +79,17 @@ export default async function PricingPage() {
                 <span className="flex items-center gap-3 font-medium">
                   <span className="size-2.5 rounded-full" style={{ background: t.color }} /> {t.name}
                 </span>
-                <span className="text-sm tabular-nums text-les/70">
+                <span className="text-right text-sm tabular-nums text-les/70">
                   {t.dropInPrice !== null ? formatPrice(t.dropInPrice) : "jen s permanentkou"} · {credits(t.creditCost)}
+                  {t.firstVisitPrice !== null && (
+                    <span className="block text-xs">první lekce {formatPrice(t.firstVisitPrice)}</span>
+                  )}
+                  {!!t.memberSurcharge && (
+                    <span className="block text-xs">
+                      členové doplácí {formatPrice(t.memberSurcharge)}
+                      {t.memberSurchargeFrom && ` od ${t.memberSurchargeFrom.split("-").reverse().map(Number).join(". ")}`}
+                    </span>
+                  )}
                 </span>
               </div>
             ))}
