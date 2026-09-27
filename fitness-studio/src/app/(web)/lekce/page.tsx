@@ -35,8 +35,8 @@ export default async function ClassesPage() {
               <p className="mt-4 flex-1 text-les/70">{t.description}</p>
               <p className="mt-6 text-sm text-les/60">
                 {t.durationMin} min · {credits(t.creditCost)}
-                {creditPackPrice(t.creditCost, packs) !== null &&
-                  ` (z bodové permanentky ${formatPrice(creditPackPrice(t.creditCost, packs)!)})`}
+                {creditPackPrice(t.creditCost, packs, t.dropInPrice) !== null &&
+                  ` (z bodové permanentky ${formatPrice(creditPackPrice(t.creditCost, packs, t.dropInPrice)!)})`}
                 {t.dropInPrice !== null && ` · jednorázově ${formatPrice(t.dropInPrice)}`}
                 {t.firstVisitPrice !== null && ` · první lekce ${formatPrice(t.firstVisitPrice)}`}
               </p>

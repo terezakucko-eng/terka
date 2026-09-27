@@ -3,13 +3,20 @@ import type { ScheduleItem } from "@/lib/queries";
 import { formatRange } from "@/lib/dates";
 import { Badge, cx } from "./ui";
 
+/** Clients see only how busy a class is, never the exact numbers. */
+export function availabilityText(left: number) {
+  if (left <= 0) return "Obsazeno (náhradníci)";
+  if (left === 1) return "Poslední 1 místo";
+  if (left === 2) return "Poslední 2 místa";
+  return "Volno";
+}
+
 export function spotsLabel(s: ScheduleItem, now = new Date()) {
   if (s.status === "cancelled") return { text: "Zrušeno", tone: "red" as const };
   if (s.startsAt <= now) return { text: "Proběhlo", tone: "neutral" as const };
   const left = s.capacity - s.occupied;
-  if (left <= 0) return { text: "Plno · pořadník", tone: "red" as const };
-  if (left <= 2) return { text: `Poslední ${left === 1 ? "místo" : "2 místa"}`, tone: "gold" as const };
-  return { text: `Volno ${left}/${s.capacity}`, tone: "green" as const };
+  const text = availabilityText(left);
+  return { text, tone: left <= 0 ? ("red" as const) : left <= 2 ? ("gold" as const) : ("green" as const) };
 }
 
 const myLabel: Record<string, string> = {

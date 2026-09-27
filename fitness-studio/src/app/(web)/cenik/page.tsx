@@ -81,8 +81,8 @@ export default async function PricingPage() {
                 </span>
                 <span className="text-right text-sm tabular-nums text-les/70">
                   {t.dropInPrice !== null ? formatPrice(t.dropInPrice) : "jen s permanentkou"} · {credits(t.creditCost)}
-                  {creditPackPrice(t.creditCost, list) !== null && (
-                    <span className="block text-xs">z bodové permanentky {formatPrice(creditPackPrice(t.creditCost, list)!)}</span>
+                  {creditPackPrice(t.creditCost, list, t.dropInPrice) !== null && (
+                    <span className="block text-xs">z bodové permanentky {formatPrice(creditPackPrice(t.creditCost, list, t.dropInPrice)!)}</span>
                   )}
                   {t.firstVisitPrice !== null && (
                     <span className="block text-xs">první lekce {formatPrice(t.firstVisitPrice)}</span>
