@@ -76,6 +76,7 @@ export const SECTIONS = {
       schedule: t("Menu – Rozvrh", "Rozvrh"),
       classes: t("Menu – Lekce", "Lekce"),
       pricing: t("Menu – Ceník", "Ceník"),
+      massages: t("Menu – Masáže", "Masáže"),
       about: t("Menu – O mně", "O mně"),
       contact: t("Menu – Kontakt", "Kontakt"),
       book: t("Tlačítko Rezervovat", "Rezervovat"),
@@ -183,6 +184,26 @@ export const SECTIONS = {
       eyebrow: opt("Malý nadpis", "Lekce"),
       title: t("Nadpis", "Pohyb pro tělo i mysl."),
       intro: ta("Úvodní text", "Tanec, pilates, síla i regenerace. Vyber si podle nálady – nebo zkus všechno."),
+    },
+  },
+  massages: {
+    title: "Masáže",
+    page: "/masaze",
+    fields: {
+      eyebrow: opt("Malý nadpis", "Masáže"),
+      title: t("Nadpis", "Čas jen pro tebe."),
+      intro: ta("Úvodní text", "Uvolni tělo po tréninku i po dlouhém dni. Vyber si masáž a volný termín – rezervace zabere minutu."),
+      paymentInfo: ta(
+        "Jak se platí",
+        "Platit můžeš na místě kartou, nebo předem převodem – platební údaje i QR kód ti ukážeme hned po rezervaci.",
+      ),
+      noSlots: ta("Když nejsou volné termíny", "Teď nejsou vypsané žádné volné termíny. Napiš nám nebo zavolej, rádi se domluvíme."),
+      bankAccount: {
+        label: "Číslo účtu pro platby převodem",
+        type: "text",
+        default: "",
+        hint: "Např. 123456789/0800. Prázdné = platba převodem se nenabízí, jen na místě.",
+      },
     },
   },
   about: {

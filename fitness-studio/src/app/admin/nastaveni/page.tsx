@@ -14,6 +14,8 @@ const fields: { key: keyof Settings; label: string; hint: string }[] = [
   { key: "welcomeFreeEntries", label: "Vstupy zdarma pro nové klienty", hint: "0 = vypnuto." },
   { key: "welcomeFreeValidityDays", label: "Platnost úvodního vstupu (dní)", hint: "" },
   { key: "pendingPaymentMinutes", label: "Držení místa při platbě kartou (min)", hint: "Minimálně 30 (Stripe)." },
+  { key: "massageBufferMinutes", label: "Masáže – pauza mezi masážemi (min)", hint: "Čas na úklid a převlečení." },
+  { key: "massageStepMinutes", label: "Masáže – začátky po (min)", hint: "30 = 9:00, 9:30, 10:00…" },
 ];
 
 export default async function AdminSettings() {

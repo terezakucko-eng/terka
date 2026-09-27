@@ -10,6 +10,7 @@ export async function SiteHeader() {
   const nav = [
     { href: "/rozvrh", label: c("nav.schedule") },
     { href: "/lekce", label: c("nav.classes") },
+    { href: "/masaze", label: c("nav.massages") },
     { href: "/cenik", label: c("nav.pricing") },
     { href: "/o-mne", label: c("nav.about") },
     { href: "/#kontakt", label: c("nav.contact") },

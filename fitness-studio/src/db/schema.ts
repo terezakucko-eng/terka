@@ -407,6 +407,68 @@ export const media = pgTable("media", {
   createdAt: createdAt(),
 });
 
+/* ------------------------------------------------------------ masáže */
+
+export const massagePayment = pgEnum("massage_payment", ["on_site", "transfer"]);
+export const massageBookingStatus = pgEnum("massage_booking_status", ["confirmed", "cancelled"]);
+
+/** Nabídka masáží (druh + délka + cena). */
+export const massageServices = pgTable("massage_services", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  description: text("description").notNull().default(""),
+  durationMin: integer("duration_min").notNull().default(60),
+  /** Cena v haléřích */
+  price: integer("price").notNull(),
+  imageUrl: text("image_url"),
+  isActive: boolean("is_active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  /** Smazaná masáž s historií rezervací – skrytá, data zůstávají. */
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
+  createdAt: createdAt(),
+});
+
+/** Časová okna, kdy se masíruje – z nich se počítají volné termíny. */
+export const massageAvailability = pgTable(
+  "massage_availability",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("massage_availability_starts_idx").on(t.startsAt)],
+);
+
+export const massageBookings = pgTable(
+  "massage_bookings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** null = zapsáno ručně na recepci (host bez účtu) */
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    serviceId: uuid("service_id")
+      .notNull()
+      .references(() => massageServices.id),
+    /** Snapshot v době rezervace */
+    serviceName: text("service_name").notNull(),
+    price: integer("price").notNull(),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+    payment: massagePayment("payment").notNull(),
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+    status: massageBookingStatus("status").notNull().default("confirmed"),
+    variableSymbol: integer("variable_symbol").generatedAlwaysAsIdentity({ startWith: 10001 }),
+    guestName: text("guest_name"),
+    guestPhone: text("guest_phone"),
+    guestEmail: text("guest_email"),
+    note: text("note"),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("massage_bookings_starts_idx").on(t.startsAt)],
+);
+
 export const settings = pgTable("settings", {
   key: text("key").primaryKey(),
   value: jsonb("value").notNull(),
@@ -422,3 +484,6 @@ export type Entitlement = typeof entitlements.$inferSelect;
 export type Booking = typeof bookings.$inferSelect;
 export type Announcement = typeof announcements.$inferSelect;
 export type Campaign = typeof campaigns.$inferSelect;
+export type MassageService = typeof massageServices.$inferSelect;
+export type MassageBooking = typeof massageBookings.$inferSelect;
+export type MassageWindow = typeof massageAvailability.$inferSelect;

@@ -36,6 +36,7 @@ export async function SiteFooter() {
           <div className="space-y-2 text-sm">
             <p className="eyebrow mb-4 text-zlato">{c("nav.footerLinks")}</p>
             <p><Link className="hover:text-zlato-light" href="/rozvrh">{c("nav.schedule")}</Link></p>
+            <p><Link className="hover:text-zlato-light" href="/masaze">{c("nav.massages")}</Link></p>
             <p><Link className="hover:text-zlato-light" href="/cenik">{c("nav.pricing")}</Link></p>
             <p><Link className="hover:text-zlato-light" href="/obchodni-podminky">Obchodní podmínky</Link></p>
             <p><Link className="hover:text-zlato-light" href="/ochrana-osobnich-udaju">Ochrana osobních údajů</Link></p>
