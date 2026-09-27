@@ -10,7 +10,7 @@ import { getDb } from "@/db";
 import { userBookings, userEntitlements } from "@/lib/account";
 import { requireUser } from "@/lib/auth";
 import { formatDate, formatDay, formatRange, formatTime } from "@/lib/dates";
-import { credits } from "@/lib/money";
+import { credits, formatPrice } from "@/lib/money";
 
 export default async function AccountPage({ searchParams }: PageProps<"/ucet">) {
   const { vitej } = await searchParams;
@@ -46,7 +46,10 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
         <Card className="bg-les text-papir">
           <Eyebrow className="text-zlato">Kredit</Eyebrow>
           <p className="text-gold mt-3 text-5xl font-light">{user.creditBalance}</p>
-          <p className="mt-1 text-sm text-papir/60">{credits(user.creditBalance).replace(/^\d+ /, "")} k dispozici</p>
+          <p className="mt-1 text-sm text-papir/60">
+            {credits(user.creditBalance).replace(/^\d+ /, "")} k dispozici
+            {user.creditBalance > 0 && user.creditExpiresAt && ` · platí do ${formatDate(user.creditExpiresAt)}`}
+          </p>
           <ButtonLink href="/cenik" variant="outline-light" className="mt-6 px-4 py-2">Dobít</ButtonLink>
         </Card>
         <Card className="md:col-span-2">
@@ -62,7 +65,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
                   <div>
                     <p className="font-semibold">{e.name} <Badge tone={e.kind === "free" ? "gold" : "green"}>{entitlementKindLabel[e.kind]}</Badge></p>
                     <p className="text-sm text-les/60">
-                      {e.entriesTotal === null ? "Neomezeně" : `Zbývá ${e.entriesTotal - e.entriesUsed} z ${e.entriesTotal}`}
+                      {e.entriesTotal === null ? "Neomezeně" : `Zbývá ${e.entriesTotal - e.entriesUsed} z ${e.entriesTotal}${e.kind === "solarium" ? " min" : ""}`}
                       {e.weeklyLimit ? ` · max ${e.weeklyLimit}× týdně` : ""} · platí do {formatDate(e.validUntil)}
                       {e.subscriptionId && (e.renewalCancelled ? " · obnovení zrušeno" : " · obnovuje se automaticky")}
                     </p>
@@ -101,6 +104,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
               <div className="flex items-center gap-3">
                 {b.status === "waitlist" && <Badge tone="gold">Pořadník</Badge>}
                 {b.status === "pending_payment" && <Badge tone="gold">Čeká na platbu</Badge>}
+                {b.surcharge > 0 && !b.surchargePaidAt && <Badge tone="gold">Doplatek {formatPrice(b.surcharge)} na místě</Badge>}
                 {s.status === "cancelled" && <Badge tone="red">Lekce zrušena</Badge>}
                 {s.status !== "cancelled" && (
                   <ActionForm action={cancelBookingAction} confirm="Opravdu zrušit rezervaci?">

@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { getDb } from "@/db";
 import {
   announcements,
+  bookings,
   classSessions,
   classTypes,
   entitlements,
@@ -22,6 +23,7 @@ import {
 } from "@/domain/booking";
 import { deleteClassType, deleteProduct } from "@/domain/catalog";
 import { fulfillOrder, sellAtReception } from "@/domain/orders";
+import { deductSolarium } from "@/domain/solarium";
 import { grantEntitlement, normalizeEmail } from "@/domain/users";
 import { changeCredits } from "@/domain/wallet";
 import { requireAdmin, requireStaff } from "@/lib/auth";
@@ -76,6 +78,10 @@ export async function saveClassTypeAction(_: FormState, fd: FormData): Promise<F
       dropInPrice: field.money(fd, "dropInPrice"),
       color: field.str(fd, "color") || "#D2A772",
       level: field.str(fd, "level") || "Pro všechny",
+      memberSurcharge: field.money(fd, "memberSurcharge") || null,
+      memberSurchargeFrom: isDateKey(field.str(fd, "memberSurchargeFrom")) ? field.str(fd, "memberSurchargeFrom") : null,
+      firstVisitPrice: field.money(fd, "firstVisitPrice"),
+      noFreeEntry: field.bool(fd, "noFreeEntry"),
       sortOrder: field.int(fd, "sortOrder") ?? 0,
       isActive: field.bool(fd, "isActive"),
       ...(await imageField(fd, "image", "removeImage", "imageUrl")),
@@ -137,8 +143,8 @@ export async function saveProductAction(_: FormState, fd: FormData): Promise<For
   await requireAdmin();
   return attempt(async () => {
     const db = await getDb();
-    const kind = field.str(fd, "kind") as "credit_pack" | "pass" | "membership";
-    if (!["credit_pack", "pass", "membership"].includes(kind)) throw new UserError("Vyber typ.");
+    const kind = field.str(fd, "kind") as "credit_pack" | "pass" | "membership" | "solarium";
+    if (!["credit_pack", "pass", "membership", "solarium"].includes(kind)) throw new UserError("Vyber typ.");
     const values = {
       kind,
       name: required(field.str(fd, "name"), "Vyplň název."),
@@ -146,15 +152,17 @@ export async function saveProductAction(_: FormState, fd: FormData): Promise<For
       price: required(field.money(fd, "price"), "Vyplň cenu."),
       credits: kind === "credit_pack" ? required(field.int(fd, "credits"), "Vyplň počet kreditů.") : null,
       entries: kind === "credit_pack" ? null : field.int(fd, "entries"),
-      validityDays: kind === "credit_pack" ? null : (field.int(fd, "validityDays") ?? 30),
+      validityDays: kind === "credit_pack" ? field.int(fd, "validityDays") : (field.int(fd, "validityDays") ?? 30),
       weeklyLimit: kind === "membership" ? field.int(fd, "weeklyLimit") : null,
       recurring: kind === "membership" && field.bool(fd, "recurring"),
       highlight: field.bool(fd, "highlight"),
       linkOnly: field.bool(fd, "linkOnly"),
+      membersOnly: field.bool(fd, "membersOnly"),
       isActive: field.bool(fd, "isActive"),
       sortOrder: field.int(fd, "sortOrder") ?? 0,
     };
     if (kind === "pass" && !values.entries) throw new UserError("Permanentka potřebuje počet vstupů.");
+    if (kind === "solarium" && !values.entries) throw new UserError("Vyplň počet minut solária.");
     const id = field.str(fd, "id");
     if (id) await db.update(products).set(values).where(eq(products.id, id));
     else await db.insert(products).values(values);
@@ -369,17 +377,39 @@ export async function adjustCreditsAction(_: FormState, fd: FormData): Promise<F
   });
 }
 
+export async function setSurchargePaidAction(_: FormState, fd: FormData): Promise<FormState> {
+  await requireStaff();
+  return attempt(async () => {
+    const paid = field.bool(fd, "paid");
+    await (await getDb())
+      .update(bookings)
+      .set({ surchargePaidAt: paid ? new Date() : null })
+      .where(eq(bookings.id, field.str(fd, "bookingId")));
+    return done(paid ? "Doplatek zaplacen." : "Doplatek vrácen na nezaplacený.");
+  });
+}
+
+export async function deductSolariumAction(_: FormState, fd: FormData): Promise<FormState> {
+  const staff = await requireStaff();
+  return attempt(async () => {
+    const minutes = field.int(fd, "minutes") ?? 0;
+    const left = await deductSolarium(await getDb(), { userId: field.str(fd, "userId"), minutes, actorId: staff.id });
+    return done(`Odečteno ${minutes} min. Zbývá ${left} min.`);
+  });
+}
+
 export async function grantEntitlementAction(_: FormState, fd: FormData): Promise<FormState> {
   await requireAdmin();
   return attempt(async () => {
-    const kind = field.str(fd, "kind") as "free" | "pass" | "membership";
-    if (!["free", "pass", "membership"].includes(kind)) throw new UserError("Vyber typ.");
+    const kind = field.str(fd, "kind") as "free" | "pass" | "membership" | "solarium";
+    if (!["free", "pass", "membership", "solarium"].includes(kind)) throw new UserError("Vyber typ.");
+    if (kind === "solarium" && !field.int(fd, "entries")) throw new UserError("Vyplň počet minut.");
     await grantEntitlement(await getDb(), {
       userId: field.str(fd, "userId"),
       kind,
       name:
         field.str(fd, "name") ||
-        { free: "Vstup zdarma", pass: "Permanentka", membership: "Členství" }[kind],
+        { free: "Vstup zdarma", pass: "Permanentka", membership: "Členství", solarium: "Solárium" }[kind],
       entries: field.int(fd, "entries"),
       validityDays: field.int(fd, "validityDays") ?? 30,
       weeklyLimit: field.int(fd, "weeklyLimit"),

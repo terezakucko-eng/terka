@@ -149,3 +149,34 @@
     animation: none;
   }
 }
+
+/* Hero octopus: tentacles sway around their attachment point, head breathes. */
+@keyframes octo-arm {
+  from {
+    transform: rotate(calc(var(--amp) * -1));
+  }
+  to {
+    transform: rotate(var(--amp));
+  }
+}
+@keyframes octo-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.018);
+  }
+}
+.octo-arm {
+  animation: octo-arm var(--dur) ease-in-out var(--delay) infinite alternate;
+}
+.octo-head {
+  animation: octo-breathe 5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .octo-arm,
+  .octo-head {
+    animation: none;
+  }
+}

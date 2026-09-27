@@ -1,6 +1,10 @@
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
-import { campaigns } from "@/db/schema";
+import { campaigns, users } from "@/db/schema";
+import { site } from "@/config/site";
+import { creditsExpiringSoon, expireCredits } from "@/domain/wallet";
+import { formatDate } from "@/lib/dates";
+import { sendMail } from "@/lib/mail";
 import { expireStalePending } from "@/domain/booking";
 import { processCampaign } from "@/domain/campaigns";
 import { campaignSender, newsletterFooter } from "@/lib/campaign-sender";
@@ -10,8 +14,8 @@ export const maxDuration = 60;
 
 /**
  * Housekeeping (Vercel Cron, see vercel.json):
- * releases spots held by unpaid drop-ins and finishes campaigns whose
- * sending page was closed.
+ * releases spots held by unpaid drop-ins, zeroes expired credit (and
+ * warns a week ahead), and finishes campaigns whose sending page was closed.
  */
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
@@ -19,6 +23,17 @@ export async function GET(req: Request) {
     return new Response("Unauthorized", { status: 401 });
   const db = await getDb();
   const expired = await db.transaction((tx) => expireStalePending(tx, new Date()));
+  const creditsExpired = await expireCredits(db);
+  let creditWarnings = 0;
+  for (const u of await creditsExpiringSoon(db)) {
+    await sendMail({
+      to: u.email,
+      subject: "Tvůj kredit brzy propadne",
+      text: `Ahoj ${u.name},\n\nna účtu máš ${u.balance} kreditů, které platí do ${formatDate(u.expiresAt!)}. Využij je na lekci, nebo si kredit dobij – každé dobití prodlouží platnost celého zůstatku.\n\nRozvrh: ${site.url}/rozvrh`,
+    });
+    await db.update(users).set({ creditExpiryWarnedAt: new Date() }).where(eq(users.id, u.id));
+    creditWarnings++;
+  }
 
   const started = Date.now();
   let sent = 0;
@@ -30,5 +45,5 @@ export async function GET(req: Request) {
       sent += r.sent;
     }
   }
-  return Response.json({ expired, sent });
+  return Response.json({ expired, sent, creditsExpired, creditWarnings });
 }

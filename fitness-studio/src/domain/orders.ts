@@ -1,3 +1,4 @@
+import { isMember } from "./massages";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import type { DB, Executor } from "@/db";
 import {
@@ -11,7 +12,7 @@ import {
 } from "@/db/schema";
 import { UserError } from "@/lib/errors";
 import { occupancy } from "./booking";
-import { changeCredits } from "./wallet";
+import { changeCredits, extendCreditValidity } from "./wallet";
 
 const DAY = 86_400_000;
 
@@ -25,6 +26,8 @@ export async function createProductOrder(
     .from(products)
     .where(eq(products.id, input.productId));
   if (!p || !p.isActive) throw new UserError("Produkt není v nabídce.");
+  if (p.membersOnly && !(await isMember(db, input.userId, now)))
+    throw new UserError("Tenhle produkt je jen pro členy. Zastav se na recepci nebo si pořiď členství.");
   const [order] = await db
     .insert(orders)
     .values({
@@ -57,9 +60,11 @@ async function grantProduct(
         orderId: order.id,
         note: p.name,
       });
+      if (p.validityDays) await extendCreditValidity(tx, order.userId, p.validityDays, now);
       return;
     case "pass":
     case "membership":
+    case "solarium":
       await tx.insert(entitlements).values({
         userId: order.userId,
         kind: p.kind,

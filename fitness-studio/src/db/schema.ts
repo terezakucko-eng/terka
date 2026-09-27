@@ -21,12 +21,14 @@ export const productKind = pgEnum("product_kind", [
   "credit_pack", // kredit – dobíjení peněženky
   "pass", // permanentka na N vstupů s platností
   "membership", // členství – měsíční (neomezené nebo s týdenním limitem)
+  "solarium", // minuty solária (odečítá recepce)
 ]);
 
 export const entitlementKind = pgEnum("entitlement_kind", [
   "pass",
   "membership",
   "free", // vstupy zdarma (uvítací, dárek od studia…)
+  "solarium", // minuty solária – entriesTotal/entriesUsed jsou minuty
 ]);
 
 export const entitlementStatus = pgEnum("entitlement_status", [
@@ -78,6 +80,7 @@ export const creditReason = pgEnum("credit_reason", [
   "refund",
   "admin",
   "bonus",
+  "expired", // propadlý kredit po uplynutí platnosti
 ]);
 
 export const channel = pgEnum("channel", ["email", "sms", "whatsapp"]);
@@ -107,6 +110,10 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   role: userRole("role").notNull().default("client"),
   creditBalance: integer("credit_balance").notNull().default(0),
+  /** Kdy zůstatek kreditu propadne (null = nepropadá) */
+  creditExpiresAt: timestamp("credit_expires_at", { withTimezone: true }),
+  /** Kdy jsme klientovi napsali, že kredit brzy propadne */
+  creditExpiryWarnedAt: timestamp("credit_expiry_warned_at", { withTimezone: true }),
   /** souhlas s newsletterem (e-mail) */
   marketingConsent: boolean("marketing_consent").notNull().default(false),
   smsConsent: boolean("sms_consent").notNull().default(false),
@@ -159,6 +166,14 @@ export const classTypes = pgTable("class_types", {
   color: text("color").notNull().default("#7F40FF"),
   imageUrl: text("image_url"),
   level: text("level").notNull().default("Pro všechny"),
+  /** Doplatek pro členy za lekci (haléře); null = bez doplatku */
+  memberSurcharge: integer("member_surcharge"),
+  /** Od kterého dne se doplatek účtuje ("YYYY-MM-DD"); null = hned */
+  memberSurchargeFrom: text("member_surcharge_from"),
+  /** Úvodní vstup zdarma na tuto lekci nejde použít */
+  noFreeEntry: boolean("no_free_entry").notNull().default(false),
+  /** Cena první lekce tohoto typu pro klienta, který na ní ještě nebyl (haléře) */
+  firstVisitPrice: integer("first_visit_price"),
   isActive: boolean("is_active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
   /** Smazaný typ, který má v historii rezervace – skrytý všude, data zůstávají. */
@@ -210,6 +225,8 @@ export const products = pgTable("products", {
   recurring: boolean("recurring").notNull().default(false),
   highlight: boolean("highlight").notNull().default(false),
   isActive: boolean("is_active").notNull().default(true),
+  /** Online koupit jen klient s aktivním členstvím */
+  membersOnly: boolean("members_only").notNull().default(false),
   /** Není v ceníku, koupit jde jen přes přímý odkaz (např. zvýhodněné členství pro vybrané) */
   linkOnly: boolean("link_only").notNull().default(false),
   sortOrder: integer("sort_order").notNull().default(0),
@@ -289,6 +306,9 @@ export const bookings = pgTable(
     entitlementId: uuid("entitlement_id").references(() => entitlements.id),
     orderId: uuid("order_id").references(() => orders.id),
     lateCancel: boolean("late_cancel").notNull().default(false),
+    /** Doplatek člena placený na místě (haléře) */
+    surcharge: integer("surcharge").notNull().default(0),
+    surchargePaidAt: timestamp("surcharge_paid_at", { withTimezone: true }),
     cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
     createdAt: createdAt(),
   },
@@ -410,6 +430,22 @@ export const media = pgTable("media", {
   data: bytea("data").notNull(),
   createdAt: createdAt(),
 });
+
+/** Záznam o opalování – kolik minut se odečetlo z které permanentky. */
+export const solariumUses = pgTable(
+  "solarium_uses",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    entitlementId: uuid("entitlement_id").references(() => entitlements.id, { onDelete: "set null" }),
+    minutes: integer("minutes").notNull(),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("solarium_uses_user_idx").on(t.userId)],
+);
 
 /* ------------------------------------------------------------ masáže */
 

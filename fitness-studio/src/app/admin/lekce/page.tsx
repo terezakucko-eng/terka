@@ -24,6 +24,23 @@ function ClassTypeForm({ t }: { t?: ClassType }) {
         <Field label="Jednorázový vstup (Kč)" hint="Prázdné = nelze koupit jednorázově"><Input name="dropInPrice" inputMode="decimal" defaultValue={kc(t?.dropInPrice)} /></Field>
         <Field label="Pořadí"><Input name="sortOrder" type="number" defaultValue={t?.sortOrder ?? 0} /></Field>
       </div>
+      <fieldset className="rounded-xl border border-linka/60 p-4">
+        <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-les/70">Zvláštní ceny</legend>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Field label="Doplatek pro členy (Kč / lekce)" hint="Prázdné = členové bez doplatku">
+            <Input name="memberSurcharge" inputMode="decimal" defaultValue={kc(t?.memberSurcharge)} />
+          </Field>
+          <Field label="Doplatek platí od" hint="Prázdné = hned">
+            <Input name="memberSurchargeFrom" type="date" defaultValue={t?.memberSurchargeFrom ?? ""} />
+          </Field>
+          <Field label="Cena první lekce (Kč)" hint="Pro klienta, který na téhle lekci ještě nebyl">
+            <Input name="firstVisitPrice" inputMode="decimal" defaultValue={kc(t?.firstVisitPrice)} />
+          </Field>
+        </div>
+        <label className="mt-3 flex items-center gap-2 text-sm">
+          <input type="checkbox" name="noFreeEntry" defaultChecked={t?.noFreeEntry ?? false} /> Úvodní vstup zdarma na tuhle lekci nejde použít
+        </label>
+      </fieldset>
       <Field label="Popis"><Textarea name="description" rows={3} defaultValue={t?.description} /></Field>
       <div className="flex flex-wrap items-center gap-4">
         {t?.imageUrl && (
