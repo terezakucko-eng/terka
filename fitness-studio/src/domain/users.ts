@@ -68,7 +68,7 @@ export async function grantEntitlement(
   db: DB,
   input: {
     userId: string;
-    kind: "free" | "pass" | "membership";
+    kind: "free" | "pass" | "membership" | "solarium";
     name: string;
     entries: number | null;
     validityDays: number;

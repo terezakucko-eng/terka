@@ -37,10 +37,12 @@ export const entitlementKindLabel: Record<string, string> = {
   pass: "Permanentka",
   membership: "Členství",
   free: "Vstup zdarma",
+  solarium: "Solárium",
 };
 
 export const productKindLabel: Record<string, string> = {
   credit_pack: "Kredit",
   pass: "Permanentka",
   membership: "Členství",
+  solarium: "Solárium",
 };

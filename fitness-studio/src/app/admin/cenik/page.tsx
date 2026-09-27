@@ -21,13 +21,14 @@ function ProductForm({ p }: { p?: Product }) {
             <option value="credit_pack">Kredit (dobití)</option>
             <option value="pass">Permanentka (N vstupů)</option>
             <option value="membership">Členství</option>
+            <option value="solarium">Solárium (minuty)</option>
           </Select>
         </Field>
         <Field label="Název"><Input name="name" defaultValue={p?.name} required /></Field>
         <Field label="Cena (Kč)"><Input name="price" inputMode="decimal" defaultValue={kc(p?.price)} required /></Field>
         <Field label="Pořadí"><Input name="sortOrder" type="number" defaultValue={p?.sortOrder ?? 0} /></Field>
         <Field label="Kreditů" hint="Jen u kreditu"><Input name="credits" type="number" min={1} defaultValue={p?.credits ?? ""} /></Field>
-        <Field label="Vstupů" hint="Permanentka; u členství prázdné = neomezeně"><Input name="entries" type="number" min={1} defaultValue={p?.entries ?? ""} /></Field>
+        <Field label="Vstupů / minut" hint="Permanentka: vstupy · Solárium: minuty · Členství: prázdné = neomezeně"><Input name="entries" type="number" min={1} defaultValue={p?.entries ?? ""} /></Field>
         <Field label="Platnost (dny)"><Input name="validityDays" type="number" min={1} defaultValue={p?.validityDays ?? 30} /></Field>
         <Field label="Limit / týden" hint="Jen u členství"><Input name="weeklyLimit" type="number" min={1} defaultValue={p?.weeklyLimit ?? ""} /></Field>
       </div>
@@ -36,6 +37,7 @@ function ProductForm({ p }: { p?: Product }) {
         <label className="flex items-center gap-2"><input type="checkbox" name="recurring" defaultChecked={p?.recurring ?? false} /> Členství se obnovuje měsíčně (předplatné kartou)</label>
         <label className="flex items-center gap-2"><input type="checkbox" name="highlight" defaultChecked={p?.highlight ?? false} /> Zvýraznit</label>
         <label className="flex items-center gap-2"><input type="checkbox" name="isActive" defaultChecked={p?.isActive ?? true} /> V nabídce</label>
+        <label className="flex items-center gap-2"><input type="checkbox" name="membersOnly" defaultChecked={p?.membersOnly ?? false} /> Online jen pro členy</label>
         <label className="flex items-center gap-2"><input type="checkbox" name="linkOnly" defaultChecked={p?.linkOnly ?? false} /> Jen přes odkaz (nezobrazovat v ceníku)</label>
       </div>
       {p?.linkOnly && p.isActive && (

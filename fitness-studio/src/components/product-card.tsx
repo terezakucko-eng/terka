@@ -19,6 +19,13 @@ function perks(p: Product): string[] {
         `Platnost ${p.validityDays} dní`,
         `Cena za lekci ${formatPrice(Math.round(p.price / (p.entries || 1)))}`,
       ];
+    case "solarium":
+      return [
+        `${p.entries ?? 0} minut solária`,
+        `Platnost ${p.validityDays} dní`,
+        `Cena za minutu ${formatPrice(Math.round(p.price / (p.entries || 1)))}`,
+        ...(p.membersOnly ? ["Jen pro členy"] : []),
+      ];
     case "credit_pack":
       return [
         credits(p.credits ?? 0),

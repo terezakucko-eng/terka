@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import {
   adjustCreditsAction,
   cancelEntitlementAction,
+  deductSolariumAction,
   grantEntitlementAction,
   sellProductAction,
   updateClientAction,
@@ -19,6 +20,7 @@ import { requireAdmin } from "@/lib/auth";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { formatPrice } from "@/lib/money";
 import { sellableProducts } from "@/lib/queries";
+import { recentSolariumUses, solariumPasses } from "@/domain/solarium";
 
 export default async function ClientDetail({ params }: PageProps<"/admin/klienti/[id]">) {
   await requireAdmin();
@@ -35,6 +37,8 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
     userLedger(db, u.id),
     sellableProducts(db),
   ]);
+  const [sunPasses, sunUses] = await Promise.all([solariumPasses(db, u.id), recentSolariumUses(db, u.id, 5)]);
+  const sunLeft = sunPasses.reduce((s, p) => s + p.left, 0);
   const now = new Date();
   const attended = past.filter(({ b }) => b.status === "attended").length;
 
@@ -50,6 +54,27 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
         <Stat label="Nadcházející rezervace" value={upcoming.length} />
         <Stat label="Účast (posl. 30 lekcí)" value={attended} sub={`registrace ${formatDate(u.createdAt)}`} />
       </div>
+
+      <Card className="mt-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="font-semibold">Solárium</h2>
+          <p className="mt-1 text-sm text-les/70">
+            {sunLeft ? <>Zbývá <strong>{sunLeft} min</strong>{sunPasses.length > 1 ? ` (${sunPasses.length} permanentky)` : ""}, platí do {formatDate(sunPasses[0].validUntil)}</> : "Žádná platná permanentka na solárium."}
+          </p>
+          {sunUses.length > 0 && (
+            <p className="mt-1 text-xs text-les/50">
+              Naposledy: {sunUses.map((x) => `${formatDate(x.createdAt)} ${x.minutes} min`).join(" · ")}
+            </p>
+          )}
+        </div>
+        {sunLeft > 0 && (
+          <ActionForm action={deductSolariumAction} resetOnSuccess className="flex items-end gap-3">
+            <input type="hidden" name="userId" value={u.id} />
+            <Field label="Minut na soláriu"><Input name="minutes" type="number" min={1} max={sunLeft} required className="w-28" /></Field>
+            <SubmitButton>Odečíst</SubmitButton>
+          </ActionForm>
+        )}
+      </Card>
 
       <div className="mt-8 grid gap-6 xl:grid-cols-3">
         <Card>
@@ -88,9 +113,10 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
                   <option value="free">Vstup zdarma</option>
                   <option value="pass">Permanentka</option>
                   <option value="membership">Členství</option>
+                  <option value="solarium">Solárium (minuty)</option>
                 </Select>
               </Field>
-              <Field label="Počet vstupů" hint="Prázdné = neomezeně"><Input name="entries" type="number" min={1} defaultValue={1} /></Field>
+              <Field label="Počet vstupů / minut" hint="U solária minuty · prázdné = neomezeně"><Input name="entries" type="number" min={1} defaultValue={1} /></Field>
               <Field label="Platnost (dny)"><Input name="validityDays" type="number" min={1} defaultValue={30} /></Field>
               <Field label="Limit / týden"><Input name="weeklyLimit" type="number" min={1} /></Field>
             </div>

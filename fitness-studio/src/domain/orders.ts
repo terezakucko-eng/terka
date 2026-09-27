@@ -1,3 +1,4 @@
+import { isMember } from "./massages";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import type { DB, Executor } from "@/db";
 import {
@@ -25,6 +26,8 @@ export async function createProductOrder(
     .from(products)
     .where(eq(products.id, input.productId));
   if (!p || !p.isActive) throw new UserError("Produkt není v nabídce.");
+  if (p.membersOnly && !(await isMember(db, input.userId, now)))
+    throw new UserError("Tenhle produkt je jen pro členy. Zastav se na recepci nebo si pořiď členství.");
   const [order] = await db
     .insert(orders)
     .values({
@@ -60,6 +63,7 @@ async function grantProduct(
       return;
     case "pass":
     case "membership":
+    case "solarium":
       await tx.insert(entitlements).values({
         userId: order.userId,
         kind: p.kind,

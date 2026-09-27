@@ -170,11 +170,14 @@ async function entitlementProblem(
   return null;
 }
 
+/** Entitlements usable for classes (solarium minutes are not). */
+type ClassKind = Exclude<Entitlement["kind"], "solarium">;
 const methodForKind = {
   membership: "membership",
   pass: "pass",
   free: "free",
-} as const satisfies Record<Entitlement["kind"], Method>;
+} as const satisfies Record<ClassKind, Method>;
+const isClassKind = (k: Entitlement["kind"]): k is ClassKind => k !== "solarium";
 
 /** All ways the client could pay for the session, best first. */
 export async function bookingOptions(
@@ -200,15 +203,17 @@ export async function bookingOptions(
       and(
         eq(entitlements.userId, userId),
         eq(entitlements.status, "active"),
+        ne(entitlements.kind, "solarium"),
         lte(entitlements.validFrom, s.startsAt),
         gt(entitlements.validUntil, s.startsAt),
       ),
     )
     .orderBy(asc(entitlements.validUntil));
 
-  const rank = { membership: 0, pass: 1, free: 2 };
-  ents.sort((a, b) => rank[a.kind] - rank[b.kind]);
-  for (const e of ents) {
+  const rank: Record<ClassKind, number> = { membership: 0, pass: 1, free: 2 };
+  const classEnts = ents.flatMap((e) => (isClassKind(e.kind) ? [{ ...e, kind: e.kind }] : []));
+  classEnts.sort((a, b) => rank[a.kind] - rank[b.kind]);
+  for (const e of classEnts) {
     const problem = await entitlementProblem(tx, e, s);
     const left =
       e.entriesTotal === null
@@ -284,7 +289,7 @@ async function charge(
         .from(entitlements)
         .where(eq(entitlements.id, entitlementId))
         .for("update");
-      if (!e || e.userId !== booking.userId || methodForKind[e.kind] !== method)
+      if (!e || e.userId !== booking.userId || !isClassKind(e.kind) || methodForKind[e.kind] !== method)
         throw new UserError("Permanentka nenalezena.");
       const problem = await entitlementProblem(tx, e, s);
       if (problem) throw new UserError(problem);

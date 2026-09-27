@@ -21,12 +21,14 @@ export const productKind = pgEnum("product_kind", [
   "credit_pack", // kredit – dobíjení peněženky
   "pass", // permanentka na N vstupů s platností
   "membership", // členství – měsíční (neomezené nebo s týdenním limitem)
+  "solarium", // minuty solária (odečítá recepce)
 ]);
 
 export const entitlementKind = pgEnum("entitlement_kind", [
   "pass",
   "membership",
   "free", // vstupy zdarma (uvítací, dárek od studia…)
+  "solarium", // minuty solária – entriesTotal/entriesUsed jsou minuty
 ]);
 
 export const entitlementStatus = pgEnum("entitlement_status", [
@@ -210,6 +212,8 @@ export const products = pgTable("products", {
   recurring: boolean("recurring").notNull().default(false),
   highlight: boolean("highlight").notNull().default(false),
   isActive: boolean("is_active").notNull().default(true),
+  /** Online koupit jen klient s aktivním členstvím */
+  membersOnly: boolean("members_only").notNull().default(false),
   /** Není v ceníku, koupit jde jen přes přímý odkaz (např. zvýhodněné členství pro vybrané) */
   linkOnly: boolean("link_only").notNull().default(false),
   sortOrder: integer("sort_order").notNull().default(0),
@@ -410,6 +414,22 @@ export const media = pgTable("media", {
   data: bytea("data").notNull(),
   createdAt: createdAt(),
 });
+
+/** Záznam o opalování – kolik minut se odečetlo z které permanentky. */
+export const solariumUses = pgTable(
+  "solarium_uses",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    entitlementId: uuid("entitlement_id").references(() => entitlements.id, { onDelete: "set null" }),
+    minutes: integer("minutes").notNull(),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("solarium_uses_user_idx").on(t.userId)],
+);
 
 /* ------------------------------------------------------------ masáže */
 

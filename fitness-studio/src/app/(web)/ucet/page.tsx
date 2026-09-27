@@ -62,7 +62,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
                   <div>
                     <p className="font-semibold">{e.name} <Badge tone={e.kind === "free" ? "gold" : "green"}>{entitlementKindLabel[e.kind]}</Badge></p>
                     <p className="text-sm text-les/60">
-                      {e.entriesTotal === null ? "Neomezeně" : `Zbývá ${e.entriesTotal - e.entriesUsed} z ${e.entriesTotal}`}
+                      {e.entriesTotal === null ? "Neomezeně" : `Zbývá ${e.entriesTotal - e.entriesUsed} z ${e.entriesTotal}${e.kind === "solarium" ? " min" : ""}`}
                       {e.weeklyLimit ? ` · max ${e.weeklyLimit}× týdně` : ""} · platí do {formatDate(e.validUntil)}
                       {e.subscriptionId && (e.renewalCancelled ? " · obnovení zrušeno" : " · obnovuje se automaticky")}
                     </p>

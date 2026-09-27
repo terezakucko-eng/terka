@@ -57,6 +57,13 @@
       "when": 1790541625965,
       "tag": "0007_product_link_only",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790541891951,
+      "tag": "0008_solarium",
+      "breakpoints": true
     }
   ]
 }
