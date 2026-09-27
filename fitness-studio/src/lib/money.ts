@@ -17,3 +17,16 @@ export function pluralCs(n: number, one: string, few: string, many: string) {
 
 export const credits = (n: number) => pluralCs(n, "kredit", "kredity", "kreditů");
 export const entries = (n: number) => pluralCs(n, "vstup", "vstupy", "vstupů");
+
+/**
+ * What `creditCost` credits cost when bought in the cheapest credit pack on
+ * offer ("bodová permanentka"), in haléře rounded to whole Kč; null if none is sold.
+ */
+export function creditPackPrice(
+  creditCost: number,
+  packs: { kind: string; price: number; credits: number | null }[],
+): number | null {
+  const rates = packs.filter((p) => p.kind === "credit_pack" && p.credits).map((p) => p.price / p.credits!);
+  if (!rates.length || creditCost <= 0) return null;
+  return Math.round((creditCost * Math.min(...rates)) / 100) * 100;
+}

@@ -2,16 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getDb } from "@/db";
 import { Container, PageHeader } from "@/components/ui";
-import { credits, formatPrice } from "@/lib/money";
+import { creditPackPrice, credits, formatPrice } from "@/lib/money";
 import { formatDate, pragueLocalToDate } from "@/lib/dates";
-import { activeClassTypes } from "@/lib/queries";
+import { activeClassTypes, activeProducts } from "@/lib/queries";
 import { getContent } from "@/content";
 import { ContentImage } from "@/components/content-image";
 
 export const metadata: Metadata = { title: "Lekce" };
 
 export default async function ClassesPage() {
-  const [types, c] = await Promise.all([activeClassTypes(await getDb()), getContent()]);
+  const db = await getDb();
+  const [types, packs, c] = await Promise.all([activeClassTypes(db), activeProducts(db), getContent()]);
   return (
     <>
       <PageHeader eyebrow={c("classes.eyebrow")} title={c("classes.title")}>
@@ -34,6 +35,8 @@ export default async function ClassesPage() {
               <p className="mt-4 flex-1 text-les/70">{t.description}</p>
               <p className="mt-6 text-sm text-les/60">
                 {t.durationMin} min · {credits(t.creditCost)}
+                {creditPackPrice(t.creditCost, packs) !== null &&
+                  ` (z bodové permanentky ${formatPrice(creditPackPrice(t.creditCost, packs)!)})`}
                 {t.dropInPrice !== null && ` · jednorázově ${formatPrice(t.dropInPrice)}`}
                 {t.firstVisitPrice !== null && ` · první lekce ${formatPrice(t.firstVisitPrice)}`}
               </p>
