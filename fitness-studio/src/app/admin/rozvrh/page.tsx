@@ -69,7 +69,7 @@ export default async function AdminSchedule({ searchParams }: PageProps<"/admin/
               <div className="grid gap-4 sm:grid-cols-3">
                 <Field label="Datum (od)"><Input name="dateFrom" type="date" defaultValue={today} required /></Field>
                 <Field label="Čas začátku"><Input name="time" type="time" defaultValue="18:00" required /></Field>
-                <Field label="Opakovat do" hint="Prázdné = jen jeden termín"><Input name="dateUntil" type="date" /></Field>
+                <Field label="Opakovat do" hint="Nutné při zaškrtnutých dnech · prázdné = jedna lekce v den „od“"><Input name="dateUntil" type="date" /></Field>
               </div>
               <fieldset>
                 <legend className="mb-2 text-xs font-semibold uppercase tracking-wider text-les/70">Dny v týdnu (při opakování)</legend>

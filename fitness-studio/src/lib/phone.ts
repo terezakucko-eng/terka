@@ -16,3 +16,10 @@ export function formatPhone(e164: string) {
   const m = /^\+(420|421)(\d{3})(\d{3})(\d{3})$/.exec(e164);
   return m ? `+${m[1]} ${m[2]} ${m[3]} ${m[4]}` : e164;
 }
+
+/** WhatsApp click-to-chat link (opens the app or web.whatsapp.com); null without a usable number. */
+export function whatsappLink(phone: string | null | undefined, text?: string) {
+  const e164 = normalizePhone(phone);
+  if (!e164) return null;
+  return `https://wa.me/${e164.slice(1)}${text ? `?text=${encodeURIComponent(text)}` : ""}`;
+}

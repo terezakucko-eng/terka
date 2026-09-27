@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, lt } from "drizzle-orm";
+import { and, eq, gte, inArray, isNotNull, lt } from "drizzle-orm";
 import type { DB, Executor } from "@/db";
 import {
   bookings,
@@ -73,21 +73,49 @@ export async function deleteOrders(
  */
 export async function deleteClient(db: DB, userId: string, actorId: string) {
   if (userId === actorId) throw new UserError("Sama sebe smazat nemůžeš.");
+  const [u] = await db.select().from(users).where(eq(users.id, userId));
+  if (!u) throw new UserError("Klient nenalezen.");
+  if (u.role !== "client")
+    throw new UserError("Tohle je účet lektora nebo admina. Nejdřív mu změň roli na klienta.");
+  await deleteClients(db, { ids: [u.id] });
+  return u;
+}
+
+/**
+ * Bulk version: the given clients, or every client account (optionally only
+ * the imported ones). Staff and admin accounts are never touched.
+ */
+export async function deleteClients(
+  db: DB,
+  opts: { ids?: string[]; all?: boolean; importedOnly?: boolean },
+) {
   return db.transaction(async (tx) => {
-    const [u] = await tx.select().from(users).where(eq(users.id, userId)).for("update");
-    if (!u) throw new UserError("Klient nenalezen.");
-    if (u.role !== "client")
-      throw new UserError("Tohle je účet lektora nebo admina. Nejdřív mu změň roli na klienta.");
-    // credit history points at bookings and orders – remove it first
-    await tx.delete(creditTransactions).where(eq(creditTransactions.userId, u.id));
-    await tx.delete(massageBookings).where(eq(massageBookings.userId, u.id));
-    await tx.delete(bookings).where(eq(bookings.userId, u.id));
-    await tx.delete(entitlements).where(eq(entitlements.userId, u.id));
-    await tx.delete(orders).where(eq(orders.userId, u.id));
-    await tx.delete(users).where(eq(users.id, u.id));
-    return u;
+    const rows = await tx
+      .select({ id: users.id })
+      .from(users)
+      .where(
+        and(
+          eq(users.role, "client"),
+          opts.all ? undefined : inArray(users.id, opts.ids?.length ? opts.ids : [NONE]),
+          opts.importedOnly ? isNotNull(users.importedAt) : undefined,
+        ),
+      );
+    const ids = rows.map((r) => r.id);
+    for (let i = 0; i < ids.length; i += 500) {
+      const part = ids.slice(i, i + 500);
+      // credit history points at bookings and orders – remove it first
+      await tx.delete(creditTransactions).where(inArray(creditTransactions.userId, part));
+      await tx.delete(massageBookings).where(inArray(massageBookings.userId, part));
+      await tx.delete(bookings).where(inArray(bookings.userId, part));
+      await tx.delete(entitlements).where(inArray(entitlements.userId, part));
+      await tx.delete(orders).where(inArray(orders.userId, part));
+      await tx.delete(users).where(inArray(users.id, part));
+    }
+    return ids.length;
   });
 }
+
+const NONE = "00000000-0000-0000-0000-000000000000";
 
 /**
  * Removes a class from the schedule for good. Upcoming classes are cancelled
