@@ -281,7 +281,7 @@ Napiš sem, jak studio vzniklo a co pro tebe pohyb znamená.
       ),
       membershipTitle: t("Členství – nadpis", "Členství"),
       membershipText: ta("Členství – text", "Pro ty, kdo chodí pravidelně – nejvýhodnější cena za lekci. Platí se měsíčně."),
-      passTitle: t("Permanentky – nadpis", "Bodové permanentky"),
+      passTitle: t("Permanentky – nadpis", "Permanentky"),
       passText: ta("Permanentky – text", "Balíček vstupů na lekce s platností. Běžná lekce = 1 vstup, u některých lekcí se strhne víc vstupů – vždy to najdeš u lekce."),
       creditTitle: t("Kredit – nadpis", "Kredit"),
       creditText: ta("Kredit – text", "Dobij si kredit a plať jím za lekce – kolik kreditů lekce stojí, vidíš u každé lekce. Platnost se prodlouží s každým dobitím."),

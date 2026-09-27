@@ -4,7 +4,7 @@ import { ProductCard } from "@/components/product-card";
 import { ButtonLink, Container, Eyebrow, PageHeader } from "@/components/ui";
 import type { Product } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
-import { credits, entriesLabel, formatPrice, passLessonPrice } from "@/lib/money";
+import { credits, entriesLabel, formatPrice } from "@/lib/money";
 import { activeClassTypes, activeProducts } from "@/lib/queries";
 import { getSettings } from "@/lib/settings";
 import { getContent, type Content } from "@/content";
@@ -109,9 +109,7 @@ export default async function PricingPage() {
                   {t.dropInPrice !== null ? formatPrice(t.dropInPrice) : "jen s permanentkou"} · {credits(t.creditCost)}
                   {(hasPass || t.passEntries > 1) && (
                     <span className="block text-xs">
-                      bodová permanentka: {entriesLabel(t.passEntries)}
-                      {passLessonPrice(t.passEntries, list, t.dropInPrice) !== null &&
-                        ` (${formatPrice(passLessonPrice(t.passEntries, list, t.dropInPrice)!)})`}
+                      permanentka: {entriesLabel(t.passEntries)}
                     </span>
                   )}
                   {t.firstVisitPrice !== null && (
