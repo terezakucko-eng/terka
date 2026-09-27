@@ -46,7 +46,10 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
         <Card className="bg-les text-papir">
           <Eyebrow className="text-zlato">Kredit</Eyebrow>
           <p className="text-gold mt-3 text-5xl font-light">{user.creditBalance}</p>
-          <p className="mt-1 text-sm text-papir/60">{credits(user.creditBalance).replace(/^\d+ /, "")} k dispozici</p>
+          <p className="mt-1 text-sm text-papir/60">
+            {credits(user.creditBalance).replace(/^\d+ /, "")} k dispozici
+            {user.creditBalance > 0 && user.creditExpiresAt && ` · platí do ${formatDate(user.creditExpiresAt)}`}
+          </p>
           <ButtonLink href="/cenik" variant="outline-light" className="mt-6 px-4 py-2">Dobít</ButtonLink>
         </Card>
         <Card className="md:col-span-2">

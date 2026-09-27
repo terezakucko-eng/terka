@@ -80,6 +80,7 @@ export const creditReason = pgEnum("credit_reason", [
   "refund",
   "admin",
   "bonus",
+  "expired", // propadlý kredit po uplynutí platnosti
 ]);
 
 export const channel = pgEnum("channel", ["email", "sms", "whatsapp"]);
@@ -109,6 +110,10 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   role: userRole("role").notNull().default("client"),
   creditBalance: integer("credit_balance").notNull().default(0),
+  /** Kdy zůstatek kreditu propadne (null = nepropadá) */
+  creditExpiresAt: timestamp("credit_expires_at", { withTimezone: true }),
+  /** Kdy jsme klientovi napsali, že kredit brzy propadne */
+  creditExpiryWarnedAt: timestamp("credit_expiry_warned_at", { withTimezone: true }),
   /** souhlas s newsletterem (e-mail) */
   marketingConsent: boolean("marketing_consent").notNull().default(false),
   smsConsent: boolean("sms_consent").notNull().default(false),

@@ -29,7 +29,7 @@ function perks(p: Product): string[] {
     case "credit_pack":
       return [
         credits(p.credits ?? 0),
-        "Kredit nepropadá",
+        p.validityDays ? `Platí ${p.validityDays} dní od posledního dobití` : "Kredit nepropadá",
         `1 kredit = ${formatPrice(Math.round(p.price / (p.credits || 1)))}`,
       ];
   }

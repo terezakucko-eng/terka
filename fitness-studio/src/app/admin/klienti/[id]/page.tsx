@@ -50,7 +50,7 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
       </AdminTitle>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Stat label="Kredit" value={u.creditBalance} />
+        <Stat label="Kredit" value={u.creditBalance} sub={u.creditBalance > 0 && u.creditExpiresAt ? `platí do ${formatDate(u.creditExpiresAt)}` : undefined} />
         <Stat label="Nadcházející rezervace" value={upcoming.length} />
         <Stat label="Účast (posl. 30 lekcí)" value={attended} sub={`registrace ${formatDate(u.createdAt)}`} />
       </div>

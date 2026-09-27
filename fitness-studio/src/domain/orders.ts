@@ -12,7 +12,7 @@ import {
 } from "@/db/schema";
 import { UserError } from "@/lib/errors";
 import { occupancy } from "./booking";
-import { changeCredits } from "./wallet";
+import { changeCredits, extendCreditValidity } from "./wallet";
 
 const DAY = 86_400_000;
 
@@ -60,6 +60,7 @@ async function grantProduct(
         orderId: order.id,
         note: p.name,
       });
+      if (p.validityDays) await extendCreditValidity(tx, order.userId, p.validityDays, now);
       return;
     case "pass":
     case "membership":

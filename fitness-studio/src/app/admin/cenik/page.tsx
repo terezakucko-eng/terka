@@ -29,7 +29,7 @@ function ProductForm({ p }: { p?: Product }) {
         <Field label="Pořadí"><Input name="sortOrder" type="number" defaultValue={p?.sortOrder ?? 0} /></Field>
         <Field label="Kreditů" hint="Jen u kreditu"><Input name="credits" type="number" min={1} defaultValue={p?.credits ?? ""} /></Field>
         <Field label="Vstupů / minut" hint="Permanentka: vstupy · Solárium: minuty · Členství: prázdné = neomezeně"><Input name="entries" type="number" min={1} defaultValue={p?.entries ?? ""} /></Field>
-        <Field label="Platnost (dny)"><Input name="validityDays" type="number" min={1} defaultValue={p?.validityDays ?? 30} /></Field>
+        <Field label="Platnost (dny)" hint="U kreditu: od posledního dobití · prázdné = nepropadá"><Input name="validityDays" type="number" min={1} defaultValue={p ? (p.validityDays ?? "") : 30} /></Field>
         <Field label="Limit / týden" hint="Jen u členství"><Input name="weeklyLimit" type="number" min={1} defaultValue={p?.weeklyLimit ?? ""} /></Field>
       </div>
       <Field label="Popis"><Textarea name="description" rows={2} defaultValue={p?.description} /></Field>

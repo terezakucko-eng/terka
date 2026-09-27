@@ -15,7 +15,7 @@ import { dateKey, weekRange } from "@/lib/dates";
 import { UserError } from "@/lib/errors";
 import { credits as creditsLabel, formatPrice } from "@/lib/money";
 import { getSettings, type Settings } from "@/lib/settings";
-import { changeCredits } from "./wallet";
+import { changeCredits, creditExpired } from "./wallet";
 
 /** Statuses that take up a spot in the class. */
 export const OCCUPYING = [
@@ -276,15 +276,20 @@ export async function bookingOptions(
   }
 
   const [u] = await tx
-    .select({ balance: users.creditBalance })
+    .select({ balance: users.creditBalance, creditExpiresAt: users.creditExpiresAt })
     .from(users)
     .where(eq(users.id, userId));
   const balance = u?.balance ?? 0;
+  const expired = !!u && creditExpired(u);
   opts.push({
     method: "credits",
     label: `Zaplatit kreditem (${creditsLabel(s.creditCost)})`,
     detail: `Na účtu máš ${creditsLabel(balance)}.`,
-    ...(balance < s.creditCost ? { disabled: "Nedostatek kreditu." } : {}),
+    ...(expired
+      ? { disabled: "Platnost kreditu vypršela." }
+      : balance < s.creditCost
+        ? { disabled: "Nedostatek kreditu." }
+        : {}),
   });
 
   const dropIn = await dropInPriceFor(tx, userId, s, rules);

@@ -31,6 +31,7 @@ export const creditReasonLabel: Record<string, string> = {
   refund: "Vrácení",
   admin: "Úprava recepcí",
   bonus: "Bonus",
+  expired: "Propadlý kredit",
 };
 
 export const entitlementKindLabel: Record<string, string> = {
