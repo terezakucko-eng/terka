@@ -76,7 +76,7 @@ export default async function EditSection({ params }: PageProps<"/admin/obsah/[s
           )}
           {hasPlaceholders && (
             <p className="rounded-xl bg-krem/50 p-3 text-xs text-les/70">
-              Do textu můžeš vložit hodnoty, které se doplní samy: <code>{"{{storno_hodin}}"}</code>, <code>{"{{rezervace_dni}}"}</code>,{" "}
+              Do textu můžeš vložit hodnoty, které se doplní samy: <code>{"{{storno_hodin}}"}</code>, <code>{"{{rezervace_dni}}"}</code>, <code>{"{{rezervace_dni_clenove}}"}</code>,{" "}
               <code>{"{{platba_minut}}"}</code>, <code>{"{{vstupy_zdarma}}"}</code>, <code>{"{{platnost_zdarma}}"}</code>, <code>{"{{firma}}"}</code>,{" "}
               <code>{"{{ico}}"}</code>, <code>{"{{adresa}}"}</code>, <code>{"{{email}}"}</code>, <code>{"{{telefon}}"}</code>. Smazáním textu a uložením se vrátí původní znění.
             </p>

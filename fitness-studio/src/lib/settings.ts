@@ -8,6 +8,8 @@ export const defaultSettings = {
   cancellationHours: 12,
   /** Kolik dní dopředu lze rezervovat */
   bookingWindowDays: 21,
+  /** Členové (aktivní členství) mohou rezervovat dál dopředu */
+  memberBookingWindowDays: 21,
   /** Rezervace se uzavírá X minut před začátkem */
   bookingCutoffMinutes: 0,
   /** Vstupy zdarma pro nově registrované */

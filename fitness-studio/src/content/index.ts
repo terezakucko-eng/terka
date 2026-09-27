@@ -21,6 +21,7 @@ export const getContent = cache(async () => {
   const vars: Record<string, string> = {
     storno_hodin: String(cfg.cancellationHours),
     rezervace_dni: String(cfg.bookingWindowDays),
+    rezervace_dni_clenove: String(Math.max(cfg.memberBookingWindowDays, cfg.bookingWindowDays)),
     platba_minut: String(cfg.pendingPaymentMinutes),
     vstupy_zdarma: String(cfg.welcomeFreeEntries),
     platnost_zdarma: String(cfg.welcomeFreeValidityDays),

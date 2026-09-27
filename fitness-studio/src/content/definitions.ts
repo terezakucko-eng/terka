@@ -2,7 +2,7 @@
  * Every editable text and image on the website, with its default.
  * Admin → Obsah webu edits these; a key missing in the DB shows the default.
  *
- * Placeholders usable in any text: {{storno_hodin}}, {{rezervace_dni}},
+ * Placeholders usable in any text: {{storno_hodin}}, {{rezervace_dni}}, {{rezervace_dni_clenove}},
  * {{platba_minut}}, {{vstupy_zdarma}}, {{platnost_zdarma}}, {{firma}}, {{ico}},
  * {{adresa}}, {{email}}, {{telefon}}.
  */
@@ -314,7 +314,7 @@ Napiš sem, jak studio vzniklo a co pro tebe pohyb znamená.
 {{firma}}, IČO {{ico}}, {{adresa}}, e-mail {{email}}.
 
 ## 2. Rezervace lekcí
-- Rezervace probíhá online přes klientský účet, nejdříve {{rezervace_dni}} dní před lekcí.
+- Rezervace probíhá online přes klientský účet, nejdříve {{rezervace_dni}} dní před lekcí (s aktivním členstvím {{rezervace_dni_clenove}} dní).
 - Lekci lze zaplatit kreditem, permanentkou, členstvím, vstupem zdarma nebo jednorázově platební kartou.
 - Neuhrazená rezervace jednorázového vstupu se uvolní po {{platba_minut}} minutách.
 

@@ -53,15 +53,35 @@ export function sessionState(
   occupied: number,
   cfg: Settings,
   now: Date,
+  windowDays = cfg.bookingWindowDays,
 ): SessionState {
   if (s.status === "cancelled") return "cancelled";
   if (s.startsAt <= now) return "past";
   if (s.startsAt.getTime() - cfg.bookingCutoffMinutes * MIN <= now.getTime())
     return "closed";
-  if (s.startsAt.getTime() > now.getTime() + cfg.bookingWindowDays * DAY)
+  if (s.startsAt.getTime() > now.getTime() + windowDays * DAY)
     return "not_open";
   if (occupied >= s.capacity) return "full";
   return "bookable";
+}
+
+/** How many days ahead this client may book: members get the longer window. */
+export async function bookingWindowFor(tx: Executor, cfg: Settings, userId: string | null, now: Date) {
+  if (!userId || cfg.memberBookingWindowDays <= cfg.bookingWindowDays) return cfg.bookingWindowDays;
+  const [m] = await tx
+    .select({ id: entitlements.id })
+    .from(entitlements)
+    .where(
+      and(
+        eq(entitlements.userId, userId),
+        eq(entitlements.kind, "membership"),
+        eq(entitlements.status, "active"),
+        lte(entitlements.validFrom, now),
+        gt(entitlements.validUntil, now),
+      ),
+    )
+    .limit(1);
+  return m ? cfg.memberBookingWindowDays : cfg.bookingWindowDays;
 }
 
 export function isLateCancel(s: ClassSession, cfg: Settings, now: Date) {
@@ -433,7 +453,8 @@ export async function bookSession(db: DB, input: BookInput, now = new Date()) {
     const s = await lockSession(tx, input.sessionId);
     await expireStalePending(tx, now, s.id);
 
-    const state = sessionState(s, await occupancy(tx, s.id), cfg, now);
+    const window = await bookingWindowFor(tx, cfg, input.userId, now);
+    const state = sessionState(s, await occupancy(tx, s.id), cfg, now, window);
     if (state === "full")
       throw new UserError("Lekce je plná – můžeš se zapsat do pořadníku.");
     if (state !== "bookable") throw new UserError(stateMessage[state]);
@@ -511,7 +532,8 @@ export async function joinWaitlist(
     const cfg = await getSettings(tx);
     const s = await lockSession(tx, input.sessionId);
     await expireStalePending(tx, now, s.id);
-    const state = sessionState(s, await occupancy(tx, s.id), cfg, now);
+    const window = await bookingWindowFor(tx, cfg, input.userId, now);
+    const state = sessionState(s, await occupancy(tx, s.id), cfg, now, window);
     if (state === "bookable")
       throw new UserError("Na lekci je volné místo – rezervuj rovnou.");
     if (state !== "full") throw new UserError(stateMessage[state]);
@@ -741,7 +763,7 @@ export async function sessionForUser(
     .where(eq(classSessions.id, sessionId));
   if (!s) return null;
   const occupied = await occupancy(db, s.id);
-  const state = sessionState(s, occupied, cfg, now);
+  const state = sessionState(s, occupied, cfg, now, await bookingWindowFor(db, cfg, userId, now));
 
   let myBooking: Booking | undefined;
   let waitlistPosition: number | null = null;
