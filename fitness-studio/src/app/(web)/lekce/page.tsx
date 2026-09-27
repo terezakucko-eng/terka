@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getDb } from "@/db";
 import { Container, PageHeader } from "@/components/ui";
 import { credits, formatPrice } from "@/lib/money";
+import { formatDate, pragueLocalToDate } from "@/lib/dates";
 import { activeClassTypes } from "@/lib/queries";
 import { getContent } from "@/content";
 import { ContentImage } from "@/components/content-image";
@@ -34,7 +35,14 @@ export default async function ClassesPage() {
               <p className="mt-6 text-sm text-les/60">
                 {t.durationMin} min · {credits(t.creditCost)}
                 {t.dropInPrice !== null && ` · jednorázově ${formatPrice(t.dropInPrice)}`}
+                {t.firstVisitPrice !== null && ` · první lekce ${formatPrice(t.firstVisitPrice)}`}
               </p>
+              {t.memberSurcharge !== null && t.memberSurcharge > 0 && (
+                <p className="mt-1 text-sm text-les/60">
+                  Členové doplácí {formatPrice(t.memberSurcharge)} za lekci
+                  {t.memberSurchargeFrom && ` od ${formatDate(pragueLocalToDate(t.memberSurchargeFrom))}`}.
+                </p>
+              )}
               <Link href={`/rozvrh?lekce=${t.slug}`} className="eyebrow mt-6 text-zeme underline underline-offset-4 hover:text-les">
                 Termíny v rozvrhu →
               </Link>

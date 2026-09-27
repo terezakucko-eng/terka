@@ -161,6 +161,14 @@ export const classTypes = pgTable("class_types", {
   color: text("color").notNull().default("#7F40FF"),
   imageUrl: text("image_url"),
   level: text("level").notNull().default("Pro všechny"),
+  /** Doplatek pro členy za lekci (haléře); null = bez doplatku */
+  memberSurcharge: integer("member_surcharge"),
+  /** Od kterého dne se doplatek účtuje ("YYYY-MM-DD"); null = hned */
+  memberSurchargeFrom: text("member_surcharge_from"),
+  /** Úvodní vstup zdarma na tuto lekci nejde použít */
+  noFreeEntry: boolean("no_free_entry").notNull().default(false),
+  /** Cena první lekce tohoto typu pro klienta, který na ní ještě nebyl (haléře) */
+  firstVisitPrice: integer("first_visit_price"),
   isActive: boolean("is_active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
   /** Smazaný typ, který má v historii rezervace – skrytý všude, data zůstávají. */
@@ -293,6 +301,9 @@ export const bookings = pgTable(
     entitlementId: uuid("entitlement_id").references(() => entitlements.id),
     orderId: uuid("order_id").references(() => orders.id),
     lateCancel: boolean("late_cancel").notNull().default(false),
+    /** Doplatek člena placený na místě (haléře) */
+    surcharge: integer("surcharge").notNull().default(0),
+    surchargePaidAt: timestamp("surcharge_paid_at", { withTimezone: true }),
     cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
     createdAt: createdAt(),
   },

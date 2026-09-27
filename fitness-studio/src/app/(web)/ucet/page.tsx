@@ -10,7 +10,7 @@ import { getDb } from "@/db";
 import { userBookings, userEntitlements } from "@/lib/account";
 import { requireUser } from "@/lib/auth";
 import { formatDate, formatDay, formatRange, formatTime } from "@/lib/dates";
-import { credits } from "@/lib/money";
+import { credits, formatPrice } from "@/lib/money";
 
 export default async function AccountPage({ searchParams }: PageProps<"/ucet">) {
   const { vitej } = await searchParams;
@@ -101,6 +101,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
               <div className="flex items-center gap-3">
                 {b.status === "waitlist" && <Badge tone="gold">Pořadník</Badge>}
                 {b.status === "pending_payment" && <Badge tone="gold">Čeká na platbu</Badge>}
+                {b.surcharge > 0 && !b.surchargePaidAt && <Badge tone="gold">Doplatek {formatPrice(b.surcharge)} na místě</Badge>}
                 {s.status === "cancelled" && <Badge tone="red">Lekce zrušena</Badge>}
                 {s.status !== "cancelled" && (
                   <ActionForm action={cancelBookingAction} confirm="Opravdu zrušit rezervaci?">

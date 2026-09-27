@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { getDb } from "@/db";
 import {
   announcements,
+  bookings,
   classSessions,
   classTypes,
   entitlements,
@@ -77,6 +78,10 @@ export async function saveClassTypeAction(_: FormState, fd: FormData): Promise<F
       dropInPrice: field.money(fd, "dropInPrice"),
       color: field.str(fd, "color") || "#D2A772",
       level: field.str(fd, "level") || "Pro všechny",
+      memberSurcharge: field.money(fd, "memberSurcharge") || null,
+      memberSurchargeFrom: isDateKey(field.str(fd, "memberSurchargeFrom")) ? field.str(fd, "memberSurchargeFrom") : null,
+      firstVisitPrice: field.money(fd, "firstVisitPrice"),
+      noFreeEntry: field.bool(fd, "noFreeEntry"),
       sortOrder: field.int(fd, "sortOrder") ?? 0,
       isActive: field.bool(fd, "isActive"),
       ...(await imageField(fd, "image", "removeImage", "imageUrl")),
@@ -369,6 +374,18 @@ export async function adjustCreditsAction(_: FormState, fd: FormData): Promise<F
       }),
     );
     return done(`Nový zůstatek: ${bal}.`);
+  });
+}
+
+export async function setSurchargePaidAction(_: FormState, fd: FormData): Promise<FormState> {
+  await requireStaff();
+  return attempt(async () => {
+    const paid = field.bool(fd, "paid");
+    await (await getDb())
+      .update(bookings)
+      .set({ surchargePaidAt: paid ? new Date() : null })
+      .where(eq(bookings.id, field.str(fd, "bookingId")));
+    return done(paid ? "Doplatek zaplacen." : "Doplatek vrácen na nezaplacený.");
   });
 }
 

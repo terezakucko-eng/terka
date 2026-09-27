@@ -7,6 +7,7 @@ import {
   attendanceAction,
   cancelSessionAction,
   deleteSessionAction,
+  setSurchargePaidAction,
   updateSessionAction,
 } from "@/app/admin/actions";
 import { AdminTitle, Panel, Table, Td } from "@/components/admin";
@@ -16,6 +17,7 @@ import { bookingStatusLabel, methodLabel } from "@/components/labels";
 import { Badge, Card, Field, Input, Select } from "@/components/ui";
 import { getDb } from "@/db";
 import { bookings, users } from "@/db/schema";
+import { formatPrice } from "@/lib/money";
 import { requireStaff } from "@/lib/auth";
 import { formatDay, formatRange, toLocalInput } from "@/lib/dates";
 import { activeClassTypes, activeInstructors, sessionDetail } from "@/lib/queries";
@@ -61,7 +63,20 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
                   {isAdmin ? <Link href={`/admin/klienti/${u.id}`} className="font-semibold underline-offset-4 hover:underline">{u.name}</Link> : <strong>{u.name}</strong>}
                   <br /><span className="text-xs text-les/50">{u.phone ?? u.email}</span>
                 </Td>
-                <Td>{b.method ? methodLabel[b.method] : "—"}</Td>
+                <Td>
+                  {b.method ? methodLabel[b.method] : "—"}
+                  {b.surcharge > 0 && (
+                    <ActionForm action={setSurchargePaidAction} className="mt-1">
+                      <input type="hidden" name="bookingId" value={b.id} />
+                      <input type="hidden" name="paid" value={b.surchargePaidAt ? "false" : "true"} />
+                      <button title={b.surchargePaidAt ? "Zrušit zaplacení" : "Označit jako zaplacené"}>
+                        <Badge tone={b.surchargePaidAt ? "green" : "gold"}>
+                          Doplatek {formatPrice(b.surcharge)} {b.surchargePaidAt ? "✓" : "– nezaplaceno"}
+                        </Badge>
+                      </button>
+                    </ActionForm>
+                  )}
+                </Td>
                 <Td><Badge tone={b.status === "attended" ? "green" : b.status === "no_show" ? "red" : "neutral"}>{bookingStatusLabel[b.status]}</Badge></Td>
                 <Td>
                   {b.status !== "pending_payment" && (

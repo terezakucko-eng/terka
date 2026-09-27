@@ -64,6 +64,13 @@
       "when": 1790541891951,
       "tag": "0008_solarium",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790542217445,
+      "tag": "0009_class_pricing_rules",
+      "breakpoints": true
     }
   ]
 }

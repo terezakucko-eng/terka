@@ -3,6 +3,7 @@ import type { DB, Executor } from "@/db";
 import {
   bookings,
   classSessions,
+  classTypes,
   entitlements,
   orders,
   users,
@@ -10,7 +11,7 @@ import {
   type ClassSession,
   type Entitlement,
 } from "@/db/schema";
-import { weekRange } from "@/lib/dates";
+import { dateKey, weekRange } from "@/lib/dates";
 import { UserError } from "@/lib/errors";
 import { credits as creditsLabel, formatPrice } from "@/lib/money";
 import { getSettings, type Settings } from "@/lib/settings";
@@ -152,12 +153,56 @@ async function weeklyUsage(tx: Executor, entitlementId: string, s: ClassSession)
 }
 
 /** Why an entitlement can't pay for this session, or null if it can. */
+/** Per-class-type pricing rules (member surcharge, first visit, free entry). */
+async function classRules(tx: Executor, s: ClassSession) {
+  const [ct] = await tx
+    .select({
+      memberSurcharge: classTypes.memberSurcharge,
+      memberSurchargeFrom: classTypes.memberSurchargeFrom,
+      noFreeEntry: classTypes.noFreeEntry,
+      firstVisitPrice: classTypes.firstVisitPrice,
+    })
+    .from(classTypes)
+    .where(eq(classTypes.id, s.classTypeId));
+  return ct ?? { memberSurcharge: null, memberSurchargeFrom: null, noFreeEntry: false, firstVisitPrice: null };
+}
+type ClassRules = Awaited<ReturnType<typeof classRules>>;
+
+/** Member surcharge that applies to this session (0 = none). */
+export function memberSurchargeFor(rules: ClassRules, s: Pick<ClassSession, "startsAt">) {
+  if (!rules.memberSurcharge) return 0;
+  if (rules.memberSurchargeFrom && dateKey(s.startsAt) < rules.memberSurchargeFrom) return 0;
+  return rules.memberSurcharge;
+}
+
+/** Drop-in price for this client – the intro price if they've never had this class. */
+async function dropInPriceFor(tx: Executor, userId: string, s: ClassSession, rules: ClassRules) {
+  if (rules.firstVisitPrice !== null) {
+    const [before] = await tx
+      .select({ id: bookings.id })
+      .from(bookings)
+      .innerJoin(classSessions, eq(bookings.sessionId, classSessions.id))
+      .where(
+        and(
+          eq(bookings.userId, userId),
+          eq(classSessions.classTypeId, s.classTypeId),
+          inArray(bookings.status, ["confirmed", "attended", "no_show", "pending_payment"]),
+        ),
+      )
+      .limit(1);
+    if (!before) return { price: rules.firstVisitPrice, intro: true };
+  }
+  return s.dropInPrice === null ? null : { price: s.dropInPrice, intro: false };
+}
+
 async function entitlementProblem(
   tx: Executor,
   e: Entitlement,
   s: ClassSession,
 ): Promise<string | null> {
   if (e.status !== "active") return "Oprávnění není aktivní.";
+  if (e.kind === "free" && (await classRules(tx, s)).noFreeEntry)
+    return "Úvodní vstup zdarma na tuhle lekci použít nejde.";
   if (e.validFrom > s.startsAt || e.validUntil <= s.startsAt)
     return "Na datum lekce už neplatí.";
   if (e.entriesTotal !== null && e.entriesUsed >= e.entriesTotal)
@@ -210,6 +255,8 @@ export async function bookingOptions(
     )
     .orderBy(asc(entitlements.validUntil));
 
+  const rules = await classRules(tx, s);
+  const surcharge = memberSurchargeFor(rules, s);
   const rank: Record<ClassKind, number> = { membership: 0, pass: 1, free: 2 };
   const classEnts = ents.flatMap((e) => (isClassKind(e.kind) ? [{ ...e, kind: e.kind }] : []));
   classEnts.sort((a, b) => rank[a.kind] - rank[b.kind]);
@@ -223,7 +270,7 @@ export async function bookingOptions(
       method: methodForKind[e.kind],
       entitlementId: e.id,
       label: e.name,
-      detail: left,
+      detail: e.kind === "membership" && surcharge ? `${left} · doplatek ${formatPrice(surcharge)} na místě` : left,
       ...(problem ? { disabled: problem } : {}),
     });
   }
@@ -240,10 +287,11 @@ export async function bookingOptions(
     ...(balance < s.creditCost ? { disabled: "Nedostatek kreditu." } : {}),
   });
 
-  if (s.dropInPrice !== null) {
+  const dropIn = await dropInPriceFor(tx, userId, s, rules);
+  if (dropIn) {
     opts.push({
       method: "drop_in",
-      label: `Jednorázový vstup ${formatPrice(s.dropInPrice)}`,
+      label: dropIn.intro ? `První lekce ${formatPrice(dropIn.price)}` : `Jednorázový vstup ${formatPrice(dropIn.price)}`,
       detail: "Zaplatíš online kartou.",
     });
   }
@@ -310,7 +358,12 @@ async function charge(
 
   await tx
     .update(bookings)
-    .set({ creditsCharged, entitlementId: entId, method })
+    .set({
+      creditsCharged,
+      entitlementId: entId,
+      method,
+      surcharge: method === "membership" ? memberSurchargeFor(await classRules(tx, s), s) : 0,
+    })
     .where(eq(bookings.id, booking.id));
 }
 
@@ -393,16 +446,16 @@ export async function bookSession(db: DB, input: BookInput, now = new Date()) {
     }
 
     if (input.method === "drop_in") {
-      if (s.dropInPrice === null)
-        throw new UserError("Na tuto lekci nelze koupit jednorázový vstup.");
+      const dropIn = await dropInPriceFor(tx, input.userId, s, await classRules(tx, s));
+      if (!dropIn) throw new UserError("Na tuto lekci nelze koupit jednorázový vstup.");
       const [order] = await tx
         .insert(orders)
         .values({
           userId: input.userId,
           kind: "drop_in",
           sessionId: s.id,
-          description: "Jednorázový vstup",
-          amount: s.dropInPrice,
+          description: dropIn.intro ? "První lekce" : "Jednorázový vstup",
+          amount: dropIn.price,
           provider: "pending",
           expiresAt: new Date(now.getTime() + cfg.pendingPaymentMinutes * MIN),
         })
