@@ -92,6 +92,20 @@
       "when": 1790549002285,
       "tag": "0012_class_pass_entries",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790550710471,
+      "tag": "0013_reminders",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1790550797619,
+      "tag": "0014_announcement_comments",
+      "breakpoints": true
     }
   ]
 }

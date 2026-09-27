@@ -422,8 +422,14 @@ async function refund(tx: Executor, b: Booking, s: ClassSession, note: string) {
           note,
         });
       break;
-    case "drop_in":
-      // Online payments come back as credit – no card round-trip needed.
+    case "drop_in": {
+      // Not paid yet (bank transfer pending) – just call the payment off.
+      const [o] = b.orderId ? await tx.select().from(orders).where(eq(orders.id, b.orderId)) : [];
+      if (o && o.status !== "paid") {
+        await tx.update(orders).set({ status: "cancelled" }).where(eq(orders.id, o.id));
+        break;
+      }
+      // Paid entries come back as credit – no refund round-trip needed.
       await changeCredits(tx, {
         userId: b.userId,
         delta: s.creditCost,
@@ -432,6 +438,7 @@ async function refund(tx: Executor, b: Booking, s: ClassSession, note: string) {
         note: `${note} (jednorázový vstup vrácen jako kredit)`,
       });
       break;
+    }
     case "pass":
     case "free":
     case "membership": {
@@ -463,6 +470,8 @@ export type BookInput = {
   sessionId: string;
   method: Method;
   entitlementId?: string;
+  /** Drop-in paid later by bank transfer: the spot is booked right away. */
+  payLater?: boolean;
 };
 
 export async function bookSession(db: DB, input: BookInput, now = new Date()) {
@@ -502,7 +511,7 @@ export async function bookSession(db: DB, input: BookInput, now = new Date()) {
           description: dropIn.intro ? "První lekce" : "Jednorázový vstup",
           amount: dropIn.price,
           provider: "pending",
-          expiresAt: new Date(now.getTime() + cfg.pendingPaymentMinutes * MIN),
+          expiresAt: input.payLater ? null : new Date(now.getTime() + cfg.pendingPaymentMinutes * MIN),
         })
         .returning();
       const [booking] = await tx
@@ -510,7 +519,7 @@ export async function bookSession(db: DB, input: BookInput, now = new Date()) {
         .values({
           userId: input.userId,
           sessionId: s.id,
-          status: "pending_payment",
+          status: input.payLater ? "confirmed" : "pending_payment",
           method: "drop_in",
           orderId: order.id,
         })

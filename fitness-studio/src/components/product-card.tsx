@@ -10,7 +10,7 @@ function perks(p: Product): string[] {
     case "membership":
       return [
         p.weeklyLimit ? `Až ${p.weeklyLimit} lekce týdně` : "Neomezeně lekcí",
-        p.recurring ? "Obnovuje se automaticky každý měsíc" : `Platnost ${p.validityDays ?? 30} dní`,
+        p.recurring ? "Platí se každý měsíc" : `Platnost ${p.validityDays ?? 30} dní`,
         "Přednost v pořadníku, když je lekce plná",
       ];
     case "pass":
@@ -48,12 +48,15 @@ export function ProductCard({
   loggedIn,
   next,
   passNotes = [],
+  creditNotes = [],
 }: {
   p: Product;
   loggedIn: boolean;
   next: string;
   /** e.g. "Reformer fusion = 2 vstupy" – shown on pass cards */
   passNotes?: string[];
+  /** e.g. "Většina lekcí: 220 kreditů" – shown on credit pack cards */
+  creditNotes?: string[];
 }) {
   return (
     <article
@@ -72,7 +75,7 @@ export function ProductCard({
                       {p.kind === "membership" && p.recurring && <span className="text-base"> / měsíc</span>}
                     </p>
                     <ul className="mt-5 flex-1 space-y-2 text-sm">
-                      {[...perks(p), ...(p.kind === "pass" ? passNotes : [])].map((x) => (
+                      {[...perks(p), ...(p.kind === "pass" ? passNotes : p.kind === "credit_pack" ? creditNotes : [])].map((x) => (
                         <li key={x} className="flex gap-2">
                           <Check className={cx("mt-0.5 size-4 shrink-0", p.highlight ? "text-zlato" : "text-salvej")} /> {x}
                         </li>
@@ -81,8 +84,8 @@ export function ProductCard({
                     {loggedIn ? (
                       <ActionForm action={buyProductAction} className="mt-6">
                         <input type="hidden" name="productId" value={p.id} />
-                        <SubmitButton variant={p.highlight ? "gold" : "dark"} className="w-full" pendingText="Přesměrovávám…">
-                          Koupit online
+                        <SubmitButton variant={p.highlight ? "gold" : "dark"} className="w-full" pendingText="Moment…">
+                          Koupit – platba převodem
                         </SubmitButton>
                       </ActionForm>
                     ) : (

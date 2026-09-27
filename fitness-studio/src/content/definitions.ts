@@ -99,6 +99,7 @@ export const SECTIONS = {
       classes: t("Menu – Lekce", "Lekce"),
       pricing: t("Menu – Ceník", "Ceník"),
       massages: t("Menu – Masáže", "Masáže"),
+      board: opt("Menu – Nástěnka (prázdné = skrýt z menu)", "Nástěnka"),
       about: t("Menu – O mně", "O mně"),
       contact: t("Menu – Kontakt", "Kontakt"),
       book: t("Tlačítko Rezervovat", "Rezervovat"),
@@ -110,7 +111,7 @@ export const SECTIONS = {
     title: "Úvod – hlavní část",
     page: "/",
     fields: {
-      eyebrow: opt("Malý nadpis", "OCTOPUSH / Studio pohybu"),
+      eyebrow: opt("Malý nadpis nad logem (prázdné = nezobrazovat)", ""),
       ctaPrimary: t("Hlavní tlačítko", "Rezervovat lekci"),
       ctaSecondary: t("Druhé tlačítko (nepřihlášený)", "První lekce zdarma"),
       image: img("Fotka", "/img/priroda.webp"),
@@ -209,6 +210,15 @@ export const SECTIONS = {
       intro: ta("Úvodní text", "Tanec, pilates, síla i regenerace. Vyber si podle nálady – nebo zkus všechno."),
     },
   },
+  board: {
+    title: "Nástěnka",
+    page: "/nastenka",
+    fields: {
+      eyebrow: opt("Malý nadpis", "Nástěnka"),
+      title: t("Nadpis", "Co je nového v OCTOPUSH."),
+      intro: ta("Úvodní text", "Novinky ze studia – a prostor pro tvoje reakce."),
+    },
+  },
   massages: {
     title: "Masáže",
     page: "/masaze",
@@ -224,9 +234,10 @@ export const SECTIONS = {
       bankAccount: {
         label: "Číslo účtu pro platby převodem",
         type: "text",
-        default: "",
-        hint: "Např. 123456789/0800. Prázdné = platba převodem se nenabízí, jen na místě.",
+        default: "5072631349/0800",
+        hint: "Platí pro všechny platby převodem (lekce, permanentky, kredit, masáže).",
       },
+      bankHolder: t("Majitel účtu (ukáže se u platby)", "MOVE IN ZONE s.r.o."),
     },
   },
   about: {
@@ -270,10 +281,10 @@ Napiš sem, jak studio vzniklo a co pro tebe pohyb znamená.
       ),
       membershipTitle: t("Členství – nadpis", "Členství"),
       membershipText: ta("Členství – text", "Pro ty, kdo chodí pravidelně – nejvýhodnější cena za lekci. Platí se měsíčně."),
-      passTitle: t("Permanentky – nadpis", "Permanentky"),
-      passText: ta("Permanentky – text", "Balíček vstupů s platností – ideální, když chodíš nepravidelně."),
+      passTitle: t("Permanentky – nadpis", "Bodové permanentky"),
+      passText: ta("Permanentky – text", "Balíček vstupů na lekce s platností. Běžná lekce = 1 vstup, u některých lekcí se strhne víc vstupů – vždy to najdeš u lekce."),
       creditTitle: t("Kredit – nadpis", "Kredit"),
-      creditText: ta("Kredit – text", "Bodová permanentka – lekce za kredity vychází levněji než jednorázový vstup. Platnost se prodlouží s každým dobitím."),
+      creditText: ta("Kredit – text", "Dobij si kredit a plať jím za lekce – kolik kreditů lekce stojí, vidíš u každé lekce. Platnost se prodlouží s každým dobitím."),
       solariumTitle: t("Solárium – nadpis", "Solárium"),
       solariumText: ta("Solárium – text", "Permanentka na minuty pro členy. Minuty ti odečteme na recepci po každém opalování."),
       massagePassTitle: t("Permanentky na masáže – nadpis", "Masáže"),
@@ -282,7 +293,7 @@ Napiš sem, jak studio vzniklo a co pro tebe pohyb znamená.
         "Permanentka na více masáží. Termín si rezervuješ online a při platbě zvolíš „Permanentkou“.",
       ),
       dropInTitle: t("Jednorázový vstup – nadpis", "Jednorázový vstup"),
-      dropInText: ta("Jednorázový vstup – text", "Bez závazku – zaplatíš kartou přímo při rezervaci lekce, nebo kreditem."),
+      dropInText: ta("Jednorázový vstup – text", "Bez závazku – zaplatíš převodem nebo kreditem."),
       info1Title: t("Info 1 – nadpis", "Storno"),
       info1Text: ta(
         "Info 1 – text",

@@ -11,6 +11,7 @@ import {
   classTypes,
   entitlements,
   instructors,
+  orders,
   products,
   users,
 } from "@/db/schema";
@@ -531,7 +532,11 @@ export async function sellProductAction(_: FormState, fd: FormData): Promise<For
 export async function markOrderPaidAction(_: FormState, fd: FormData): Promise<FormState> {
   await requireAdmin();
   return attempt(async () => {
-    await fulfillOrder(await getDb(), { orderId: field.str(fd, "orderId"), provider: "manual" });
+    const db = await getDb();
+    const orderId = field.str(fd, "orderId");
+    const [o] = await db.select({ provider: orders.provider }).from(orders).where(eq(orders.id, orderId));
+    // a bank transfer stays labelled as such once it's confirmed
+    await fulfillOrder(db, { orderId, provider: o?.provider === "transfer" ? "transfer" : "manual" });
     return done("Označeno jako zaplacené.");
   });
 }

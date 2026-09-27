@@ -320,6 +320,8 @@ export const bookings = pgTable(
     /** Doplatek člena placený na místě (haléře) */
     surcharge: integer("surcharge").notNull().default(0),
     surchargePaidAt: timestamp("surcharge_paid_at", { withTimezone: true }),
+    /** Kdy odešla připomínka den předem */
+    reminderSentAt: timestamp("reminder_sent_at", { withTimezone: true }),
     cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
     createdAt: createdAt(),
   },
@@ -361,6 +363,23 @@ export const announcements = pgTable("announcements", {
 });
 
 /** Hromadná zpráva – newsletter, SMS nebo WhatsApp. */
+/** Reakce klientů na aktuality (nástěnka). */
+export const announcementComments = pgTable(
+  "announcement_comments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    announcementId: uuid("announcement_id")
+      .notNull()
+      .references(() => announcements.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("announcement_comments_ann_idx").on(t.announcementId)],
+);
+
 export const campaigns = pgTable("campaigns", {
   id: uuid("id").primaryKey().defaultRandom(),
   channel: channel("channel").notNull(),
@@ -519,6 +538,8 @@ export const massageBookings = pgTable(
     guestName: text("guest_name"),
     guestPhone: text("guest_phone"),
     guestEmail: text("guest_email"),
+    /** Kdy odešla připomínka den předem */
+    reminderSentAt: timestamp("reminder_sent_at", { withTimezone: true }),
     note: text("note"),
     cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
     createdAt: createdAt(),
