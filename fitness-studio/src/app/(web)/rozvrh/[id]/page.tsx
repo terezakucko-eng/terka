@@ -67,7 +67,7 @@ export default async function SessionPage({ params }: PageProps<"/rozvrh/[id]">)
             <dl className="mt-8 grid max-w-md grid-cols-3 gap-6 border-t border-zlato/20 pt-6 text-sm">
               <div><dt className="eyebrow text-papir/50">Cena</dt><dd className="mt-1 font-semibold">{s.isFree ? "Zdarma" : credits(s.creditCost)}</dd></div>
               <div><dt className="eyebrow text-papir/50">Vstup</dt><dd className="mt-1 font-semibold">{s.isFree ? "—" : s.dropInPrice !== null ? formatPrice(s.dropInPrice) : "—"}</dd></div>
-              <div><dt className="eyebrow text-papir/50">Místa</dt><dd className="mt-1 font-semibold">{s.status === "cancelled" ? "—" : availabilityText(left)}</dd></div>
+              <div><dt className="eyebrow text-papir/50">Místa</dt><dd className="mt-1 font-semibold">{s.status === "cancelled" ? "—" : availabilityText(left, s.capacity)}</dd></div>
             </dl>
           </div>
 
