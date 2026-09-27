@@ -20,6 +20,7 @@ import {
   occupancy,
   setAttendance,
 } from "@/domain/booking";
+import { deleteClassType } from "@/domain/catalog";
 import { fulfillOrder, sellAtReception } from "@/domain/orders";
 import { grantEntitlement, normalizeEmail } from "@/domain/users";
 import { changeCredits } from "@/domain/wallet";
@@ -83,6 +84,18 @@ export async function saveClassTypeAction(_: FormState, fd: FormData): Promise<F
     if (id) await db.update(classTypes).set(values).where(eq(classTypes.id, id));
     else await db.insert(classTypes).values(values);
     return done(id ? "Lekce uložena." : "Lekce vytvořena.");
+  });
+}
+
+export async function deleteClassTypeAction(_: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  return attempt(async () => {
+    const result = await deleteClassType(await getDb(), required(field.str(fd, "id"), "Chybí lekce."));
+    return done(
+      result === "deleted"
+        ? "Typ lekce smazán."
+        : "Typ lekce smazán. Proběhlé termíny s rezervacemi zůstávají v historii klientů.",
+    );
   });
 }
 
