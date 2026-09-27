@@ -17,7 +17,7 @@ export default async function ClassesPage() {
         {c("classes.intro")}
       </PageHeader>
       <Container className="py-12">
-        <div className="grid gap-px overflow-hidden rounded-2xl border border-linka/60 bg-linka/60 md:grid-cols-2">
+        <div className="grid gap-px overflow-hidden rounded-2xl border border-linka/60 bg-linka/60 md:grid-cols-2 md:[&>*:last-child:nth-child(odd)]:col-span-2">
           {types.map((t, i) => (
             <article key={t.id} className="flex flex-col bg-papir">
               {t.imageUrl && (

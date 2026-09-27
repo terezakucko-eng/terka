@@ -50,6 +50,7 @@ export async function saveMassageServiceAction(_: FormState, fd: FormData): Prom
       description: field.str(fd, "description"),
       durationMin: Math.max(field.int(fd, "durationMin") ?? 60, 10),
       price,
+      memberPrice: field.money(fd, "memberPrice"),
       sortOrder: field.int(fd, "sortOrder") ?? 0,
       isActive: field.bool(fd, "isActive"),
       ...(file ? { imageUrl: await storeImage(db, file, 1600) } : field.bool(fd, "removeImage") ? { imageUrl: null } : {}),
@@ -106,6 +107,7 @@ export async function adminBookMassageAction(_: FormState, fd: FormData): Promis
       startsAt: pragueLocalToDate(at),
       payment,
       note: field.optional(fd, "note"),
+      memberRate: field.bool(fd, "memberRate") || undefined,
     } as const;
     const b = await adminBookMassage(
       db,

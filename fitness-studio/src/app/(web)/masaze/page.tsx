@@ -20,7 +20,7 @@ export default async function MassagesPage() {
         {services.length === 0 ? (
           <p className="max-w-xl text-les/70">{c("massages.noSlots")}</p>
         ) : (
-          <div className="grid gap-px overflow-hidden rounded-2xl border border-linka/60 bg-linka/60 md:grid-cols-2">
+          <div className="grid gap-px overflow-hidden rounded-2xl border border-linka/60 bg-linka/60 md:grid-cols-2 md:[&>*:last-child:nth-child(odd)]:col-span-2">
             {services.map((m) => (
               <article key={m.id} className="flex flex-col bg-papir">
                 {m.imageUrl && (
@@ -32,7 +32,12 @@ export default async function MassagesPage() {
                   <p className="eyebrow text-les/50">{m.durationMin} min</p>
                   <h2 className="mt-4 text-3xl font-semibold tracking-tight">{m.name}</h2>
                   <p className="mt-4 flex-1 whitespace-pre-line text-les/70">{m.description}</p>
-                  <p className="mt-6 text-2xl font-semibold">{formatPrice(m.price)}</p>
+                  <p className="mt-6 text-2xl font-semibold">
+                    {formatPrice(m.price)}
+                    {m.memberPrice !== null && (
+                      <span className="ml-3 text-base font-normal text-les/60">pro členy {formatPrice(m.memberPrice)}</span>
+                    )}
+                  </p>
                   <Link href={`/masaze/${m.slug}`} className="eyebrow mt-6 text-zeme underline underline-offset-4 hover:text-les">
                     Vybrat termín →
                   </Link>

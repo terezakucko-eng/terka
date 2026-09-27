@@ -54,7 +54,7 @@ export default async function MassageBookingPage({ params, searchParams }: PageP
       {!cancelled && b.payment === "transfer" && !b.paidAt && transfer && (
         <Card className="mt-8 grid gap-6 sm:grid-cols-[1fr_auto] sm:items-center">
           <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
-            <dt className="text-les/60">Částka</dt><dd className="font-semibold">{formatPrice(b.price)}</dd>
+            <dt className="text-les/60">Částka</dt><dd className="font-semibold">{formatPrice(b.price)}{b.memberRate && " (cena pro členy)"}</dd>
             <dt className="text-les/60">Číslo účtu</dt><dd className="font-semibold tabular-nums">{transfer.account}</dd>
             {transfer.iban && (<><dt className="text-les/60">IBAN</dt><dd className="tabular-nums">{transfer.iban}</dd></>)}
             <dt className="text-les/60">Variabilní symbol</dt><dd className="font-semibold tabular-nums">{transfer.vs}</dd>
@@ -68,7 +68,7 @@ export default async function MassageBookingPage({ params, searchParams }: PageP
         </Card>
       )}
       {!cancelled && b.payment === "on_site" && (
-        <p className="mt-8 text-les/70">Platí se na místě kartou: <strong>{formatPrice(b.price)}</strong>.</p>
+        <p className="mt-8 text-les/70">Platí se na místě kartou: <strong>{formatPrice(b.price)}</strong>{b.memberRate && " (cena pro členy)"}.</p>
       )}
       {b.note && <p className="mt-6 text-sm text-les/60">Tvoje poznámka: {b.note}</p>}
 

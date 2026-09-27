@@ -8,6 +8,7 @@ import {
   computeSlots,
   removeAvailability,
 } from "@/domain/massages";
+import { grantEntitlement } from "@/domain/users";
 import { pragueLocalToDate } from "@/lib/dates";
 import { czIban, spdPayload } from "@/lib/qr-payment";
 import { NOW, makeUser, testDb } from "./helpers";
@@ -98,6 +99,27 @@ describe("booking massages", () => {
     const n1 = await addAvailability(h.db, { date: "2026-11-02", from: "09:00", to: "11:00", weeks: 3 });
     const n2 = await addAvailability(h.db, { date: "2026-11-02", from: "10:00", to: "12:00", weeks: 4 });
     expect([n1, n2]).toEqual([3, 1]);
+  });
+});
+
+describe("member prices", () => {
+  it("members pay the member price, others the single price", async () => {
+    const [s] = await h.db
+      .insert(massageServices)
+      .values({ name: "Sportovní", slug: "sport-m", durationMin: 60, price: 90000, memberPrice: 70000 })
+      .returning();
+    await addAvailability(h.db, { date: "2026-10-08", from: "09:00", to: "13:00", weeks: 1 });
+    const member = await makeUser(h.db);
+    await grantEntitlement(h.db, { userId: member.id, kind: "membership", name: "Členství", entries: null, validityDays: 30 }, NOW);
+    const guest = await makeUser(h.db);
+    const bm = await bookMassage(h.db, { userId: member.id, serviceId: s.id, startsAt: at("09:00", "2026-10-08"), payment: "on_site" }, NOW);
+    const bg = await bookMassage(h.db, { userId: guest.id, serviceId: s.id, startsAt: at("11:00", "2026-10-08"), payment: "on_site" }, NOW);
+    expect([bm.price, bm.memberRate]).toEqual([70000, true]);
+    expect([bg.price, bg.memberRate]).toEqual([90000, false]);
+    const forced = await adminBookMassage(h.db, {
+      serviceId: s.id, startsAt: at("18:00", "2026-10-08"), payment: "on_site", memberRate: true, guest: { name: "Host" },
+    });
+    expect(forced.price).toBe(70000);
   });
 });
 

@@ -7,7 +7,7 @@ import { ActionForm, SubmitButton } from "@/components/forms";
 import { ButtonLink, Container, Eyebrow, Field, Textarea, cx } from "@/components/ui";
 import { getContent } from "@/content";
 import { getDb } from "@/db";
-import { activeMassageServices, freeSlotsByDay } from "@/domain/massages";
+import { activeMassageServices, freeSlotsByDay, isMember } from "@/domain/massages";
 import { getCurrentUser } from "@/lib/auth";
 import { formatDay, formatShortDay, formatTime } from "@/lib/dates";
 import { formatPrice } from "@/lib/money";
@@ -27,7 +27,9 @@ export default async function MassagePage({ params, searchParams }: PageProps<"/
   const { den } = await searchParams;
   const service = await load(slug);
   if (!service) notFound();
-  const [byDay, user, c] = await Promise.all([freeSlotsByDay(await getDb(), service), getCurrentUser(), getContent()]);
+  const db = await getDb();
+  const [byDay, user, c] = await Promise.all([freeSlotsByDay(db, service), getCurrentUser(), getContent()]);
+  const member = user && service.memberPrice !== null ? await isMember(db, user.id) : false;
   const days = [...byDay.keys()];
   const day = typeof den === "string" && byDay.has(den) ? den : days[0];
   const slots = day ? byDay.get(day)! : [];
@@ -46,7 +48,11 @@ export default async function MassagePage({ params, searchParams }: PageProps<"/
           <p className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-papir/80">
             <span className="flex items-center gap-2"><Clock className="size-5 text-zlato" /> {service.durationMin} min</span>
             <span className="text-gold text-2xl font-semibold">{formatPrice(service.price)}</span>
+            {service.memberPrice !== null && (
+              <span className="text-papir/80">pro členy <strong className="text-gold">{formatPrice(service.memberPrice)}</strong></span>
+            )}
           </p>
+          {member && <p className="mt-3 text-sm text-zlato-light">Máš aktivní členství – platíš cenu pro členy.</p>}
           {service.description && <p className="mt-6 max-w-2xl whitespace-pre-line text-papir/75">{service.description}</p>}
         </Container>
       </section>

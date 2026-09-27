@@ -28,9 +28,12 @@ function ServiceForm({ m }: { m?: MassageService }) {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Field label="Název"><Input name="name" defaultValue={m?.name} required placeholder="Relaxační masáž" /></Field>
         <Field label="Délka (min)"><Input name="durationMin" type="number" min={10} step={5} defaultValue={m?.durationMin ?? 60} /></Field>
-        <Field label="Cena (Kč)"><Input name="price" inputMode="decimal" defaultValue={kc(m?.price)} required /></Field>
-        <Field label="Pořadí"><Input name="sortOrder" type="number" defaultValue={m?.sortOrder ?? 0} /></Field>
+        <Field label="Jednorázová cena (Kč)"><Input name="price" inputMode="decimal" defaultValue={kc(m?.price)} required /></Field>
+        <Field label="Cena pro členy (Kč)" hint="Prázdné = stejná pro všechny">
+          <Input name="memberPrice" inputMode="decimal" defaultValue={kc(m?.memberPrice)} />
+        </Field>
       </div>
+      <Field label="Pořadí"><Input name="sortOrder" type="number" defaultValue={m?.sortOrder ?? 0} className="max-w-32" /></Field>
       <Field label="URL (slug)" hint="Prázdné = z názvu"><Input name="slug" defaultValue={m?.slug} /></Field>
       <Field label="Popis"><Textarea name="description" rows={3} defaultValue={m?.description} /></Field>
       <div className="flex flex-wrap items-center gap-4">
@@ -106,6 +109,7 @@ export default async function AdminMassages() {
                 </Td>
                 <Td className="whitespace-nowrap">
                   {formatPrice(b.price)}
+                  {b.memberRate && <span className="ml-1 text-xs text-les/60">(člen)</span>}
                   <br />
                   {b.paidAt ? (
                     <Badge tone="green">Zaplaceno</Badge>
@@ -155,6 +159,7 @@ export default async function AdminMassages() {
                   <Field label="E-mail" hint="Pokud má účet, přiřadí se k němu"><Input name="email" type="email" /></Field>
                 </div>
                 <Field label="Poznámka"><Input name="note" /></Field>
+                <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="memberRate" /> Účtovat cenu pro členy (u klienta s aktivním členstvím se použije sama)</label>
                 <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="notify" defaultChecked /> Poslat klientovi potvrzení e-mailem</label>
                 <SubmitButton>Zapsat</SubmitButton>
               </ActionForm>
@@ -202,7 +207,7 @@ export default async function AdminMassages() {
           <div className="space-y-3">
             <Panel title="+ Nová masáž"><ServiceForm /></Panel>
             {services.map((m) => (
-              <Panel key={m.id} title={`${m.name} · ${m.durationMin} min · ${formatPrice(m.price)}${m.isActive ? "" : " · skryto"}`}>
+              <Panel key={m.id} title={`${m.name} · ${m.durationMin} min · ${formatPrice(m.price)}${m.memberPrice !== null ? ` / členové ${formatPrice(m.memberPrice)}` : ""}${m.isActive ? "" : " · skryto"}`}>
                 <ServiceForm m={m} />
                 <ActionForm
                   action={deleteMassageServiceAction}

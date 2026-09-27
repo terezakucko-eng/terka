@@ -1,6 +1,7 @@
 import { and, asc, eq, gt, gte, isNull, lt, lte, ne, sql } from "drizzle-orm";
 import type { DB, Executor } from "@/db";
 import {
+  entitlements,
   massageAvailability,
   massageBookings,
   massageServices,
@@ -41,6 +42,28 @@ export function computeSlots(opts: {
   }
   return out;
 }
+
+/** Member = client with an active membership right now. */
+export async function isMember(db: Executor, userId: string, at = new Date()) {
+  const [m] = await db
+    .select({ id: entitlements.id })
+    .from(entitlements)
+    .where(
+      and(
+        eq(entitlements.userId, userId),
+        eq(entitlements.kind, "membership"),
+        eq(entitlements.status, "active"),
+        lte(entitlements.validFrom, at),
+        gt(entitlements.validUntil, at),
+      ),
+    )
+    .limit(1);
+  return !!m;
+}
+
+/** Price a client pays for the service (member price when it applies). */
+export const priceFor = (service: MassageService, member: boolean) =>
+  member && service.memberPrice !== null ? service.memberPrice : service.price;
 
 export const activeMassageServices = (db: Executor) =>
   db
@@ -100,6 +123,8 @@ export type MassageInput = {
   startsAt: Date;
   payment: "on_site" | "transfer";
   note?: string | null;
+  /** Reception can force the member price; otherwise it follows the client's membership. */
+  memberRate?: boolean;
 } & (
   | { userId: string; guest?: undefined }
   | { userId?: null; guest: { name: string; phone?: string | null; email?: string | null } }
@@ -153,13 +178,17 @@ async function loadService(tx: Executor, id: string, allowInactive = false) {
 }
 
 async function insertBooking(tx: Executor, service: MassageService, input: MassageInput, endsAt: Date) {
+  const member =
+    input.memberRate ?? (input.userId ? await isMember(tx, input.userId, input.startsAt) : false);
+  const memberRate = member && service.memberPrice !== null;
   const [b] = await tx
     .insert(massageBookings)
     .values({
       userId: input.userId ?? null,
       serviceId: service.id,
       serviceName: service.name,
-      price: service.price,
+      price: priceFor(service, memberRate),
+      memberRate,
       startsAt: input.startsAt,
       endsAt,
       payment: input.payment,
