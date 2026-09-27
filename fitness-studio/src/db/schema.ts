@@ -210,6 +210,8 @@ export const products = pgTable("products", {
   recurring: boolean("recurring").notNull().default(false),
   highlight: boolean("highlight").notNull().default(false),
   isActive: boolean("is_active").notNull().default(true),
+  /** Není v ceníku, koupit jde jen přes přímý odkaz (např. zvýhodněné členství pro vybrané) */
+  linkOnly: boolean("link_only").notNull().default(false),
   sortOrder: integer("sort_order").notNull().default(0),
   /** Smazaný produkt, který už někdo koupil – skrytý, historie zůstává. */
   archivedAt: timestamp("archived_at", { withTimezone: true }),

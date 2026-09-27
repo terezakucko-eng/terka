@@ -9,6 +9,7 @@ import { getDb } from "@/db";
 import { products, type Product } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
 import { formatPrice } from "@/lib/money";
+import { site } from "@/config/site";
 
 function ProductForm({ p }: { p?: Product }) {
   return (
@@ -35,7 +36,13 @@ function ProductForm({ p }: { p?: Product }) {
         <label className="flex items-center gap-2"><input type="checkbox" name="recurring" defaultChecked={p?.recurring ?? false} /> Členství se obnovuje měsíčně (předplatné kartou)</label>
         <label className="flex items-center gap-2"><input type="checkbox" name="highlight" defaultChecked={p?.highlight ?? false} /> Zvýraznit</label>
         <label className="flex items-center gap-2"><input type="checkbox" name="isActive" defaultChecked={p?.isActive ?? true} /> V nabídce</label>
+        <label className="flex items-center gap-2"><input type="checkbox" name="linkOnly" defaultChecked={p?.linkOnly ?? false} /> Jen přes odkaz (nezobrazovat v ceníku)</label>
       </div>
+      {p?.linkOnly && p.isActive && (
+        <p className="rounded-xl bg-krem/60 p-3 text-sm">
+          Odkaz pro vybrané klienty: <code className="select-all break-all font-semibold">{`${site.url}/cenik/${p.id}`}</code>
+        </p>
+      )}
       <SubmitButton>Uložit</SubmitButton>
     </ActionForm>
   );
@@ -51,7 +58,7 @@ export default async function AdminPricing() {
       <div className="space-y-3">
         <Panel title="+ Nový produkt"><ProductForm /></Panel>
         {list.map((p) => (
-          <Panel key={p.id} title={`${p.name} · ${formatPrice(p.price)} · ${productKindLabel[p.kind]}${p.isActive ? "" : " · skryto"}`}>
+          <Panel key={p.id} title={`${p.name} · ${formatPrice(p.price)} · ${productKindLabel[p.kind]}${p.isActive ? (p.linkOnly ? " · jen přes odkaz" : "") : " · skryto"}`}>
             {!p.isActive && <Badge tone="red">Není v nabídce</Badge>}
             <ProductForm p={p} />
             <ActionForm

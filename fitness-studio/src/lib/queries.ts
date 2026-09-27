@@ -83,6 +83,14 @@ export const activeInstructors = (db: DB) =>
   db.select().from(instructors).where(eq(instructors.isActive, true)).orderBy(asc(instructors.sortOrder), asc(instructors.name));
 
 export const activeProducts = (db: DB) =>
+  db
+    .select()
+    .from(products)
+    .where(and(eq(products.isActive, true), eq(products.linkOnly, false)))
+    .orderBy(asc(products.sortOrder), asc(products.price));
+
+/** Everything the reception can sell, including link-only products. */
+export const sellableProducts = (db: DB) =>
   db.select().from(products).where(eq(products.isActive, true)).orderBy(asc(products.sortOrder), asc(products.price));
 
 export const publishedAnnouncements = (db: DB, limit = 3) =>
