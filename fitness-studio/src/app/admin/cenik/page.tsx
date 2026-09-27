@@ -1,5 +1,5 @@
-import { asc } from "drizzle-orm";
-import { saveProductAction } from "@/app/admin/actions";
+import { asc, isNull } from "drizzle-orm";
+import { deleteProductAction, saveProductAction } from "@/app/admin/actions";
 import { AdminTitle, Panel } from "@/components/admin";
 import { kc } from "@/components/admin-forms";
 import { ActionForm, SubmitButton } from "@/components/forms";
@@ -43,7 +43,7 @@ function ProductForm({ p }: { p?: Product }) {
 
 export default async function AdminPricing() {
   await requireAdmin();
-  const list = await (await getDb()).select().from(products).orderBy(asc(products.sortOrder));
+  const list = await (await getDb()).select().from(products).where(isNull(products.archivedAt)).orderBy(asc(products.sortOrder));
   return (
     <>
       <AdminTitle title="Ceník – kredit, permanentky, členství" />
@@ -54,6 +54,14 @@ export default async function AdminPricing() {
           <Panel key={p.id} title={`${p.name} · ${formatPrice(p.price)} · ${productKindLabel[p.kind]}${p.isActive ? "" : " · skryto"}`}>
             {!p.isActive && <Badge tone="red">Není v nabídce</Badge>}
             <ProductForm p={p} />
+            <ActionForm
+              action={deleteProductAction}
+              confirm={`Opravdu smazat „${p.name}“ z ceníku? Kdo ho už koupil, má ho dál platný.`}
+              className="mt-4 border-t border-linka/60 pt-4"
+            >
+              <input type="hidden" name="id" value={p.id} />
+              <button className="text-xs font-semibold text-chyba underline">Smazat produkt</button>
+            </ActionForm>
           </Panel>
         ))}
       </div>

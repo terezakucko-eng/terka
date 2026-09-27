@@ -211,6 +211,8 @@ export const products = pgTable("products", {
   highlight: boolean("highlight").notNull().default(false),
   isActive: boolean("is_active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
+  /** Smazaný produkt, který už někdo koupil – skrytý, historie zůstává. */
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: createdAt(),
 });
 

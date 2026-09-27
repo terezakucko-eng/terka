@@ -1,8 +1,8 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { bookings, classSessions, classTypes } from "@/db/schema";
-import { deleteClassType } from "@/domain/catalog";
-import { NOW, hours, makeSession, makeUser, testDb } from "./helpers";
+import { bookings, classSessions, classTypes, entitlements, products } from "@/db/schema";
+import { deleteClassType, deleteProduct } from "@/domain/catalog";
+import { NOW, hours, makeProduct, makeSession, makeUser, testDb } from "./helpers";
 
 let h: Awaited<ReturnType<typeof testDb>>;
 beforeAll(async () => {
@@ -46,5 +46,22 @@ describe("deleting class types", () => {
     const left = await sessionsOf(past.classTypeId);
     expect(left.map((s) => s.id)).toEqual([past.id]);
     expect(left.some((s) => s.id === future.id)).toBe(false);
+  });
+});
+
+describe("deleting products", () => {
+  it("deletes unused products and archives bought ones", async () => {
+    const unused = await makeProduct(h.db, { kind: "pass", entries: 5, validityDays: 30 });
+    expect(await deleteProduct(h.db, unused.id, NOW)).toBe("deleted");
+    expect(await h.db.select().from(products).where(eq(products.id, unused.id))).toHaveLength(0);
+
+    const bought = await makeProduct(h.db, { kind: "pass", entries: 5, validityDays: 30 });
+    const u = await makeUser(h.db);
+    await h.db.insert(entitlements).values({
+      userId: u.id, kind: "pass", productId: bought.id, name: "Pass", entriesTotal: 5, validFrom: NOW, validUntil: hours(24 * 30),
+    });
+    expect(await deleteProduct(h.db, bought.id, NOW)).toBe("archived");
+    const [p] = await h.db.select().from(products).where(eq(products.id, bought.id));
+    expect([p.isActive, p.archivedAt !== null]).toEqual([false, true]);
   });
 });

@@ -20,7 +20,7 @@ import {
   occupancy,
   setAttendance,
 } from "@/domain/booking";
-import { deleteClassType } from "@/domain/catalog";
+import { deleteClassType, deleteProduct } from "@/domain/catalog";
 import { fulfillOrder, sellAtReception } from "@/domain/orders";
 import { grantEntitlement, normalizeEmail } from "@/domain/users";
 import { changeCredits } from "@/domain/wallet";
@@ -118,6 +118,18 @@ export async function saveInstructorAction(_: FormState, fd: FormData): Promise<
     if (id) await db.update(instructors).set(values).where(eq(instructors.id, id));
     else await db.insert(instructors).values(values);
     return done("Lektor uložen.");
+  });
+}
+
+export async function deleteProductAction(_: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  return attempt(async () => {
+    const r = await deleteProduct(await getDb(), required(field.str(fd, "id"), "Chybí produkt."));
+    return done(
+      r === "deleted"
+        ? "Produkt smazán."
+        : "Produkt smazán z ceníku. Kdo ho už koupil, má ho dál platný.",
+    );
   });
 }
 

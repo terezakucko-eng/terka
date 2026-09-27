@@ -43,6 +43,13 @@
       "when": 1790540719178,
       "tag": "0005_massage_member_price",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790540918858,
+      "tag": "0006_product_archive",
+      "breakpoints": true
     }
   ]
 }
