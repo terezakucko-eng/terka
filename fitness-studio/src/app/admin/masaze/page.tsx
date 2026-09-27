@@ -111,7 +111,9 @@ export default async function AdminMassages() {
                   {formatPrice(b.price)}
                   {b.memberRate && <span className="ml-1 text-xs text-les/60">(člen)</span>}
                   <br />
-                  {b.paidAt ? (
+                  {b.payment === "pass" ? (
+                    <Badge tone="green">Permanentka</Badge>
+                  ) : b.paidAt ? (
                     <Badge tone="green">Zaplaceno</Badge>
                   ) : b.payment === "transfer" ? (
                     <Badge tone="gold">Převod · VS {b.variableSymbol}</Badge>
@@ -120,11 +122,13 @@ export default async function AdminMassages() {
                   )}
                 </Td>
                 <Td className="space-y-2 text-right">
+                  {b.payment !== "pass" && (
                   <ActionForm action={setMassagePaidAction}>
                     <input type="hidden" name="id" value={b.id} />
                     <input type="hidden" name="paid" value={b.paidAt ? "false" : "true"} />
                     <button className="text-xs font-semibold underline">{b.paidAt ? "Zrušit platbu" : "Zaplaceno"}</button>
                   </ActionForm>
+                  )}
                   <ActionForm action={adminCancelMassageAction} confirm="Zrušit masáž? Klientovi pošleme e-mail.">
                     <input type="hidden" name="id" value={b.id} />
                     <input type="hidden" name="notify" value="true" />
@@ -151,6 +155,7 @@ export default async function AdminMassages() {
                   <Field label="Platba">
                     <Select name="payment" defaultValue="on_site">
                       <option value="on_site">Na místě</option>
+                      <option value="pass">Permanentkou (klient s účtem)</option>
                       <option value="transfer">Převodem</option>
                     </Select>
                   </Field>

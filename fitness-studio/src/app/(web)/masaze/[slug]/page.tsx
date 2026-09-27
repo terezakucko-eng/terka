@@ -7,7 +7,7 @@ import { ActionForm, SubmitButton } from "@/components/forms";
 import { ButtonLink, Container, Eyebrow, Field, Textarea, cx } from "@/components/ui";
 import { getContent } from "@/content";
 import { getDb } from "@/db";
-import { activeMassageServices, freeSlotsByDay, isMember } from "@/domain/massages";
+import { activeMassageServices, freeSlotsByDay, isMember, massagePassesFor } from "@/domain/massages";
 import { getCurrentUser } from "@/lib/auth";
 import { formatDay, formatShortDay, formatTime } from "@/lib/dates";
 import { formatPrice } from "@/lib/money";
@@ -30,6 +30,8 @@ export default async function MassagePage({ params, searchParams }: PageProps<"/
   const db = await getDb();
   const [byDay, user, c] = await Promise.all([freeSlotsByDay(db, service), getCurrentUser(), getContent()]);
   const member = user && service.memberPrice !== null ? await isMember(db, user.id) : false;
+  const passes = user ? await massagePassesFor(db, user.id, service.id, new Date()) : [];
+  const passLeft = passes.reduce((n, p) => n + (p.entriesTotal ?? 0) - p.entriesUsed, 0);
   const days = [...byDay.keys()];
   const day = typeof den === "string" && byDay.has(den) ? den : days[0];
   const slots = day ? byDay.get(day)! : [];
@@ -98,7 +100,10 @@ export default async function MassagePage({ params, searchParams }: PageProps<"/
               <fieldset>
                 <legend className="eyebrow text-zeme">Platba</legend>
                 <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                  <PayOption value="on_site" title="Na místě" sub="Kartou při návštěvě" checked />
+                  {passes.length > 0 && (
+                    <PayOption value="pass" title="Permanentkou" sub={`Strhne se 1 vstup (zbývá ${passLeft})`} checked />
+                  )}
+                  <PayOption value="on_site" title="Na místě" sub="Kartou při návštěvě" checked={passes.length === 0} />
                   {bankAccount && <PayOption value="transfer" title="Předem převodem" sub="Údaje a QR kód hned po rezervaci" />}
                 </div>
               </fieldset>

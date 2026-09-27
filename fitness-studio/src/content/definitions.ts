@@ -276,6 +276,11 @@ Napiš sem, jak studio vzniklo a co pro tebe pohyb znamená.
       creditText: ta("Kredit – text", "Dobij si peněženku a plať kreditem za jakoukoliv lekci."),
       solariumTitle: t("Solárium – nadpis", "Solárium"),
       solariumText: ta("Solárium – text", "Permanentka na minuty. Minuty ti odečteme na recepci po každém opalování."),
+      massagePassTitle: t("Permanentky na masáže – nadpis", "Masáže"),
+      massagePassText: ta(
+        "Permanentky na masáže – text",
+        "Permanentka na více masáží. Termín si rezervuješ online a při platbě zvolíš „Permanentkou“.",
+      ),
       dropInTitle: t("Jednorázový vstup – nadpis", "Jednorázový vstup"),
       dropInText: ta("Jednorázový vstup – text", "Bez závazku – zaplatíš kartou přímo při rezervaci lekce."),
       info1Title: t("Info 1 – nadpis", "Storno"),

@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   boolean,
   customType,
   index,
@@ -22,6 +23,7 @@ export const productKind = pgEnum("product_kind", [
   "pass", // permanentka na N vstupů s platností
   "membership", // členství – měsíční (neomezené nebo s týdenním limitem)
   "solarium", // minuty solária (odečítá recepce)
+  "massage_pass", // permanentka na masáže (N vstupů)
 ]);
 
 export const entitlementKind = pgEnum("entitlement_kind", [
@@ -29,6 +31,7 @@ export const entitlementKind = pgEnum("entitlement_kind", [
   "membership",
   "free", // vstupy zdarma (uvítací, dárek od studia…)
   "solarium", // minuty solária – entriesTotal/entriesUsed jsou minuty
+  "massage_pass", // vstupy na masáže
 ]);
 
 export const entitlementStatus = pgEnum("entitlement_status", [
@@ -229,6 +232,8 @@ export const products = pgTable("products", {
   membersOnly: boolean("members_only").notNull().default(false),
   /** Není v ceníku, koupit jde jen přes přímý odkaz (např. zvýhodněné členství pro vybrané) */
   linkOnly: boolean("link_only").notNull().default(false),
+  /** massage_pass: na kterou masáž; null = na kteroukoli */
+  massageServiceId: uuid("massage_service_id").references((): AnyPgColumn => massageServices.id),
   sortOrder: integer("sort_order").notNull().default(0),
   /** Smazaný produkt, který už někdo koupil – skrytý, historie zůstává. */
   archivedAt: timestamp("archived_at", { withTimezone: true }),
@@ -278,6 +283,8 @@ export const entitlements = pgTable(
     entriesTotal: integer("entries_total"),
     entriesUsed: integer("entries_used").notNull().default(0),
     weeklyLimit: integer("weekly_limit"),
+    /** massage_pass: na kterou masáž; null = na kteroukoli */
+    massageServiceId: uuid("massage_service_id").references((): AnyPgColumn => massageServices.id),
     validFrom: timestamp("valid_from", { withTimezone: true }).notNull(),
     validUntil: timestamp("valid_until", { withTimezone: true }).notNull(),
     status: entitlementStatus("status").notNull().default("active"),
@@ -303,7 +310,7 @@ export const bookings = pgTable(
     status: bookingStatus("status").notNull(),
     method: bookingMethod("method"),
     creditsCharged: integer("credits_charged").notNull().default(0),
-    entitlementId: uuid("entitlement_id").references(() => entitlements.id),
+    entitlementId: uuid("entitlement_id").references(() => entitlements.id, { onDelete: "set null" }),
     orderId: uuid("order_id").references(() => orders.id),
     lateCancel: boolean("late_cancel").notNull().default(false),
     /** Doplatek člena placený na místě (haléře) */
@@ -449,7 +456,7 @@ export const solariumUses = pgTable(
 
 /* ------------------------------------------------------------ masáže */
 
-export const massagePayment = pgEnum("massage_payment", ["on_site", "transfer"]);
+export const massagePayment = pgEnum("massage_payment", ["on_site", "transfer", "pass"]);
 export const massageBookingStatus = pgEnum("massage_booking_status", ["confirmed", "cancelled"]);
 
 /** Nabídka masáží (druh + délka + cena). */
@@ -501,6 +508,8 @@ export const massageBookings = pgTable(
     endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
     payment: massagePayment("payment").notNull(),
     paidAt: timestamp("paid_at", { withTimezone: true }),
+    /** payment = pass: ze které permanentky se strhl vstup */
+    entitlementId: uuid("entitlement_id").references(() => entitlements.id, { onDelete: "set null" }),
     status: massageBookingStatus("status").notNull().default("confirmed"),
     variableSymbol: integer("variable_symbol").generatedAlwaysAsIdentity({ startWith: 10001 }),
     guestName: text("guest_name"),

@@ -16,6 +16,7 @@ const groups = (c: Content): { kind: Product["kind"]; n: string; title: string; 
   { kind: "pass", n: "02", title: c("pricing.passTitle"), text: c("pricing.passText") },
   { kind: "credit_pack", n: "03", title: c("pricing.creditTitle"), text: c("pricing.creditText") },
   { kind: "solarium", n: "04", title: c("pricing.solariumTitle"), text: c("pricing.solariumText") },
+  { kind: "massage_pass", n: "05", title: c("pricing.massagePassTitle"), text: c("pricing.massagePassText") },
 ];
 
 export default async function PricingPage() {
@@ -67,7 +68,7 @@ export default async function PricingPage() {
         })}
 
         <section>
-          <Eyebrow n="05" className="text-zeme">{c("pricing.dropInTitle")}</Eyebrow>
+          <Eyebrow n="06" className="text-zeme">{c("pricing.dropInTitle")}</Eyebrow>
           <p className="mt-3 max-w-xl text-les/70">{c("pricing.dropInText")}</p>
           <div className="mt-8 divide-y divide-linka/60 border-y border-linka/60">
             {types.map((t) => (

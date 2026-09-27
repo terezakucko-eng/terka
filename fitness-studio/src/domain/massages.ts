@@ -1,10 +1,12 @@
-import { and, asc, eq, gt, gte, isNull, lt, lte, ne, sql } from "drizzle-orm";
+import { and, asc, eq, gt, gte, isNull, lt, lte, ne, or, sql } from "drizzle-orm";
 import type { DB, Executor } from "@/db";
 import {
   entitlements,
   massageAvailability,
   massageBookings,
   massageServices,
+  products,
+  type Entitlement,
   type MassageBooking,
   type MassageService,
 } from "@/db/schema";
@@ -121,7 +123,7 @@ async function assertFree(tx: Executor, startsAt: Date, endsAt: Date, bufferMin:
 export type MassageInput = {
   serviceId: string;
   startsAt: Date;
-  payment: "on_site" | "transfer";
+  payment: "on_site" | "transfer" | "pass";
   note?: string | null;
   /** Reception can force the member price; otherwise it follows the client's membership. */
   memberRate?: boolean;
@@ -177,21 +179,72 @@ async function loadService(tx: Executor, id: string, allowInactive = false) {
   return service;
 }
 
+/**
+ * Client's massage passes usable for `serviceId` at `at` (active, valid then,
+ * entries left, for this massage or any), soonest-expiring first.
+ */
+export async function massagePassesFor(
+  db: Executor,
+  userId: string,
+  serviceId: string,
+  at: Date,
+): Promise<Entitlement[]> {
+  const rows = await db
+    .select()
+    .from(entitlements)
+    .where(
+      and(
+        eq(entitlements.userId, userId),
+        eq(entitlements.kind, "massage_pass"),
+        eq(entitlements.status, "active"),
+        lte(entitlements.validFrom, at),
+        gt(entitlements.validUntil, at),
+        or(isNull(entitlements.massageServiceId), eq(entitlements.massageServiceId, serviceId)),
+      ),
+    )
+    .orderBy(asc(entitlements.validUntil));
+  return rows.filter((e) => e.entriesTotal === null || e.entriesUsed < e.entriesTotal);
+}
+
+async function takePassEntry(tx: Executor, userId: string, serviceId: string, at: Date) {
+  const [pass] = await massagePassesFor(tx, userId, serviceId, at);
+  if (!pass) throw new UserError("Nemáš platnou permanentku na tuhle masáž. Vyber jiný způsob platby.");
+  const [locked] = await tx
+    .select()
+    .from(entitlements)
+    .where(eq(entitlements.id, pass.id))
+    .for("update");
+  if (locked.entriesTotal !== null && locked.entriesUsed >= locked.entriesTotal)
+    throw new UserError("Permanentka je vyčerpaná.");
+  await tx
+    .update(entitlements)
+    .set({ entriesUsed: locked.entriesUsed + 1 })
+    .where(eq(entitlements.id, locked.id));
+  return locked.id;
+}
+
 async function insertBooking(tx: Executor, service: MassageService, input: MassageInput, endsAt: Date) {
   const member =
     input.memberRate ?? (input.userId ? await isMember(tx, input.userId, input.startsAt) : false);
   const memberRate = member && service.memberPrice !== null;
+  let entitlementId: string | null = null;
+  if (input.payment === "pass") {
+    if (!input.userId) throw new UserError("Permanentkou může platit jen klient s účtem.");
+    entitlementId = await takePassEntry(tx, input.userId, service.id, input.startsAt);
+  }
   const [b] = await tx
     .insert(massageBookings)
     .values({
       userId: input.userId ?? null,
       serviceId: service.id,
       serviceName: service.name,
-      price: priceFor(service, memberRate),
+      price: entitlementId ? 0 : priceFor(service, memberRate),
       memberRate,
       startsAt: input.startsAt,
       endsAt,
       payment: input.payment,
+      entitlementId,
+      paidAt: entitlementId ? new Date() : null,
       note: input.note || null,
       guestName: input.guest?.name ?? null,
       guestPhone: input.guest?.phone || null,
@@ -215,12 +268,21 @@ export async function cancelMassage(
     throw new UserError(
       `Zrušit online jde nejpozději ${cfg.cancellationHours} h předem. Napiš nám prosím nebo zavolej.`,
     );
-  const [out] = await db
-    .update(massageBookings)
-    .set({ status: "cancelled", cancelledAt: now })
-    .where(eq(massageBookings.id, b.id))
-    .returning();
-  return out;
+  return db.transaction(async (tx) => {
+    const [out] = await tx
+      .update(massageBookings)
+      .set({ status: "cancelled", cancelledAt: now })
+      .where(and(eq(massageBookings.id, b.id), eq(massageBookings.status, "confirmed")))
+      .returning();
+    if (!out) throw new UserError("Rezervace už je zrušená.");
+    // Včas zrušená masáž z permanentky – vstup se vrací.
+    if (out.entitlementId)
+      await tx
+        .update(entitlements)
+        .set({ entriesUsed: sql`greatest(${entitlements.entriesUsed} - 1, 0)` })
+        .where(eq(entitlements.id, out.entitlementId));
+    return out;
+  });
 }
 
 /** Adds availability windows ("Tuesday 14:00–19:00"), optionally weekly. */
@@ -283,7 +345,18 @@ export async function deleteMassageService(db: DB, id: string, now = new Date())
     .from(massageBookings)
     .where(eq(massageBookings.serviceId, id))
     .limit(1);
-  if (!any) {
+  // Permanentky vázané na tuhle masáž drží odkaz – pak jen archivovat.
+  const [pass] = await db
+    .select({ id: products.id })
+    .from(products)
+    .where(eq(products.massageServiceId, id))
+    .limit(1);
+  const [ent] = await db
+    .select({ id: entitlements.id })
+    .from(entitlements)
+    .where(eq(entitlements.massageServiceId, id))
+    .limit(1);
+  if (!any && !pass && !ent) {
     await db.delete(massageServices).where(eq(massageServices.id, id));
     return "deleted" as const;
   }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
-import { markOrderPaidAction } from "@/app/admin/actions";
+import { deleteOrderAction, markOrderPaidAction } from "@/app/admin/actions";
 import { AdminTitle, Table, Td } from "@/components/admin";
 import { ActionForm } from "@/components/forms";
 import { orderStatusLabel } from "@/components/labels";
@@ -33,18 +33,25 @@ export default async function OrdersPage() {
             <Td className="whitespace-nowrap tabular-nums">{formatPrice(o.amount)}</Td>
             <Td>{{ stripe: "Karta online", reception: "Recepce", manual: "Ručně", test: "Test" }[o.provider] ?? o.provider}</Td>
             <Td><Badge tone={o.status === "paid" ? "green" : o.status === "pending" ? "gold" : "neutral"}>{orderStatusLabel[o.status]}</Badge></Td>
-            <Td>
+            <Td className="space-y-1 text-right">
               {o.status === "pending" && o.kind === "product" && (
                 <ActionForm action={markOrderPaidAction} confirm="Označit jako zaplacené a připsat klientovi?">
                   <input type="hidden" name="orderId" value={o.id} />
                   <button className="text-xs font-semibold text-zeme underline">Zaplaceno</button>
                 </ActionForm>
               )}
+              <ActionForm
+                action={deleteOrderAction}
+                confirm={`Smazat objednávku č. ${o.number}? Klientovi se odebere, co z ní dostal (permanentka, kredit…), a zmizí z tržeb.${o.provider === "stripe" ? " Peníze na kartu se tím NEVRACÍ – to se dělá ve Stripe." : ""}`}
+              >
+                <input type="hidden" name="orderId" value={o.id} />
+                <button className="text-xs font-semibold text-chyba underline">Smazat</button>
+              </ActionForm>
             </Td>
           </tr>
         ))}
       </Table>
-      <p className="mt-3 text-xs text-les/50">Posledních 200 objednávek. Vrácení peněz za online platby se provádí v administraci Stripe.</p>
+      <p className="mt-3 text-xs text-les/50">Posledních 200 objednávek. Vrácení peněz za online platby se provádí v administraci Stripe. Hromadné smazání testovacích plateb najdeš v Nastavení → Start studia.</p>
     </>
   );
 }

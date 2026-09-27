@@ -23,7 +23,8 @@ export async function bookMassageAction(_: FormState, fd: FormData): Promise<For
     if (!slot || Number.isNaN(Date.parse(slot))) throw new UserError("Vyber si čas.");
     const c = await getContent();
     const bankAccount = c("massages.bankAccount").trim();
-    const payment = field.str(fd, "payment") === "transfer" && bankAccount ? "transfer" : "on_site";
+    const chosen = field.str(fd, "payment");
+    const payment = chosen === "pass" ? "pass" : chosen === "transfer" && bankAccount ? "transfer" : "on_site";
     const b = await bookMassage(db, {
       userId: user.id,
       serviceId: service.id,
@@ -47,6 +48,7 @@ export async function cancelMassageAction(_: FormState, fd: FormData): Promise<F
     const db = await getDb();
     const b = await cancelMassage(db, { bookingId: field.str(fd, "bookingId"), actorId: user.id });
     await notifyMassageCancelled(db, b, (await getContent())("site.email"), false);
+    if (b.entitlementId) return "Masáž zrušena. Vstup se ti vrátil na permanentku.";
     return b.paidAt ? "Masáž zrušena. Zaplacenou částku ti vrátíme převodem." : "Masáž zrušena.";
   });
   revalidatePath("/", "layout");

@@ -68,7 +68,7 @@ export async function grantEntitlement(
   db: DB,
   input: {
     userId: string;
-    kind: "free" | "pass" | "membership" | "solarium";
+    kind: "free" | "pass" | "membership" | "solarium" | "massage_pass";
     name: string;
     entries: number | null;
     validityDays: number;
@@ -80,6 +80,7 @@ export async function grantEntitlement(
   if (input.entries !== null && input.entries < 1)
     throw new UserError("Počet vstupů musí být alespoň 1.");
   if (input.validityDays < 1) throw new UserError("Platnost musí být alespoň 1 den.");
+  if (input.kind === "massage_pass" && !input.entries) throw new UserError("Vyplň počet masáží.");
   const [e] = await db
     .insert(entitlements)
     .values({
