@@ -116,7 +116,12 @@
   }
 }
 
-/* Hero octopus: rises in, then floats gently like it's swimming. */
+/* Hero octopus. One swim stroke lasts --octo-t: the mantle squeezes, the arms
+   pull in (tips trailing) and the body shoots up, then everything opens and
+   glides back down slowly. */
+:root {
+  --octo-t: 5.2s;
+}
 @keyframes octo-in {
   from {
     opacity: 0;
@@ -128,29 +133,53 @@
   }
 }
 @keyframes octo-swim {
-  0%,
+  0% {
+    transform: translateY(0) rotate(0deg);
+    animation-timing-function: cubic-bezier(0.3, 0, 0.2, 1);
+  }
+  32% {
+    transform: translateY(-11px) rotate(-1deg);
+    animation-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
+  }
   100% {
-    transform: translateY(0) rotate(0deg) scale(1);
-  }
-  30% {
-    transform: translateY(-7px) rotate(-1.5deg) scale(1.015);
-  }
-  65% {
-    transform: translateY(-3px) rotate(1.2deg) scale(0.995);
+    transform: translateY(0) rotate(0deg);
   }
 }
 @utility octo-swim {
   animation:
     octo-in 1.4s cubic-bezier(0.22, 1, 0.36, 1) both,
-    octo-swim 7s ease-in-out 1.4s infinite;
-  transform-origin: 50% 40%;
+    octo-swim var(--octo-t) 1.4s infinite;
+  transform-origin: 50% 45%;
   will-change: transform;
   @media (prefers-reduced-motion: reduce) {
     animation: none;
   }
 }
 
-/* Hero octopus: tentacles sway around their attachment point, head breathes. */
+/* The stroke: arms pull in fast with tips lagging, whip slightly past,
+   then open slowly (tips lag the other way). --k = outward angle. */
+@keyframes octo-pulse {
+  0% {
+    transform: rotate(var(--k)) skewX(0deg);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.3, 1);
+  }
+  26% {
+    transform: rotate(calc(var(--k) * -0.55)) skewX(calc(var(--k) * -0.9));
+    animation-timing-function: ease-out;
+  }
+  42% {
+    transform: rotate(calc(var(--k) * -0.7)) skewX(calc(var(--k) * 0.35));
+    animation-timing-function: ease-in-out;
+  }
+  72% {
+    transform: rotate(calc(var(--k) * 0.45)) skewX(calc(var(--k) * 0.45));
+    animation-timing-function: ease-in-out;
+  }
+  100% {
+    transform: rotate(var(--k)) skewX(0deg);
+  }
+}
+/* Slow independent drift so the arms never move in perfect lockstep. */
 @keyframes octo-arm {
   from {
     transform: rotate(calc(var(--amp) * -1));
@@ -159,23 +188,31 @@
     transform: rotate(var(--amp));
   }
 }
+/* The mantle squeezes as the arms pull in, then relaxes. */
 @keyframes octo-breathe {
   0%,
   100% {
-    transform: scale(1);
+    transform: scale(1, 1);
   }
-  50% {
-    transform: scale(1.018);
+  22% {
+    transform: scale(0.965, 1.035);
+  }
+  45% {
+    transform: scale(1.012, 0.99);
   }
 }
 .octo-arm {
   animation: octo-arm var(--dur) ease-in-out var(--delay) infinite alternate;
 }
+.octo-pulse {
+  animation: octo-pulse var(--octo-t) calc(1.4s + var(--lag)) infinite both;
+}
 .octo-head {
-  animation: octo-breathe 5s ease-in-out infinite;
+  animation: octo-breathe var(--octo-t) ease-in-out 1.4s infinite both;
 }
 @media (prefers-reduced-motion: reduce) {
   .octo-arm,
+  .octo-pulse,
   .octo-head {
     animation: none;
   }

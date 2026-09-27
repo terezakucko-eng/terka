@@ -6,12 +6,12 @@ import { ActionForm, SubmitButton } from "@/components/forms";
 import { productKindLabel } from "@/components/labels";
 import { Badge, Field, Input, Select, Textarea } from "@/components/ui";
 import { getDb } from "@/db";
-import { products, type Product } from "@/db/schema";
+import { massageServices, products, type MassageService, type Product } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
 import { formatPrice } from "@/lib/money";
 import { site } from "@/config/site";
 
-function ProductForm({ p }: { p?: Product }) {
+function ProductForm({ p, services }: { p?: Product; services: MassageService[] }) {
   return (
     <ActionForm action={saveProductAction} className="space-y-4">
       {p && <input type="hidden" name="id" value={p.id} />}
@@ -22,15 +22,24 @@ function ProductForm({ p }: { p?: Product }) {
             <option value="pass">Permanentka (N vstupů)</option>
             <option value="membership">Členství</option>
             <option value="solarium">Solárium (minuty)</option>
+            <option value="massage_pass">Permanentka na masáže</option>
           </Select>
         </Field>
         <Field label="Název"><Input name="name" defaultValue={p?.name} required /></Field>
         <Field label="Cena (Kč)"><Input name="price" inputMode="decimal" defaultValue={kc(p?.price)} required /></Field>
         <Field label="Pořadí"><Input name="sortOrder" type="number" defaultValue={p?.sortOrder ?? 0} /></Field>
         <Field label="Kreditů" hint="Jen u kreditu"><Input name="credits" type="number" min={1} defaultValue={p?.credits ?? ""} /></Field>
-        <Field label="Vstupů / minut" hint="Permanentka: vstupy · Solárium: minuty · Členství: prázdné = neomezeně"><Input name="entries" type="number" min={1} defaultValue={p?.entries ?? ""} /></Field>
+        <Field label="Vstupů / minut" hint="Permanentka: vstupy · Masáže: počet masáží · Solárium: minuty · Členství: prázdné = neomezeně"><Input name="entries" type="number" min={1} defaultValue={p?.entries ?? ""} /></Field>
         <Field label="Platnost (dny)" hint="U kreditu: od posledního dobití · prázdné = nepropadá"><Input name="validityDays" type="number" min={1} defaultValue={p ? (p.validityDays ?? "") : 30} /></Field>
         <Field label="Limit / týden" hint="Jen u členství"><Input name="weeklyLimit" type="number" min={1} defaultValue={p?.weeklyLimit ?? ""} /></Field>
+        <Field label="Na masáž" hint="Jen u permanentky na masáže">
+          <Select name="massageServiceId" defaultValue={p?.massageServiceId ?? ""}>
+            <option value="">Kterákoli masáž</option>
+            {services.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </Select>
+        </Field>
       </div>
       <Field label="Popis"><Textarea name="description" rows={2} defaultValue={p?.description} /></Field>
       <div className="flex flex-wrap gap-6 text-sm">
@@ -52,17 +61,21 @@ function ProductForm({ p }: { p?: Product }) {
 
 export default async function AdminPricing() {
   await requireAdmin();
-  const list = await (await getDb()).select().from(products).where(isNull(products.archivedAt)).orderBy(asc(products.sortOrder));
+  const db = await getDb();
+  const [list, services] = await Promise.all([
+    db.select().from(products).where(isNull(products.archivedAt)).orderBy(asc(products.sortOrder)),
+    db.select().from(massageServices).where(isNull(massageServices.archivedAt)).orderBy(asc(massageServices.sortOrder)),
+  ]);
   return (
     <>
       <AdminTitle title="Ceník – kredit, permanentky, členství" />
       <p className="-mt-4 mb-6 max-w-2xl text-sm text-les/60">Ceny jednorázových vstupů se nastavují u typů lekcí (a lze je přepsat u konkrétního termínu). Vstupy zdarma přidělíš v detailu klienta, úvodní vstup zdarma v Nastavení.</p>
       <div className="space-y-3">
-        <Panel title="+ Nový produkt"><ProductForm /></Panel>
+        <Panel title="+ Nový produkt"><ProductForm services={services} /></Panel>
         {list.map((p) => (
           <Panel key={p.id} title={`${p.name} · ${formatPrice(p.price)} · ${productKindLabel[p.kind]}${p.isActive ? (p.linkOnly ? " · jen přes odkaz" : "") : " · skryto"}`}>
             {!p.isActive && <Badge tone="red">Není v nabídce</Badge>}
-            <ProductForm p={p} />
+            <ProductForm p={p} services={services} />
             <ActionForm
               action={deleteProductAction}
               confirm={`Opravdu smazat „${p.name}“ z ceníku? Kdo ho už koupil, má ho dál platný.`}

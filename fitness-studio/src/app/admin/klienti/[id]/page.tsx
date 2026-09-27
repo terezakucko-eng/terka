@@ -5,6 +5,7 @@ import {
   adjustCreditsAction,
   cancelEntitlementAction,
   deductSolariumAction,
+  deleteClientAction,
   grantEntitlementAction,
   sellProductAction,
   updateClientAction,
@@ -114,6 +115,7 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
                   <option value="pass">Permanentka</option>
                   <option value="membership">Členství</option>
                   <option value="solarium">Solárium (minuty)</option>
+                  <option value="massage_pass">Masáže (na kteroukoli)</option>
                 </Select>
               </Field>
               <Field label="Počet vstupů / minut" hint="U solária minuty · prázdné = neomezeně"><Input name="entries" type="number" min={1} defaultValue={1} /></Field>
@@ -220,6 +222,23 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
           <div className="sm:col-span-2"><SubmitButton>Uložit</SubmitButton></div>
         </ActionForm>
       </Card>
+
+      {u.role === "client" && (
+        <Card className="mt-6 border-chyba/30">
+          <h2 className="font-semibold">Smazat klienta</h2>
+          <p className="mt-1 text-sm text-les/60">
+            Smaže účet i se vším: rezervace, permanentky, kredit, platby, masáže. Nejde to vrátit.
+          </p>
+          <ActionForm
+            action={deleteClientAction}
+            confirm={`Opravdu natrvalo smazat klienta ${u.name}?`}
+            className="mt-4"
+          >
+            <input type="hidden" name="userId" value={u.id} />
+            <SubmitButton variant="outline" className="border-chyba text-chyba">Smazat klienta</SubmitButton>
+          </ActionForm>
+        </Card>
+      )}
     </>
   );
 }

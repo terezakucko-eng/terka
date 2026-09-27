@@ -19,7 +19,9 @@ async function recipient(db: DB, b: MassageBooking) {
 export async function notifyMassageBooked(db: DB, b: MassageBooking, bankAccount: string, studioEmail: string) {
   const u = await recipient(db, b);
   const pay =
-    b.payment === "transfer" && bankAccount
+    b.payment === "pass"
+      ? "Platba permanentkou – strhl se 1 vstup (při včasném zrušení se vrátí)."
+      : b.payment === "transfer" && bankAccount
       ? `Platba převodem: ${formatPrice(b.price)} na účet ${bankAccount}, variabilní symbol ${b.variableSymbol}.\nQR kód najdeš v detailu rezervace.`
       : `Platba na místě (kartou): ${formatPrice(b.price)}.`;
   if (u)
@@ -32,7 +34,7 @@ export async function notifyMassageBooked(db: DB, b: MassageBooking, bankAccount
     await sendMail({
       to: studioEmail,
       subject: `Nová masáž: ${b.serviceName}, ${when(b)}`,
-      text: `${u?.name ?? b.guestName ?? "Klient"} (${u?.email ?? b.guestPhone ?? ""})\n${b.serviceName}, ${when(b)}\n${b.payment === "transfer" ? `Převodem, VS ${b.variableSymbol}` : "Na místě"}${b.note ? `\nPoznámka: ${b.note}` : ""}\n\n${site.url}/admin/masaze`,
+      text: `${u?.name ?? b.guestName ?? "Klient"} (${u?.email ?? b.guestPhone ?? ""})\n${b.serviceName}, ${when(b)}\n${b.payment === "pass" ? "Permanentkou" : b.payment === "transfer" ? `Převodem, VS ${b.variableSymbol}` : "Na místě"}${b.note ? `\nPoznámka: ${b.note}` : ""}\n\n${site.url}/admin/masaze`,
     });
 }
 

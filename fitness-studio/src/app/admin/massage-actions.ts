@@ -101,7 +101,8 @@ export async function adminBookMassageAction(_: FormState, fd: FormData): Promis
     const email = field.str(fd, "email") ? normalizeEmail(field.str(fd, "email")) : "";
     const [known] = email ? await db.select().from(users).where(eq(users.email, email)) : [];
     if (!known && !name) throw new UserError("Vyplň jméno klienta.");
-    const payment = field.str(fd, "payment") === "transfer" ? "transfer" : "on_site";
+    const chosen = field.str(fd, "payment");
+    const payment = chosen === "transfer" || chosen === "pass" ? chosen : "on_site";
     const common = {
       serviceId: field.str(fd, "serviceId"),
       startsAt: pragueLocalToDate(at),

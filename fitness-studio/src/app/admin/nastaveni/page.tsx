@@ -1,4 +1,5 @@
-import { saveSettingsAction } from "@/app/admin/actions";
+import { resetOrdersAction, saveSettingsAction } from "@/app/admin/actions";
+import { dateKey } from "@/lib/dates";
 import { AdminTitle } from "@/components/admin";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { Card, Field, Input } from "@/components/ui";
@@ -34,6 +35,30 @@ export default async function AdminSettings() {
             </Field>
           ))}
           <div className="sm:col-span-2"><SubmitButton>Uložit</SubmitButton></div>
+        </ActionForm>
+      </Card>
+      <Card className="mt-6 max-w-3xl text-sm">
+        <h2 className="font-semibold">Start studia – vynulovat testovací platby</h2>
+        <p className="mt-2 text-les/70">
+          Smaže objednávky vybraného druhu vytvořené do zvoleného dne včetně. Klientům se odebere, co z nich dostali
+          (permanentky, členství, kredit), a tržby na přehledu se vynulují. Rezervace lekcí zůstanou. Jednotlivé platby
+          jde smazat i v Platbách.
+        </p>
+        <ActionForm
+          action={resetOrdersAction}
+          confirm="Opravdu smazat vybrané objednávky? Tohle nejde vrátit."
+          className="mt-4 space-y-4"
+        >
+          <div className="flex flex-wrap gap-5">
+            <label className="flex items-center gap-2"><input type="checkbox" name="reception" defaultChecked /> Recepce</label>
+            <label className="flex items-center gap-2"><input type="checkbox" name="manual" defaultChecked /> Ručně označené</label>
+            <label className="flex items-center gap-2"><input type="checkbox" name="test" defaultChecked /> Testovací brána</label>
+            <label className="flex items-center gap-2"><input type="checkbox" name="stripe" /> Karta online (Stripe)</label>
+          </div>
+          <Field label="Vytvořené do dne (včetně)">
+            <Input name="before" type="date" defaultValue={dateKey(new Date())} required className="max-w-xs" />
+          </Field>
+          <SubmitButton variant="outline">Smazat vybrané platby</SubmitButton>
         </ActionForm>
       </Card>
       <Card className="mt-6 max-w-3xl text-sm">

@@ -167,12 +167,22 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
                   </ActionForm>
                 </Card>
               )}
-              {list.length === 0 && (
-                <ActionForm action={deleteSessionAction} confirm="Smazat termín?">
+              <Card className="border-chyba/30">
+                <h2 className="font-semibold text-chyba">Smazat z rozvrhu</h2>
+                <p className="mt-1 text-sm text-les/60">
+                  Lekce zmizí úplně. Když na ni někdo je přihlášený, nejdřív se mu vrátí vstup/kredit a přijde mu e-mail.
+                </p>
+                <ActionForm action={deleteSessionAction} confirm="Opravdu smazat z rozvrhu?" className="mt-4 space-y-3">
                   <input type="hidden" name="id" value={s.id} />
-                  <SubmitButton variant="ghost">Smazat termín (bez rezervací)</SubmitButton>
+                  {s.seriesId && (
+                    <div className="space-y-1 text-sm">
+                      <label className="flex items-center gap-2"><input type="radio" name="scope" value="one" defaultChecked /> Jen tuhle lekci</label>
+                      <label className="flex items-center gap-2"><input type="radio" name="scope" value="series" /> Tuhle a všechny další v opakování</label>
+                    </div>
+                  )}
+                  <SubmitButton variant="danger">Smazat lekci</SubmitButton>
                 </ActionForm>
-              )}
+              </Card>
             </>
           )}
         </aside>

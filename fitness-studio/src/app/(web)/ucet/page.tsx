@@ -134,7 +134,9 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
                   </span>
                 </Link>
                 <div className="flex items-center gap-3">
-                  {m.paidAt ? (
+                  {m.payment === "pass" ? (
+                    <Badge tone="green">Permanentkou</Badge>
+                  ) : m.paidAt ? (
                     <Badge tone="green">Zaplaceno</Badge>
                   ) : m.payment === "transfer" ? (
                     <Link href={`/masaze/rezervace/${m.id}`}><Badge tone="gold">Zaplatit převodem</Badge></Link>

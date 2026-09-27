@@ -1,6 +1,6 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq, gte, lt } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
@@ -22,6 +22,7 @@ import {
   setAttendance,
 } from "@/domain/booking";
 import { deleteClassType, deleteProduct } from "@/domain/catalog";
+import { deleteClient, deleteOrder, deleteOrders, purgeSession, seriesFrom } from "@/domain/cleanup";
 import { fulfillOrder, sellAtReception } from "@/domain/orders";
 import { deductSolarium } from "@/domain/solarium";
 import { grantEntitlement, normalizeEmail } from "@/domain/users";
@@ -143,8 +144,8 @@ export async function saveProductAction(_: FormState, fd: FormData): Promise<For
   await requireAdmin();
   return attempt(async () => {
     const db = await getDb();
-    const kind = field.str(fd, "kind") as "credit_pack" | "pass" | "membership" | "solarium";
-    if (!["credit_pack", "pass", "membership", "solarium"].includes(kind)) throw new UserError("Vyber typ.");
+    const kind = field.str(fd, "kind") as "credit_pack" | "pass" | "membership" | "solarium" | "massage_pass";
+    if (!["credit_pack", "pass", "membership", "solarium", "massage_pass"].includes(kind)) throw new UserError("Vyber typ.");
     const values = {
       kind,
       name: required(field.str(fd, "name"), "Vyplň název."),
@@ -160,7 +161,9 @@ export async function saveProductAction(_: FormState, fd: FormData): Promise<For
       membersOnly: field.bool(fd, "membersOnly"),
       isActive: field.bool(fd, "isActive"),
       sortOrder: field.int(fd, "sortOrder") ?? 0,
+      massageServiceId: kind === "massage_pass" ? field.str(fd, "massageServiceId") || null : null,
     };
+    if (kind === "massage_pass" && !values.entries) throw new UserError("Vyplň počet masáží na permanentce.");
     if (kind === "pass" && !values.entries) throw new UserError("Permanentka potřebuje počet vstupů.");
     if (kind === "solarium" && !values.entries) throw new UserError("Vyplň počet minut solária.");
     const id = field.str(fd, "id");
@@ -260,8 +263,13 @@ export async function createSessionsAction(_: FormState, fd: FormData): Promise<
     }
     if (!dates.length) throw new UserError("V daném rozsahu nevychází žádný termín.");
     const seriesId = dates.length > 1 ? crypto.randomUUID() : null;
+    // a weekday can have its own start time (Mon 18:00, Wed 7:30…)
+    const timeFor = (d: string) => {
+      const own = field.str(fd, `time_${weekdayOf(d)}`);
+      return until && /^\d{2}:\d{2}$/.test(own) ? own : time;
+    };
     await (await getDb()).insert(classSessions).values(
-      dates.map((d) => ({ ...values, seriesId, startsAt: pragueLocalToDate(`${d}T${time}`) })),
+      dates.map((d) => ({ ...values, seriesId, startsAt: pragueLocalToDate(`${d}T${timeFor(d)}`) })),
     );
     return done(`Vytvořeno termínů: ${dates.length}.`);
   });
@@ -292,15 +300,32 @@ export async function cancelSessionAction(_: FormState, fd: FormData): Promise<F
   });
 }
 
+/** Deletes classes; upcoming ones with clients are cancelled (refund + e-mail) first. */
+async function removeSessions(ids: string[]) {
+  const db = await getDb();
+  const now = new Date();
+  let notified = 0;
+  for (const id of ids) {
+    const [s] = await db.select().from(classSessions).where(eq(classSessions.id, id));
+    if (!s) continue;
+    if (s.status !== "cancelled" && s.startsAt > now && (await occupancy(db, id)) > 0) {
+      const r = await cancelSession(db, id, now);
+      const notify = r.affected.filter((b) => b.status !== "waitlist").map((b) => b.userId);
+      await notifySessionCancelled(db, id, notify);
+      notified += notify.length;
+    }
+    await purgeSession(db, id);
+  }
+  return notified;
+}
+
 export async function deleteSessionAction(_: FormState, fd: FormData): Promise<FormState> {
   await requireAdmin();
   let ok = false;
   const res = await attempt(async () => {
-    const db = await getDb();
     const id = field.str(fd, "id");
-    if ((await occupancy(db, id)) > 0)
-      throw new UserError("Na lekci jsou rezervace – použij „Zrušit lekci“.");
-    await db.delete(classSessions).where(eq(classSessions.id, id));
+    const list = field.str(fd, "scope") === "series" ? await seriesFrom(await getDb(), id) : [{ id }];
+    await removeSessions(list.map((s) => s.id));
     ok = true;
   });
   if (ok) {
@@ -308,6 +333,43 @@ export async function deleteSessionAction(_: FormState, fd: FormData): Promise<F
     redirect("/admin/rozvrh");
   }
   return res;
+}
+
+export async function deleteSessionsRangeAction(_: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  return attempt(async () => {
+    const from = field.str(fd, "from");
+    const to = field.str(fd, "to");
+    if (!isDateKey(from) || !isDateKey(to) || to < from) throw new UserError("Vyplň platné rozmezí dnů.");
+    const typeId = field.str(fd, "classTypeId");
+    const list = await (await getDb())
+      .select({ id: classSessions.id })
+      .from(classSessions)
+      .where(
+        and(
+          gte(classSessions.startsAt, pragueLocalToDate(from)),
+          lt(classSessions.startsAt, pragueLocalToDate(addDays(to, 1))),
+          typeId ? eq(classSessions.classTypeId, typeId) : undefined,
+        ),
+      );
+    if (!list.length) return done("V tomhle rozmezí nejsou žádné lekce.");
+    const notified = await removeSessions(list.map((s) => s.id));
+    return done(
+      `Smazáno lekcí: ${list.length}.` + (notified ? ` ${notified} klientům se vrátil vstup a přišel e-mail.` : ""),
+    );
+  });
+}
+
+export async function deleteSessionsAction(_: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  return attempt(async () => {
+    const ids = fd.getAll("ids").map(String).filter(Boolean);
+    if (!ids.length) throw new UserError("Zaškrtni lekce, které chceš smazat.");
+    const notified = await removeSessions(ids);
+    return done(
+      `Smazáno lekcí: ${ids.length}.` + (notified ? ` ${notified} klientům se vrátil vstup a přišel e-mail.` : ""),
+    );
+  });
 }
 
 async function findClient(ref: string) {
@@ -401,15 +463,21 @@ export async function deductSolariumAction(_: FormState, fd: FormData): Promise<
 export async function grantEntitlementAction(_: FormState, fd: FormData): Promise<FormState> {
   await requireAdmin();
   return attempt(async () => {
-    const kind = field.str(fd, "kind") as "free" | "pass" | "membership" | "solarium";
-    if (!["free", "pass", "membership", "solarium"].includes(kind)) throw new UserError("Vyber typ.");
+    const kind = field.str(fd, "kind") as "free" | "pass" | "membership" | "solarium" | "massage_pass";
+    if (!["free", "pass", "membership", "solarium", "massage_pass"].includes(kind)) throw new UserError("Vyber typ.");
     if (kind === "solarium" && !field.int(fd, "entries")) throw new UserError("Vyplň počet minut.");
     await grantEntitlement(await getDb(), {
       userId: field.str(fd, "userId"),
       kind,
       name:
         field.str(fd, "name") ||
-        { free: "Vstup zdarma", pass: "Permanentka", membership: "Členství", solarium: "Solárium" }[kind],
+        {
+          free: "Vstup zdarma",
+          pass: "Permanentka",
+          membership: "Členství",
+          solarium: "Solárium",
+          massage_pass: "Permanentka na masáže",
+        }[kind],
       entries: field.int(fd, "entries"),
       validityDays: field.int(fd, "validityDays") ?? 30,
       weeklyLimit: field.int(fd, "weeklyLimit"),
@@ -447,6 +515,43 @@ export async function markOrderPaidAction(_: FormState, fd: FormData): Promise<F
     await fulfillOrder(await getDb(), { orderId: field.str(fd, "orderId"), provider: "manual" });
     return done("Označeno jako zaplacené.");
   });
+}
+
+export async function deleteOrderAction(_: FormState, fd: FormData): Promise<FormState> {
+  const admin = await requireAdmin();
+  const res = await attempt(async () => {
+    await deleteOrder(await getDb(), field.str(fd, "orderId"), admin.id);
+    return done("Objednávka smazána, co přidělila, bylo odebráno.");
+  });
+  return res;
+}
+
+export async function resetOrdersAction(_: FormState, fd: FormData): Promise<FormState> {
+  const admin = await requireAdmin();
+  const res = await attempt(async () => {
+    const providers = ["reception", "manual", "test", "stripe"].filter((p) => field.bool(fd, p));
+    const day = field.str(fd, "before");
+    if (!isDateKey(day)) throw new UserError("Vyplň datum.");
+    const n = await deleteOrders(await getDb(), {
+      providers,
+      before: pragueLocalToDate(addDays(day, 1)),
+      actorId: admin.id,
+    });
+    return done(n ? `Smazáno objednávek: ${n}.` : "Nic k smazání.");
+  });
+  return res;
+}
+
+export async function deleteClientAction(_: FormState, fd: FormData): Promise<FormState> {
+  const admin = await requireAdmin();
+  const res = await attempt(async () => {
+    await deleteClient(await getDb(), field.str(fd, "userId"), admin.id);
+  });
+  if (res?.ok) {
+    revalidatePath("/", "layout");
+    redirect("/admin/klienti");
+  }
+  return res;
 }
 
 export async function updateClientAction(_: FormState, fd: FormData): Promise<FormState> {

@@ -215,14 +215,15 @@ async function entitlementProblem(
   return null;
 }
 
-/** Entitlements usable for classes (solarium minutes are not). */
-type ClassKind = Exclude<Entitlement["kind"], "solarium">;
+/** Entitlements usable for classes (solarium minutes and massage passes are not). */
+type ClassKind = Exclude<Entitlement["kind"], "solarium" | "massage_pass">;
 const methodForKind = {
   membership: "membership",
   pass: "pass",
   free: "free",
 } as const satisfies Record<ClassKind, Method>;
-const isClassKind = (k: Entitlement["kind"]): k is ClassKind => k !== "solarium";
+const isClassKind = (k: Entitlement["kind"]): k is ClassKind =>
+  k !== "solarium" && k !== "massage_pass";
 
 /** All ways the client could pay for the session, best first. */
 export async function bookingOptions(

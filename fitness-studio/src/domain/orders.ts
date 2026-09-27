@@ -65,6 +65,7 @@ async function grantProduct(
     case "pass":
     case "membership":
     case "solarium":
+    case "massage_pass":
       await tx.insert(entitlements).values({
         userId: order.userId,
         kind: p.kind,
@@ -73,6 +74,7 @@ async function grantProduct(
         name: p.name,
         entriesTotal: p.entries,
         weeklyLimit: p.kind === "membership" ? p.weeklyLimit : null,
+        massageServiceId: p.kind === "massage_pass" ? p.massageServiceId : null,
         validFrom: now,
         validUntil:
           periodEnd ?? new Date(now.getTime() + (p.validityDays ?? 30) * DAY),

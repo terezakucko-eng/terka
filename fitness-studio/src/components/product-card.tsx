@@ -26,6 +26,13 @@ function perks(p: Product): string[] {
         `Cena za minutu ${formatPrice(Math.round(p.price / (p.entries || 1)))}`,
         ...(p.membersOnly ? ["Jen pro členy"] : []),
       ];
+    case "massage_pass":
+      return [
+        `${p.entries ?? 0}× masáž`,
+        `Platnost ${p.validityDays} dní`,
+        `Cena za masáž ${formatPrice(Math.round(p.price / (p.entries || 1)))}`,
+        "Termín si rezervuješ online, vstup se strhne sám",
+      ];
     case "credit_pack":
       return [
         credits(p.credits ?? 0),

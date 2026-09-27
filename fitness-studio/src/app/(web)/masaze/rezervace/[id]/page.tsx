@@ -67,6 +67,9 @@ export default async function MassageBookingPage({ params, searchParams }: PageP
           )}
         </Card>
       )}
+      {!cancelled && b.payment === "pass" && (
+        <p className="mt-8 text-les/70">Zaplaceno permanentkou – strhl se 1 vstup. Při včasném zrušení se ti vrátí.</p>
+      )}
       {!cancelled && b.payment === "on_site" && (
         <p className="mt-8 text-les/70">Platí se na místě kartou: <strong>{formatPrice(b.price)}</strong>{b.memberRate && " (cena pro členy)"}.</p>
       )}
