@@ -83,6 +83,7 @@ export async function saveClassTypeAction(_: FormState, fd: FormData): Promise<F
       memberSurchargeFrom: isDateKey(field.str(fd, "memberSurchargeFrom")) ? field.str(fd, "memberSurchargeFrom") : null,
       firstVisitPrice: field.money(fd, "firstVisitPrice"),
       noFreeEntry: field.bool(fd, "noFreeEntry"),
+      passEntries: Math.max(1, field.int(fd, "passEntries") ?? 1),
       sortOrder: field.int(fd, "sortOrder") ?? 0,
       isActive: field.bool(fd, "isActive"),
       ...(await imageField(fd, "image", "removeImage", "imageUrl")),

@@ -26,7 +26,10 @@ function ClassTypeForm({ t }: { t?: ClassType }) {
       </div>
       <fieldset className="rounded-xl border border-linka/60 p-4">
         <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-les/70">Zvláštní ceny</legend>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Field label="Vstupů z permanentky" hint="Kolik vstupů se strhne z permanentky (Reformer = 2)">
+            <Input name="passEntries" type="number" min={1} defaultValue={t?.passEntries ?? 1} />
+          </Field>
           <Field label="Doplatek pro členy (Kč / lekce)" hint="Prázdné = členové bez doplatku">
             <Input name="memberSurcharge" inputMode="decimal" defaultValue={kc(t?.memberSurcharge)} />
           </Field>

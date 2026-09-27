@@ -61,6 +61,11 @@ export default async function SessionPage({ params }: PageProps<"/rozvrh/[id]">)
               <li className="flex items-center gap-3"><Clock className="size-5 text-zlato" /> {formatRange(s.startsAt, s.durationMin)} ({s.durationMin} min)</li>
               <li className="flex items-center gap-3"><MapPin className="size-5 text-zlato" /> {s.room ? `${s.room}, ` : ""}{address}</li>
             </ul>
+            {!s.isFree && ct.passEntries > 1 && (
+              <p className="mt-6 rounded-xl border border-zlato/40 bg-zlato/10 p-4 text-zlato-light">
+                Z permanentky se na tuhle lekci strhnou {ct.passEntries} vstupy.
+              </p>
+            )}
             {s.note && <p className="mt-6 rounded-xl border border-zlato/40 bg-zlato/10 p-4 text-zlato-light">{s.note}</p>}
             <p className="mt-8 max-w-xl leading-relaxed text-papir/70">{ct.description}</p>
             <p className="eyebrow mt-6 text-papir/50">Úroveň: {ct.level}</p>

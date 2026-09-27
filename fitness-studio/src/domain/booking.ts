@@ -181,10 +181,11 @@ async function classRules(tx: Executor, s: ClassSession) {
       memberSurchargeFrom: classTypes.memberSurchargeFrom,
       noFreeEntry: classTypes.noFreeEntry,
       firstVisitPrice: classTypes.firstVisitPrice,
+      passEntries: classTypes.passEntries,
     })
     .from(classTypes)
     .where(eq(classTypes.id, s.classTypeId));
-  return ct ?? { memberSurcharge: null, memberSurchargeFrom: null, noFreeEntry: false, firstVisitPrice: null };
+  return ct ?? { memberSurcharge: null, memberSurchargeFrom: null, noFreeEntry: false, firstVisitPrice: null, passEntries: 1 };
 }
 type ClassRules = Awaited<ReturnType<typeof classRules>>;
 
@@ -193,6 +194,11 @@ export function memberSurchargeFor(rules: ClassRules, s: Pick<ClassSession, "sta
   if (!rules.memberSurcharge) return 0;
   if (rules.memberSurchargeFrom && dateKey(s.startsAt) < rules.memberSurchargeFrom) return 0;
   return rules.memberSurcharge;
+}
+
+/** Entries a booking takes from this entitlement: passes may cost more (Reformer = 2). */
+function entriesFor(e: Pick<Entitlement, "kind">, rules: Pick<ClassRules, "passEntries">) {
+  return e.kind === "pass" ? Math.max(1, rules.passEntries) : 1;
 }
 
 /** Drop-in price for this client – the intro price if they've never had this class. */
@@ -225,8 +231,13 @@ async function entitlementProblem(
     return "Úvodní vstup zdarma na tuhle lekci použít nejde.";
   if (e.validFrom > s.startsAt || e.validUntil <= s.startsAt)
     return "Na datum lekce už neplatí.";
-  if (e.entriesTotal !== null && e.entriesUsed >= e.entriesTotal)
-    return "Vyčerpané vstupy.";
+  if (e.entriesTotal !== null) {
+    const need = entriesFor(e, await classRules(tx, s));
+    if (e.entriesUsed + need > e.entriesTotal)
+      return e.entriesUsed >= e.entriesTotal
+        ? "Vyčerpané vstupy."
+        : `Na tuhle lekci potřebuješ ${need} vstupy, zbývá ti ${e.entriesTotal - e.entriesUsed}.`;
+  }
   if (e.weeklyLimit !== null) {
     const used = await weeklyUsage(tx, e.id, s);
     if (used >= e.weeklyLimit)
@@ -283,10 +294,12 @@ export async function bookingOptions(
   classEnts.sort((a, b) => rank[a.kind] - rank[b.kind]);
   for (const e of classEnts) {
     const problem = await entitlementProblem(tx, e, s);
+    const need = entriesFor(e, rules);
     const left =
       e.entriesTotal === null
         ? "neomezeně"
-        : `zbývá ${e.entriesTotal - e.entriesUsed} z ${e.entriesTotal}`;
+        : `zbývá ${e.entriesTotal - e.entriesUsed} z ${e.entriesTotal}` +
+          (need > 1 ? ` · strhnou se ${need} vstupy` : "");
     opts.push({
       method: methodForKind[e.kind],
       entitlementId: e.id,
@@ -339,6 +352,7 @@ async function charge(
   entitlementId: string | undefined,
 ) {
   let creditsCharged = 0;
+  let entriesCharged = 0;
   let entId: string | null = null;
 
   switch (method) {
@@ -368,9 +382,10 @@ async function charge(
       const problem = await entitlementProblem(tx, e, s);
       if (problem) throw new UserError(problem);
       if (e.entriesTotal !== null) {
+        entriesCharged = entriesFor(e, await classRules(tx, s));
         await tx
           .update(entitlements)
-          .set({ entriesUsed: e.entriesUsed + 1 })
+          .set({ entriesUsed: e.entriesUsed + entriesCharged })
           .where(eq(entitlements.id, e.id));
       }
       entId = e.id;
@@ -386,6 +401,7 @@ async function charge(
     .update(bookings)
     .set({
       creditsCharged,
+      entriesCharged,
       entitlementId: entId,
       method,
       surcharge: method === "membership" ? memberSurchargeFor(await classRules(tx, s), s) : 0,
@@ -426,9 +442,11 @@ async function refund(tx: Executor, b: Booking, s: ClassSession, note: string) {
         .where(eq(entitlements.id, b.entitlementId))
         .for("update");
       if (e && e.entriesTotal !== null && e.entriesUsed > 0) {
+        // older bookings didn't record it – those always took one entry
+        const back = Math.min(e.entriesUsed, b.entriesCharged || 1);
         await tx
           .update(entitlements)
-          .set({ entriesUsed: e.entriesUsed - 1 })
+          .set({ entriesUsed: e.entriesUsed - back })
           .where(eq(entitlements.id, e.id));
       }
       break;
