@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, type ReactNode } from "react";
+import { createContext, startTransition, useActionState, useContext, useEffect, useRef, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import type { FormState } from "@/lib/form";
 import { Button, cx } from "./ui";
@@ -19,6 +19,9 @@ function uploadSize(form: HTMLFormElement) {
   return total;
 }
 
+/** Pending state of the surrounding ActionForm (submits go through startTransition, not the form's action). */
+const PendingContext = createContext(false);
+
 export function ActionForm({
   action,
   children,
@@ -33,26 +36,31 @@ export function ActionForm({
   /** Ask before submitting (destructive actions). */
   confirm?: string;
 }) {
-  const [state, formAction] = useActionState(action, undefined);
+  const [state, formAction, pending] = useActionState(action, undefined);
   const ref = useRef<HTMLFormElement>(null);
+  // Submitting through `action={…}` would make React clear every field even when
+  // the server says "fix this" – so submit manually and clear only after success.
   useEffect(() => {
-    if (resetOnSuccess && state?.ok) ref.current?.reset();
+    if (state?.ok && resetOnSuccess !== false) ref.current?.reset();
   }, [state, resetOnSuccess]);
 
   return (
     <form
       ref={ref}
-      action={formAction}
       className={className}
       onSubmit={(e) => {
-        if (confirm && !window.confirm(confirm)) return e.preventDefault();
+        e.preventDefault();
+        if (pending) return;
+        if (confirm && !window.confirm(confirm)) return;
         if (uploadSize(e.currentTarget) > MAX_REQUEST) {
-          e.preventDefault();
           window.alert("Fotky jsou dohromady moc velké na jedno uložení. Ulož je prosím po menších dávkách (např. 2–3 najednou).");
+          return;
         }
+        const fd = new FormData(e.currentTarget, (e.nativeEvent as SubmitEvent).submitter);
+        startTransition(() => formAction(fd));
       }}
     >
-      {children}
+      <PendingContext.Provider value={pending}>{children}</PendingContext.Provider>
       <FormMessage state={state} />
     </form>
   );
@@ -78,7 +86,8 @@ export function SubmitButton({
   pendingText = "Moment…",
   ...props
 }: Parameters<typeof Button>[0] & { pendingText?: string }) {
-  const { pending } = useFormStatus();
+  const status = useFormStatus();
+  const pending = useContext(PendingContext) || status.pending;
   return (
     <Button type="submit" disabled={pending} {...props}>
       {pending ? pendingText : children}

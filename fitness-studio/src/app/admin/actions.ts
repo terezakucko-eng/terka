@@ -251,6 +251,8 @@ export async function createSessionsAction(_: FormState, fd: FormData): Promise<
     const weekdays = fd.getAll("weekdays").map(Number);
 
     const dates: string[] = [];
+    if (!until && weekdays.length)
+      throw new UserError("Zaškrtla jsi dny v týdnu – vyplň ještě „Opakovat do“, do kdy se má lekce opakovat.");
     if (!until) {
       dates.push(from);
     } else {
