@@ -17,7 +17,7 @@ function perks(p: Product): string[] {
       return [
         entries(p.entries ?? 0),
         `Platnost ${p.validityDays} dní`,
-        `Cena za lekci ${formatPrice(Math.round(p.price / (p.entries || 1)))}`,
+        `Cena za vstup ${formatPrice(Math.round(p.price / (p.entries || 1)))}`,
       ];
     case "solarium":
       return [

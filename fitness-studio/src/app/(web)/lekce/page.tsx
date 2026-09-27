@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getDb } from "@/db";
 import { Container, PageHeader } from "@/components/ui";
-import { credits, entriesLabel, formatPrice, passLessonPrice } from "@/lib/money";
+import { credits, entriesLabel, formatPrice } from "@/lib/money";
 import { formatDate, pragueLocalToDate } from "@/lib/dates";
 import { activeClassTypes, activeProducts } from "@/lib/queries";
 import { getContent } from "@/content";
@@ -39,10 +39,7 @@ export default async function ClassesPage() {
                 {t.dropInPrice !== null && ` · jednorázově ${formatPrice(t.dropInPrice)}`}
                 {t.firstVisitPrice !== null && ` · první lekce ${formatPrice(t.firstVisitPrice)}`}
                 {(hasPass || t.passEntries > 1) &&
-                  ` · bodová permanentka: ${entriesLabel(t.passEntries)}` +
-                    (passLessonPrice(t.passEntries, packs, t.dropInPrice) !== null
-                      ? ` (${formatPrice(passLessonPrice(t.passEntries, packs, t.dropInPrice)!)})`
-                      : "")}
+                  ` · permanentka: ${entriesLabel(t.passEntries)}`}
                 {t.noFreeEntry && " · úvodní vstup zdarma na tuto lekci neplatí"}
               </p>
               {t.memberSurcharge !== null && t.memberSurcharge > 0 && (
