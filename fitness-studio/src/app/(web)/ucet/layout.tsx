@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 
 const tabs = [
   { href: "/ucet", label: "Přehled" },
+  { href: "/ucet/karta", label: "Členská karta" },
   { href: "/ucet/historie", label: "Historie a platby" },
   { href: "/ucet/profil", label: "Profil" },
 ];

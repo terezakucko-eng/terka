@@ -99,6 +99,7 @@ export const SECTIONS = {
       classes: t("Menu – Lekce", "Lekce"),
       pricing: t("Menu – Ceník", "Ceník"),
       massages: t("Menu – Masáže", "Masáže"),
+      board: opt("Menu – Nástěnka (prázdné = skrýt z menu)", "Nástěnka"),
       about: t("Menu – O mně", "O mně"),
       contact: t("Menu – Kontakt", "Kontakt"),
       book: t("Tlačítko Rezervovat", "Rezervovat"),
@@ -207,6 +208,15 @@ export const SECTIONS = {
       eyebrow: opt("Malý nadpis", "Lekce"),
       title: t("Nadpis", "Pohyb pro tělo i mysl."),
       intro: ta("Úvodní text", "Tanec, pilates, síla i regenerace. Vyber si podle nálady – nebo zkus všechno."),
+    },
+  },
+  board: {
+    title: "Nástěnka",
+    page: "/nastenka",
+    fields: {
+      eyebrow: opt("Malý nadpis", "Nástěnka"),
+      title: t("Nadpis", "Co je nového v OCTOPUSH."),
+      intro: ta("Úvodní text", "Novinky ze studia – a prostor pro tvoje reakce."),
     },
   },
   massages: {

@@ -165,6 +165,9 @@ export default async function Home() {
                 </article>
               ))}
             </div>
+            <Link href="/nastenka" className="eyebrow mt-8 inline-block text-zeme underline underline-offset-4">
+              Celá nástěnka a reakce →
+            </Link>
           </Container>
         </section>
       )}

@@ -13,8 +13,9 @@ export async function SiteHeader() {
     { href: "/masaze", label: c("nav.massages") },
     { href: "/cenik", label: c("nav.pricing") },
     { href: "/o-mne", label: c("nav.about") },
+    { href: "/nastenka", label: c("nav.board") },
     { href: "/#kontakt", label: c("nav.contact") },
-  ];
+  ].filter((n) => n.label); // an emptied label hides the item
   const account = user
     ? { href: user.role === "client" ? "/ucet" : "/admin", label: user.role === "client" ? "Můj účet" : "Administrace" }
     : { href: "/prihlaseni", label: "Přihlásit" };
@@ -23,9 +24,9 @@ export async function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-zlato/15 bg-les/95 text-papir backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         <LogoLink />
-        <nav className="hidden items-center gap-8 md:flex" aria-label="Hlavní menu">
+        <nav className="hidden items-center gap-6 xl:flex" aria-label="Hlavní menu">
           {nav.map((n) => (
-            <Link key={n.href} href={n.href} className="eyebrow text-papir/75 transition hover:text-zlato-light">
+            <Link key={n.href} href={n.href} className="eyebrow whitespace-nowrap text-papir/75 transition hover:text-zlato-light">
               {n.label}
             </Link>
           ))}
@@ -38,7 +39,7 @@ export async function SiteHeader() {
             {c("nav.book")}
           </Link>
           {/* mobile menu without client JS */}
-          <details className="group relative md:hidden">
+          <details className="group relative xl:hidden">
             <summary className="flex size-10 cursor-pointer list-none items-center justify-center rounded-full border border-zlato/30 [&::-webkit-details-marker]:hidden">
               <Menu className="size-5 group-open:hidden" />
               <X className="hidden size-5 group-open:block" />
