@@ -161,6 +161,8 @@ export const classTypes = pgTable("class_types", {
   level: text("level").notNull().default("Pro všechny"),
   isActive: boolean("is_active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
+  /** Smazaný typ, který má v historii rezervace – skrytý všude, data zůstávají. */
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: createdAt(),
 });
 

@@ -1,5 +1,5 @@
-import { asc } from "drizzle-orm";
-import { saveClassTypeAction } from "@/app/admin/actions";
+import { asc, isNull } from "drizzle-orm";
+import { deleteClassTypeAction, saveClassTypeAction } from "@/app/admin/actions";
 import { AdminTitle, Panel } from "@/components/admin";
 import { kc } from "@/components/admin-forms";
 import { ActionForm, SubmitButton } from "@/components/forms";
@@ -43,14 +43,24 @@ function ClassTypeForm({ t }: { t?: ClassType }) {
 
 export default async function AdminClassTypes() {
   await requireAdmin();
-  const list = await (await getDb()).select().from(classTypes).orderBy(asc(classTypes.sortOrder));
+  const list = await (await getDb()).select().from(classTypes).where(isNull(classTypes.archivedAt)).orderBy(asc(classTypes.sortOrder));
   return (
     <>
       <AdminTitle title="Typy lekcí" />
       <div className="space-y-3">
         <Panel title="+ Nový typ lekce"><ClassTypeForm /></Panel>
         {list.map((t) => (
-          <Panel key={t.id} title={`${t.name}${t.isActive ? "" : " · neaktivní"}`}><ClassTypeForm t={t} /></Panel>
+          <Panel key={t.id} title={`${t.name}${t.isActive ? "" : " · neaktivní"}`}>
+            <ClassTypeForm t={t} />
+            <ActionForm
+              action={deleteClassTypeAction}
+              confirm={`Opravdu smazat typ lekce „${t.name}“? Zmizí z webu i z rozvrhu (nerezervované termíny se smažou).`}
+              className="mt-4 border-t border-linka/60 pt-4"
+            >
+              <input type="hidden" name="id" value={t.id} />
+              <button className="text-xs font-semibold text-chyba underline">Smazat typ lekce</button>
+            </ActionForm>
+          </Panel>
         ))}
       </div>
     </>

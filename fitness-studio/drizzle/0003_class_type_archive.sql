@@ -1,0 +1,1 @@
+ALTER TABLE "class_types" ADD COLUMN "archived_at" timestamp with time zone;
