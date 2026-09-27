@@ -111,7 +111,7 @@ export const SECTIONS = {
     title: "Úvod – hlavní část",
     page: "/",
     fields: {
-      eyebrow: opt("Malý nadpis", "OCTOPUSH / Studio pohybu"),
+      eyebrow: opt("Malý nadpis nad logem (prázdné = nezobrazovat)", ""),
       ctaPrimary: t("Hlavní tlačítko", "Rezervovat lekci"),
       ctaSecondary: t("Druhé tlačítko (nepřihlášený)", "První lekce zdarma"),
       image: img("Fotka", "/img/priroda.webp"),
