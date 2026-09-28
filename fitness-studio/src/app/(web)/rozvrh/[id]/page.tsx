@@ -7,6 +7,7 @@ import { site } from "@/config/site";
 import { getDb } from "@/db";
 import { bookAction, cancelBookingAction, waitlistAction } from "@/app/actions/booking";
 import { ActionForm, SubmitButton } from "@/components/forms";
+import { HealthCheckbox } from "@/components/health-checkbox";
 import { Badge, ButtonLink, Card, Container, Eyebrow, cx } from "@/components/ui";
 import { sessionForUser, stateMessage } from "@/domain/booking";
 import { getCurrentUser } from "@/lib/auth";
@@ -87,6 +88,7 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
             <BookingPanel
               view={view}
               loggedIn={!!user}
+              needsHealth={!!user && !user.healthConfirmedAt}
               sessionId={s.id}
               gcal={gcalLink(ct.name, s.startsAt, s.durationMin, address)}
             />
@@ -100,11 +102,13 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
 function BookingPanel({
   view,
   loggedIn,
+  needsHealth,
   sessionId,
   gcal,
 }: {
   view: NonNullable<Awaited<ReturnType<typeof sessionForUser>>>;
   loggedIn: boolean;
+  needsHealth: boolean;
   sessionId: string;
   gcal: string;
 }) {
@@ -174,6 +178,7 @@ function BookingPanel({
         ) : (
           <ActionForm action={waitlistAction} className="mt-4">
             <input type="hidden" name="sessionId" value={sessionId} />
+            {needsHealth && <div className="mb-4"><HealthCheckbox /></div>}
             <p className="text-les/70">Zapiš se do pořadníku. Jakmile někdo zruší, místo automaticky dostaneš a přijde ti e-mail. Potřebuješ mít kredit, permanentku nebo členství.</p>
             <SubmitButton className="mt-5">Zapsat do pořadníku</SubmitButton>
           </ActionForm>
@@ -234,6 +239,7 @@ function BookingPanel({
           Nemáš čím zaplatit. <Link href="/cenik" className="font-semibold text-zeme underline">Kup si kredit nebo permanentku</Link>.
         </p>
       )}
+      {needsHealth && <div className="mt-5"><HealthCheckbox /></div>}
       <SubmitButton variant="gold" className="mt-6 w-full" disabled={!firstEnabled} pendingText="Rezervuji…">
         Rezervovat
       </SubmitButton>

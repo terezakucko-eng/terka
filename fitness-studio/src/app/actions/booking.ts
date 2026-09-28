@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
-import { orders } from "@/db/schema";
+import { orders, users } from "@/db/schema";
 import {
   bookSession,
   cancelBooking,
@@ -20,6 +20,13 @@ import { paymentProvider, startCheckout } from "@/lib/payments";
 
 const METHODS: Method[] = ["credits", "pass", "membership", "free", "drop_in", "free_class"];
 
+/** Clients who registered before the health confirmation existed confirm it with their next booking. */
+async function confirmHealth(user: { id: string; healthConfirmedAt: Date | null }, fd: FormData) {
+  if (user.healthConfirmedAt) return;
+  if (!field.bool(fd, "health")) throw new UserError("Potvrď prosím, že ti zdravotní stav cvičení dovoluje.");
+  await (await getDb()).update(users).set({ healthConfirmedAt: new Date() }).where(eq(users.id, user.id));
+}
+
 export async function bookAction(_: FormState, fd: FormData): Promise<FormState> {
   const sessionId = field.str(fd, "sessionId");
   const user = await requireUser(`/rozvrh/${sessionId}`);
@@ -28,6 +35,7 @@ export async function bookAction(_: FormState, fd: FormData): Promise<FormState>
 
   const res = await attempt(async () => {
     if (!METHODS.includes(method as Method)) throw new UserError("Vyber způsob platby.");
+    await confirmHealth(user, fd);
     const db = await getDb();
     const { booking, order } = await bookSession(db, {
       userId: user.id,
@@ -59,6 +67,7 @@ export async function waitlistAction(_: FormState, fd: FormData): Promise<FormSt
   const sessionId = field.str(fd, "sessionId");
   const user = await requireUser(`/rozvrh/${sessionId}`);
   const res = await attempt(async () => {
+    await confirmHealth(user, fd);
     await joinWaitlist(await getDb(), { userId: user.id, sessionId });
     return "Jsi v pořadníku. Jakmile se uvolní místo, automaticky tě přihlásíme a dáme vědět e-mailem.";
   });

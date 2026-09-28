@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { HealthCheckbox } from "@/components/health-checkbox";
 import { registerAction } from "@/app/actions/auth";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { Eyebrow, Field, Input } from "@/components/ui";
@@ -29,6 +30,7 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registr
           <input type="checkbox" name="terms" required className="mt-1 accent-[#674329]" />
           <span>Souhlasím s <Link href="/obchodni-podminky" className="underline" target="_blank">obchodními podmínkami</Link> a beru na vědomí <Link href="/ochrana-osobnich-udaju" className="underline" target="_blank">zpracování osobních údajů</Link>.</span>
         </label>
+        <HealthCheckbox />
         <fieldset className="space-y-2 rounded-xl border border-linka/60 p-4 text-sm text-les/80">
           <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-les/60">Novinky a akce (nepovinné)</legend>
           <label className="flex gap-3"><input type="checkbox" name="marketing" className="mt-1 accent-[#674329]" /> E-mailem (newsletter)</label>
