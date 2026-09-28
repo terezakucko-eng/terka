@@ -85,6 +85,7 @@ export async function saveClassTypeAction(_: FormState, fd: FormData): Promise<F
       firstVisitPrice: field.money(fd, "firstVisitPrice"),
       duoPrice: field.money(fd, "duoPrice"),
       noFreeEntry: field.bool(fd, "noFreeEntry"),
+      noPass: field.bool(fd, "noPass"),
       passEntries: Math.max(1, field.int(fd, "passEntries") ?? 1),
       sortOrder: field.int(fd, "sortOrder") ?? 0,
       isActive: field.bool(fd, "isActive"),

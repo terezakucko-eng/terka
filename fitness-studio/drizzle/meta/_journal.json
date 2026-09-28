@@ -113,6 +113,13 @@
       "when": 1790579677452,
       "tag": "0015_booking_guest",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1790581052389,
+      "tag": "0016_class_no_pass",
+      "breakpoints": true
     }
   ]
 }

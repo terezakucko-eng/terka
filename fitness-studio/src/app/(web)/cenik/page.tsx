@@ -8,6 +8,7 @@ import { credits, entriesLabel, formatPrice } from "@/lib/money";
 import { activeClassTypes, activeProducts } from "@/lib/queries";
 import { getSettings } from "@/lib/settings";
 import { getContent, type Content } from "@/content";
+import { nbsp } from "@/lib/typography";
 
 export const metadata: Metadata = { title: "Ceník, členství a permanentky" };
 
@@ -31,10 +32,14 @@ export default async function PricingPage() {
   ]);
 
   const hasPass = list.some((p) => p.kind === "pass");
-  const multi = types.filter((t) => t.passEntries > 1);
-  const passNotes = multi.length
-    ? ["Běžná lekce = 1 vstup", ...multi.map((t) => `${t.name} = ${entriesLabel(t.passEntries)}`)]
-    : ["1 lekce = 1 vstup"];
+  const multi = types.filter((t) => t.passEntries > 1 && !t.noPass);
+  const noPass = types.filter((t) => t.noPass);
+  const passNotes = [
+    ...(multi.length
+      ? ["Běžná lekce = 1 vstup", ...multi.map((t) => `${t.name} = ${entriesLabel(t.passEntries)}`)]
+      : ["1 lekce = 1 vstup"]),
+    ...(noPass.length ? [`Neplatí na: ${noPass.map((t) => t.name).join(", ")}`] : []),
+  ];
   // How many credits a class takes: the usual price once, the exceptions by name.
   const costs = types.filter((t) => t.creditCost > 0).map((t) => t.creditCost);
   const usual = costs.sort((a, b) => costs.filter((c) => c === b).length - costs.filter((c) => c === a).length)[0];
@@ -45,16 +50,24 @@ export default async function PricingPage() {
           `${types.some((t) => t.creditCost !== usual) ? "Běžná lekce" : "Lekce"}: ${credits(usual)}`,
           ...types.filter((t) => t.creditCost !== usual && t.creditCost > 0).map((t) => `${t.name}: ${credits(t.creditCost)}`),
         ];
-  // Which classes the welcome free entry can be used for.
+  // Which classes the welcome free entry can be used for – the exceptions with their intro price.
   const noFree = types.filter((t) => t.noFreeEntry);
   const yesFree = types.filter((t) => !t.noFreeEntry);
-  const freeWhere = !noFree.length
+  const names = (ts: typeof types) => ts.map((t) => t.name).join(", ").replace(/, ([^,]*)$/, " a $1");
+  const intro = noFree.filter((t) => t.firstVisitPrice !== null);
+  const noIntro = noFree.filter((t) => t.firstVisitPrice === null);
+  const samePrice = intro.length > 0 && intro.every((t) => t.firstVisitPrice === intro[0].firstVisitPrice);
+  const introText = !intro.length
     ? ""
-    : !yesFree.length
-      ? ""
-      : noFree.length <= yesFree.length
-        ? `Platí na všechny lekce kromě: ${noFree.map((t) => t.name).join(", ")}.`
-        : `Platí na lekce: ${yesFree.map((t) => t.name).join(", ")}.`;
+    : samePrice
+      ? `Na ${names(intro)} je první lekce za ${formatPrice(intro[0].firstVisitPrice!)}, na ostatní lekce zdarma.`
+      : `${intro.map((t) => `Na ${t.name} je první lekce za ${formatPrice(t.firstVisitPrice!)}.`).join(" ")} Na ostatní lekce zdarma.`;
+  const freeWhere = !noFree.length || !yesFree.length
+    ? ""
+    : [
+        introText,
+        noIntro.length ? `Neplatí na: ${names(noIntro)}.` : "",
+      ].filter(Boolean).join(" ");
   // number only the sections that actually have something in them
   const shown = groups(c).filter((g) => list.some((p) => p.kind === g.kind));
 
@@ -71,7 +84,7 @@ export default async function PricingPage() {
               <Eyebrow className="text-zlato">{c("pricing.freeEyebrow")}</Eyebrow>
               <p className="mt-2 text-2xl font-semibold">{c("pricing.freeTitle")}</p>
               <p className="mt-1 text-papir/70">{c("pricing.freeText")}</p>
-              {freeWhere && <p className="mt-2 text-sm text-zlato-light">{freeWhere}</p>}
+              {freeWhere && <p className="mt-2 text-sm text-zlato-light">{nbsp(freeWhere)}</p>}
             </div>
             <ButtonLink href={user ? "/rozvrh" : "/registrace"} variant="gold">
               {user ? "Vybrat lekci" : "Zaregistrovat se"}
@@ -107,11 +120,13 @@ export default async function PricingPage() {
                 </span>
                 <span className="text-right text-sm tabular-nums text-les/70">
                   {t.dropInPrice !== null ? formatPrice(t.dropInPrice) : "jen s permanentkou"} · {credits(t.creditCost)}
-                  {(hasPass || t.passEntries > 1) && (
-                    <span className="block text-xs">
-                      permanentka: {entriesLabel(t.passEntries)}
-                    </span>
-                  )}
+                  {t.noPass
+                    ? hasPass && <span className="block text-xs">permanentka neplatí</span>
+                    : (hasPass || t.passEntries > 1) && (
+                        <span className="block text-xs">
+                          permanentka: {entriesLabel(t.passEntries)}
+                        </span>
+                      )}
                   {t.firstVisitPrice !== null && (
                     <span className="block text-xs">první lekce {formatPrice(t.firstVisitPrice)}</span>
                   )}

@@ -44,3 +44,18 @@ describe("classes costing more pass entries (Reformer = 2)", () => {
     expect(e.entriesUsed).toBe(1);
   });
 });
+
+describe("classes a pass doesn't cover (individual training)", () => {
+  it("refuses the pass but keeps credits", async () => {
+    const s = await makeSession(h.db, { capacity: 1, creditCost: 400 });
+    await h.db.update(classTypes).set({ noPass: true }).where(eq(classTypes.id, s.classTypeId));
+    const u = await makeUser(h.db, 400);
+    const pass = await grantEntitlement(h.db, { userId: u.id, kind: "pass", name: "Permanentka 10", entries: 10, validityDays: 60 }, NOW);
+    const opts = await bookingOptions(h.db, u.id, s);
+    expect(opts.find((o) => o.method === "pass")?.disabled).toMatch(/neplatí/);
+    expect(opts.find((o) => o.method === "credits")?.disabled).toBeUndefined();
+    await expect(
+      bookSession(h.db, { userId: u.id, sessionId: s.id, method: "pass", entitlementId: pass.id }, NOW),
+    ).rejects.toThrow(/neplatí/);
+  });
+});

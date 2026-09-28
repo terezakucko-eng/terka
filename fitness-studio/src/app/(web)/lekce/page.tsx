@@ -39,8 +39,9 @@ export default async function ClassesPage() {
                 {t.durationMin} min · {credits(t.creditCost)}
                 {t.dropInPrice !== null && ` · jednorázově ${formatPrice(t.dropInPrice)}`}
                 {t.firstVisitPrice !== null && ` · první lekce ${formatPrice(t.firstVisitPrice)}`}
-                {(hasPass || t.passEntries > 1) &&
-                  ` · permanentka: ${entriesLabel(t.passEntries)}`}
+                {t.noPass
+                  ? hasPass && " · permanentka neplatí"
+                  : (hasPass || t.passEntries > 1) && ` · permanentka: ${entriesLabel(t.passEntries)}`}
                 {t.noFreeEntry && " · úvodní vstup zdarma na tuto lekci neplatí"}
               </p>
               {t.memberSurcharge !== null && t.memberSurcharge > 0 && (

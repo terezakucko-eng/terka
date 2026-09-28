@@ -183,13 +183,14 @@ async function classRules(tx: Executor, s: ClassSession) {
       memberSurcharge: classTypes.memberSurcharge,
       memberSurchargeFrom: classTypes.memberSurchargeFrom,
       noFreeEntry: classTypes.noFreeEntry,
+      noPass: classTypes.noPass,
       firstVisitPrice: classTypes.firstVisitPrice,
       passEntries: classTypes.passEntries,
       duoPrice: classTypes.duoPrice,
     })
     .from(classTypes)
     .where(eq(classTypes.id, s.classTypeId));
-  return ct ?? { memberSurcharge: null, memberSurchargeFrom: null, noFreeEntry: false, firstVisitPrice: null, passEntries: 1, duoPrice: null };
+  return ct ?? { memberSurcharge: null, memberSurchargeFrom: null, noFreeEntry: false, noPass: false, firstVisitPrice: null, passEntries: 1, duoPrice: null };
 }
 type ClassRules = Awaited<ReturnType<typeof classRules>>;
 
@@ -244,6 +245,8 @@ async function entitlementProblem(
   if (e.status !== "active") return "Oprávnění není aktivní.";
   if (seats > 1 && e.kind !== "pass")
     return "Kamarádku můžeš vzít s permanentkou, kreditem nebo jednorázově.";
+  if (e.kind === "pass" && (await classRules(tx, s)).noPass)
+    return "Permanentka na tuhle lekci neplatí.";
   if (e.kind === "free" && (await classRules(tx, s)).noFreeEntry)
     return "Úvodní vstup zdarma na tuhle lekci použít nejde.";
   if (e.validFrom > s.startsAt || e.validUntil <= s.startsAt)
