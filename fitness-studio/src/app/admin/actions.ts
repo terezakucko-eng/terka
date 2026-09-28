@@ -1,5 +1,6 @@
 "use server";
 
+import { toSafeHtml } from "@/lib/rich-html";
 import { and, eq, gte, inArray, lt } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -193,7 +194,7 @@ export async function saveAnnouncementAction(_: FormState, fd: FormData): Promis
     const db = await getDb();
     const values = {
       title: required(field.str(fd, "title"), "Vyplň nadpis."),
-      body: required(field.str(fd, "body"), "Vyplň text."),
+      body: required(toSafeHtml(field.str(fd, "body")), "Vyplň text."),
       isPinned: field.bool(fd, "isPinned"),
       isPublished: field.bool(fd, "isPublished"),
     };
@@ -531,6 +532,7 @@ export async function grantEntitlementAction(_: FormState, fd: FormData): Promis
 }
 
 const endOfDay = (v: string) => (/^\d{4}-\d{2}-\d{2}$/.test(v) ? pragueLocalToDate(`${v}T23:59`) : null);
+const startOfDay = (v: string) => (/^\d{4}-\d{2}-\d{2}$/.test(v) ? pragueLocalToDate(`${v}T00:00`) : null);
 
 /** Client detail: change how long a pass/membership is valid and how many entries it has. */
 export async function updateEntitlementAction(_: FormState, fd: FormData): Promise<FormState> {
@@ -541,7 +543,10 @@ export async function updateEntitlementAction(_: FormState, fd: FormData): Promi
     if (!e) throw new UserError("Permanentka nenalezena.");
     const until = endOfDay(field.str(fd, "until"));
     if (!until) throw new UserError("Vyplň datum konce platnosti.");
-    if (until <= e.validFrom) throw new UserError("Konec musí být po začátku platnosti.");
+    const fromRaw = field.str(fd, "from");
+    const from = fromRaw ? startOfDay(fromRaw) : e.validFrom;
+    if (!from) throw new UserError("Neplatné datum začátku platnosti.");
+    if (until <= from) throw new UserError("Konec musí být po začátku platnosti.");
     let entriesTotal = e.entriesTotal;
     if (e.entriesTotal !== null) {
       const n = field.int(fd, "entries");
@@ -556,9 +561,9 @@ export async function updateEntitlementAction(_: FormState, fd: FormData): Promi
     }
     await db
       .update(entitlements)
-      .set({ validUntil: until, entriesTotal, monthlyFee })
+      .set({ validFrom: from, validUntil: until, entriesTotal, monthlyFee })
       .where(eq(entitlements.id, e.id));
-    return done(`Uloženo – platí do ${formatDate(until)}.`);
+    return done(`Uloženo – platí ${formatDate(from)} – ${formatDate(until)}.`);
   });
 }
 

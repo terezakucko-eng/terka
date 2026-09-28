@@ -17,7 +17,11 @@ import { activeClassTypes, listSessions } from "@/lib/queries";
 import { getContent } from "@/content";
 import { getSettings } from "@/lib/settings";
 
-export const metadata: Metadata = { title: "Rozvrh a rezervace" };
+export const metadata: Metadata = {
+  title: "Rozvrh a rezervace",
+  description: "Aktuální rozvrh lekcí studia OCTOPUSH v Ostravě. Podívej se na volná místa a rezervuj si lekci online během pár vteřin.",
+  alternates: { canonical: "/rozvrh" },
+};
 
 const short = new Intl.DateTimeFormat("cs-CZ", { day: "numeric", month: "numeric", timeZone: "UTC" });
 const keyToUtc = (k: string) => new Date(`${k}T12:00:00Z`);

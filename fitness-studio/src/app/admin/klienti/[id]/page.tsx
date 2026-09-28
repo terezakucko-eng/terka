@@ -193,7 +193,8 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
                           {e.entriesUsed}/<Input name="entries" type="number" min={e.entriesUsed} defaultValue={e.entriesTotal} className="w-16 px-2 py-1" aria-label="Vstupů celkem" />
                         </label>
                       )}
-                      <span className="whitespace-nowrap text-les/60">{formatDate(e.validFrom)} –</span>
+                      <Input name="from" type="date" defaultValue={dateKey(e.validFrom)} className="w-40 px-2 py-1" aria-label="Platí od" />
+                      <span className="text-les/60">–</span>
                       <Input name="until" type="date" defaultValue={dateKey(e.validUntil)} className="w-40 px-2 py-1" aria-label="Platí do" />
                       {e.kind === "membership" && !e.subscriptionId && (
                         <label className="flex items-center gap-1 text-les/60">

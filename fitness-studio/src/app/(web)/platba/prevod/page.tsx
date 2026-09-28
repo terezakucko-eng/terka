@@ -13,7 +13,7 @@ import { cardPayments } from "@/lib/payments";
 import { payOrderAction } from "@/app/actions/booking";
 import { ActionForm, SubmitButton } from "@/components/forms";
 
-export const metadata: Metadata = { title: "Platba převodem" };
+export const metadata: Metadata = { title: "Platba převodem", robots: { index: false } };
 
 /** Bank details + QR code for an order paid by transfer. */
 export default async function TransferPage({ searchParams }: PageProps<"/platba/prevod">) {

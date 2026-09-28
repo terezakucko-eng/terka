@@ -3,7 +3,7 @@ import { requestResetAction } from "@/app/actions/auth";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { Eyebrow, Field, Input } from "@/components/ui";
 
-export const metadata: Metadata = { title: "Zapomenuté heslo" };
+export const metadata: Metadata = { title: "Zapomenuté heslo", robots: { index: false } };
 
 export default function ForgotPage() {
   return (

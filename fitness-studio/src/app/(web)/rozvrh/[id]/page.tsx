@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: PageProps<"/rozvrh/[id]">): P
   const { id } = await params;
   if (!UUID.test(id)) return {};
   const r = await sessionDetail(await getDb(), id);
-  return r ? { title: `${r.ct.name} – ${formatDay(r.s.startsAt)}` } : {};
+  return r ? { title: `${r.ct.name} – ${formatDay(r.s.startsAt)}`, robots: { index: false } } : {};
 }
 
 function gcalLink(title: string, start: Date, durationMin: number, location: string) {

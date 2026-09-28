@@ -8,7 +8,7 @@ import { formatDate } from "@/lib/dates";
 import { credits } from "@/lib/money";
 import { qrSvg } from "@/lib/qr-payment";
 
-export const metadata: Metadata = { title: "Členská karta" };
+export const metadata: Metadata = { title: "Členská karta", robots: { index: false } };
 
 /**
  * Member card for the reception: the QR code opens the client's record in

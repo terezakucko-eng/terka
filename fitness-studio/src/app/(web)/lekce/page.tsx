@@ -10,7 +10,11 @@ import { ContentImage } from "@/components/content-image";
 import { nbsp } from "@/lib/typography";
 import { VideoEmbed } from "@/components/video-embed";
 
-export const metadata: Metadata = { title: "Lekce" };
+export const metadata: Metadata = {
+  title: "Lekce",
+  description: "Tanec, pilates, silový trénink a další lekce ve studiu OCTOPUSH v Ostravě. Pro koho jsou, jak probíhají a kolik stojí.",
+  alternates: { canonical: "/lekce" },
+};
 
 export default async function ClassesPage() {
   const db = await getDb();

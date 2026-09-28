@@ -9,10 +9,15 @@ import { announcementComments, announcements, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { nbsp } from "@/lib/typography";
+import { RichText } from "@/components/rich-text";
 import { Avatar } from "@/components/avatar";
 import { displayName } from "@/lib/profile";
 
-export const metadata: Metadata = { title: "Nástěnka" };
+export const metadata: Metadata = {
+  title: "Nástěnka",
+  description: "Novinky ze studia OCTOPUSH v Ostravě: změny v rozvrhu, akce, workshopy a reakce klientů.",
+  alternates: { canonical: "/nastenka" },
+};
 
 /** News from the studio with clients' reactions. */
 export default async function BoardPage() {
@@ -48,7 +53,7 @@ export default async function BoardPage() {
                 {formatDate(p.createdAt)} {p.isPinned && <Badge tone="gold">Připnuto</Badge>}
               </p>
               <h2 className="mt-2 text-2xl font-semibold">{nbsp(p.title)}</h2>
-              <p className="mt-3 whitespace-pre-line text-les/80">{nbsp(p.body)}</p>
+              <RichText text={p.body} className="mt-3 text-les/80" />
 
               <div className="mt-6 space-y-3 border-t border-linka/60 pt-4">
                 {list.map(({ c: r, author }) => (

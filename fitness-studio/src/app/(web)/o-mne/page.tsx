@@ -4,7 +4,11 @@ import { RichText } from "@/components/rich-text";
 import { ButtonLink, Container, PageHeader } from "@/components/ui";
 import { getContent } from "@/content";
 
-export const metadata: Metadata = { title: "O mně" };
+export const metadata: Metadata = {
+  title: "O mně",
+  description: "Kdo stojí za studiem OCTOPUSH v Ostravě, proč vzniklo a jak u nás přistupujeme k pohybu, lidem a rovnováze.",
+  alternates: { canonical: "/o-mne" },
+};
 
 export default async function AboutPage() {
   const c = await getContent();
