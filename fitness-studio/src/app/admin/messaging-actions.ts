@@ -179,6 +179,7 @@ const FIELD_LABELS: Record<string, string> = {
   validUntil: "Platnost do",
   newsletter: "Souhlas s newsletterem",
   note: "Poznámka",
+  birthDate: "Datum narození",
 };
 
 export async function importAction(_: ImportState, fd: FormData): Promise<ImportState> {

@@ -66,6 +66,7 @@ const ALIASES = {
   validUntil: ["platnostdo", "platnost", "platido", "expirace", "validuntil"],
   newsletter: ["newsletter", "souhlas", "souhlasnewsletter", "marketing", "gdpr", "souhlasgdpr"],
   note: ["poznamka", "note", "poznamky"],
+  birthDate: ["datumnarozeni", "narozeni", "narozeniny", "birthdate", "birthday", "dateofbirth"],
 } as const;
 
 export type Field = keyof typeof ALIASES;
@@ -107,8 +108,24 @@ export type ImportRow = {
   validUntil: Date | null;
   newsletter: boolean;
   note: string | null;
+  /** "YYYY-MM-DD" */
+  birthDate: string | null;
   problem?: string;
 };
+
+/** "2026-01-31", "31.1.2026" → "2026-01-31"; anything else null. */
+function parseBirthDate(v: string): string | null {
+  const s = v.trim();
+  let m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s);
+  if (!m) {
+    const d = /^(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})/.exec(s);
+    if (d) m = [d[0], d[3], d[2], d[1]] as unknown as RegExpExecArray;
+  }
+  if (!m) return null;
+  const [y, mo, da] = [+m[1], +m[2], +m[3]];
+  if (y < 1900 || mo < 1 || mo > 12 || da < 1 || da > 31) return null;
+  return `${y}-${String(mo).padStart(2, "0")}-${String(da).padStart(2, "0")}`;
+}
 
 export function interpretRows(rows: string[][], mapping: Mapping): ImportRow[] {
   const get = (r: string[], f: Field) => (mapping[f] !== undefined ? (r[mapping[f]!] ?? "").trim() : "");
@@ -130,6 +147,7 @@ export function interpretRows(rows: string[][], mapping: Mapping): ImportRow[] {
       validUntil: parseDate(get(r, "validUntil")),
       newsletter: truthy(get(r, "newsletter")),
       note: get(r, "note") || null,
+      birthDate: parseBirthDate(get(r, "birthDate")),
     };
     if (!email) row.problem = rawEmail ? `neplatný e-mail „${rawEmail}“` : "chybí e-mail";
     else if (rawPhone && !phone) row.problem = `telefon „${rawPhone}“ nerozpoznán – přeskočen`;
@@ -177,6 +195,7 @@ export async function importClients(
           .set({
             phone: existing.phone ?? r.phone,
             adminNote: existing.adminNote ?? r.note,
+            birthDate: existing.birthDate ?? r.birthDate,
           })
           .where(eq(users.id, existing.id));
         res.updated++;
@@ -191,6 +210,7 @@ export async function importClients(
           passwordHash: IMPORTED_PASSWORD,
           importedAt: now,
           adminNote: r.note,
+          birthDate: r.birthDate,
           marketingConsent: opts.consentFromFile && r.newsletter,
           smsConsent: !!opts.smsConsentAll && !!r.phone && opts.consentFromFile && r.newsletter,
         })
