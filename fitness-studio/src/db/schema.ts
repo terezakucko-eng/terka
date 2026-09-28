@@ -3,6 +3,7 @@ import {
   type AnyPgColumn,
   boolean,
   customType,
+  primaryKey,
   index,
   integer,
   jsonb,
@@ -414,8 +415,25 @@ export const announcementComments = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     body: text("body").notNull(),
     createdAt: createdAt(),
+    editedAt: timestamp("edited_at", { withTimezone: true }),
   },
   (t) => [index("announcement_comments_ann_idx").on(t.announcementId)],
+);
+
+/** Emoji reakce na příspěvek nástěnky – každý uživatel jednou od každého emoji. */
+export const announcementReactions = pgTable(
+  "announcement_reactions",
+  {
+    announcementId: uuid("announcement_id")
+      .notNull()
+      .references(() => announcements.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    emoji: text("emoji").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.announcementId, t.userId, t.emoji] })],
 );
 
 export const campaigns = pgTable("campaigns", {
