@@ -4,6 +4,7 @@ import Stripe from "stripe";
 import type { DB } from "@/db";
 import { orders, users, type Order, type Product, type User } from "@/db/schema";
 import { site } from "@/config/site";
+import { UserError } from "@/lib/errors";
 import {
   abandonOrder,
   fulfillOrder,
@@ -55,6 +56,23 @@ export async function startCheckout(
     return `/platba/test?order=${order.id}`;
   }
 
+  if (order.amount < MIN_CARD_AMOUNT)
+    throw new UserError(`Kartou jde platit od ${MIN_CARD_AMOUNT / 100} Kč – u menší částky zvol prosím převod.`);
+
+  try {
+    return await stripeCheckout(db, order, user, product);
+  } catch (e) {
+    console.error("[stripe] checkout failed", order.id, e);
+    if (e instanceof Stripe.errors.StripeAuthenticationError || e instanceof Stripe.errors.StripePermissionError)
+      throw new UserError("Platba kartou není správně nastavená (klíč Stripe). Zaplať prosím převodem a dej nám vědět.");
+    throw new UserError("Platební brána teď není dostupná. Zkus to prosím za chvíli, nebo zaplať převodem.");
+  }
+}
+
+/** Stripe won't take card payments under 15 Kč. */
+export const MIN_CARD_AMOUNT = 1500;
+
+async function stripeCheckout(db: DB, order: Order, user: User, product?: Product | null) {
   const recurring = product?.kind === "membership" && product.recurring;
   const returnUrl = `${site.url}/platba/vysledek?order=${order.id}`;
   const lineItem: Stripe.Checkout.SessionCreateParams.LineItem = {

@@ -65,8 +65,8 @@ export async function payMassageAction(_: FormState, fd: FormData): Promise<Form
     const order = await createMassageOrder(db, { userId: user.id, bookingId: field.str(fd, "bookingId") });
     try {
       url = await startCheckout(db, order, user, null, "card");
-    } catch {
-      throw new UserError("Platební brána teď není dostupná. Zkus to prosím za chvíli, nebo zaplať převodem.");
+    } catch (e) {
+      throw e instanceof UserError ? e : new UserError("Platební brána teď není dostupná. Zkus to prosím za chvíli, nebo zaplať převodem.");
     }
   });
   if (url) redirect(url);
