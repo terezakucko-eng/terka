@@ -179,6 +179,8 @@ export const classTypes = pgTable("class_types", {
   firstVisitPrice: integer("first_visit_price"),
   /** Kolik vstupů se strhne z permanentky (např. Reformer = 2) */
   passEntries: integer("pass_entries").notNull().default(1),
+  /** Permanentka na tuto lekci neplatí (např. individuální trénink) */
+  noPass: boolean("no_pass").notNull().default(false),
   /** Jednorázová cena pro dva (klient + kamarádka, haléře); null = 2× jednorázová cena */
   duoPrice: integer("duo_price"),
   isActive: boolean("is_active").notNull().default(true),

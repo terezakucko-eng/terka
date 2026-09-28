@@ -63,7 +63,12 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
               <li className="flex items-center gap-3"><Clock className="size-5 text-zlato" /> {formatRange(s.startsAt, s.durationMin)} ({s.durationMin} min)</li>
               <li className="flex items-center gap-3"><MapPin className="size-5 text-zlato" /> {s.room ? `${s.room}, ` : ""}{address}</li>
             </ul>
-            {!s.isFree && ct.passEntries > 1 && (
+            {!s.isFree && ct.noPass && (
+              <p className="mt-6 rounded-xl border border-zlato/40 bg-zlato/10 p-4 text-zlato-light">
+                Permanentka na tuhle lekci neplatí – zaplatíš kreditem nebo jednorázově.
+              </p>
+            )}
+            {!s.isFree && !ct.noPass && ct.passEntries > 1 && (
               <p className="mt-6 rounded-xl border border-zlato/40 bg-zlato/10 p-4 text-zlato-light">
                 Z permanentky se na tuhle lekci strhnou {ct.passEntries} vstupy.
               </p>
