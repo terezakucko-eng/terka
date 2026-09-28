@@ -33,7 +33,7 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registr
         <HealthCheckbox />
         <label className="flex gap-3 text-sm text-les/80">
           <input type="checkbox" name="reminders" className="mt-1 accent-[#674329]" />
-          <span>Připomeň mi e-mailem lekci nebo masáž den předem (nepovinné)</span>
+          <span>Připomeň mi e-mailem lekci nebo masáž 3 hodiny předem (nepovinné)</span>
         </label>
         <fieldset className="space-y-2 rounded-xl border border-linka/60 p-4 text-sm text-les/80">
           <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-les/60">Novinky a akce (nepovinné)</legend>

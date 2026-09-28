@@ -121,7 +121,7 @@ export const users = pgTable("users", {
   marketingConsent: boolean("marketing_consent").notNull().default(false),
   smsConsent: boolean("sms_consent").notNull().default(false),
   whatsappConsent: boolean("whatsapp_consent").notNull().default(false),
-  /** Chce e-mailem připomínku lekce/masáže den předem */
+  /** Chce e-mailem připomínku lekce/masáže 3 hodiny předem */
   remindersOptIn: boolean("reminders_opt_in").notNull().default(false),
   /** pro odhlašovací odkaz v newsletteru/SMS bez přihlášení */
   unsubscribeToken: text("unsubscribe_token")
