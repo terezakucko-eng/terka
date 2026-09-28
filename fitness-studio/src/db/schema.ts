@@ -611,6 +611,24 @@ export const settings = pgTable("settings", {
   value: jsonb("value").notNull(),
 });
 
+/** Recenze – od klientů z webu (čekají na schválení) nebo vložené adminem (Google, starý web). */
+export const reviews = pgTable(
+  "reviews",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    authorName: text("author_name").notNull(),
+    rating: integer("rating").notNull(),
+    body: text("body").notNull(),
+    status: text("status", { enum: ["pending", "approved", "hidden"] }).notNull().default("pending"),
+    source: text("source", { enum: ["web", "google", "manual"] }).notNull().default("web"),
+    isFeatured: boolean("is_featured").notNull().default(false),
+    createdAt: createdAt(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("reviews_user_idx").on(t.userId)],
+);
+
 /** Týdenní (a ruční) zálohy dat – gzip JSON všech tabulek kromě obsahu obrázků. */
 export const backups = pgTable("backups", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -622,6 +640,7 @@ export const backups = pgTable("backups", {
 });
 
 export type User = typeof users.$inferSelect;
+export type Review = typeof reviews.$inferSelect;
 export type ClassType = typeof classTypes.$inferSelect;
 export type ClassSession = typeof classSessions.$inferSelect;
 export type Instructor = typeof instructors.$inferSelect;

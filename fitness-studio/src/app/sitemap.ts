@@ -13,6 +13,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ["/masaze", 0.8],
     ["/o-mne", 0.7],
     ["/nastenka", 0.6],
+    ["/recenze", 0.6],
     ["/registrace", 0.5],
     ["/obchodni-podminky", 0.2],
     ["/ochrana-osobnich-udaju", 0.2],

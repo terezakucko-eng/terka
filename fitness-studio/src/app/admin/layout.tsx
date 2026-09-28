@@ -9,6 +9,7 @@ import {
   Mail,
   FileText,
   Megaphone,
+  Star,
   MessageSquare,
   Upload,
   Receipt,
@@ -37,6 +38,7 @@ const items = [
   { href: "/admin/lekce", label: "Typy lekcí", icon: Sparkles, admin: true },
   { href: "/admin/lektori", label: "Lektoři", icon: UserRound, admin: true },
   { href: "/admin/aktuality", label: "Aktuality", icon: Megaphone, admin: true },
+  { href: "/admin/recenze", label: "Recenze", icon: Star, admin: true },
   { href: "/admin/import", label: "Import klientů", icon: Upload, admin: true },
   { href: "/admin/nastaveni", label: "Nastavení", icon: Cog, admin: true },
 ];
