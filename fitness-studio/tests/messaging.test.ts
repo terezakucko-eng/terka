@@ -86,6 +86,15 @@ describe("campaigns", () => {
 });
 
 describe("import", () => {
+  it("reads the birth date (old system export)", async () => {
+    const rows = parseCsv("Jméno;Příjmení;Email;Datum narození\nIva;Malá;iva@example.cz;1990-03-07\nOla;Nová;ola@example.cz;7.3.1991\nUla;Zlá;ula@example.cz;x\n");
+    const data = interpretRows(rows.slice(1), detectMapping(rows[0]));
+    expect(data.map((d) => d.birthDate)).toEqual(["1990-03-07", "1991-03-07", null]);
+    await importClients(h.db, data, { consentFromFile: false }, NOW);
+    const [iva] = await h.db.select().from(users).where(eq(users.email, "iva@example.cz"));
+    expect(iva.birthDate).toBe("1990-03-07");
+  });
+
   const csv =
     "Jméno;Příjmení;E-mail;Telefon;Kredit;Zbývající vstupy;Platnost do;Newsletter\n" +
     'Jana;Nová;JANA@example.cz;777 111 222;3;5;31.12.2099;ano\n' +
