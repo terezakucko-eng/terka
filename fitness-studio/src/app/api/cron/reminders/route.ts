@@ -8,7 +8,7 @@ import { getSettings } from "@/lib/settings";
 export const maxDuration = 60;
 
 /**
- * Evening reminder (Vercel Cron, see vercel.json): e-mails everyone booked
+ * Evening reminder (Vercel Cron, see vercel.json): e-mails clients who opted in and are booked
  * on a class or massage tomorrow. Each booking is reminded only once.
  */
 export async function GET(req: Request) {

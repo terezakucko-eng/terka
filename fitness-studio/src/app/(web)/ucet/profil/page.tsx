@@ -74,6 +74,10 @@ export default async function ProfilePage() {
               </div>
             </Field>
           </div>
+          <label className="flex gap-3 text-sm">
+            <input type="checkbox" name="reminders" defaultChecked={user.remindersOptIn} className="mt-0.5 accent-[#674329]" />
+            <span>Připomeň mi e-mailem lekci nebo masáž den předem</span>
+          </label>
           <fieldset className="space-y-2 text-sm">
             <legend className="mb-1 text-xs font-semibold uppercase tracking-wider text-les/70">Chci dostávat novinky a akce</legend>
             <label className="flex gap-3"><input type="checkbox" name="marketing" defaultChecked={user.marketingConsent} className="accent-[#674329]" /> E-mailem</label>

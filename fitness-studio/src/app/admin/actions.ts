@@ -626,6 +626,7 @@ export async function updateClientAction(_: FormState, fd: FormData): Promise<Fo
         marketingConsent: field.bool(fd, "marketingConsent"),
         smsConsent: field.bool(fd, "smsConsent"),
         whatsappConsent: field.bool(fd, "whatsappConsent"),
+        remindersOptIn: field.bool(fd, "remindersOptIn"),
         nickname: field.str(fd, "nickname").slice(0, 30) || null,
         birthDate: cleanBirthDate(field.str(fd, "birthDate")),
         nameDay: cleanNameDay(field.int(fd, "nameDayDay"), field.int(fd, "nameDayMonth")),

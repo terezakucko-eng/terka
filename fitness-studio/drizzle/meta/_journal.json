@@ -134,6 +134,13 @@
       "when": 1790583199541,
       "tag": "0018_health_confirmed",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1790584390417,
+      "tag": "0019_reminders_opt_in",
+      "breakpoints": true
     }
   ]
 }
