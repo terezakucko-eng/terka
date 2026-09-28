@@ -48,7 +48,7 @@ export default async function BoardPage() {
         {posts.map((p) => {
           const list = comments.filter((x) => x.c.announcementId === p.id);
           return (
-            <article key={p.id} className="rounded-2xl border border-linka/60 bg-white/60 p-6">
+            <article key={p.id} id={p.id} className="scroll-mt-24 rounded-2xl border border-linka/60 bg-white/60 p-6">
               <p className="eyebrow flex items-center gap-2 text-les/50">
                 {formatDate(p.createdAt)} {p.isPinned && <Badge tone="gold">Připnuto</Badge>}
               </p>
