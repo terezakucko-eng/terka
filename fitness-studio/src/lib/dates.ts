@@ -110,6 +110,10 @@ export const formatDay = (d: Date) => dayFmt.format(d);
 export const formatShortDay = (d: Date) => shortDayFmt.format(d);
 export const formatDate = (d: Date) => dateFmt.format(d);
 export const formatDateTime = (d: Date) => dateTimeFmt.format(d);
+const dayMonthFmt = fmt({ day: "numeric", month: "long" });
+const weekdayFmt = fmt({ weekday: "long" });
+/** "2. října v 18:00 (pátek)" – reads right after "od" / "otevře" */
+export const formatWhen = (d: Date) => `${dayMonthFmt.format(d)} v ${timeFmt.format(d)} (${weekdayFmt.format(d)})`;
 
 export function formatRange(start: Date, durationMin: number) {
   return `${formatTime(start)} – ${formatTime(new Date(start.getTime() + durationMin * 60_000))}`;

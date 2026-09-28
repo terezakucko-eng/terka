@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ScheduleItem } from "@/lib/queries";
-import { formatRange } from "@/lib/dates";
+import { formatRange, formatShortDay } from "@/lib/dates";
 import { Badge, cx } from "./ui";
 
 /**
@@ -33,7 +33,8 @@ const myLabel: Record<string, string> = {
   no_show: "Nedorazil/a",
 };
 
-export function SessionCard({ s, compact }: { s: ScheduleItem; compact?: boolean }) {
+/** `opensAt`: the class is beyond this viewer's booking window – show when booking opens instead. */
+export function SessionCard({ s, compact, opensAt }: { s: ScheduleItem; compact?: boolean; opensAt?: Date | null }) {
   const spots = spotsLabel(s);
   const past = s.startsAt <= new Date() || s.status === "cancelled";
   return (
@@ -55,6 +56,8 @@ export function SessionCard({ s, compact }: { s: ScheduleItem; compact?: boolean
       <div className="mt-3 flex flex-wrap gap-1.5">
         {s.myStatus ? (
           <Badge tone="dark">{myLabel[s.myStatus] ?? s.myStatus}</Badge>
+        ) : opensAt ? (
+          <Badge>Rezervace od {formatShortDay(opensAt)}</Badge>
         ) : (
           <Badge tone={spots.tone}>{spots.text}</Badge>
         )}

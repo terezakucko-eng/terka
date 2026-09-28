@@ -16,6 +16,7 @@ import {
 import { activeClassTypes, listSessions } from "@/lib/queries";
 import { getContent } from "@/content";
 import { getSettings } from "@/lib/settings";
+import { bookingOpensAt, bookingWindowFor } from "@/domain/booking";
 
 export const metadata: Metadata = {
   title: "Rozvrh a rezervace",
@@ -49,6 +50,13 @@ export default async function SchedulePage({ searchParams }: PageProps<"/rozvrh"
       includeCancelled: false,
     })
   ).filter((s) => +s.startsAt + s.durationMin * 60_000 > +now && s.startsAt < horizon);
+
+  // beyond this viewer's window (non-members see what members can already book) → "Rezervace od …"
+  const windowDays = await bookingWindowFor(db, cfg, user?.id ?? null, now);
+  const opensAt = (s: (typeof sessions)[number]) => {
+    const at = bookingOpensAt(s, windowDays);
+    return at > now ? at : null;
+  };
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
   const byDay = new Map(days.map((d) => [d, sessions.filter((s) => dateKey(s.startsAt) === d)]));
@@ -115,7 +123,7 @@ export default async function SchedulePage({ searchParams }: PageProps<"/rozvrh"
                   </h2>
                   <div className="space-y-2">
                     {list.map((s) => (
-                      <SessionCard key={s.id} s={s} compact />
+                      <SessionCard key={s.id} s={s} compact opensAt={opensAt(s)} />
                     ))}
                     {list.length === 0 && <p className="text-xs text-les/40">—</p>}
                   </div>
