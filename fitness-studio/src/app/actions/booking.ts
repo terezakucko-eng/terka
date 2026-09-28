@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
-import { entitlements, orders } from "@/db/schema";
+import { orders } from "@/db/schema";
 import {
   bookSession,
   cancelBooking,
@@ -16,7 +16,7 @@ import { requireUser } from "@/lib/auth";
 import { UserError } from "@/lib/errors";
 import { attempt, field, type FormState } from "@/lib/form";
 import { notifyBooked, notifyCancelled, notifyPromoted } from "@/lib/notify";
-import { cancelRenewal, paymentProvider, startCheckout } from "@/lib/payments";
+import { paymentProvider, startCheckout } from "@/lib/payments";
 
 const METHODS: Method[] = ["credits", "pass", "membership", "free", "drop_in", "free_class"];
 
@@ -114,23 +114,3 @@ export async function testPayAction(_: FormState, fd: FormData): Promise<FormSta
   redirect(`/platba/vysledek?order=${o.id}&stav=ok`);
 }
 
-export async function cancelMembershipAction(_: FormState, fd: FormData): Promise<FormState> {
-  const user = await requireUser();
-  const res = await attempt(async () => {
-    const db = await getDb();
-    const [e] = await db
-      .select()
-      .from(entitlements)
-      .where(eq(entitlements.id, field.str(fd, "entitlementId")));
-    if (!e || e.userId !== user.id || !e.subscriptionId)
-      throw new UserError("Členství nenalezeno.");
-    await cancelRenewal(e.subscriptionId);
-    await db
-      .update(entitlements)
-      .set({ renewalCancelled: true })
-      .where(eq(entitlements.subscriptionId, e.subscriptionId));
-    return "Automatické obnovení je zrušené. Členství platí do konce zaplaceného období.";
-  });
-  revalidatePath("/ucet");
-  return res;
-}

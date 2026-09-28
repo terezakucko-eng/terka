@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { and, asc, eq, gt } from "drizzle-orm";
-import { cancelBookingAction, cancelMembershipAction } from "@/app/actions/booking";
+import { cancelBookingAction } from "@/app/actions/booking";
 import { cancelMassageAction } from "@/app/actions/massages";
 import { massageBookings, orders } from "@/db/schema";
 import { ActionForm, SubmitButton } from "@/components/forms";
@@ -72,15 +72,9 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
                     <p className="text-sm text-les/60">
                       {e.entriesTotal === null ? "Neomezeně" : `Zbývá ${e.entriesTotal - e.entriesUsed} z ${e.entriesTotal}${e.kind === "solarium" ? " min" : ""}`}
                       {e.weeklyLimit ? ` · max ${e.weeklyLimit}× týdně` : ""} · platí do {formatDate(e.validUntil)}
-                      {e.subscriptionId && (e.renewalCancelled ? " · obnovení zrušeno" : " · obnovuje se automaticky")}
+                      {e.kind === "membership" && " · členství spravuje studio"}
                     </p>
                   </div>
-                  {e.subscriptionId && !e.renewalCancelled && (
-                    <ActionForm action={cancelMembershipAction} confirm="Opravdu zrušit automatické obnovení členství?">
-                      <input type="hidden" name="entitlementId" value={e.id} />
-                      <SubmitButton variant="ghost" className="px-3 py-2 text-[0.65rem]">Zrušit obnovení</SubmitButton>
-                    </ActionForm>
-                  )}
                 </li>
               ))}
             </ul>
