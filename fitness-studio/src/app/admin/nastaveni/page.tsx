@@ -5,6 +5,9 @@ import { ActionForm, SubmitButton } from "@/components/forms";
 import { Card, Field, Input } from "@/components/ui";
 import { getDb } from "@/db";
 import { requireAdmin } from "@/lib/auth";
+import { backupNowAction, deleteBackupAction } from "@/app/admin/backup-actions";
+import { KEEP_AUTO, listBackups } from "@/domain/backup";
+import { formatDateTime } from "@/lib/dates";
 import { paymentProvider } from "@/lib/payments";
 import { getSettings, type Settings } from "@/lib/settings";
 
@@ -27,7 +30,8 @@ const fields: { key: keyof Settings; label: string; hint: string }[] = [
 
 export default async function AdminSettings() {
   await requireAdmin();
-  const cfg = await getSettings(await getDb());
+  const db = await getDb();
+  const [cfg, backupList] = await Promise.all([getSettings(db), listBackups(db)]);
   const provider = paymentProvider();
   return (
     <>
@@ -66,6 +70,46 @@ export default async function AdminSettings() {
           </Field>
           <SubmitButton variant="outline">Smazat vybrané platby</SubmitButton>
         </ActionForm>
+      </Card>
+      <Card className="mt-6 max-w-3xl text-sm">
+        <h2 className="font-semibold">Zálohy dat</h2>
+        <p className="mt-2 text-les/70">
+          Každý týden se automaticky uloží kompletní záloha (klienti, permanentky, kredity, rezervace, platby, texty webu). Drží se
+          posledních {KEEP_AUTO} týdenních. Aspoň jednou za měsíc si zálohu stáhni a ulož mimo web (disk, Google Drive) – obsahuje
+          osobní údaje, tak ji nikam neposílej.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <ActionForm action={backupNowAction}>
+            <SubmitButton variant="outline">Zálohovat teď</SubmitButton>
+          </ActionForm>
+          <a href="/admin/zalohy/klienti" download className="inline-flex items-center rounded-full border border-les px-5 py-3 text-xs font-semibold uppercase tracking-wider">
+            Klienti do Excelu (CSV)
+          </a>
+        </div>
+        {backupList.length === 0 ? (
+          <p className="mt-4 text-les/50">Zatím žádná záloha – první se udělá při nejbližším nočním běhu.</p>
+        ) : (
+          <ul className="mt-4 divide-y divide-linka/60">
+            {backupList.map((b) => (
+              <li key={b.id} className="flex flex-wrap items-center justify-between gap-3 py-2">
+                <span>
+                  <strong>{formatDateTime(b.createdAt)}</strong>{" "}
+                  <span className="text-les/60">
+                    · {b.kind === "auto" ? "týdenní" : "ruční"} · {(b.size / 1024).toLocaleString("cs", { maximumFractionDigits: 0 })} kB ·{" "}
+                    {b.counts.users ?? 0} lidí, {b.counts.bookings ?? 0} rezervací
+                  </span>
+                </span>
+                <span className="flex items-center gap-4">
+                  <a href={`/admin/zalohy/${b.id}`} className="font-semibold underline">Stáhnout</a>
+                  <ActionForm action={deleteBackupAction} confirm="Smazat tuto zálohu?">
+                    <input type="hidden" name="id" value={b.id} />
+                    <button className="text-xs text-chyba underline">Smazat</button>
+                  </ActionForm>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </Card>
       <Card className="mt-6 max-w-3xl text-sm">
         <h2 className="font-semibold">Integrace</h2>

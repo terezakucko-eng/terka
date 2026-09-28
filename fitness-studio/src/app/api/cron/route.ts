@@ -13,13 +13,15 @@ import { processCampaign } from "@/domain/campaigns";
 import { campaignSender, newsletterFooter } from "@/lib/campaign-sender";
 import { unsubscribeUrl } from "@/lib/links";
 import { greetName } from "@/lib/vocative";
+import { createBackup, weeklyBackupDue } from "@/domain/backup";
 
 export const maxDuration = 60;
 
 /**
  * Housekeeping (Vercel Cron, see vercel.json):
  * releases spots held by unpaid drop-ins, zeroes expired credit (and
- * warns a week ahead), and finishes campaigns whose sending page was closed.
+ * warns a week ahead), sends membership fee notices, makes the weekly backup
+ * and finishes campaigns whose sending page was closed.
  */
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
@@ -49,6 +51,9 @@ export async function GET(req: Request) {
     feeNotices = await notifyFee(db, created);
   }
 
+  // weekly data backup (kept in the database, downloadable in Nastavení)
+  const backup = (await weeklyBackupDue(db, now)) ? (await createBackup(db, "auto")).size : 0;
+
   const started = Date.now();
   let sent = 0;
   const footer = await newsletterFooter();
@@ -59,5 +64,5 @@ export async function GET(req: Request) {
       sent += r.sent;
     }
   }
-  return Response.json({ expired, sent, creditsExpired, creditWarnings, feeNotices });
+  return Response.json({ expired, sent, creditsExpired, creditWarnings, feeNotices, backup });
 }

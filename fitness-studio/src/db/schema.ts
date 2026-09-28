@@ -593,6 +593,16 @@ export const settings = pgTable("settings", {
   value: jsonb("value").notNull(),
 });
 
+/** Týdenní (a ruční) zálohy dat – gzip JSON všech tabulek kromě obsahu obrázků. */
+export const backups = pgTable("backups", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  kind: text("kind", { enum: ["auto", "manual"] }).notNull(),
+  size: integer("size").notNull(),
+  counts: jsonb("counts").$type<Record<string, number>>().notNull(),
+  data: bytea("data").notNull(),
+  createdAt: createdAt(),
+});
+
 export type User = typeof users.$inferSelect;
 export type ClassType = typeof classTypes.$inferSelect;
 export type ClassSession = typeof classSessions.$inferSelect;
