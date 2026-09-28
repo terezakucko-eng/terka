@@ -83,6 +83,7 @@ export async function saveClassTypeAction(_: FormState, fd: FormData): Promise<F
       memberSurcharge: field.money(fd, "memberSurcharge") || null,
       memberSurchargeFrom: isDateKey(field.str(fd, "memberSurchargeFrom")) ? field.str(fd, "memberSurchargeFrom") : null,
       firstVisitPrice: field.money(fd, "firstVisitPrice"),
+      duoPrice: field.money(fd, "duoPrice"),
       noFreeEntry: field.bool(fd, "noFreeEntry"),
       passEntries: Math.max(1, field.int(fd, "passEntries") ?? 1),
       sortOrder: field.int(fd, "sortOrder") ?? 0,

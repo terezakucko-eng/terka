@@ -25,13 +25,13 @@ async function emails(db: DB, ids: string[]) {
 
 const link = (sessionId: string) => `${site.url}/rozvrh/${sessionId}`;
 
-export async function notifyBooked(db: DB, b: Pick<Booking, "userId" | "sessionId">) {
+export async function notifyBooked(db: DB, b: Pick<Booking, "userId" | "sessionId"> & Partial<Pick<Booking, "guestName">>) {
   const u = (await emails(db, [b.userId])).get(b.userId);
   if (!u) return;
   await sendMail({
     to: u.email,
     subject: `Rezervace potvrzena: ${await describe(db, b.sessionId)}`,
-    text: `Ahoj ${u.name},\n\nmáš místo na lekci ${await describe(db, b.sessionId)}.\nDetail a případné storno: ${link(b.sessionId)}\n\nTěšíme se!`,
+    text: `Ahoj ${u.name},\n\nmáš místo na lekci ${await describe(db, b.sessionId)}.${b.guestName ? `\nRezervovali jsme i místo pro kamarádku: ${b.guestName}.` : ""}\nDetail a případné storno: ${link(b.sessionId)}\n\nTěšíme se!`,
   });
 }
 

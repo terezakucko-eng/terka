@@ -1,4 +1,4 @@
-import { and, asc, count, eq, gte, inArray, lt, lte, ne, gt } from "drizzle-orm";
+import { and, asc, count, eq, gte, inArray, lt, lte, ne, gt, sql } from "drizzle-orm";
 import type { DB, Executor } from "@/db";
 import {
   bookings,
@@ -98,9 +98,12 @@ async function lockSession(tx: Executor, id: string) {
   return s;
 }
 
+/** Occupied spots – a booking with a friend (+1) takes two. */
+export const seatsTaken = sql<number>`coalesce(sum(${bookings.seats}), 0)::int`;
+
 export async function occupancy(tx: Executor, sessionId: string) {
   const [r] = await tx
-    .select({ n: count() })
+    .select({ n: seatsTaken })
     .from(bookings)
     .where(
       and(
@@ -182,10 +185,11 @@ async function classRules(tx: Executor, s: ClassSession) {
       noFreeEntry: classTypes.noFreeEntry,
       firstVisitPrice: classTypes.firstVisitPrice,
       passEntries: classTypes.passEntries,
+      duoPrice: classTypes.duoPrice,
     })
     .from(classTypes)
     .where(eq(classTypes.id, s.classTypeId));
-  return ct ?? { memberSurcharge: null, memberSurchargeFrom: null, noFreeEntry: false, firstVisitPrice: null, passEntries: 1 };
+  return ct ?? { memberSurcharge: null, memberSurchargeFrom: null, noFreeEntry: false, firstVisitPrice: null, passEntries: 1, duoPrice: null };
 }
 type ClassRules = Awaited<ReturnType<typeof classRules>>;
 
@@ -196,9 +200,19 @@ export function memberSurchargeFor(rules: ClassRules, s: Pick<ClassSession, "sta
   return rules.memberSurcharge;
 }
 
-/** Entries a booking takes from this entitlement: passes may cost more (Reformer = 2). */
-function entriesFor(e: Pick<Entitlement, "kind">, rules: Pick<ClassRules, "passEntries">) {
-  return e.kind === "pass" ? Math.max(1, rules.passEntries) : 1;
+/** Entries a booking takes from this entitlement: passes may cost more (Reformer = 2), a friend doubles it. */
+function entriesFor(e: Pick<Entitlement, "kind">, rules: Pick<ClassRules, "passEntries">, seats = 1) {
+  return (e.kind === "pass" ? Math.max(1, rules.passEntries) : 1) * seats;
+}
+
+/** A friend (+1) can come along only to group classes, not to individual ones. */
+export const guestAllowed = (s: Pick<ClassSession, "capacity">) => s.capacity > 2;
+
+/** Drop-in price for the client and a friend: the class type's price for two, else both single prices. */
+async function duoDropInPriceFor(tx: Executor, userId: string, s: ClassSession, rules: ClassRules) {
+  const single = await dropInPriceFor(tx, userId, s, rules);
+  if (!single || s.dropInPrice === null) return null;
+  return rules.duoPrice ?? single.price + s.dropInPrice;
 }
 
 /** Drop-in price for this client – the intro price if they've never had this class. */
@@ -225,14 +239,17 @@ async function entitlementProblem(
   tx: Executor,
   e: Entitlement,
   s: ClassSession,
+  seats = 1,
 ): Promise<string | null> {
   if (e.status !== "active") return "Oprávnění není aktivní.";
+  if (seats > 1 && e.kind !== "pass")
+    return "Kamarádku můžeš vzít s permanentkou, kreditem nebo jednorázově.";
   if (e.kind === "free" && (await classRules(tx, s)).noFreeEntry)
     return "Úvodní vstup zdarma na tuhle lekci použít nejde.";
   if (e.validFrom > s.startsAt || e.validUntil <= s.startsAt)
     return "Na datum lekce už neplatí.";
   if (e.entriesTotal !== null) {
-    const need = entriesFor(e, await classRules(tx, s));
+    const need = entriesFor(e, await classRules(tx, s), seats);
     if (e.entriesUsed + need > e.entriesTotal)
       return e.entriesUsed >= e.entriesTotal
         ? "Vyčerpané vstupy."
@@ -261,13 +278,14 @@ export async function bookingOptions(
   tx: Executor,
   userId: string,
   s: ClassSession,
+  seats = 1,
 ): Promise<BookingOption[]> {
   if (s.isFree) {
     return [
       {
         method: "free_class",
         label: "Lekce zdarma",
-        detail: "Tahle lekce je pro všechny zdarma.",
+        detail: seats > 1 ? "Tahle lekce je zdarma pro tebe i kamarádku." : "Tahle lekce je pro všechny zdarma.",
       },
     ];
   }
@@ -293,8 +311,8 @@ export async function bookingOptions(
   const classEnts = ents.flatMap((e) => (isClassKind(e.kind) ? [{ ...e, kind: e.kind }] : []));
   classEnts.sort((a, b) => rank[a.kind] - rank[b.kind]);
   for (const e of classEnts) {
-    const problem = await entitlementProblem(tx, e, s);
-    const need = entriesFor(e, rules);
+    const problem = await entitlementProblem(tx, e, s, seats);
+    const need = entriesFor(e, rules, seats);
     const left =
       e.entriesTotal === null
         ? "neomezeně"
@@ -315,17 +333,28 @@ export async function bookingOptions(
     .where(eq(users.id, userId));
   const balance = u?.balance ?? 0;
   const expired = !!u && creditExpired(u);
+  const cost = s.creditCost * seats;
   opts.push({
     method: "credits",
-    label: `Zaplatit kreditem (${creditsLabel(s.creditCost)})`,
+    label: `Zaplatit kreditem (${creditsLabel(cost)}${seats > 1 ? " za obě místa" : ""})`,
     detail: `Na účtu máš ${creditsLabel(balance)}.`,
     ...(expired
       ? { disabled: "Platnost kreditu vypršela." }
-      : balance < s.creditCost
+      : balance < cost
         ? { disabled: "Nedostatek kreditu." }
         : {}),
   });
 
+  if (seats > 1) {
+    const duo = await duoDropInPriceFor(tx, userId, s, rules);
+    if (duo !== null)
+      opts.push({
+        method: "drop_in",
+        label: `Jednorázově pro dva ${formatPrice(duo)}`,
+        detail: "Zaplatíš převodem.",
+      });
+    return opts;
+  }
   const dropIn = await dropInPriceFor(tx, userId, s, rules);
   if (dropIn) {
     opts.push({
@@ -360,13 +389,13 @@ async function charge(
       if (!s.isFree) throw new UserError("Tahle lekce není zdarma.");
       break;
     case "credits":
+      creditsCharged = s.creditCost * booking.seats;
       await changeCredits(tx, {
         userId: booking.userId,
-        delta: -s.creditCost,
+        delta: -creditsCharged,
         reason: "booking",
         bookingId: booking.id,
       });
-      creditsCharged = s.creditCost;
       break;
     case "membership":
     case "pass":
@@ -379,10 +408,10 @@ async function charge(
         .for("update");
       if (!e || e.userId !== booking.userId || !isClassKind(e.kind) || methodForKind[e.kind] !== method)
         throw new UserError("Permanentka nenalezena.");
-      const problem = await entitlementProblem(tx, e, s);
+      const problem = await entitlementProblem(tx, e, s, booking.seats);
       if (problem) throw new UserError(problem);
       if (e.entriesTotal !== null) {
-        entriesCharged = entriesFor(e, await classRules(tx, s));
+        entriesCharged = entriesFor(e, await classRules(tx, s), booking.seats);
         await tx
           .update(entitlements)
           .set({ entriesUsed: e.entriesUsed + entriesCharged })
@@ -432,7 +461,7 @@ async function refund(tx: Executor, b: Booking, s: ClassSession, note: string) {
       // Paid entries come back as credit – no refund round-trip needed.
       await changeCredits(tx, {
         userId: b.userId,
-        delta: s.creditCost,
+        delta: s.creditCost * b.seats,
         reason: "refund",
         bookingId: b.id,
         note: `${note} (jednorázový vstup vrácen jako kredit)`,
@@ -472,6 +501,8 @@ export type BookInput = {
   entitlementId?: string;
   /** Drop-in paid later by bank transfer: the spot is booked right away. */
   payLater?: boolean;
+  /** A friend without an account coming along (+1) – takes a second spot. */
+  guestName?: string;
 };
 
 export async function bookSession(db: DB, input: BookInput, now = new Date()) {
@@ -481,11 +512,18 @@ export async function bookSession(db: DB, input: BookInput, now = new Date()) {
     await expireStalePending(tx, now, s.id);
 
     const window = await bookingWindowFor(tx, cfg, input.userId, now);
-    const state = sessionState(s, await occupancy(tx, s.id), cfg, now, window);
+    const occupied = await occupancy(tx, s.id);
+    const state = sessionState(s, occupied, cfg, now, window);
     if (state === "full")
       throw new UserError("Lekce je plná – můžeš se zapsat do pořadníku.");
     if (state !== "bookable") throw new UserError(stateMessage[state]);
     if (input.method === "admin") throw new UserError("Nepovolená platba.");
+    const guestName = input.guestName?.trim().slice(0, 80) || null;
+    const seats = guestName ? 2 : 1;
+    if (guestName && !guestAllowed(s))
+      throw new UserError("Na individuální lekci kamarádku vzít nejde.");
+    if (occupied + seats > s.capacity)
+      throw new UserError("Pro dva už tu není místo – zbývá jen jedno.");
     if (s.isFree !== (input.method === "free_class"))
       throw new UserError("Zvol prosím jiný způsob platby.");
 
@@ -500,7 +538,10 @@ export async function bookSession(db: DB, input: BookInput, now = new Date()) {
     }
 
     if (input.method === "drop_in") {
-      const dropIn = await dropInPriceFor(tx, input.userId, s, await classRules(tx, s));
+      const rules = await classRules(tx, s);
+      const dropIn = guestName
+        ? await duoDropInPriceFor(tx, input.userId, s, rules).then((price) => price === null ? null : { price, intro: false })
+        : await dropInPriceFor(tx, input.userId, s, rules);
       if (!dropIn) throw new UserError("Na tuto lekci nelze koupit jednorázový vstup.");
       const [order] = await tx
         .insert(orders)
@@ -508,7 +549,7 @@ export async function bookSession(db: DB, input: BookInput, now = new Date()) {
           userId: input.userId,
           kind: "drop_in",
           sessionId: s.id,
-          description: dropIn.intro ? "První lekce" : "Jednorázový vstup",
+          description: guestName ? "Jednorázový vstup pro dva" : dropIn.intro ? "První lekce" : "Jednorázový vstup",
           amount: dropIn.price,
           provider: "pending",
           expiresAt: input.payLater ? null : new Date(now.getTime() + cfg.pendingPaymentMinutes * MIN),
@@ -522,6 +563,8 @@ export async function bookSession(db: DB, input: BookInput, now = new Date()) {
           status: input.payLater ? "confirmed" : "pending_payment",
           method: "drop_in",
           orderId: order.id,
+          guestName,
+          seats,
         })
         .returning();
       return { booking, order };
@@ -534,6 +577,8 @@ export async function bookSession(db: DB, input: BookInput, now = new Date()) {
         sessionId: s.id,
         status: "confirmed",
         method: input.method,
+        guestName,
+        seats,
       })
       .returning();
     await charge(tx, booking, s, input.method, input.entitlementId);
@@ -782,6 +827,8 @@ export async function sessionForUser(
   sessionId: string,
   userId: string | null,
   now = new Date(),
+  /** 2 = the client wants to bring a friend (+1) */
+  seats = 1,
 ) {
   const cfg = await getSettings(db);
   const [s] = await db
@@ -791,6 +838,9 @@ export async function sessionForUser(
   if (!s) return null;
   const occupied = await occupancy(db, s.id);
   const state = sessionState(s, occupied, cfg, now, await bookingWindowFor(db, cfg, userId, now));
+  // +1 only for group classes with two spots left
+  const canBringFriend = guestAllowed(s) && s.capacity - occupied >= 2;
+  const withFriend = seats > 1 && canBringFriend;
 
   let myBooking: Booking | undefined;
   let waitlistPosition: number | null = null;
@@ -802,12 +852,14 @@ export async function sessionForUser(
       waitlistPosition = queue.findIndex((b) => b.id === myBooking!.id) + 1 || null;
     }
     if (state === "bookable" && (!myBooking || myBooking.status === "waitlist"))
-      options = await bookingOptions(db, userId, s);
+      options = await bookingOptions(db, userId, s, withFriend ? 2 : 1);
   }
   return {
     session: s,
     occupied,
     state,
+    canBringFriend,
+    withFriend,
     myBooking,
     waitlistPosition,
     options,

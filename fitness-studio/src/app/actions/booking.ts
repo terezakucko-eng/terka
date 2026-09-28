@@ -35,6 +35,7 @@ export async function bookAction(_: FormState, fd: FormData): Promise<FormState>
       method: method as Method,
       entitlementId: entitlementId || undefined,
       payLater: paymentProvider() === "transfer",
+      guestName: field.str(fd, "guestName") || undefined,
     });
     if (order) {
       if (booking.status === "confirmed") await notifyBooked(db, booking);

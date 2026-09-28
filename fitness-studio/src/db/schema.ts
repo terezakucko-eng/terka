@@ -179,6 +179,8 @@ export const classTypes = pgTable("class_types", {
   firstVisitPrice: integer("first_visit_price"),
   /** Kolik vstupů se strhne z permanentky (např. Reformer = 2) */
   passEntries: integer("pass_entries").notNull().default(1),
+  /** Jednorázová cena pro dva (klient + kamarádka, haléře); null = 2× jednorázová cena */
+  duoPrice: integer("duo_price"),
   isActive: boolean("is_active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
   /** Smazaný typ, který má v historii rezervace – skrytý všude, data zůstávají. */
@@ -315,6 +317,10 @@ export const bookings = pgTable(
     /** Kolik vstupů se strhlo z permanentky (při zrušení se vrací totéž) */
     entriesCharged: integer("entries_charged").notNull().default(0),
     entitlementId: uuid("entitlement_id").references(() => entitlements.id, { onDelete: "set null" }),
+    /** Kamarádka bez účtu, kterou klient přivede (+1); null = jen klient */
+    guestName: text("guest_name"),
+    /** Kolik míst rezervace zabírá (1, s kamarádkou 2) */
+    seats: integer("seats").notNull().default(1),
     orderId: uuid("order_id").references(() => orders.id),
     lateCancel: boolean("late_cancel").notNull().default(false),
     /** Doplatek člena placený na místě (haléře) */

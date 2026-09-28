@@ -39,6 +39,9 @@ function ClassTypeForm({ t }: { t?: ClassType }) {
           <Field label="Cena první lekce (Kč)" hint="Pro klienta, který na téhle lekci ještě nebyl">
             <Input name="firstVisitPrice" inputMode="decimal" defaultValue={kc(t?.firstVisitPrice)} />
           </Field>
+          <Field label="Jednorázově pro dva (Kč)" hint="Klient + kamarádka. Prázdné = 2× jednorázová cena">
+            <Input name="duoPrice" inputMode="decimal" defaultValue={kc(t?.duoPrice)} />
+          </Field>
         </div>
         <label className="mt-3 flex items-center gap-2 text-sm">
           <input type="checkbox" name="noFreeEntry" defaultChecked={t?.noFreeEntry ?? false} /> Úvodní vstup zdarma na tuhle lekci nejde použít
