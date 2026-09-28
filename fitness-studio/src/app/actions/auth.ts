@@ -24,6 +24,7 @@ import { createPasswordLink, hashToken } from "@/lib/password-links";
 import { deleteImage, storeImage, uploadedFile } from "@/lib/media";
 import { normalizePhone } from "@/lib/phone";
 import { AVATAR_EMOJI, OCTO_AVATARS, cleanBirthDate, cleanNameDay } from "@/lib/profile";
+import { greetName } from "@/lib/vocative";
 
 /** Only allow local redirects after login. */
 function safeNext(v: string) {
@@ -85,7 +86,7 @@ export async function registerAction(_: FormState, fd: FormData): Promise<FormSt
     await sendMail({
       to: user.email,
       subject: `Vítej v ${site.name}!`,
-      text: `Ahoj ${user.name},\n\ndíky za registraci. ${site.tagline}\nNa účtu tě čeká úvodní lekce zdarma – vyber si ji v rozvrhu: ${site.url}/rozvrh`,
+      text: `Ahoj ${greetName(user.name)},\n\ndíky za registraci. ${site.tagline}\nNa účtu tě čeká úvodní lekce zdarma – vyber si ji v rozvrhu: ${site.url}/rozvrh`,
     });
     target = safeNext(field.str(fd, "next")) ?? "/ucet?vitej=1";
   });
@@ -110,7 +111,7 @@ export async function requestResetAction(_: FormState, fd: FormData): Promise<Fo
       await sendMail({
         to: u.email,
         subject: "Obnovení hesla",
-        text: `Ahoj ${u.name},\n\nnové heslo si nastavíš zde (odkaz platí 1 hodinu):\n${link}\n\nPokud jsi o změnu nežádal/a, e-mail ignoruj.`,
+        text: `Ahoj ${greetName(u.name)},\n\nnové heslo si nastavíš zde (odkaz platí 1 hodinu):\n${link}\n\nPokud jsi o změnu nežádal/a, e-mail ignoruj.`,
       });
     }
     // don't reveal whether the account exists

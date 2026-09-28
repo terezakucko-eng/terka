@@ -4,6 +4,7 @@ import { classSessions, classTypes, users, type Booking } from "@/db/schema";
 import { site } from "@/config/site";
 import { formatDay, formatTime } from "./dates";
 import { sendMail } from "./mail";
+import { greetName } from "@/lib/vocative";
 
 async function describe(db: DB, sessionId: string) {
   const [row] = await db
@@ -31,7 +32,7 @@ export async function notifyBooked(db: DB, b: Pick<Booking, "userId" | "sessionI
   await sendMail({
     to: u.email,
     subject: `Rezervace potvrzena: ${await describe(db, b.sessionId)}`,
-    text: `Ahoj ${u.name},\n\nmáš místo na lekci ${await describe(db, b.sessionId)}.${b.guestName ? `\nRezervovali jsme i místo pro kamarádku: ${b.guestName}.` : ""}\nDetail a případné storno: ${link(b.sessionId)}\n\nTěšíme se!`,
+    text: `Ahoj ${greetName(u.name)},\n\nmáš místo na lekci ${await describe(db, b.sessionId)}.${b.guestName ? `\nRezervovali jsme i místo pro kamarádku: ${b.guestName}.` : ""}\nDetail a případné storno: ${link(b.sessionId)}\n\nTěšíme se!`,
   });
 }
 
@@ -41,7 +42,7 @@ export async function notifyCancelled(db: DB, b: Pick<Booking, "userId" | "sessi
   await sendMail({
     to: u.email,
     subject: `Rezervace zrušena: ${await describe(db, b.sessionId)}`,
-    text: `Ahoj ${u.name},\n\ntvoje rezervace na ${await describe(db, b.sessionId)} byla zrušena.\n${
+    text: `Ahoj ${greetName(u.name)},\n\ntvoje rezervace na ${await describe(db, b.sessionId)} byla zrušena.\n${
       refunded ? "Vstup/kredit ti vracíme na účet." : "Storno proběhlo po lhůtě, vstup propadá."
     }`,
   });
@@ -55,7 +56,7 @@ export async function notifyPromoted(db: DB, promoted: Pick<Booking, "userId" | 
     await sendMail({
       to: u.email,
       subject: `Uvolnilo se místo! ${await describe(db, p.sessionId)}`,
-      text: `Ahoj ${u.name},\n\nz pořadníku ses dostal/a na lekci ${await describe(db, p.sessionId)}. Rezervace je potvrzená.\nKdybys nemohl/a, zruš ji prosím: ${link(p.sessionId)}`,
+      text: `Ahoj ${greetName(u.name)},\n\nz pořadníku ses dostal/a na lekci ${await describe(db, p.sessionId)}. Rezervace je potvrzená.\nKdybys nemohl/a, zruš ji prosím: ${link(p.sessionId)}`,
     });
   }
 }
@@ -69,7 +70,7 @@ export async function notifySessionCancelled(db: DB, sessionId: string, userIds:
     await sendMail({
       to: u.email,
       subject: `Lekce zrušena: ${what}`,
-      text: `Ahoj ${u.name},\n\nomlouváme se, lekce ${what} se nekoná. Vstup/kredit jsme ti vrátili na účet.\nVyber si jinou lekci: ${site.url}/rozvrh`,
+      text: `Ahoj ${greetName(u.name)},\n\nomlouváme se, lekce ${what} se nekoná. Vstup/kredit jsme ti vrátili na účet.\nVyber si jinou lekci: ${site.url}/rozvrh`,
     });
   }
 }

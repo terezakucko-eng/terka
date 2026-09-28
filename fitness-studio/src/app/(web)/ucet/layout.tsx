@@ -4,6 +4,7 @@ import { Avatar } from "@/components/avatar";
 import { Container, Eyebrow } from "@/components/ui";
 import { displayName } from "@/lib/profile";
 import { requireUser } from "@/lib/auth";
+import { vocative } from "@/lib/vocative";
 
 const tabs = [
   { href: "/ucet", label: "Přehled" },
@@ -22,7 +23,7 @@ export default async function AccountLayout({ children }: LayoutProps<"/ucet">) 
           <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
             <div className="flex items-center gap-4">
               <Link href="/ucet/profil" title="Změnit profilovku"><Avatar user={user} size={56} className="text-2xl" /></Link>
-              <h1 className="text-4xl font-semibold tracking-tight">Ahoj, {displayName(user)}.</h1>
+              <h1 className="text-4xl font-semibold tracking-tight">Ahoj, {vocative(displayName(user))}.</h1>
             </div>
             <form action={logoutAction}>
               <button className="eyebrow text-les/60 underline underline-offset-4 hover:text-les">Odhlásit</button>

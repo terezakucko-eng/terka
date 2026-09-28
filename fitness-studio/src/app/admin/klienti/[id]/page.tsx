@@ -25,6 +25,7 @@ import { formatPrice } from "@/lib/money";
 import { sellableProducts } from "@/lib/queries";
 import { normalizePhone } from "@/lib/phone";
 import { recentSolariumUses, solariumPasses } from "@/domain/solarium";
+import { greetName } from "@/lib/vocative";
 
 export default async function ClientDetail({ params }: PageProps<"/admin/klienti/[id]">) {
   await requireAdmin();
@@ -285,7 +286,7 @@ function WhatsAppCard({ phone, name, consent }: { phone: string | null; name: st
       <h2 className="font-semibold">Napsat na WhatsApp</h2>
       {e164 ? (
         <form action={`https://wa.me/${e164.slice(1)}`} method="get" target="_blank" className="mt-3 space-y-3">
-          <Textarea name="text" rows={3} defaultValue={`Ahoj ${name.split(" ")[0]}, `} aria-label="Text zprávy" />
+          <Textarea name="text" rows={3} defaultValue={`Ahoj ${greetName(name)}, `} aria-label="Text zprávy" />
           <div className="flex flex-wrap items-center gap-4">
             <Button type="submit" variant="outline">Otevřít WhatsApp</Button>
             <span className="text-xs text-les/60">

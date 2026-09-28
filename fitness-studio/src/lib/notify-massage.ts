@@ -5,6 +5,7 @@ import { site } from "@/config/site";
 import { formatDay, formatTime } from "./dates";
 import { sendMail } from "./mail";
 import { formatPrice } from "./money";
+import { greetName } from "@/lib/vocative";
 
 const when = (b: MassageBooking) => `${formatDay(b.startsAt)} v ${formatTime(b.startsAt)}`;
 
@@ -28,7 +29,7 @@ export async function notifyMassageBooked(db: DB, b: MassageBooking, bankAccount
     await sendMail({
       to: u.email,
       subject: `Masáž potvrzena: ${when(b)}`,
-      text: `Ahoj ${u.name},\n\ntěšíme se na tebe – ${b.serviceName}, ${when(b)}.\n${pay}\n\nDetail a případné zrušení: ${site.url}/masaze/rezervace/${b.id}`,
+      text: `Ahoj ${greetName(u.name)},\n\ntěšíme se na tebe – ${b.serviceName}, ${when(b)}.\n${pay}\n\nDetail a případné zrušení: ${site.url}/masaze/rezervace/${b.id}`,
     });
   if (studioEmail)
     await sendMail({
@@ -45,7 +46,7 @@ export async function notifyMassageCancelled(db: DB, b: MassageBooking, studioEm
     await sendMail({
       to: u.email,
       subject: `Masáž zrušena: ${when(b)}`,
-      text: `Ahoj ${u.name},\n\n${byStudio ? "musíme bohužel zrušit" : "zrušili jsme"} tvoji masáž ${b.serviceName}, ${when(b)}.${refund}\n\nNový termín si můžeš vybrat na ${site.url}/masaze`,
+      text: `Ahoj ${greetName(u.name)},\n\n${byStudio ? "musíme bohužel zrušit" : "zrušili jsme"} tvoji masáž ${b.serviceName}, ${when(b)}.${refund}\n\nNový termín si můžeš vybrat na ${site.url}/masaze`,
     });
   if (!byStudio && studioEmail)
     await sendMail({

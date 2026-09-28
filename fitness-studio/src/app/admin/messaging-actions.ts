@@ -25,6 +25,7 @@ import { unsubscribeUrl } from "@/lib/links";
 import { sendMail } from "@/lib/mail";
 import { createPasswordLink } from "@/lib/password-links";
 import { normalizePhone } from "@/lib/phone";
+import { greetName } from "@/lib/vocative";
 
 const SEGMENTS: Audience["segment"][] = ["all", "members", "passes", "inactive", "new", "class_type", "session", "people"];
 
@@ -242,7 +243,7 @@ export async function inviteImportedAction(): Promise<FormState> {
       await sendMail({
         to: u.email,
         subject: `${site.name}: tvůj účet v novém rezervačním systému`,
-        text: `Ahoj ${u.name.split(" ")[0]},\n\nspouštíme nový web a rezervace ${site.name}. Tvůj účet jsme převedli – včetně kreditu a permanentek.\n\nStačí si nastavit heslo (odkaz platí 14 dní):\n${link}\n\nPak se přihlásíš e-mailem ${u.email} a můžeš rezervovat.\n\nTěšíme se na tebe!`,
+        text: `Ahoj ${greetName(u.name)},\n\nspouštíme nový web a rezervace ${site.name}. Tvůj účet jsme převedli – včetně kreditu a permanentek.\n\nStačí si nastavit heslo (odkaz platí 14 dní):\n${link}\n\nPak se přihlásíš e-mailem ${u.email} a můžeš rezervovat.\n\nTěšíme se na tebe!`,
       });
     }
     const left = pending.length - skip.size - batch.length;

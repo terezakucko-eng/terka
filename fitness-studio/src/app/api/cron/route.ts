@@ -9,6 +9,7 @@ import { expireStalePending } from "@/domain/booking";
 import { processCampaign } from "@/domain/campaigns";
 import { campaignSender, newsletterFooter } from "@/lib/campaign-sender";
 import { unsubscribeUrl } from "@/lib/links";
+import { greetName } from "@/lib/vocative";
 
 export const maxDuration = 60;
 
@@ -29,7 +30,7 @@ export async function GET(req: Request) {
     await sendMail({
       to: u.email,
       subject: "Tvůj kredit brzy propadne",
-      text: `Ahoj ${u.name},\n\nna účtu máš ${u.balance} kreditů, které platí do ${formatDate(u.expiresAt!)}. Využij je na lekci, nebo si kredit dobij – každé dobití prodlouží platnost celého zůstatku.\n\nRozvrh: ${site.url}/rozvrh`,
+      text: `Ahoj ${greetName(u.name)},\n\nna účtu máš ${u.balance} kreditů, které platí do ${formatDate(u.expiresAt!)}. Využij je na lekci, nebo si kredit dobij – každé dobití prodlouží platnost celého zůstatku.\n\nRozvrh: ${site.url}/rozvrh`,
     });
     await db.update(users).set({ creditExpiryWarnedAt: new Date() }).where(eq(users.id, u.id));
     creditWarnings++;

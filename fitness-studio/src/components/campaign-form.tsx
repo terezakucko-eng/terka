@@ -84,7 +84,7 @@ export function CampaignForm({
       {segment === "people" && <ClientPicker clients={clients} initial={c?.audience.userIds ?? []} />}
 
       {channel === "email" && (
-        <Field label="Předmět"><Input name="subject" defaultValue={c?.subject ?? ""} placeholder="Ahoj {{jmeno}}, máme pro tebe novinku" /></Field>
+        <Field label="Předmět"><Input name="subject" defaultValue={c?.subject ?? ""} placeholder="Ahoj {{osloveni}}, máme pro tebe novinku" /></Field>
       )}
       {channel !== "whatsapp" ? (
         <Field
@@ -111,7 +111,7 @@ export function CampaignForm({
         </div>
       )}
       <p className="text-xs text-les/60">
-        Personalizace: <code>{"{{jmeno}}"}</code> křestní jméno · <code>{"{{cele_jmeno}}"}</code> · <code>{"{{kredit}}"}</code> zůstatek kreditu · <code>{"{{odhlasit}}"}</code> odkaz na odhlášení
+        Personalizace: <code>{"{{osloveni}}"}</code> oslovení (Terezo, Petře) · <code>{"{{jmeno}}"}</code> křestní jméno · <code>{"{{cele_jmeno}}"}</code> · <code>{"{{kredit}}"}</code> zůstatek kreditu · <code>{"{{odhlasit}}"}</code> odkaz na odhlášení
       </p>
       <SubmitButton>{c ? "Uložit koncept" : "Vytvořit koncept"}</SubmitButton>
     </ActionForm>
