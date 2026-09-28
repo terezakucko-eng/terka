@@ -44,6 +44,7 @@ export async function GET() {
     `- [Masáže](${u("/masaze")}): nabídka masáží a online rezervace`,
     `- [O mně](${u("/o-mne")}): kdo stojí za studiem`,
     `- [Nástěnka](${u("/nastenka")}): novinky ze studia`,
+    `- [Recenze](${u("/recenze")}): zkušenosti klientů`,
     `- [Obchodní podmínky](${u("/obchodni-podminky")})`,
     "",
     types.length ? "## Lekce" : "",

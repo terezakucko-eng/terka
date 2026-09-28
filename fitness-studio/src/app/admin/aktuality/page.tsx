@@ -9,6 +9,8 @@ import { getDb } from "@/db";
 import { announcements, type Announcement } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
+import { site } from "@/config/site";
+import { StoryShare } from "@/components/story-share";
 
 function AnnouncementForm({ a }: { a?: Announcement }) {
   return (
@@ -36,6 +38,11 @@ export default async function AdminNews() {
         <Panel title="+ Nová aktualita" open><AnnouncementForm /></Panel>
         {list.map((a) => (
           <Panel key={a.id} title={`${formatDate(a.createdAt)} · ${a.title}${a.isPublished ? "" : " · skryto"}`}>
+            {a.isPublished && (
+              <div className="mb-6">
+                <StoryShare id={a.id} title={a.title} url={`${site.url}/nastenka#${a.id}`} />
+              </div>
+            )}
             <AnnouncementForm a={a} />
             <ActionForm action={deleteAnnouncementAction} confirm="Smazat aktualitu?" className="mt-3">
               <input type="hidden" name="id" value={a.id} />

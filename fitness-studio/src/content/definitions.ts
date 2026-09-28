@@ -234,6 +234,17 @@ export const SECTIONS = {
       intro: ta("Úvodní text", "Tanec, pilates, síla i regenerace. Vyber si podle nálady – nebo zkus všechno."),
     },
   },
+  reviews: {
+    title: "Recenze",
+    page: "/recenze",
+    fields: {
+      eyebrow: opt("Malý nadpis", "Recenze"),
+      title: t("Nadpis", "Co říkají naši lidé."),
+      intro: ta("Úvodní text", "Zkušenosti klientů OCTOPUSH. Chodíš k nám? Budeme rádi za pár slov."),
+      homeTitle: t("Nadpis na úvodní stránce", "Co o nás říkají"),
+      googleUrl: { label: "Odkaz na hodnocení na Googlu (nepovinné)", type: "url", default: "", optional: true },
+    },
+  },
   board: {
     title: "Nástěnka",
     page: "/nastenka",

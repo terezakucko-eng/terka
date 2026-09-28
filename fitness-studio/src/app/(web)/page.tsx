@@ -16,18 +16,22 @@ import { formatDate, formatShortDay } from "@/lib/dates";
 import { formatPrice } from "@/lib/money";
 import { activeProducts, listSessions, publishedAnnouncements } from "@/lib/queries";
 import { nbsp } from "@/lib/typography";
+import { approvedReviews, reviewStats, reviewsLabel } from "@/domain/reviews";
+import { Stars } from "@/components/stars";
 
 export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 export default async function Home() {
   const db = await getDb();
   const now = new Date();
-  const [user, c, upcoming, news, productList] = await Promise.all([
+  const [user, c, upcoming, news, productList, topReviews, stats] = await Promise.all([
     getCurrentUser(),
     getContent(),
     listSessions(db, now, new Date(now.getTime() + 14 * 86_400_000), { includeCancelled: false }),
     publishedAnnouncements(db),
     activeProducts(db),
+    approvedReviews(db, 3),
+    reviewStats(db),
   ]);
   const cheapest = productList.find((p) => p.kind === "membership");
   const values = Array.from({ length: 8 }, (_, i) => ({
@@ -155,6 +159,35 @@ export default async function Home() {
           </div>
         </Container>
       </section>
+
+      {/* RECENZE */}
+      {topReviews.length > 0 && (
+        <section className="bg-krem/40">
+          <Container className="py-16 sm:py-20">
+            <Eyebrow className="text-zeme">{c("reviews.eyebrow")}</Eyebrow>
+            <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
+              <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">{c("reviews.homeTitle")}</h2>
+              {stats.count > 1 && (
+                <p className="flex items-center gap-2 text-sm text-les/70">
+                  <Stars rating={stats.average ?? 0} /> {stats.average?.toLocaleString("cs")} z 5 · {reviewsLabel(stats.count)}
+                </p>
+              )}
+            </div>
+            <div className="mt-10 grid gap-6 md:grid-cols-3">
+              {topReviews.map((r) => (
+                <figure key={r.id} className="flex flex-col rounded-2xl bg-papir p-6 shadow-sm">
+                  <Stars rating={r.rating} />
+                  <blockquote className="mt-4 line-clamp-[8] flex-1 whitespace-pre-line text-les/85">{nbsp(r.body)}</blockquote>
+                  <figcaption className="mt-4 text-sm font-semibold">{r.authorName}</figcaption>
+                </figure>
+              ))}
+            </div>
+            <Link href="/recenze" className="eyebrow mt-8 inline-block text-zeme underline underline-offset-4">
+              Všechny recenze a napsat vlastní →
+            </Link>
+          </Container>
+        </section>
+      )}
 
       {/* AKTUALITY */}
       {news.length > 0 && (

@@ -3,6 +3,7 @@ import {
   type AnyPgColumn,
   boolean,
   customType,
+  primaryKey,
   index,
   integer,
   jsonb,
@@ -414,8 +415,25 @@ export const announcementComments = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     body: text("body").notNull(),
     createdAt: createdAt(),
+    editedAt: timestamp("edited_at", { withTimezone: true }),
   },
   (t) => [index("announcement_comments_ann_idx").on(t.announcementId)],
+);
+
+/** Emoji reakce na příspěvek nástěnky – každý uživatel jednou od každého emoji. */
+export const announcementReactions = pgTable(
+  "announcement_reactions",
+  {
+    announcementId: uuid("announcement_id")
+      .notNull()
+      .references(() => announcements.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    emoji: text("emoji").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.announcementId, t.userId, t.emoji] })],
 );
 
 export const campaigns = pgTable("campaigns", {
@@ -593,7 +611,36 @@ export const settings = pgTable("settings", {
   value: jsonb("value").notNull(),
 });
 
+/** Recenze – od klientů z webu (čekají na schválení) nebo vložené adminem (Google, starý web). */
+export const reviews = pgTable(
+  "reviews",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    authorName: text("author_name").notNull(),
+    rating: integer("rating").notNull(),
+    body: text("body").notNull(),
+    status: text("status", { enum: ["pending", "approved", "hidden"] }).notNull().default("pending"),
+    source: text("source", { enum: ["web", "google", "manual"] }).notNull().default("web"),
+    isFeatured: boolean("is_featured").notNull().default(false),
+    createdAt: createdAt(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("reviews_user_idx").on(t.userId)],
+);
+
+/** Týdenní (a ruční) zálohy dat – gzip JSON všech tabulek kromě obsahu obrázků. */
+export const backups = pgTable("backups", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  kind: text("kind", { enum: ["auto", "manual"] }).notNull(),
+  size: integer("size").notNull(),
+  counts: jsonb("counts").$type<Record<string, number>>().notNull(),
+  data: bytea("data").notNull(),
+  createdAt: createdAt(),
+});
+
 export type User = typeof users.$inferSelect;
+export type Review = typeof reviews.$inferSelect;
 export type ClassType = typeof classTypes.$inferSelect;
 export type ClassSession = typeof classSessions.$inferSelect;
 export type Instructor = typeof instructors.$inferSelect;

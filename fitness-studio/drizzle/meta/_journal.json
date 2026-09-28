@@ -169,6 +169,27 @@
       "when": 1790612578846,
       "tag": "0023_membership_fees",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1790616270694,
+      "tag": "0024_backups",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1790616531296,
+      "tag": "0025_board_reactions",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790616734822,
+      "tag": "0026_reviews",
+      "breakpoints": true
     }
   ]
 }

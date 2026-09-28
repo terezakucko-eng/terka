@@ -24,6 +24,8 @@ import { activeClassTypes, activeInstructors, sessionDetail } from "@/lib/querie
 import { Avatar } from "@/components/avatar";
 import { upcomingCelebrations } from "@/lib/profile";
 import { dateKey } from "@/lib/dates";
+import { ClientSelect } from "@/components/client-select";
+import { splitName } from "@/lib/client-list";
 
 export default async function AdminSessionPage({ params }: PageProps<"/admin/rozvrh/[id]">) {
   const staff = await requireStaff();
@@ -33,6 +35,17 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
   const detail = await sessionDetail(db, id);
   if (!detail) notFound();
   const { s, ct, ins } = detail;
+  const clientRows = await db
+    .select({ id: users.id, name: users.name, email: users.email, phone: users.phone })
+    .from(users)
+    .where(eq(users.role, "client"));
+  const collator = new Intl.Collator("cs");
+  const clientOpts = clientRows
+    .map((u) => {
+      const { first, last } = splitName(u.name);
+      return { id: u.id, label: last ? `${last} ${first}` : first, sub: [u.phone, u.email].filter(Boolean).join(" · ") };
+    })
+    .sort((a, b) => collator.compare(a.label, b.label));
   const [list, types, instructorList] = await Promise.all([
     db
       .select({ b: bookings, u: users })
@@ -145,7 +158,11 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
               <h2 className="font-semibold">Přidat klienta</h2>
               <ActionForm action={adminAddBookingAction} className="mt-4 space-y-3" resetOnSuccess>
                 <input type="hidden" name="sessionId" value={s.id} />
-                <Field label="E-mail klienta"><Input name="client" type="email" required /></Field>
+                {/* not a <Field>: a wrapping <label> would click the "remove" button right after picking */}
+                <div>
+                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-les/70">Klient</span>
+                  <ClientSelect name="client" clients={clientOpts} />
+                </div>
                 <Field label="Platba">
                   <Select name="mode">
                     <option value="auto">Strhnout automaticky (členství / permanentka / kredit)</option>

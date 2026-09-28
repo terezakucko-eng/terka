@@ -38,6 +38,7 @@ export async function SiteFooter() {
             <p><Link className="hover:text-zlato-light" href="/rozvrh">{c("nav.schedule")}</Link></p>
             <p><Link className="hover:text-zlato-light" href="/masaze">{c("nav.massages")}</Link></p>
             <p><Link className="hover:text-zlato-light" href="/cenik">{c("nav.pricing")}</Link></p>
+            <p><Link className="hover:text-zlato-light" href="/recenze">Recenze</Link></p>
             <p><Link className="hover:text-zlato-light" href="/obchodni-podminky">Obchodní podmínky</Link></p>
             <p><Link className="hover:text-zlato-light" href="/ochrana-osobnich-udaju">Ochrana osobních údajů</Link></p>
             <p className="flex gap-4 pt-2">

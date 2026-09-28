@@ -411,7 +411,7 @@ async function findClient(ref: string) {
   const [u] = /^[0-9a-f-]{36}$/i.test(v)
     ? await db.select().from(users).where(eq(users.id, v))
     : await db.select().from(users).where(eq(users.email, normalizeEmail(v)));
-  if (!u) throw new UserError("Klient s tímto e-mailem neexistuje.");
+  if (!u) throw new UserError(v.includes("@") ? "Klient s tímto e-mailem neexistuje." : "Vyber klienta ze seznamu.");
   return u;
 }
 
