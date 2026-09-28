@@ -81,37 +81,90 @@ export async function sendEmailBatch(msgs: EmailMessage[]): Promise<SendResult[]
 
 /* ------------------------------------------------------------------- SMS */
 
-/** "20260928T101500" – the timestamp SMS Connect signs with. */
-const smsConnectTime = (d: Date) => d.toISOString().slice(0, 19).replace(/[-:]/g, "");
+/** "20260928T121500" – SMS Connect wants the Prague local time (SEČ/SELČ). */
+export function smsConnectTime(d: Date) {
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/Prague",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    })
+      .formatToParts(d)
+      .map((x) => [x.type, x.value]),
+  );
+  return `${p.year}${p.month}${p.day}T${p.hour}${p.minute}${p.second}`;
+}
+
+/** Plain 7-bit text: one SMS holds 160 characters instead of 70 with diacritics. */
+export const smsPlainText = (text: string) =>
+  text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[–—]/g, "-")
+    .replace(/[„“”]/g, '"')
+    .replace(/[‚‘’]/g, "'")
+    .replace(/…/g, "...")
+    .replace(/[^\x0A\x0D\x20-\x7E]/g, "");
+
+const SMSBRANA_ENDPOINTS = ["https://api.smsbrana.cz/smsconnect/", "https://api-backup.smsbrana.cz/smsconnect/"];
 
 /**
- * SMSbrána.cz – SMS Connect HTTP API. Signed login: auth = md5(password + time + salt),
- * so the password itself never travels. Replies with XML where <err>0</err> means sent.
+ * SMSbrána.cz – SMS Connect (documentation v3). "Pokročilé přihlášení": auth = md5(password + time + salt),
+ * so the password never travels. The older parameter names (sul, hash) go along for older API versions.
+ * The reply is XML where <err>0</err> means sent; on a network failure the backup endpoint is tried.
  */
 export async function sendSmsBrana(to: string, text: string, now = new Date()): Promise<SendResult> {
   const login = process.env.SMSBRANA_LOGIN!;
   const password = process.env.SMSBRANA_PASSWORD!;
   const time = smsConnectTime(now);
-  const sul = randomBytes(8).toString("hex");
+  const salt = randomBytes(10).toString("hex");
+  const auth = createHash("md5").update(password + time + salt).digest("hex");
   const params = new URLSearchParams({
     action: "send_sms",
     login,
     time,
-    sul,
-    auth: createHash("md5").update(password + time + sul).digest("hex"),
-    number: to.replace(/^\+/, ""),
-    message: text,
+    salt,
+    auth,
+    sul: salt,
+    hash: auth,
+    number: to.replace(/\s/g, ""),
+    message: smsPlainText(text),
   });
-  try {
-    const res = await fetch(`https://api.smsbrana.cz/smsconnect/http.php?${params}`);
-    const body = await res.text();
-    const err = body.match(/<err>(\d+)<\/err>/)?.[1];
-    if (res.ok && err === "0") return { ok: true, ref: body.match(/<sms_id>([^<]+)<\/sms_id>/)?.[1] };
-    return { ok: false, error: `SMSbrána ${res.status}, chyba ${err ?? "?"}: ${body.slice(0, 200)}` };
-  } catch (e) {
-    return { ok: false, error: `SMSbrána: ${(e as Error).message}` };
+  let lastError = "";
+  for (const endpoint of SMSBRANA_ENDPOINTS) {
+    try {
+      const res = await fetch(`${endpoint}?${params}`);
+      const body = await res.text();
+      const err = body.match(/<err>(-?\d+)<\/err>/)?.[1];
+      if (res.ok && err === "0") return { ok: true, ref: body.match(/<sms_id>([^<]+)<\/sms_id>/)?.[1] };
+      return { ok: false, error: `SMSbrána ${res.status}, chyba ${err ?? "?"}${err ? ` (${SMSBRANA_ERRORS[err] ?? "viz dokumentace"})` : ""}: ${body.slice(0, 200)}` };
+    } catch (e) {
+      lastError = (e as Error).message;
+    }
   }
+  return { ok: false, error: `SMSbrána nedostupná: ${lastError}` };
 }
+
+const SMSBRANA_ERRORS: Record<string, string> = {
+  "1": "neznámá chyba",
+  "2": "neplatný login",
+  "3": "špatné heslo nebo podpis",
+  "4": "čas mimo povolenou odchylku",
+  "5": "nepovolená IP adresa",
+  "6": "neplatná akce",
+  "7": "opakovaná sůl",
+  "8": "chyba databáze brány",
+  "9": "nedostatek kreditu nebo denní limit",
+  "10": "neplatné číslo příjemce",
+  "11": "prázdná zpráva",
+  "12": "zpráva je příliš dlouhá",
+  "13": "neplatné číslo odesílatele",
+};
 
 export async function sendSms(to: string, text: string): Promise<SendResult> {
   if (process.env.SMSBRANA_LOGIN && process.env.SMSBRANA_PASSWORD) return sendSmsBrana(to, text);
