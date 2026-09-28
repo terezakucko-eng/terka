@@ -37,6 +37,7 @@ import { storeImage, uploadedFile } from "@/lib/media";
 import { normalizePhone } from "@/lib/phone";
 import { defaultSettings, saveSettings, type Settings } from "@/lib/settings";
 import { cleanBirthDate, cleanNameDay } from "@/lib/profile";
+import { videoEmbedUrl } from "@/lib/video";
 
 const done = (msg?: string) => {
   revalidatePath("/", "layout");
@@ -57,6 +58,12 @@ async function imageField<K extends string>(fd: FormData, fileName: string, remo
   if (file) return { [key]: await storeImage(await getDb(), file, 1600) } as Record<K, string>;
   if (removeName && field.bool(fd, removeName)) return { [key]: null } as Record<K, null>;
   return {};
+}
+
+function videoField(v: string) {
+  if (!v) return null;
+  if (!videoEmbedUrl(v)) throw new UserError("Videoukázka: vlož odkaz na YouTube nebo Vimeo.");
+  return v;
 }
 
 function required<T>(v: T | null | undefined, msg: string): T {
@@ -88,6 +95,7 @@ export async function saveClassTypeAction(_: FormState, fd: FormData): Promise<F
       noFreeEntry: field.bool(fd, "noFreeEntry"),
       noPass: field.bool(fd, "noPass"),
       passEntries: Math.max(1, field.int(fd, "passEntries") ?? 1),
+      videoUrl: videoField(field.str(fd, "videoUrl")),
       sortOrder: field.int(fd, "sortOrder") ?? 0,
       isActive: field.bool(fd, "isActive"),
       ...(await imageField(fd, "image", "removeImage", "imageUrl")),

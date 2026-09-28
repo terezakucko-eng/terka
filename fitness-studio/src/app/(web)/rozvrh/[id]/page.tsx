@@ -8,6 +8,7 @@ import { getDb } from "@/db";
 import { bookAction, cancelBookingAction, waitlistAction } from "@/app/actions/booking";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { HealthCheckbox } from "@/components/health-checkbox";
+import { VideoEmbed } from "@/components/video-embed";
 import { Badge, ButtonLink, Card, Container, Eyebrow, cx } from "@/components/ui";
 import { sessionForUser, stateMessage } from "@/domain/booking";
 import { getCurrentUser } from "@/lib/auth";
@@ -76,6 +77,7 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
             )}
             {s.note && <p className="mt-6 rounded-xl border border-zlato/40 bg-zlato/10 p-4 text-zlato-light">{nbsp(s.note)}</p>}
             <p className="mt-8 max-w-xl leading-relaxed text-papir/70">{nbsp(ct.description)}</p>
+            <VideoEmbed url={ct.videoUrl} title={ct.name} className="mt-6 max-w-xl [&_summary]:text-zlato" />
             <p className="eyebrow mt-6 text-papir/50">Úroveň: {ct.level}</p>
             <dl className="mt-8 grid max-w-md grid-cols-3 gap-6 border-t border-zlato/20 pt-6 text-sm">
               <div><dt className="eyebrow text-papir/50">Cena</dt><dd className="mt-1 font-semibold">{s.isFree ? "Zdarma" : credits(s.creditCost)}</dd></div>

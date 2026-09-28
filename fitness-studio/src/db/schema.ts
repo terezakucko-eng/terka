@@ -180,6 +180,8 @@ export const classTypes = pgTable("class_types", {
   capacity: integer("capacity").notNull().default(12),
   color: text("color").notNull().default("#7F40FF"),
   imageUrl: text("image_url"),
+  /** Odkaz na videoukázku (YouTube / Vimeo) */
+  videoUrl: text("video_url"),
   level: text("level").notNull().default("Pro všechny"),
   /** Doplatek pro členy za lekci (haléře); null = bez doplatku */
   memberSurcharge: integer("member_surcharge"),

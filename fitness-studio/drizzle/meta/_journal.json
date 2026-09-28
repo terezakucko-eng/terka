@@ -141,6 +141,13 @@
       "when": 1790584390417,
       "tag": "0019_reminders_opt_in",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1790584850699,
+      "tag": "0020_class_video",
+      "breakpoints": true
     }
   ]
 }
