@@ -5,6 +5,7 @@ import { ImageInput } from "@/components/image-input";
 import { Card, Field, Input, Select } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
 import { MONTHS, OCTO_AVATARS, parseAvatar } from "@/lib/profile";
+import { PasswordInput } from "@/components/password-input";
 
 export default async function ProfilePage() {
   const user = await requireUser("/ucet/profil");
@@ -97,8 +98,8 @@ export default async function ProfilePage() {
       <Card>
         <h2 className="text-xl font-semibold">Změna hesla</h2>
         <ActionForm action={changePasswordAction} className="mt-5 space-y-4" resetOnSuccess>
-          <Field label="Současné heslo"><Input name="current" type="password" autoComplete="current-password" required /></Field>
-          <Field label="Nové heslo" hint="Alespoň 8 znaků."><Input name="password" type="password" autoComplete="new-password" minLength={8} required /></Field>
+          <Field label="Současné heslo"><PasswordInput name="current" autoComplete="current-password" required /></Field>
+          <Field label="Nové heslo" hint="Alespoň 8 znaků."><PasswordInput name="password" autoComplete="new-password" minLength={8} required /></Field>
           <SubmitButton>Změnit heslo</SubmitButton>
         </ActionForm>
       </Card>

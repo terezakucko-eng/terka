@@ -6,6 +6,7 @@ import { ActionForm, SubmitButton } from "@/components/forms";
 import { Eyebrow, Field, Input } from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { getContent } from "@/content";
+import { PasswordInput } from "@/components/password-input";
 
 export const metadata: Metadata = { title: "Přihlášení" };
 
@@ -20,7 +21,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/prihlaseni
       <ActionForm action={loginAction} className="mt-8 space-y-4">
         <input type="hidden" name="next" value={typeof next === "string" ? next : ""} />
         <Field label="E-mail"><Input name="email" type="email" autoComplete="email" required /></Field>
-        <Field label="Heslo"><Input name="password" type="password" autoComplete="current-password" required /></Field>
+        <Field label="Heslo"><PasswordInput name="password" autoComplete="current-password" required /></Field>
         <SubmitButton variant="dark" className="w-full">Přihlásit se</SubmitButton>
       </ActionForm>
       <div className="mt-6 flex justify-between text-sm">

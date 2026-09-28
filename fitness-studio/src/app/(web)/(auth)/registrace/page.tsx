@@ -7,6 +7,7 @@ import { Eyebrow, Field, Input } from "@/components/ui";
 import { getDb } from "@/db";
 import { getSettings } from "@/lib/settings";
 import { getContent } from "@/content";
+import { PasswordInput } from "@/components/password-input";
 
 export const metadata: Metadata = { title: "Registrace" };
 
@@ -25,7 +26,7 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registr
         <Field label="Jméno a příjmení"><Input name="name" autoComplete="name" required /></Field>
         <Field label="E-mail"><Input name="email" type="email" autoComplete="email" required /></Field>
         <Field label="Telefon" hint="Nepovinné – pro rychlé info o změnách lekcí."><Input name="phone" type="tel" autoComplete="tel" /></Field>
-        <Field label="Heslo" hint="Alespoň 8 znaků."><Input name="password" type="password" autoComplete="new-password" minLength={8} required /></Field>
+        <Field label="Heslo" hint="Alespoň 8 znaků."><PasswordInput name="password" autoComplete="new-password" minLength={8} required /></Field>
         <label className="flex gap-3 text-sm text-les/80">
           <input type="checkbox" name="terms" required className="mt-1 accent-[#674329]" />
           <span>Souhlasím s <Link href="/obchodni-podminky" className="underline" target="_blank">obchodními podmínkami</Link> a beru na vědomí <Link href="/ochrana-osobnich-udaju" className="underline" target="_blank">zpracování osobních údajů</Link>.</span>
