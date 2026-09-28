@@ -40,6 +40,12 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
 
   return (
     <div className="space-y-12">
+      {user.bookingPausedUntil && user.bookingPausedUntil > new Date() && (
+        <p className="rounded-2xl bg-chyba/10 p-5 text-sm text-chyba">
+          Kvůli opakovanému pozdnímu odhlášení nebo nepříchodu je přihlašování na nové lekce pozastavené do{" "}
+          <strong>{formatDate(user.bookingPausedUntil)}</strong>. Na lekce, na které už jsi přihlášený/á, chodit můžeš.
+        </p>
+      )}
       {vitej && (
         <p className="rounded-2xl bg-forest p-6 text-papir">
           <span className="text-gold text-xl font-semibold">Vítej v OCTOPUSH!</span>

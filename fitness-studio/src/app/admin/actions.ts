@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, gte, lt } from "drizzle-orm";
+import { and, eq, gte, inArray, lt } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
@@ -29,10 +29,11 @@ import { deductSolarium } from "@/domain/solarium";
 import { grantEntitlement, normalizeEmail } from "@/domain/users";
 import { changeCredits } from "@/domain/wallet";
 import { requireAdmin, requireStaff } from "@/lib/auth";
-import { addDays, dateKey, pragueLocalToDate, weekdayOf, isDateKey } from "@/lib/dates";
+import { addDays, dateKey, formatDate, pragueLocalToDate, weekdayOf, isDateKey } from "@/lib/dates";
 import { UserError } from "@/lib/errors";
 import { attempt, field, type FormState } from "@/lib/form";
-import { notifyBooked, notifyPromoted, notifySessionCancelled } from "@/lib/notify";
+import { notifyBooked, notifyPromoted, notifySessionCancelled, notifyStrike } from "@/lib/notify";
+import { afterMemberStrike, clearPause } from "@/domain/strikes";
 import { storeImage, uploadedFile } from "@/lib/media";
 import { normalizePhone } from "@/lib/phone";
 import { defaultSettings, saveSettings, type Settings } from "@/lib/settings";
@@ -444,12 +445,23 @@ export async function attendanceAction(_: FormState, fd: FormData): Promise<Form
   await requireStaff();
   return attempt(async () => {
     const status = field.str(fd, "status") as "attended" | "no_show" | "confirmed";
-    await setAttendance(await getDb(), field.str(fd, "bookingId"), status);
+    const db = await getDb();
+    const b = await setAttendance(db, field.str(fd, "bookingId"), status);
+    if (status === "no_show" && b.method === "membership") await notifyStrike(db, b.userId, await afterMemberStrike(db, b.userId));
     return done("Docházka uložena.");
   });
 }
 
 /* -------------------------------------------------------------- clients */
+
+/** Ends a booking pause and forgives the strikes counted so far. */
+export async function clearPauseAction(_: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  return attempt(async () => {
+    await clearPause(await getDb(), field.str(fd, "userId"));
+    return done("Hotovo – klient se může přihlašovat, prohřešky se počítají znovu od nuly.");
+  });
+}
 
 export async function adjustCreditsAction(_: FormState, fd: FormData): Promise<FormState> {
   const admin = await requireAdmin();
@@ -515,6 +527,47 @@ export async function grantEntitlementAction(_: FormState, fd: FormData): Promis
       note: field.optional(fd, "note"),
     });
     return done("Přiděleno.");
+  });
+}
+
+const endOfDay = (v: string) => (/^\d{4}-\d{2}-\d{2}$/.test(v) ? pragueLocalToDate(`${v}T23:59`) : null);
+
+/** Client detail: change how long a pass/membership is valid and how many entries it has. */
+export async function updateEntitlementAction(_: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  return attempt(async () => {
+    const db = await getDb();
+    const [e] = await db.select().from(entitlements).where(eq(entitlements.id, field.str(fd, "id")));
+    if (!e) throw new UserError("Permanentka nenalezena.");
+    const until = endOfDay(field.str(fd, "until"));
+    if (!until) throw new UserError("Vyplň datum konce platnosti.");
+    if (until <= e.validFrom) throw new UserError("Konec musí být po začátku platnosti.");
+    let entriesTotal = e.entriesTotal;
+    if (e.entriesTotal !== null) {
+      const n = field.int(fd, "entries");
+      if (n === null || n < e.entriesUsed) throw new UserError(`Vstupů musí být aspoň ${e.entriesUsed} (už vyčerpané).`);
+      entriesTotal = n;
+    }
+    await db
+      .update(entitlements)
+      .set({ validUntil: until, entriesTotal })
+      .where(eq(entitlements.id, e.id));
+    return done(`Uloženo – platí do ${formatDate(until)}.`);
+  });
+}
+
+/** Client detail: when the credit balance expires (empty = never). */
+export async function setCreditExpiryAction(_: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  return attempt(async () => {
+    const raw = field.str(fd, "until");
+    const until = raw ? endOfDay(raw) : null;
+    if (raw && !until) throw new UserError("Neplatné datum.");
+    await (await getDb())
+      .update(users)
+      .set({ creditExpiresAt: until, creditExpiryWarnedAt: null })
+      .where(eq(users.id, field.str(fd, "userId")));
+    return done(until ? `Kredit platí do ${formatDate(until)}.` : "Kredit teď platí bez omezení.");
   });
 }
 
@@ -589,6 +642,30 @@ export async function deleteClientAction(_: FormState, fd: FormData): Promise<Fo
   return res;
 }
 
+/** Clients list: grant a membership/pass to all ticked clients at once. */
+export async function bulkGrantAction(_: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  return attempt(async () => {
+    const ids = [...new Set(fd.getAll("ids").map(String).filter(Boolean))];
+    if (!ids.length) throw new UserError("Zaškrtni v seznamu klienty, kterým chceš přidělit.");
+    const kind = field.str(fd, "kind") as "free" | "pass" | "membership";
+    if (!["free", "pass", "membership"].includes(kind)) throw new UserError("Vyber typ.");
+    const until = field.str(fd, "until");
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(until);
+    if (!m) throw new UserError("Vyplň, do kdy platí.");
+    const validUntil = pragueLocalToDate(`${until}T23:59`);
+    if (validUntil <= new Date()) throw new UserError("Datum konce musí být v budoucnu.");
+    const entries = kind === "membership" ? null : field.int(fd, "entries");
+    if (kind !== "membership" && !entries) throw new UserError("Vyplň počet vstupů.");
+    const name = field.str(fd, "name") || { free: "Vstup zdarma", pass: "Permanentka", membership: "Členství" }[kind];
+    const db = await getDb();
+    const clients = await db.select({ id: users.id }).from(users).where(and(inArray(users.id, ids), eq(users.role, "client")));
+    for (const c of clients)
+      await grantEntitlement(db, { userId: c.id, kind, name, entries, validityDays: 1, validUntil, note: field.optional(fd, "note") });
+    return done(`${name} přiděleno ${clients.length} klientům (platí do ${formatDate(validUntil)}).`);
+  });
+}
+
 export async function deleteClientsAction(_: FormState, fd: FormData): Promise<FormState> {
   await requireAdmin();
   return attempt(async () => {
@@ -597,6 +674,11 @@ export async function deleteClientsAction(_: FormState, fd: FormData): Promise<F
     const n = await deleteClients(await getDb(), { ids });
     return done(`Smazáno klientů: ${n}.`);
   });
+}
+
+/** Clients list form: the pressed button decides – grant or delete the ticked clients. */
+export async function clientsBulkAction(prev: FormState, fd: FormData): Promise<FormState> {
+  return field.str(fd, "do") === "grant" ? bulkGrantAction(prev, fd) : deleteClientsAction(prev, fd);
 }
 
 export async function deleteAllClientsAction(_: FormState, fd: FormData): Promise<FormState> {

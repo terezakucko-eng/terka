@@ -143,6 +143,10 @@ export const users = pgTable("users", {
   nameDay: text("name_day"),
   /** Kdy klient potvrdil, že mu zdravotní stav cvičení dovoluje */
   healthConfirmedAt: timestamp("health_confirmed_at", { withTimezone: true }),
+  /** Pauza v přihlašování za opakované pozdní odhlášení/nepříchod (členství) */
+  bookingPausedUntil: timestamp("booking_paused_until", { withTimezone: true }),
+  /** Prohřešky se počítají až od tohoto okamžiku (po pauze nebo odpuštění) */
+  strikesResetAt: timestamp("strikes_reset_at", { withTimezone: true }),
   stripeCustomerId: text("stripe_customer_id"),
   createdAt: createdAt(),
 });

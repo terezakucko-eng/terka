@@ -51,7 +51,9 @@ export function ActionForm({
       onSubmit={(e) => {
         e.preventDefault();
         if (pending) return;
-        if (confirm && !window.confirm(confirm)) return;
+        const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLElement | null;
+        const ask = submitter?.dataset.confirm ?? confirm;
+        if (ask && !window.confirm(ask)) return;
         if (uploadSize(e.currentTarget) > MAX_REQUEST) {
           window.alert("Fotky jsou dohromady moc velké na jedno uložení. Ulož je prosím po menších dávkách (např. 2–3 najednou).");
           return;

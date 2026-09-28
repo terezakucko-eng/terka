@@ -21,6 +21,12 @@ export const defaultSettings = {
   massageBufferMinutes: 15,
   /** Masáže: po kolika minutách lze začít (30 = 9:00, 9:30, 10:00…) */
   massageStepMinutes: 30,
+  /** Členství: kolik pozdních odhlášení/nepříchodů vede k pauze (0 = vypnuto) */
+  memberStrikeLimit: 3,
+  /** …za kolik dní */
+  memberStrikeWindowDays: 30,
+  /** Délka pauzy v přihlašování (dní) */
+  memberPauseDays: 7,
 };
 
 export type Settings = typeof defaultSettings;

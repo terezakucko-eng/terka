@@ -152,6 +152,30 @@ export const EMAILS = {
       odkaz: { label: "odkaz na rozvrh", sample: `${site.url}/rozvrh` },
     },
   },
+  strikeWarning: {
+    title: "Členství – varování před pauzou",
+    when: "Když se člen po pozdním odhlášení nebo nepříchodu dostane jeden prohřešek před pauzu (Nastavení).",
+    subject: "Pozor na pozdní odhlašování",
+    body: "Ahoj {{osloveni}},\n\nza posledních {{dni}} dní máš {{pocet}}× pozdní odhlášení nebo nepříchod na lekci. Místo, které zůstane prázdné, by jinak mohl využít někdo z pořadníku.\n\nPři {{limit}}. prohřešku se na {{pauza_dni}} dní pozastaví přihlašování na lekce. Když nemůžeš dorazit, odhlas se prosím včas – nejpozději {{storno_hodin}} h před lekcí.\n\nDíky za pochopení!",
+    vars: {
+      osloveni,
+      pocet: { label: "počet prohřešků", sample: "2" },
+      limit: { label: "kolikátý prohřešek vede k pauze", sample: "3" },
+      dni: { label: "za kolik dní se počítají", sample: "30" },
+      pauza_dni: { label: "délka pauzy (dní)", sample: "7" },
+    },
+  },
+  strikePause: {
+    title: "Členství – pauza v přihlašování",
+    when: "Když člen dosáhne limitu pozdních odhlášení/nepříchodů (Nastavení).",
+    subject: "Přihlašování na lekce je pozastavené do {{do}}",
+    body: "Ahoj {{osloveni}},\n\nkvůli opakovanému pozdnímu odhlášení nebo nepříchodu je tvoje přihlašování na lekce na {{pauza_dni}} dní pozastavené – znovu se přihlásíš od {{do}}. Na lekce, na které už jsi přihlášený/á, chodit můžeš.\n\nKdyby šlo o omyl, napiš nám na {{email}}.",
+    vars: {
+      osloveni,
+      do: { label: "datum konce pauzy", sample: "5. 10. 2026" },
+      pauza_dni: { label: "délka pauzy (dní)", sample: "7" },
+    },
+  },
   signature: {
     title: "Podpis pod každým e-mailem",
     when: "Připojí se na konec všech automatických e-mailů (hromadné zprávy mají vlastní patičku).",
@@ -170,6 +194,7 @@ export const COMMON_VARS: Record<string, string> = {
   email: "e-mail studia",
   telefon: "telefon studia",
   adresa: "adresa studia",
+  storno_hodin: "storno zdarma (hodin před lekcí)",
 };
 
 /** Saved texts (subject/body) per e-mail; missing = default. */

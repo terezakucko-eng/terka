@@ -2,7 +2,8 @@ import { eq, inArray } from "drizzle-orm";
 import type { DB } from "@/db";
 import { classSessions, classTypes, users, type Booking } from "@/db/schema";
 import { site } from "@/config/site";
-import { formatDay, formatTime } from "./dates";
+import type { StrikeOutcome } from "@/domain/strikes";
+import { formatDate, formatDay, formatTime } from "./dates";
 import { sendEmail } from "./email-templates";
 import { greetName } from "@/lib/vocative";
 
@@ -25,6 +26,23 @@ async function emails(db: DB, ids: string[]) {
 }
 
 const link = (sessionId: string) => `${site.url}/rozvrh/${sessionId}`;
+
+/** Warning / pause e-mail after a member's late cancellation or no-show. */
+export async function notifyStrike(db: DB, userId: string, o: StrikeOutcome) {
+  if (o.kind === "none") return;
+  const u = (await emails(db, [userId])).get(userId);
+  if (!u) return;
+  if (o.kind === "warning")
+    await sendEmail(u.email, "strikeWarning", {
+      osloveni: greetName(u.name),
+      pocet: String(o.strikes),
+      limit: String(o.limit),
+      dni: String(o.windowDays),
+      pauza_dni: String(o.pauseDays),
+    });
+  else
+    await sendEmail(u.email, "strikePause", { osloveni: greetName(u.name), do: formatDate(o.until), pauza_dni: String(o.pauseDays) });
+}
 
 export async function notifyBooked(db: DB, b: Pick<Booking, "userId" | "sessionId"> & Partial<Pick<Booking, "guestName">>) {
   const u = (await emails(db, [b.userId])).get(b.userId);

@@ -155,6 +155,13 @@
       "when": 1790603826084,
       "tag": "0021_order_links",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1790609234903,
+      "tag": "0022_booking_pause",
+      "breakpoints": true
     }
   ]
 }

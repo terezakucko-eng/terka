@@ -2,7 +2,7 @@
  * Every editable text and image on the website, with its default.
  * Admin → Obsah webu edits these; a key missing in the DB shows the default.
  *
- * Placeholders usable in any text: {{storno_hodin}}, {{rezervace_dni}}, {{rezervace_dni_clenove}},
+ * Placeholders usable in any text: {{storno_hodin}}, {{prohresky}}, {{prohresky_dni}}, {{pauza_dni}}, {{rezervace_dni}}, {{rezervace_dni_clenove}},
  * {{platba_minut}}, {{vstupy_zdarma}}, {{platnost_zdarma}}, {{firma}}, {{ico}},
  * {{adresa}}, {{email}}, {{telefon}}.
  */
@@ -356,6 +356,7 @@ Napiš sem, jak studio vzniklo a co pro tebe pohyb znamená.
 ## 3. Storno podmínky
 - Rezervaci lze bezplatně zrušit nejpozději {{storno_hodin}} hodin před začátkem lekce; vstup nebo kredit se vrací na účet.
 - Při pozdějším zrušení nebo neúčasti vstup propadá.
+- Členství nemá omezený počet lekcí, proto se pozdní zrušení a neúčast u členů počítají jako prohřešek. Po {{prohresky}} prohřešcích za {{prohresky_dni}} dní se přihlašování na nové lekce pozastaví na {{pauza_dni}} dní; na již rezervované lekce lze chodit. Před pauzou přijde upozornění e-mailem.
 - Zruší-li lekci studio, vstup se vrací vždy. Jednorázový vstup zaplacený kartou je vrácen ve formě kreditu.
 - Při uvolnění místa je automaticky přihlášen klient z pořadníku a je mu stržen vstup.
 

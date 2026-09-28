@@ -4,7 +4,7 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/content", () => ({ getContent: vi.fn() }));
 vi.mock("@/db", () => ({ getDb: vi.fn() }));
 
-const { EMAILS, composeEmail, emailKey, sampleVars } = await import("@/lib/email-templates");
+const { COMMON_VARS, EMAILS, composeEmail, emailKey, sampleVars } = await import("@/lib/email-templates");
 const fill = (t: string, v: Record<string, string>) => t.replace(/\{\{(\w+)\}\}/g, (m, k: string) => v[k] ?? m);
 
 describe("automatic e-mail templates", () => {
@@ -24,7 +24,7 @@ describe("automatic e-mail templates", () => {
   });
 
   it("every placeholder in the defaults is documented", () => {
-    const common = ["web", "firma", "email", "telefon", "adresa"];
+    const common = Object.keys(COMMON_VARS);
     for (const [id, def] of Object.entries(EMAILS)) {
       const used = [...`${def.subject} ${def.body}`.matchAll(/\{\{(\w+)\}\}/g)].map((m) => m[1]);
       for (const u of used) expect([...Object.keys(def.vars), ...common], `${id}: {{${u}}}`).toContain(u);
