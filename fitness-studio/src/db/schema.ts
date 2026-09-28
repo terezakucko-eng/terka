@@ -129,6 +129,14 @@ export const users = pgTable("users", {
   /** převzato ze starého systému – účet čeká na nastavení hesla */
   importedAt: timestamp("imported_at", { withTimezone: true }),
   adminNote: text("admin_note"),
+  /** Profilovka: "/media/….webp" (fotka) nebo "emoji:🐙" (vybraný avatar); null = iniciály */
+  avatar: text("avatar"),
+  /** Přezdívka – zobrazuje se na nástěnce místo jména */
+  nickname: text("nickname"),
+  /** Datum narození "YYYY-MM-DD" */
+  birthDate: text("birth_date"),
+  /** Svátek "MM-DD" */
+  nameDay: text("name_day"),
   stripeCustomerId: text("stripe_customer_id"),
   createdAt: createdAt(),
 });

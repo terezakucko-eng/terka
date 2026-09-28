@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { logoutAction } from "@/app/actions/auth";
+import { Avatar } from "@/components/avatar";
 import { Container, Eyebrow } from "@/components/ui";
+import { displayName } from "@/lib/profile";
 import { requireUser } from "@/lib/auth";
 
 const tabs = [
@@ -18,7 +20,10 @@ export default async function AccountLayout({ children }: LayoutProps<"/ucet">) 
         <Container className="pt-10">
           <Eyebrow className="text-zeme">Můj účet</Eyebrow>
           <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
-            <h1 className="text-4xl font-semibold tracking-tight">Ahoj, {user.name.split(" ")[0]}.</h1>
+            <div className="flex items-center gap-4">
+              <Link href="/ucet/profil" title="Změnit profilovku"><Avatar user={user} size={56} className="text-2xl" /></Link>
+              <h1 className="text-4xl font-semibold tracking-tight">Ahoj, {displayName(user)}.</h1>
+            </div>
             <form action={logoutAction}>
               <button className="eyebrow text-les/60 underline underline-offset-4 hover:text-les">Odhlásit</button>
             </form>

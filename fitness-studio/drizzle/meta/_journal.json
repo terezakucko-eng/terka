@@ -120,6 +120,13 @@
       "when": 1790581052389,
       "tag": "0016_class_no_pass",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790581658416,
+      "tag": "0017_user_profile",
+      "breakpoints": true
     }
   ]
 }

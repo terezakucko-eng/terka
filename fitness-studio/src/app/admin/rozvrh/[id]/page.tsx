@@ -21,6 +21,9 @@ import { formatPrice } from "@/lib/money";
 import { requireStaff } from "@/lib/auth";
 import { formatDay, formatRange, toLocalInput } from "@/lib/dates";
 import { activeClassTypes, activeInstructors, sessionDetail } from "@/lib/queries";
+import { Avatar } from "@/components/avatar";
+import { upcomingCelebrations } from "@/lib/profile";
+import { dateKey } from "@/lib/dates";
 
 export default async function AdminSessionPage({ params }: PageProps<"/admin/rozvrh/[id]">) {
   const staff = await requireStaff();
@@ -60,7 +63,13 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
             {active.map(({ b, u }) => (
               <tr key={b.id}>
                 <Td>
-                  {isAdmin ? <Link href={`/admin/klienti/${u.id}`} className="font-semibold underline-offset-4 hover:underline">{u.name}</Link> : <strong>{u.name}</strong>}
+                  <span className="flex items-center gap-2">
+                    <Avatar user={u} size={28} />
+                    {isAdmin ? <Link href={`/admin/klienti/${u.id}`} className="font-semibold underline-offset-4 hover:underline">{u.name}</Link> : <strong>{u.name}</strong>}
+                    {upcomingCelebrations([u], dateKey(s.startsAt), 1).map((x) => (
+                      <span key={x.kind} title={x.kind === "birthday" ? "Má narozeniny" : "Má svátek"}>{x.kind === "birthday" ? "🎂" : "🌷"}</span>
+                    ))}
+                  </span>
                   {b.guestName && <><br /><Badge tone="gold">+1 {b.guestName}</Badge></>}
                   <br /><span className="text-xs text-les/50">{u.phone ?? u.email}</span>
                 </Td>

@@ -36,6 +36,7 @@ import { notifyBooked, notifyPromoted, notifySessionCancelled } from "@/lib/noti
 import { storeImage, uploadedFile } from "@/lib/media";
 import { normalizePhone } from "@/lib/phone";
 import { defaultSettings, saveSettings, type Settings } from "@/lib/settings";
+import { cleanBirthDate, cleanNameDay } from "@/lib/profile";
 
 const done = (msg?: string) => {
   revalidatePath("/", "layout");
@@ -625,6 +626,9 @@ export async function updateClientAction(_: FormState, fd: FormData): Promise<Fo
         marketingConsent: field.bool(fd, "marketingConsent"),
         smsConsent: field.bool(fd, "smsConsent"),
         whatsappConsent: field.bool(fd, "whatsappConsent"),
+        nickname: field.str(fd, "nickname").slice(0, 30) || null,
+        birthDate: cleanBirthDate(field.str(fd, "birthDate")),
+        nameDay: cleanNameDay(field.int(fd, "nameDayDay"), field.int(fd, "nameDayMonth")),
       })
       .where(eq(users.id, id));
     return done("Klient uložen.");

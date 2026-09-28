@@ -11,6 +11,8 @@ import {
   updateClientAction,
 } from "@/app/admin/actions";
 import { AdminTitle, Stat, Table, Td } from "@/components/admin";
+import { Avatar } from "@/components/avatar";
+import { MONTHS, formatDayMonth } from "@/lib/profile";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { bookingStatusLabel, creditReasonLabel, entitlementKindLabel, methodLabel, orderStatusLabel } from "@/components/labels";
 import { Badge, Button, Card, Field, Input, Select, Textarea } from "@/components/ui";
@@ -47,6 +49,14 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
   return (
     <>
       <Link href="/admin/klienti" className="eyebrow text-les/60 hover:text-les">← Klienti</Link>
+      <div className="mb-2 flex items-center gap-4">
+        <Avatar user={u} size={64} className="text-2xl" />
+        <div className="text-sm text-les/70">
+          {u.nickname && <p>Přezdívka: <strong>{u.nickname}</strong></p>}
+          {u.birthDate && <p>Narozeniny: <strong>{formatDate(new Date(`${u.birthDate}T12:00:00Z`))}</strong></p>}
+          {u.nameDay && <p>Svátek: <strong>{formatDayMonth(u.nameDay)}</strong></p>}
+        </div>
+      </div>
       <AdminTitle title={u.name}>
         <span className="text-sm text-les/60">{u.email} · {u.phone ?? "bez telefonu"}{u.passwordHash.startsWith("!") && " · převedený účet, heslo zatím nenastaveno"}</span>
       </AdminTitle>
@@ -208,6 +218,20 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
           <Field label="Jméno"><Input name="name" defaultValue={u.name} required /></Field>
           <Field label="E-mail"><Input name="email" type="email" defaultValue={u.email} required /></Field>
           <Field label="Telefon"><Input name="phone" defaultValue={u.phone ?? ""} /></Field>
+          <Field label="Přezdívka"><Input name="nickname" maxLength={30} defaultValue={u.nickname ?? ""} /></Field>
+          <Field label="Narozeniny"><Input name="birthDate" type="date" defaultValue={u.birthDate ?? ""} /></Field>
+          <Field label="Svátek">
+            <div className="flex gap-2">
+              <Select name="nameDayDay" defaultValue={u.nameDay ? Number(u.nameDay.slice(3)) : ""} aria-label="Den svátku">
+                <option value="">Den</option>
+                {Array.from({ length: 31 }, (_, i) => <option key={i} value={i + 1}>{i + 1}.</option>)}
+              </Select>
+              <Select name="nameDayMonth" defaultValue={u.nameDay ? Number(u.nameDay.slice(0, 2)) : ""} aria-label="Měsíc svátku">
+                <option value="">Měsíc</option>
+                {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+              </Select>
+            </div>
+          </Field>
           <Field label="Role">
             <Select name="role" defaultValue={u.role}>
               <option value="client">Klient</option>

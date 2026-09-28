@@ -21,7 +21,9 @@ import { UserError } from "@/lib/errors";
 import { attempt, field, type FormState } from "@/lib/form";
 import { sendMail } from "@/lib/mail";
 import { createPasswordLink, hashToken } from "@/lib/password-links";
+import { deleteImage, storeImage, uploadedFile } from "@/lib/media";
 import { normalizePhone } from "@/lib/phone";
+import { AVATAR_EMOJI, cleanBirthDate, cleanNameDay } from "@/lib/profile";
 
 /** Only allow local redirects after login. */
 function safeNext(v: string) {
@@ -152,11 +154,35 @@ export async function updateProfileAction(_: FormState, fd: FormData): Promise<F
         marketingConsent: field.bool(fd, "marketing"),
         smsConsent: field.bool(fd, "sms"),
         whatsappConsent: field.bool(fd, "whatsapp"),
+        nickname: field.str(fd, "nickname").slice(0, 30) || null,
+        birthDate: cleanBirthDate(field.str(fd, "birthDate")),
+        nameDay: cleanNameDay(field.int(fd, "nameDayDay"), field.int(fd, "nameDayMonth")),
       })
       .where(eq(users.id, user.id));
     return "Profil uložen.";
   });
   revalidatePath("/ucet", "layout");
+  return res;
+}
+
+/** Profile picture: an uploaded photo, a picked avatar, or back to initials. */
+export async function updateAvatarAction(_: FormState, fd: FormData): Promise<FormState> {
+  const user = await requireUser();
+  const res = await attempt(async () => {
+    const db = await getDb();
+    const file = uploadedFile(fd, "photo");
+    const pick = field.str(fd, "avatar");
+    let avatar: string | null;
+    if (file) avatar = await storeImage(db, file, 480, true);
+    else if (pick === "none") avatar = null;
+    else if ((AVATAR_EMOJI as readonly string[]).includes(pick)) avatar = `emoji:${pick}`;
+    else if (pick === "keep") return "Nic se nezměnilo.";
+    else throw new UserError("Vyber avatar nebo nahraj fotku.");
+    await db.update(users).set({ avatar }).where(eq(users.id, user.id));
+    if (user.avatar !== avatar) await deleteImage(db, user.avatar);
+    return "Profilovka uložena.";
+  });
+  revalidatePath("/", "layout");
   return res;
 }
 
