@@ -8,6 +8,7 @@ import { getDb } from "@/db";
 import { bookAction, cancelBookingAction, waitlistAction } from "@/app/actions/booking";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { HealthCheckbox } from "@/components/health-checkbox";
+import { cardPayments } from "@/lib/payments";
 import { VideoEmbed } from "@/components/video-embed";
 import { Badge, ButtonLink, Card, Container, Eyebrow, cx } from "@/components/ui";
 import { sessionForUser, stateMessage } from "@/domain/booking";
@@ -91,6 +92,7 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
               view={view}
               loggedIn={!!user}
               needsHealth={!!user && !user.healthConfirmedAt}
+              card={cardPayments()}
               sessionId={s.id}
               gcal={gcalLink(ct.name, s.startsAt, s.durationMin, address)}
             />
@@ -105,9 +107,11 @@ function BookingPanel({
   view,
   loggedIn,
   needsHealth,
+  card,
   sessionId,
   gcal,
 }: {
+  card: boolean;
   view: NonNullable<Awaited<ReturnType<typeof sessionForUser>>>;
   loggedIn: boolean;
   needsHealth: boolean;
@@ -189,7 +193,18 @@ function BookingPanel({
     );
   }
 
-  const firstEnabled = view.options.find((o) => !o.disabled);
+  // with card payments on, a drop-in can be paid right away by card or later by transfer
+  const options = view.options.flatMap((o) =>
+    o.method === "drop_in"
+      ? card
+        ? [
+            { ...o, pay: "card", detail: "Zaplatíš hned kartou." },
+            { ...o, pay: "transfer", label: `${o.label} – převodem`, detail: "Místo máš hned, zaplatíš převodem s QR kódem." },
+          ]
+        : [{ ...o, pay: "transfer", detail: "Zaplatíš převodem s QR kódem." }]
+      : [{ ...o, pay: "" }],
+  );
+  const firstEnabled = options.find((o) => !o.disabled);
   return (
     // remount on switch so the preselected payment follows the new options
     <ActionForm key={view.withFriend ? "duo" : "solo"} action={bookAction}>
@@ -210,8 +225,8 @@ function BookingPanel({
       <h2 className="text-2xl font-semibold">{view.withFriend ? "Jak zaplatíš za obě místa?" : "Jak chceš zaplatit?"}</h2>
       <fieldset className="mt-5 space-y-2">
         <legend className="sr-only">Způsob platby</legend>
-        {view.options.map((o) => {
-          const value = `${o.method}:${o.entitlementId ?? ""}`;
+        {options.map((o) => {
+          const value = `${o.method}:${o.entitlementId ?? ""}:${o.pay}`;
           return (
             <label
               key={value}

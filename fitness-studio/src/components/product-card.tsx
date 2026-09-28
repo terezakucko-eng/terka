@@ -4,6 +4,7 @@ import { ActionForm, SubmitButton } from "@/components/forms";
 import { Badge, ButtonLink, cx } from "@/components/ui";
 import type { Product } from "@/db/schema";
 import { credits, entries, formatPrice } from "@/lib/money";
+import { cardPayments } from "@/lib/payments";
 import { nbsp } from "@/lib/typography";
 
 function perks(p: Product): string[] {
@@ -60,6 +61,7 @@ export function ProductCard({
   /** e.g. "Většina lekcí: 220 kreditů" – shown on credit pack cards */
   creditNotes?: string[];
 }) {
+  const card = cardPayments();
   return (
     <article
                     className={cx(
@@ -84,10 +86,15 @@ export function ProductCard({
                       ))}
                     </ul>
                     {loggedIn ? (
-                      <ActionForm action={buyProductAction} className="mt-6">
+                      <ActionForm action={buyProductAction} className="mt-6 space-y-2">
                         <input type="hidden" name="productId" value={p.id} />
-                        <SubmitButton variant={p.highlight ? "gold" : "dark"} className="w-full" pendingText="Moment…">
-                          Koupit – platba převodem
+                        {card && (
+                          <SubmitButton name="pay" value="card" variant={p.highlight ? "gold" : "dark"} className="w-full" pendingText="Moment…">
+                            {p.kind === "membership" && p.recurring ? "Platit kartou měsíčně" : "Koupit – kartou"}
+                          </SubmitButton>
+                        )}
+                        <SubmitButton name="pay" value="transfer" variant={card ? "outline" : p.highlight ? "gold" : "dark"} className="w-full" pendingText="Moment…">
+                          {card ? "Převodem (QR)" : "Koupit – platba převodem"}
                         </SubmitButton>
                       </ActionForm>
                     ) : (

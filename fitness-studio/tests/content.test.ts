@@ -12,7 +12,7 @@ describe("content definitions", () => {
       expect(s.title).toBeTruthy();
       for (const [name, f] of Object.entries(s.fields)) {
         expect(f.label, `${id}.${name}`).toBeTruthy();
-        if (f.type === "image") expect(f.default).toMatch(/^\/(img|brand|media)\//);
+        if (f.type === "image" && !(f.optional && f.default === "")) expect(f.default).toMatch(/^\/(img|brand|media)\//);
       }
     }
   });

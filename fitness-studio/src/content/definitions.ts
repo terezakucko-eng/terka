@@ -91,6 +91,30 @@ export const SECTIONS = {
       },
     },
   },
+  popup: {
+    title: "Vyskakovací okno (pop-up)",
+    page: "/",
+    fields: {
+      title: {
+        label: "Nadpis",
+        type: "text",
+        default: "",
+        optional: true,
+        hint: "Prázdné = okno se nezobrazuje. Každý návštěvník ho uvidí jednou; po změně textu znovu.",
+      },
+      text: optArea("Text", ""),
+      image: { label: "Obrázek (nepovinný)", type: "image", default: "", optional: true },
+      buttonLabel: opt("Text tlačítka", "Chci to"),
+      buttonUrl: t("Kam tlačítko vede", "/cenik", "Stránka webu (/cenik, /rozvrh…) nebo celá adresa https://…"),
+      until: {
+        label: "Zobrazovat do (včetně)",
+        type: "text",
+        default: "",
+        optional: true,
+        hint: "Datum ve tvaru 2026-10-31. Po něm okno samo zmizí. Prázdné = pořád.",
+      },
+    },
+  },
   nav: {
     title: "Menu a patička",
     page: "*",

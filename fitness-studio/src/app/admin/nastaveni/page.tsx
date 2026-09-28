@@ -65,7 +65,7 @@ export default async function AdminSettings() {
       <Card className="mt-6 max-w-3xl text-sm">
         <h2 className="font-semibold">Integrace</h2>
         <ul className="mt-3 space-y-1 text-les/70">
-          <li>Platby: <strong>{provider === "stripe" ? "Stripe (karty)" : provider === "test" ? "Testovací brána" : "Převodem s QR kódem (účet z Obsah webu → Masáže)"}</strong></li>
+          <li>Platby: <strong>{provider === "stripe" ? "Kartou (Stripe) i převodem s QR kódem" : provider === "test" ? "Testovací karetní brána i převodem" : "Převodem s QR kódem (účet z Obsah webu → Masáže); karty se zapnou vyplněním STRIPE_SECRET_KEY"}</strong></li>
           <li>E-maily: <strong>{process.env.RESEND_API_KEY ? "Resend" : "jen do logu serveru (nenastaveno)"}</strong></li>
         </ul>
         <p className="mt-3 text-les/50">Klíče se nastavují v proměnných prostředí hostingu – viz README.</p>

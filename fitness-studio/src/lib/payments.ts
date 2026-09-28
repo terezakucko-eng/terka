@@ -12,10 +12,10 @@ import {
 } from "@/domain/orders";
 
 /**
- * How clients pay online. By default by bank transfer with a QR code – the
- * order waits until reception marks it paid (Admin → Platby). Stripe cards
- * only when STRIPE_SECRET_KEY is set; ALLOW_TEST_PAYMENTS=true switches on a
- * fake gateway for trying things out.
+ * The card gateway. Bank transfer with a QR code is always available (the
+ * order waits until reception marks it paid, Admin → Platby); cards go through
+ * Stripe when STRIPE_SECRET_KEY is set, or ALLOW_TEST_PAYMENTS=true switches on
+ * a fake gateway for trying things out. "transfer" = no card payments at all.
  */
 export function paymentProvider(): "stripe" | "test" | "transfer" {
   if (process.env.STRIPE_SECRET_KEY) return "stripe";
@@ -29,14 +29,20 @@ function stripe() {
   return _stripe;
 }
 
+export type PayMethod = "card" | "transfer";
+
+/** Can clients pay by card right now? */
+export const cardPayments = () => paymentProvider() !== "transfer";
+
 /** Returns the URL to send the client to for payment. */
 export async function startCheckout(
   db: DB,
   order: Order,
   user: User,
   product?: Product | null,
+  method: PayMethod = "card",
 ): Promise<string> {
-  const provider = paymentProvider();
+  const provider = method === "transfer" ? "transfer" : paymentProvider();
 
   if (provider === "transfer") {
     // no time limit: a bank transfer takes a day or two
