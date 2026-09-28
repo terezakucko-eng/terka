@@ -372,9 +372,13 @@ Spotřebitel bere na vědomí, že dle § 1837 písm. j) občanského zákoníku
 - Jméno, e-mail, telefon – vedení klientského účtu a rezervací (plnění smlouvy).
 - Historie rezervací a plateb – plnění smlouvy a zákonné účetní povinnosti.
 - E-mail a telefon pro novinky (newsletter, SMS, WhatsApp) – pouze se souhlasem, který lze kdykoliv odvolat v profilu nebo odkazem ve zprávě.
+- Datum narození a svátek – nepovinné, vyplňujete je sami v profilu, abychom vám mohli popřát. Kdykoliv je můžete v profilu smazat.
+- Přezdívka a profilová fotka (nebo zvolený avatar) – nepovinné, slouží k zobrazení u vašich reakcí na nástěnce, kde je uvidí její návštěvníci, a k tomu, aby vás recepce poznala. Kdykoliv je můžete v profilu změnit nebo odstranit.
+- Reakce na nástěnce – zobrazují se ostatním návštěvníkům nástěnky spolu s přezdívkou (případně křestním jménem) a profilovkou. Svou reakci můžete kdykoliv smazat.
+- Jméno kamarádky, kterou přivedete na lekci (+1) – jen pro evidenci rezervace; jméno nám předáváte se souhlasem dotyčné osoby.
 
 ## Příjemci
-Poskytovatel hostingu a databáze, platební brána Stripe, služby pro odesílání e-mailů, SMS a WhatsApp zpráv. Údaje neprodáváme.
+Poskytovatel hostingu a databáze, banka (platby převodem), služby pro odesílání e-mailů, SMS a WhatsApp zpráv. Údaje neprodáváme.
 
 ## Doba uložení
 Po dobu trvání účtu, účetní doklady po dobu stanovenou zákonem.
