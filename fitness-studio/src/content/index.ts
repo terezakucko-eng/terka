@@ -21,6 +21,9 @@ export const getContent = cache(async () => {
   const raw = (key: string) => saved.get(key) ?? fieldDef(key)?.default ?? "";
   const vars: Record<string, string> = {
     storno_hodin: String(cfg.cancellationHours),
+    prohresky: String(cfg.memberStrikeLimit),
+    prohresky_dni: String(cfg.memberStrikeWindowDays),
+    pauza_dni: String(cfg.memberPauseDays),
     rezervace_dni: String(cfg.bookingWindowDays),
     rezervace_dni_clenove: String(Math.max(cfg.memberBookingWindowDays, cfg.bookingWindowDays)),
     platba_minut: String(cfg.pendingPaymentMinutes),

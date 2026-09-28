@@ -32,7 +32,8 @@ import { requireAdmin, requireStaff } from "@/lib/auth";
 import { addDays, dateKey, pragueLocalToDate, weekdayOf, isDateKey } from "@/lib/dates";
 import { UserError } from "@/lib/errors";
 import { attempt, field, type FormState } from "@/lib/form";
-import { notifyBooked, notifyPromoted, notifySessionCancelled } from "@/lib/notify";
+import { notifyBooked, notifyPromoted, notifySessionCancelled, notifyStrike } from "@/lib/notify";
+import { afterMemberStrike, clearPause } from "@/domain/strikes";
 import { storeImage, uploadedFile } from "@/lib/media";
 import { normalizePhone } from "@/lib/phone";
 import { defaultSettings, saveSettings, type Settings } from "@/lib/settings";
@@ -444,12 +445,23 @@ export async function attendanceAction(_: FormState, fd: FormData): Promise<Form
   await requireStaff();
   return attempt(async () => {
     const status = field.str(fd, "status") as "attended" | "no_show" | "confirmed";
-    await setAttendance(await getDb(), field.str(fd, "bookingId"), status);
+    const db = await getDb();
+    const b = await setAttendance(db, field.str(fd, "bookingId"), status);
+    if (status === "no_show" && b.method === "membership") await notifyStrike(db, b.userId, await afterMemberStrike(db, b.userId));
     return done("Docházka uložena.");
   });
 }
 
 /* -------------------------------------------------------------- clients */
+
+/** Ends a booking pause and forgives the strikes counted so far. */
+export async function clearPauseAction(_: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  return attempt(async () => {
+    await clearPause(await getDb(), field.str(fd, "userId"));
+    return done("Hotovo – klient se může přihlašovat, prohřešky se počítají znovu od nuly.");
+  });
+}
 
 export async function adjustCreditsAction(_: FormState, fd: FormData): Promise<FormState> {
   const admin = await requireAdmin();

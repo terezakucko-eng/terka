@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import {
   adjustCreditsAction,
   cancelEntitlementAction,
+  clearPauseAction,
   deductSolariumAction,
   deleteClientAction,
   grantEntitlementAction,
@@ -26,6 +27,7 @@ import { sellableProducts } from "@/lib/queries";
 import { normalizePhone } from "@/lib/phone";
 import { recentSolariumUses, solariumPasses } from "@/domain/solarium";
 import { greetName } from "@/lib/vocative";
+import { memberStrikes } from "@/domain/strikes";
 
 export default async function ClientDetail({ params }: PageProps<"/admin/klienti/[id]">) {
   await requireAdmin();
@@ -46,6 +48,8 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
   const sunLeft = sunPasses.reduce((s, p) => s + p.left, 0);
   const now = new Date();
   const attended = past.filter(({ b }) => b.status === "attended").length;
+  const strikes = await memberStrikes(db, u.id, now);
+  const paused = u.bookingPausedUntil && u.bookingPausedUntil > now ? u.bookingPausedUntil : null;
 
   return (
     <>
@@ -68,6 +72,23 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
         <Stat label="Nadcházející rezervace" value={upcoming.length} />
         <Stat label="Účast (posl. 30 lekcí)" value={attended} sub={`registrace ${formatDate(u.createdAt)}`} />
       </div>
+
+      {(paused || strikes.strikes > 0) && (
+        <Card className={`mt-6 flex flex-wrap items-center justify-between gap-4 ${paused ? "border-chyba/40" : ""}`}>
+          <div className="text-sm">
+            <h2 className="font-semibold">Pozdní odhlášení a nepříchody (členství)</h2>
+            <p className="mt-1 text-les/70">
+              {paused ? <>Přihlašování pozastaveno do <strong>{formatDate(paused)}</strong>. </> : null}
+              Prohřešků za posledních {strikes.windowDays} dní: <strong>{strikes.strikes}</strong>
+              {strikes.limit ? ` (pauza při ${strikes.limit})` : " (pauzy vypnuté v Nastavení)"}
+            </p>
+          </div>
+          <ActionForm action={clearPauseAction} confirm={paused ? "Zrušit pauzu a vynulovat prohřešky?" : "Vynulovat prohřešky?"}>
+            <input type="hidden" name="userId" value={u.id} />
+            <SubmitButton variant="outline">{paused ? "Zrušit pauzu" : "Vynulovat"}</SubmitButton>
+          </ActionForm>
+        </Card>
+      )}
 
       <WhatsAppCard phone={u.phone} name={u.name} consent={u.whatsappConsent} />
 

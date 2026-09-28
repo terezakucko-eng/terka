@@ -15,7 +15,8 @@ import { abandonOrder, createProductOrder, createSurchargeOrder, fulfillOrder } 
 import { requireUser } from "@/lib/auth";
 import { UserError } from "@/lib/errors";
 import { attempt, field, type FormState } from "@/lib/form";
-import { notifyBooked, notifyCancelled, notifyPromoted } from "@/lib/notify";
+import { notifyBooked, notifyCancelled, notifyPromoted, notifyStrike } from "@/lib/notify";
+import { afterMemberStrike, assertNotPaused } from "@/domain/strikes";
 import { cardPayments, paymentProvider, startCheckout, type PayMethod } from "@/lib/payments";
 
 const METHODS: Method[] = ["credits", "pass", "membership", "free", "drop_in", "free_class"];
@@ -38,6 +39,7 @@ export async function bookAction(_: FormState, fd: FormData): Promise<FormState>
     if (!METHODS.includes(method as Method)) throw new UserError("Vyber způsob platby.");
     await confirmHealth(user, fd);
     const db = await getDb();
+    await assertNotPaused(db, user.id);
     const { booking, order } = await bookSession(db, {
       userId: user.id,
       sessionId,
@@ -69,6 +71,7 @@ export async function waitlistAction(_: FormState, fd: FormData): Promise<FormSt
   const user = await requireUser(`/rozvrh/${sessionId}`);
   const res = await attempt(async () => {
     await confirmHealth(user, fd);
+    await assertNotPaused(await getDb(), user.id);
     await joinWaitlist(await getDb(), { userId: user.id, sessionId });
     return "Jsi v pořadníku. Jakmile se uvolní místo, automaticky tě přihlásíme a dáme vědět e-mailem.";
   });
@@ -83,6 +86,8 @@ export async function cancelBookingAction(_: FormState, fd: FormData): Promise<F
     const r = await cancelBooking(db, { bookingId: field.str(fd, "bookingId"), actorId: user.id });
     if (r.booking.status !== "waitlist") await notifyCancelled(db, r.booking, r.refunded);
     await notifyPromoted(db, r.promoted);
+    if (r.booking.method === "membership" && r.booking.status === "confirmed" && r.late && !r.refunded)
+      await notifyStrike(db, user.id, await afterMemberStrike(db, user.id));
     if (r.booking.status === "waitlist") return "Odhlášeno z pořadníku.";
     return r.refunded
       ? "Rezervace zrušena, vstup máš zpátky na účtu."

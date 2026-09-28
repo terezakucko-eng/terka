@@ -18,6 +18,9 @@ const fields: { key: keyof Settings; label: string; hint: string }[] = [
   { key: "pendingPaymentMinutes", label: "Držení místa při platbě kartou (min)", hint: "Minimálně 30 (Stripe)." },
   { key: "massageBufferMinutes", label: "Masáže – pauza mezi masážemi (min)", hint: "Čas na úklid a převlečení." },
   { key: "massageStepMinutes", label: "Masáže – začátky po (min)", hint: "30 = 9:00, 9:30, 10:00…" },
+  { key: "memberStrikeLimit", label: "Členové – prohřešků do pauzy", hint: "Pozdní odhlášení nebo nepříchod. Varování přijde o jeden dřív. 0 = vypnuto." },
+  { key: "memberStrikeWindowDays", label: "Členové – prohřešky za posledních (dní)", hint: "" },
+  { key: "memberPauseDays", label: "Členové – délka pauzy v přihlašování (dní)", hint: "" },
 ];
 
 export default async function AdminSettings() {
