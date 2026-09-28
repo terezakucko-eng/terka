@@ -325,7 +325,7 @@ export async function bookingOptions(
       method: methodForKind[e.kind],
       entitlementId: e.id,
       label: e.name,
-      detail: e.kind === "membership" && surcharge ? `${left} · doplatek ${formatPrice(surcharge)} na místě` : left,
+      detail: e.kind === "membership" && surcharge ? `${left} · doplatek ${formatPrice(surcharge)} (kartou nebo převodem)` : left,
       ...(problem ? { disabled: problem } : {}),
     });
   }

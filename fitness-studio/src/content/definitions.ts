@@ -252,7 +252,7 @@ export const SECTIONS = {
       intro: ta("Úvodní text", "Uvolni tělo po tréninku i po dlouhém dni. Vyber si masáž a volný termín – rezervace zabere minutu."),
       paymentInfo: ta(
         "Jak se platí",
-        "Platit můžeš na místě kartou, nebo předem převodem – platební údaje i QR kód ti ukážeme hned po rezervaci.",
+        "Masáž zaplatíš předem – kartou online hned po rezervaci, nebo převodem (platební údaje i QR kód ti ukážeme po rezervaci). Máš-li permanentku na masáže, strhne se z ní vstup.",
       ),
       noSlots: ta("Když nejsou volné termíny", "Teď nejsou vypsané žádné volné termíny. Napiš nám nebo zavolej, rádi se domluvíme."),
       bankAccount: {

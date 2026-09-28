@@ -62,7 +62,9 @@ export default async function TransferPage({ searchParams }: PageProps<"/platba/
         <p className="mt-6 max-w-xl text-sm text-les/70">
           {o.kind === "drop_in"
             ? "Jakmile platba dorazí na účet, místo na lekci je tvoje. Pošli ji prosím co nejdřív."
-            : "Jakmile platba dorazí, připíšeme ti nákup na účet – obvykle do 1–2 pracovních dnů. Údaje k platbě najdeš i ve svém účtu."}
+            : o.kind === "surcharge"
+              ? "Jakmile platba dorazí, doplatek u rezervace označíme jako zaplacený – obvykle do 1–2 pracovních dnů."
+              : "Jakmile platba dorazí, připíšeme ti nákup na účet – obvykle do 1–2 pracovních dnů. Údaje k platbě najdeš i ve svém účtu."}
         </p>
       )}
       <div className="mt-10 flex flex-wrap gap-3">

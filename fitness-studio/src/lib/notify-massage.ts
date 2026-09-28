@@ -5,6 +5,7 @@ import { site } from "@/config/site";
 import { formatDay, formatTime } from "./dates";
 import { sendMail } from "./mail";
 import { formatPrice } from "./money";
+import { cardPayments } from "./payments";
 import { greetName } from "@/lib/vocative";
 
 const when = (b: MassageBooking) => `${formatDay(b.startsAt)} v ${formatTime(b.startsAt)}`;
@@ -22,9 +23,9 @@ export async function notifyMassageBooked(db: DB, b: MassageBooking, bankAccount
   const pay =
     b.payment === "pass"
       ? "Platba permanentkou – strhl se 1 vstup (při včasném zrušení se vrátí)."
-      : b.payment === "transfer" && bankAccount
-      ? `Platba převodem: ${formatPrice(b.price)} na účet ${bankAccount}, variabilní symbol ${b.variableSymbol}.\nQR kód najdeš v detailu rezervace.`
-      : `Platba na místě (kartou): ${formatPrice(b.price)}.`;
+      : b.payment === "transfer"
+      ? `Cena: ${formatPrice(b.price)}. ${b.paidAt ? "Zaplaceno." : `Zaplatit můžeš ${[cardPayments() && "kartou v detailu rezervace", bankAccount && `převodem na účet ${bankAccount}, variabilní symbol ${b.variableSymbol}`].filter(Boolean).join(" nebo ")}.`}`
+      : `Platba na místě: ${formatPrice(b.price)}.`;
   if (u)
     await sendMail({
       to: u.email,
@@ -35,13 +36,13 @@ export async function notifyMassageBooked(db: DB, b: MassageBooking, bankAccount
     await sendMail({
       to: studioEmail,
       subject: `Nová masáž: ${b.serviceName}, ${when(b)}`,
-      text: `${u?.name ?? b.guestName ?? "Klient"} (${u?.email ?? b.guestPhone ?? ""})\n${b.serviceName}, ${when(b)}\n${b.payment === "pass" ? "Permanentkou" : b.payment === "transfer" ? `Převodem, VS ${b.variableSymbol}` : "Na místě"}${b.note ? `\nPoznámka: ${b.note}` : ""}\n\n${site.url}/admin/masaze`,
+      text: `${u?.name ?? b.guestName ?? "Klient"} (${u?.email ?? b.guestPhone ?? ""})\n${b.serviceName}, ${when(b)}\n${b.payment === "pass" ? "Permanentkou" : b.payment === "transfer" ? `Online (karta/převod), VS ${b.variableSymbol}` : "Na místě"}${b.note ? `\nPoznámka: ${b.note}` : ""}\n\n${site.url}/admin/masaze`,
     });
 }
 
 export async function notifyMassageCancelled(db: DB, b: MassageBooking, studioEmail: string, byStudio: boolean) {
   const u = await recipient(db, b);
-  const refund = b.paidAt ? "\nZaplacenou částku ti vrátíme převodem." : "";
+  const refund = b.paidAt ? "\nZaplacenou částku ti vrátíme." : "";
   if (u)
     await sendMail({
       to: u.email,
@@ -52,6 +53,6 @@ export async function notifyMassageCancelled(db: DB, b: MassageBooking, studioEm
     await sendMail({
       to: studioEmail,
       subject: `Zrušená masáž: ${b.serviceName}, ${when(b)}`,
-      text: `Masáž ${b.serviceName}, ${when(b)} byla zrušena online (${u?.name ?? b.guestName ?? ""}).${b.paidAt ? "\nByla zaplacená převodem – vrať platbu." : ""}`,
+      text: `Masáž ${b.serviceName}, ${when(b)} byla zrušena online (${u?.name ?? b.guestName ?? ""}).${b.paidAt ? "\nByla zaplacená – vrať platbu (kartou přes Stripe, převodem na účet)." : ""}`,
     });
 }

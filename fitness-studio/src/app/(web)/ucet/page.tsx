@@ -11,6 +11,7 @@ import { userBookings, userEntitlements } from "@/lib/account";
 import { requireUser } from "@/lib/auth";
 import { formatDate, formatDay, formatRange, formatTime } from "@/lib/dates";
 import { credits, formatPrice } from "@/lib/money";
+import { SurchargePay } from "@/components/surcharge-pay";
 
 export default async function AccountPage({ searchParams }: PageProps<"/ucet">) {
   const { vitej } = await searchParams;
@@ -121,7 +122,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
                 {b.guestName && <Badge>+1 {b.guestName}</Badge>}
                 {b.status === "waitlist" && <Badge tone="gold">Pořadník</Badge>}
                 {b.status === "pending_payment" && <Badge tone="gold">Čeká na platbu</Badge>}
-                {b.surcharge > 0 && !b.surchargePaidAt && <Badge tone="gold">Doplatek {formatPrice(b.surcharge)} na místě</Badge>}
+                {b.surcharge > 0 && !b.surchargePaidAt && b.status !== "waitlist" && <SurchargePay bookingId={b.id} amount={b.surcharge} compact />}
                 {s.status === "cancelled" && <Badge tone="red">Lekce zrušena</Badge>}
                 {s.status !== "cancelled" && (
                   <ActionForm action={cancelBookingAction} confirm="Opravdu zrušit rezervaci?">
@@ -156,7 +157,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
                   ) : m.paidAt ? (
                     <Badge tone="green">Zaplaceno</Badge>
                   ) : m.payment === "transfer" ? (
-                    <Link href={`/masaze/rezervace/${m.id}`}><Badge tone="gold">Zaplatit převodem</Badge></Link>
+                    <Link href={`/masaze/rezervace/${m.id}`}><Badge tone="gold">Zaplatit</Badge></Link>
                   ) : (
                     <Badge>Platba na místě</Badge>
                   )}

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { CheckCircle2 } from "lucide-react";
-import { cancelMassageAction } from "@/app/actions/massages";
+import { cancelMassageAction, payMassageAction } from "@/app/actions/massages";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { Badge, Card, Container, Eyebrow } from "@/components/ui";
 import { getContent } from "@/content";
@@ -13,6 +13,7 @@ import { requireUser } from "@/lib/auth";
 import { formatDay, formatTime } from "@/lib/dates";
 import { transferDetails } from "@/lib/massage-payment";
 import { formatPrice } from "@/lib/money";
+import { cardPayments } from "@/lib/payments";
 
 export const metadata: Metadata = { title: "Rezervace masáže", robots: { index: false } };
 
@@ -32,6 +33,7 @@ export default async function MassageBookingPage({ params, searchParams }: PageP
   const c = await getContent();
   const transfer = b.payment === "transfer" ? await transferDetails(b, c("massages.bankAccount")) : null;
   const cancelled = b.status === "cancelled";
+  const card = cardPayments();
 
   return (
     <Container className="max-w-3xl py-12 sm:py-16">
@@ -48,9 +50,16 @@ export default async function MassageBookingPage({ params, searchParams }: PageP
       <div className="mt-4 flex flex-wrap gap-2">
         {cancelled && <Badge tone="red">Zrušeno</Badge>}
         {!cancelled && b.paidAt && <Badge tone="green">Zaplaceno</Badge>}
-        {!cancelled && !b.paidAt && <Badge tone="gold">{b.payment === "transfer" ? "Čeká na platbu převodem" : "Platba na místě"}</Badge>}
+        {!cancelled && !b.paidAt && b.payment !== "pass" && <Badge tone="gold">{b.payment === "transfer" ? "Čeká na platbu" : "Platba na místě"}</Badge>}
       </div>
 
+      {!cancelled && b.payment === "transfer" && !b.paidAt && card && (
+        <ActionForm action={payMassageAction} className="mt-8 flex flex-wrap items-center gap-4">
+          <input type="hidden" name="bookingId" value={b.id} />
+          <SubmitButton variant="gold">Zaplatit kartou {formatPrice(b.price)}</SubmitButton>
+          {transfer && <span className="text-sm text-les/60">nebo převodem podle údajů níže</span>}
+        </ActionForm>
+      )}
       {!cancelled && b.payment === "transfer" && !b.paidAt && transfer && (
         <Card className="mt-8 grid gap-6 sm:grid-cols-[1fr_auto] sm:items-center">
           <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">

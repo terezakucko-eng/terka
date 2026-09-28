@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { desc } from "drizzle-orm";
+import { Trash2 } from "lucide-react";
+import { deleteCampaignAction } from "@/app/admin/messaging-actions";
+import { ActionForm } from "@/components/forms";
 import { AdminTitle, Panel, Table, Td } from "@/components/admin";
 import { CampaignForm } from "@/components/campaign-form";
 import { Badge } from "@/components/ui";
@@ -37,7 +40,7 @@ export default async function CampaignsPage() {
           <CampaignForm clients={opts.clients} classTypes={opts.classTypes} sessions={opts.sessions} />
         </Panel>
       </div>
-      <Table head={["Název", "Kanál", "Typ", "Stav", "Příjemci", "Doručeno", "Vytvořeno"]}>
+      <Table head={["Název", "Kanál", "Typ", "Stav", "Příjemci", "Doručeno", "Vytvořeno", ""]}>
         {list.map((c) => (
           <tr key={c.id}>
             <Td><Link href={`/admin/zpravy/${c.id}`} className="font-semibold text-zeme underline-offset-4 hover:underline">{c.name}</Link></Td>
@@ -47,6 +50,14 @@ export default async function CampaignsPage() {
             <Td>{c.recipientCount || "—"}</Td>
             <Td>{c.status === "draft" ? "—" : `${c.sentCount}${c.failedCount ? ` (+${c.failedCount} chyb)` : ""}`}</Td>
             <Td className="whitespace-nowrap">{formatDateTime(c.createdAt)}</Td>
+            <Td>
+              {c.status !== "sending" && (
+                <ActionForm action={deleteCampaignAction} confirm={`Smazat zprávu „${c.name}“ z přehledu?`}>
+                  <input type="hidden" name="id" value={c.id} />
+                  <button title="Smazat" aria-label="Smazat" className="text-les/40 transition hover:text-chyba"><Trash2 className="size-4" /></button>
+                </ActionForm>
+              )}
+            </Td>
           </tr>
         ))}
         {list.length === 0 && <tr><Td className="text-les/50">Zatím žádné zprávy.</Td></tr>}

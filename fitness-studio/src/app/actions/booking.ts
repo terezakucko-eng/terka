@@ -11,7 +11,7 @@ import {
   joinWaitlist,
   type Method,
 } from "@/domain/booking";
-import { abandonOrder, createProductOrder, fulfillOrder } from "@/domain/orders";
+import { abandonOrder, createProductOrder, createSurchargeOrder, fulfillOrder } from "@/domain/orders";
 import { requireUser } from "@/lib/auth";
 import { UserError } from "@/lib/errors";
 import { attempt, field, type FormState } from "@/lib/form";
@@ -102,6 +102,24 @@ export async function buyProductAction(_: FormState, fd: FormData): Promise<Form
       productId: field.str(fd, "productId"),
     });
     url = await startCheckout(db, order, user, product, field.str(fd, "pay") === "card" && cardPayments() ? "card" : "transfer");
+  });
+  if (url) redirect(url);
+  return res;
+}
+
+/** Member surcharge (Reformer, Individuál) – pay by card online or by bank transfer. */
+export async function paySurchargeAction(_: FormState, fd: FormData): Promise<FormState> {
+  const user = await requireUser("/ucet");
+  let url: string | null = null;
+  const res = await attempt(async () => {
+    const db = await getDb();
+    const order = await createSurchargeOrder(db, { userId: user.id, bookingId: field.str(fd, "bookingId") });
+    const method: PayMethod = field.str(fd, "pay") === "card" && cardPayments() ? "card" : "transfer";
+    try {
+      url = await startCheckout(db, order, user, null, method);
+    } catch {
+      throw new UserError("Platební brána teď není dostupná. Zkus to prosím za chvíli, nebo zaplať převodem.");
+    }
   });
   if (url) redirect(url);
   return res;

@@ -75,6 +75,8 @@ export const orderKind = pgEnum("order_kind", [
   "product",
   "drop_in",
   "renewal",
+  "surcharge", // doplatek člena za lekci (bookingId)
+  "massage", // platba masáže kartou (massageBookingId)
 ]);
 
 export const creditReason = pgEnum("credit_reason", [
@@ -271,6 +273,10 @@ export const orders = pgTable(
     kind: orderKind("kind").notNull(),
     productId: uuid("product_id").references(() => products.id),
     sessionId: uuid("session_id").references(() => classSessions.id),
+    /** kind = surcharge: rezervace, za kterou se doplácí */
+    bookingId: uuid("booking_id").references((): AnyPgColumn => bookings.id, { onDelete: "set null" }),
+    /** kind = massage: placená masáž */
+    massageBookingId: uuid("massage_booking_id").references((): AnyPgColumn => massageBookings.id, { onDelete: "set null" }),
     description: text("description").notNull(),
     amount: integer("amount").notNull(),
     currency: text("currency").notNull().default("CZK"),
