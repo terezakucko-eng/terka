@@ -17,6 +17,8 @@ import { formatPrice } from "@/lib/money";
 import { activeProducts, listSessions, publishedAnnouncements } from "@/lib/queries";
 import { nbsp } from "@/lib/typography";
 import { approvedReviews, reviewStats, reviewsLabel } from "@/domain/reviews";
+import { bookingOpensAt, bookingWindowFor } from "@/domain/booking";
+import { getSettings } from "@/lib/settings";
 import { Stars } from "@/components/stars";
 
 export const metadata: Metadata = { alternates: { canonical: "/" } };
@@ -33,6 +35,11 @@ export default async function Home() {
     approvedReviews(db, 3),
     reviewStats(db),
   ]);
+  const windowDays = await bookingWindowFor(db, await getSettings(db), user?.id ?? null, now);
+  const opensAt = (s: { startsAt: Date }) => {
+    const at = bookingOpensAt(s, windowDays);
+    return at > now ? at : null;
+  };
   const cheapest = productList.find((p) => p.kind === "membership");
   const values = Array.from({ length: 8 }, (_, i) => ({
     title: c(`homeCharacter.v${i + 1}Title`),
@@ -105,7 +112,7 @@ export default async function Home() {
             {upcoming.slice(0, 8).map((s) => (
               <div key={s.id}>
                 <p className="eyebrow mb-2 text-les/50">{formatShortDay(s.startsAt)}</p>
-                <SessionCard s={s} />
+                <SessionCard s={s} opensAt={opensAt(s)} />
               </div>
             ))}
           </div>

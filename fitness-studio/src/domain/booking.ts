@@ -65,6 +65,10 @@ export function sessionState(
   return "bookable";
 }
 
+/** When booking opens for a class with the given window (the check above, turned around). */
+export const bookingOpensAt = (s: Pick<ClassSession, "startsAt">, windowDays: number) =>
+  new Date(s.startsAt.getTime() - windowDays * DAY);
+
 /** How many days ahead this client may book: members get the longer window. */
 export async function bookingWindowFor(tx: Executor, cfg: Settings, userId: string | null, now: Date) {
   if (!userId || cfg.memberBookingWindowDays <= cfg.bookingWindowDays) return cfg.bookingWindowDays;
@@ -840,7 +844,8 @@ export async function sessionForUser(
     .where(eq(classSessions.id, sessionId));
   if (!s) return null;
   const occupied = await occupancy(db, s.id);
-  const state = sessionState(s, occupied, cfg, now, await bookingWindowFor(db, cfg, userId, now));
+  const windowDays = await bookingWindowFor(db, cfg, userId, now);
+  const state = sessionState(s, occupied, cfg, now, windowDays);
   // +1 only for group classes with two spots left
   const canBringFriend = guestAllowed(s) && s.capacity - occupied >= 2;
   const withFriend = seats > 1 && canBringFriend;
@@ -868,5 +873,9 @@ export async function sessionForUser(
     options,
     lateCancel: isLateCancel(s, cfg, now),
     cfg,
+    /** not_open: when this viewer can book; members' earlier start when they have a longer window */
+    opensAt: bookingOpensAt(s, windowDays),
+    memberOpensAt: cfg.memberBookingWindowDays > cfg.bookingWindowDays ? bookingOpensAt(s, cfg.memberBookingWindowDays) : null,
+    isMemberWindow: cfg.memberBookingWindowDays > cfg.bookingWindowDays && windowDays === cfg.memberBookingWindowDays,
   };
 }

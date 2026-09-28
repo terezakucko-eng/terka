@@ -13,7 +13,7 @@ import { VideoEmbed } from "@/components/video-embed";
 import { Badge, ButtonLink, Card, Container, Eyebrow, cx } from "@/components/ui";
 import { sessionForUser, stateMessage } from "@/domain/booking";
 import { getCurrentUser } from "@/lib/auth";
-import { formatDay, formatRange } from "@/lib/dates";
+import { formatDay, formatRange, formatWhen } from "@/lib/dates";
 import { credits, formatPrice } from "@/lib/money";
 import { sessionDetail } from "@/lib/queries";
 import { getContent } from "@/content";
@@ -146,6 +146,30 @@ function BookingPanel({
             </ActionForm>
           </>
         )}
+      </div>
+    );
+  }
+
+  if (view.state === "not_open") {
+    const now = new Date();
+    const member = view.memberOpensAt;
+    return (
+      <div>
+        <h2 className="text-2xl font-semibold">Rezervace</h2>
+        <p className="mt-3 text-les/70">
+          Rezervace se {view.isMemberWindow ? "ti " : ""}otevře <strong className="text-les">{formatWhen(view.opensAt)}</strong>.
+        </p>
+        {member && !view.isMemberWindow && (
+          <p className="mt-3 rounded-xl bg-zlato/15 p-4 text-sm">
+            {member <= now ? (
+              <>Členové s aktivním členstvím si už rezervovat mohou.</>
+            ) : (
+              <>Členové s aktivním členstvím si mohou rezervovat dřív – od <strong>{formatWhen(member)}</strong>.</>
+            )}
+            {!loggedIn && <> Jsi člen/ka? <Link href={`/prihlaseni?next=/rozvrh/${sessionId}`} className="underline">Přihlas se.</Link></>}
+          </p>
+        )}
+        <ButtonLink href="/rozvrh" variant="outline" className="mt-6">Jiné lekce</ButtonLink>
       </div>
     );
   }
