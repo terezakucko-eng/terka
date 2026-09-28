@@ -1,4 +1,6 @@
-/** Avatars to pick from when the client doesn't want to upload a photo. */
+/** Octopus avatars to pick from (public/avatars/octo-N.svg, drawn by scripts/octo-avatars.py). */
+export const OCTO_AVATARS = Array.from({ length: 12 }, (_, i) => `octo:${i + 1}`);
+/** Emoji avatars offered earlier – still shown for clients who picked one. */
 export const AVATAR_EMOJI = ["🐙", "🌿", "🌸", "☀️", "🌊", "🦋", "🔥", "🌙", "🍀", "💪", "🧘", "✨"] as const;
 
 export const MONTHS = [
@@ -23,6 +25,7 @@ export type AvatarValue = { kind: "photo"; url: string } | { kind: "emoji"; emoj
 
 export function parseAvatar(v: string | null | undefined): AvatarValue {
   if (v?.startsWith("/media/")) return { kind: "photo", url: v };
+  if (v && OCTO_AVATARS.includes(v)) return { kind: "photo", url: `/avatars/octo-${v.slice(5)}.svg` };
   if (v?.startsWith("emoji:")) return { kind: "emoji", emoji: v.slice(6) };
   return { kind: "initials" };
 }

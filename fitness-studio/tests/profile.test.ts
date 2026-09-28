@@ -11,6 +11,8 @@ describe("profile helpers", () => {
     expect(parseAvatar("/media/abc.webp")).toEqual({ kind: "photo", url: "/media/abc.webp" });
     expect(parseAvatar("emoji:🐙")).toEqual({ kind: "emoji", emoji: "🐙" });
     expect(parseAvatar(null)).toEqual({ kind: "initials" });
+    expect(parseAvatar("octo:7")).toEqual({ kind: "photo", url: "/avatars/octo-7.svg" });
+    expect(parseAvatar("octo:99")).toEqual({ kind: "initials" });
   });
 
   it("validates birthdays and name days", () => {
