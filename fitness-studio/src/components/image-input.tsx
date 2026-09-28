@@ -28,7 +28,7 @@ export function ImageInput({ name, className }: { name: string; className?: stri
       setStatus({ preview: URL.createObjectURL(small), note: `Připraveno (${mb(small.size)}) – nezapomeň uložit.` });
     } catch {
       // Browser can't decode it (e.g. HEIC outside Safari) – send the original, the server tries.
-      setStatus({ preview: "", note: `Fotku se nepodařilo zmenšit v prohlížeči (${mb(file.size)}).` });
+      setStatus({ preview: "", note: `Fotku se nepodařilo zmenšit v prohlížeči (${mb(file.size)}).` });
     }
   }
 

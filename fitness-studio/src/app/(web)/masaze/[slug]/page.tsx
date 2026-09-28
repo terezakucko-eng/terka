@@ -11,6 +11,7 @@ import { activeMassageServices, freeSlotsByDay, isMember, massagePassesFor } fro
 import { getCurrentUser } from "@/lib/auth";
 import { formatDay, formatShortDay, formatTime } from "@/lib/dates";
 import { formatPrice } from "@/lib/money";
+import { nbsp } from "@/lib/typography";
 
 async function load(slug: string) {
   const services = await activeMassageServices(await getDb());
@@ -55,7 +56,7 @@ export default async function MassagePage({ params, searchParams }: PageProps<"/
             )}
           </p>
           {member && <p className="mt-3 text-sm text-zlato-light">Máš aktivní členství – platíš cenu pro členy.</p>}
-          {service.description && <p className="mt-6 max-w-2xl whitespace-pre-line text-papir/75">{service.description}</p>}
+          {service.description && <p className="mt-6 max-w-2xl whitespace-pre-line text-papir/75">{nbsp(service.description)}</p>}
         </Container>
       </section>
 
@@ -104,7 +105,7 @@ export default async function MassagePage({ params, searchParams }: PageProps<"/
                     <PayOption value="pass" title="Permanentkou" sub={`Strhne se 1 vstup (zbývá ${passLeft})`} checked />
                   )}
                   <PayOption value="on_site" title="Na místě" sub="Kartou při návštěvě" checked={passes.length === 0} />
-                  {bankAccount && <PayOption value="transfer" title="Předem převodem" sub="Údaje a QR kód hned po rezervaci" />}
+                  {bankAccount && <PayOption value="transfer" title="Předem převodem" sub="Údaje a QR kód hned po rezervaci" />}
                 </div>
               </fieldset>
 

@@ -8,6 +8,7 @@ import { getDb } from "@/db";
 import { announcementComments, announcements, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { formatDate, formatDateTime } from "@/lib/dates";
+import { nbsp } from "@/lib/typography";
 
 export const metadata: Metadata = { title: "Nástěnka" };
 
@@ -44,8 +45,8 @@ export default async function BoardPage() {
               <p className="eyebrow flex items-center gap-2 text-les/50">
                 {formatDate(p.createdAt)} {p.isPinned && <Badge tone="gold">Připnuto</Badge>}
               </p>
-              <h2 className="mt-2 text-2xl font-semibold">{p.title}</h2>
-              <p className="mt-3 whitespace-pre-line text-les/80">{p.body}</p>
+              <h2 className="mt-2 text-2xl font-semibold">{nbsp(p.title)}</h2>
+              <p className="mt-3 whitespace-pre-line text-les/80">{nbsp(p.body)}</p>
 
               <div className="mt-6 space-y-3 border-t border-linka/60 pt-4">
                 {list.map(({ c: r, name }) => (
@@ -59,7 +60,7 @@ export default async function BoardPage() {
                         </ActionForm>
                       )}
                     </p>
-                    <p className="mt-1 whitespace-pre-line">{r.body}</p>
+                    <p className="mt-1 whitespace-pre-line">{nbsp(r.body)}</p>
                   </div>
                 ))}
                 {user ? (
@@ -70,7 +71,7 @@ export default async function BoardPage() {
                   </ActionForm>
                 ) : (
                   <ButtonLink href="/prihlaseni?next=/nastenka" variant="outline" className="text-[0.7rem]">
-                    Přihlas se a napiš reakci
+                    Přihlas se a napiš reakci
                   </ButtonLink>
                 )}
               </div>

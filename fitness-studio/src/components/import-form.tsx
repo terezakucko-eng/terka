@@ -21,8 +21,8 @@ export function ImportForm() {
           <label className="flex gap-3 text-sm">
             <input type="checkbox" name="consent" className="mt-1" />
             <span>
-              Převzít souhlas s newsletterem ze sloupce „Newsletter/Souhlas“.
-              <span className="block text-xs text-les/60">Zaškrtni jen pokud máš souhlasy klientů doložitelné (GDPR). Bez toho se newsletter pošle až těm, kdo souhlas dají v novém systému.</span>
+              Převzít souhlas s newsletterem ze sloupce „Newsletter/Souhlas“.
+              <span className="block text-xs text-les/60">Zaškrtni jen pokud máš souhlasy klientů doložitelné (GDPR). Bez toho se newsletter pošle až těm, kdo souhlas dají v novém systému.</span>
             </span>
           </label>
           <div className="flex flex-wrap gap-3">
@@ -33,7 +33,7 @@ export function ImportForm() {
               2 · Importovat
             </Button>
           </div>
-          <p className="text-xs text-les/50">Po náhledu vyber stejný soubor znovu a klikni na Importovat. Import lze bezpečně spustit opakovaně – existující e-maily se jen doplní, kredit ani permanentky se nezdvojí.</p>
+          <p className="text-xs text-les/50">Po náhledu vyber stejný soubor znovu a klikni na Importovat. Import lze bezpečně spustit opakovaně – existující e-maily se jen doplní, kredit ani permanentky se nezdvojí.</p>
         </form>
         {state?.error && <p className="mt-4 rounded-xl bg-chyba/10 px-4 py-2.5 text-sm text-chyba">{state.error}</p>}
       </Card>

@@ -50,7 +50,7 @@ export default async function TransferPage({ searchParams }: PageProps<"/platba/
           {t.qr && (
             <figure className="text-center">
               <div className="mx-auto w-40" dangerouslySetInnerHTML={{ __html: t.qr }} />
-              <figcaption className="mt-2 text-xs text-les/60">QR platba – naskenuj v bankovní aplikaci</figcaption>
+              <figcaption className="mt-2 text-xs text-les/60">QR platba – naskenuj v bankovní aplikaci</figcaption>
             </figure>
           )}
         </Card>
@@ -62,7 +62,7 @@ export default async function TransferPage({ searchParams }: PageProps<"/platba/
         <p className="mt-6 max-w-xl text-sm text-les/70">
           {o.kind === "drop_in"
             ? "Zaplať prosím převodem před lekcí, nebo na místě."
-            : "Jakmile platba dorazí, připíšeme ti nákup na účet – obvykle do 1–2 pracovních dnů. Údaje k platbě najdeš i ve svém účtu."}
+            : "Jakmile platba dorazí, připíšeme ti nákup na účet – obvykle do 1–2 pracovních dnů. Údaje k platbě najdeš i ve svém účtu."}
         </p>
       )}
       <div className="mt-10 flex flex-wrap gap-3">

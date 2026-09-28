@@ -13,6 +13,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { formatDate, formatShortDay } from "@/lib/dates";
 import { formatPrice } from "@/lib/money";
 import { activeProducts, listSessions, publishedAnnouncements } from "@/lib/queries";
+import { nbsp } from "@/lib/typography";
 
 export default async function Home() {
   const db = await getDb();
@@ -160,13 +161,13 @@ export default async function Home() {
               {news.map((a) => (
                 <article key={a.id} className="border-t border-les/80 pt-5">
                   <p className="eyebrow text-les/50">{formatDate(a.createdAt)}</p>
-                  <h3 className="mt-2 text-xl font-semibold">{a.title}</h3>
-                  <p className="mt-2 whitespace-pre-line text-les/70">{a.body}</p>
+                  <h3 className="mt-2 text-xl font-semibold">{nbsp(a.title)}</h3>
+                  <p className="mt-2 whitespace-pre-line text-les/70">{nbsp(a.body)}</p>
                 </article>
               ))}
             </div>
             <Link href="/nastenka" className="eyebrow mt-8 inline-block text-zeme underline underline-offset-4">
-              Celá nástěnka a reakce →
+              Celá nástěnka a reakce →
             </Link>
           </Container>
         </section>

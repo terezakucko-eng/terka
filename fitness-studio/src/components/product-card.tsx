@@ -4,6 +4,7 @@ import { ActionForm, SubmitButton } from "@/components/forms";
 import { Badge, ButtonLink, cx } from "@/components/ui";
 import type { Product } from "@/db/schema";
 import { credits, entries, formatPrice } from "@/lib/money";
+import { nbsp } from "@/lib/typography";
 
 function perks(p: Product): string[] {
   switch (p.kind) {
@@ -11,7 +12,7 @@ function perks(p: Product): string[] {
       return [
         p.weeklyLimit ? `Až ${p.weeklyLimit} lekce týdně` : "Neomezeně lekcí",
         p.recurring ? "Platí se každý měsíc" : `Platnost ${p.validityDays ?? 30} dní`,
-        "Přednost v pořadníku, když je lekce plná",
+        "Přednost v pořadníku, když je lekce plná",
       ];
     case "pass":
       return [
@@ -69,7 +70,7 @@ export function ProductCard({
                       <h3 className="text-xl font-semibold">{p.name}</h3>
                       {p.highlight && <Badge tone="solid">Oblíbené</Badge>}
                     </div>
-                    <p className={cx("mt-2 text-sm", p.highlight ? "text-papir/70" : "text-les/60")}>{p.description}</p>
+                    <p className={cx("mt-2 text-sm", p.highlight ? "text-papir/70" : "text-les/60")}>{nbsp(p.description)}</p>
                     <p className={cx("mt-6 text-4xl font-light", p.highlight && "text-gold")}>
                       {formatPrice(p.price)}
                       {p.kind === "membership" && p.recurring && <span className="text-base"> / měsíc</span>}
@@ -90,7 +91,7 @@ export function ProductCard({
                       </ActionForm>
                     ) : (
                       <ButtonLink href={`/prihlaseni?next=${encodeURIComponent(next)}`} variant={p.highlight ? "gold" : "outline"} className="mt-6 w-full">
-                        Přihlásit a koupit
+                        Přihlásit a koupit
                       </ButtonLink>
                     )}
                   </article>

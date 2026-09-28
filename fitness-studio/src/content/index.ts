@@ -4,6 +4,7 @@ import { getDb } from "@/db";
 import { content } from "@/db/schema";
 import { getSettings } from "@/lib/settings";
 import { SECTIONS, fieldDef, type ContentKey, type SectionDef, type SectionId } from "./definitions";
+import { nbsp } from "@/lib/typography";
 
 export function fillPlaceholders(text: string, vars: Record<string, string>) {
   return text.replace(/\{\{(\w+)\}\}/g, (m, k: string) => vars[k] ?? m);
@@ -31,7 +32,7 @@ export const getContent = cache(async () => {
     email: raw("site.email"),
     telefon: raw("site.phone"),
   };
-  const c = (key: ContentKey | `${SectionId}.${string}`) => fillPlaceholders(raw(key), vars);
+  const c = (key: ContentKey | `${SectionId}.${string}`) => nbsp(fillPlaceholders(raw(key), vars));
   c.raw = raw;
   c.isSaved = (key: string) => saved.has(key);
   return c;

@@ -6,6 +6,7 @@ import { getContent } from "@/content";
 import { getDb } from "@/db";
 import { activeMassageServices } from "@/domain/massages";
 import { formatPrice } from "@/lib/money";
+import { nbsp } from "@/lib/typography";
 
 export const metadata: Metadata = { title: "Masáže" };
 
@@ -31,7 +32,7 @@ export default async function MassagesPage() {
                 <div className="flex flex-1 flex-col p-8">
                   <p className="eyebrow text-les/50">{m.durationMin} min</p>
                   <h2 className="mt-4 text-3xl font-semibold tracking-tight">{m.name}</h2>
-                  <p className="mt-4 flex-1 whitespace-pre-line text-les/70">{m.description}</p>
+                  <p className="mt-4 flex-1 whitespace-pre-line text-les/70">{nbsp(m.description)}</p>
                   <p className="mt-6 text-2xl font-semibold">
                     {formatPrice(m.price)}
                     {m.memberPrice !== null && (

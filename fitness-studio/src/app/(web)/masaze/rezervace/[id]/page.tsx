@@ -63,7 +63,7 @@ export default async function MassageBookingPage({ params, searchParams }: PageP
           {transfer.qr && (
             <figure className="text-center">
               <div className="mx-auto w-40" dangerouslySetInnerHTML={{ __html: transfer.qr }} />
-              <figcaption className="mt-2 text-xs text-les/60">QR platba – naskenuj v bankovní aplikaci</figcaption>
+              <figcaption className="mt-2 text-xs text-les/60">QR platba – naskenuj v bankovní aplikaci</figcaption>
             </figure>
           )}
         </Card>
