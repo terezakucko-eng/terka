@@ -3,6 +3,7 @@ import { Menu, UserRound, X } from "lucide-react";
 import { getContent } from "@/content";
 import { getCurrentUser } from "@/lib/auth";
 import { LogoLink } from "./brand";
+import { CloseMenuOnClick } from "./close-menu-on-click";
 import { buttonClass } from "./ui";
 
 export async function SiteHeader() {
@@ -45,6 +46,7 @@ export async function SiteHeader() {
               <X className="hidden size-5 group-open:block" />
               <span className="sr-only">Menu</span>
             </summary>
+            <CloseMenuOnClick />
             <nav className="fixed inset-x-0 top-16 border-b border-zlato/20 bg-les px-6 py-6">
               <ul className="space-y-4">
                 {[...nav, account].map((n) => (
