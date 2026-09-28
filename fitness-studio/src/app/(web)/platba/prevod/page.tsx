@@ -61,7 +61,7 @@ export default async function TransferPage({ searchParams }: PageProps<"/platba/
       {!paid && !off && (
         <p className="mt-6 max-w-xl text-sm text-les/70">
           {o.kind === "drop_in"
-            ? "Jakmile platba dorazí na účet, místo na lekci je tvoje. Pošli ji prosím co nejdřív – nejpozději před začátkem lekce."
+            ? "Jakmile platba dorazí na účet, místo na lekci je tvoje. Pošli ji prosím co nejdřív."
             : "Jakmile platba dorazí, připíšeme ti nákup na účet – obvykle do 1–2 pracovních dnů. Údaje k platbě najdeš i ve svém účtu."}
         </p>
       )}
