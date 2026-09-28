@@ -49,6 +49,11 @@ describe("campaigns", () => {
     expect(all.map((m) => m.id)).not.toContain(c.id);
     const service = await audienceRecipients(h.db, { channel: "email", purpose: "service", audience: { segment: "all" } });
     expect(service.map((m) => m.id)).toContain(c.id);
+    const picked = await audienceRecipients(h.db, { channel: "email", purpose: "service", audience: { segment: "people", userIds: [b.id, c.id] } });
+    expect(picked.map((m) => m.id).sort()).toEqual([b.id, c.id].sort());
+    await expect(
+      audienceRecipients(h.db, { channel: "email", purpose: "service", audience: { segment: "people", userIds: [] } }),
+    ).rejects.toThrow(/aspoň jednoho/);
 
     const [camp] = await h.db
       .insert(campaigns)

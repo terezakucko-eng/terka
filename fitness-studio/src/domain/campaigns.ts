@@ -25,6 +25,7 @@ export const segmentLabel: Record<Audience["segment"], string> = {
   new: "Noví (registrace za posledních X dní)",
   class_type: "Chodí na typ lekce (posledních X dní)",
   session: "Přihlášení na konkrétní termín",
+  people: "Vybraní klienti",
 };
 
 /** SQL condition selecting the clients in a segment. */
@@ -96,6 +97,9 @@ function segmentWhere(a: Audience, now: Date) {
         return exists(
           booked(tx, and(eq(bookings.sessionId, a.sessionId), ne(bookings.status, "cancelled"))),
         );
+      case "people":
+        if (!a.userIds?.length) throw new UserError("Vyber aspoň jednoho klienta.");
+        return inArray(users.id, a.userIds);
     }
   };
 }

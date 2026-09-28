@@ -432,8 +432,11 @@ export type Audience = {
     | "inactive"
     | "new"
     | "class_type"
-    | "session";
+    | "session"
+    | "people";
   days?: number;
+  /** Hand-picked clients (segment "people"). */
+  userIds?: string[];
   classTypeId?: string;
   sessionId?: string;
 };
