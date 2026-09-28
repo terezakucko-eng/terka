@@ -10,7 +10,7 @@ type Mail = { to: string; subject: string; text: string };
 export async function sendMail({ to, subject, text }: Mail) {
   const key = process.env.RESEND_API_KEY;
   const from = process.env.MAIL_FROM ?? `${site.name} <${site.email}>`;
-  const body = `${text}\n\n—\n${site.name} · ${site.tagline}\n${site.url}`;
+  const body = text;
   if (!key) {
     console.info(`[mail] → ${to}\n${subject}\n${body}\n`);
     return;

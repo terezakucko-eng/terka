@@ -4,6 +4,7 @@ import { users, type MassageBooking } from "@/db/schema";
 import { site } from "@/config/site";
 import { formatDay, formatTime } from "./dates";
 import { sendMail } from "./mail";
+import { sendEmail } from "./email-templates";
 import { formatPrice } from "./money";
 import { cardPayments } from "./payments";
 import { greetName } from "@/lib/vocative";
@@ -27,10 +28,12 @@ export async function notifyMassageBooked(db: DB, b: MassageBooking, bankAccount
       ? `Cena: ${formatPrice(b.price)}. ${b.paidAt ? "Zaplaceno." : `Zaplatit můžeš ${[cardPayments() && "kartou v detailu rezervace", bankAccount && `převodem na účet ${bankAccount}, variabilní symbol ${b.variableSymbol}`].filter(Boolean).join(" nebo ")}.`}`
       : `Platba na místě: ${formatPrice(b.price)}.`;
   if (u)
-    await sendMail({
-      to: u.email,
-      subject: `Masáž potvrzena: ${when(b)}`,
-      text: `Ahoj ${greetName(u.name)},\n\ntěšíme se na tebe – ${b.serviceName}, ${when(b)}.\n${pay}\n\nDetail a případné zrušení: ${site.url}/masaze/rezervace/${b.id}`,
+    await sendEmail(u.email, "massageBooked", {
+      osloveni: greetName(u.name),
+      masaz: b.serviceName,
+      termin: when(b),
+      platba: pay,
+      odkaz: `${site.url}/masaze/rezervace/${b.id}`,
     });
   if (studioEmail)
     await sendMail({
@@ -44,10 +47,13 @@ export async function notifyMassageCancelled(db: DB, b: MassageBooking, studioEm
   const u = await recipient(db, b);
   const refund = b.paidAt ? "\nZaplacenou částku ti vrátíme." : "";
   if (u)
-    await sendMail({
-      to: u.email,
-      subject: `Masáž zrušena: ${when(b)}`,
-      text: `Ahoj ${greetName(u.name)},\n\n${byStudio ? "musíme bohužel zrušit" : "zrušili jsme"} tvoji masáž ${b.serviceName}, ${when(b)}.${refund}\n\nNový termín si můžeš vybrat na ${site.url}/masaze`,
+    await sendEmail(u.email, "massageCancelled", {
+      osloveni: greetName(u.name),
+      kdo_zrusil: byStudio ? "musíme bohužel zrušit" : "zrušili jsme",
+      masaz: b.serviceName,
+      termin: when(b),
+      vraceni: refund.trim(),
+      odkaz: `${site.url}/masaze`,
     });
   if (!byStudio && studioEmail)
     await sendMail({

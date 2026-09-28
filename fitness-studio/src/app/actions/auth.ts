@@ -19,7 +19,7 @@ import {
 } from "@/lib/auth";
 import { UserError } from "@/lib/errors";
 import { attempt, field, type FormState } from "@/lib/form";
-import { sendMail } from "@/lib/mail";
+import { sendEmail } from "@/lib/email-templates";
 import { createPasswordLink, hashToken } from "@/lib/password-links";
 import { deleteImage, storeImage, uploadedFile } from "@/lib/media";
 import { normalizePhone } from "@/lib/phone";
@@ -83,11 +83,7 @@ export async function registerAction(_: FormState, fd: FormData): Promise<FormSt
       whatsappConsent: field.bool(fd, "whatsapp"),
     });
     await startSession(user.id);
-    await sendMail({
-      to: user.email,
-      subject: `Vítej v ${site.name}!`,
-      text: `Ahoj ${greetName(user.name)},\n\ndíky za registraci. ${site.tagline}\nNa účtu tě čeká úvodní lekce zdarma – vyber si ji v rozvrhu: ${site.url}/rozvrh`,
-    });
+    await sendEmail(user.email, "welcome", { osloveni: greetName(user.name), odkaz: `${site.url}/rozvrh` });
     target = safeNext(field.str(fd, "next")) ?? "/ucet?vitej=1";
   });
   if (target) redirect(target);
@@ -108,11 +104,7 @@ export async function requestResetAction(_: FormState, fd: FormData): Promise<Fo
     const [u] = await db.select().from(users).where(eq(users.email, email));
     if (u) {
       const link = await createPasswordLink(u.id, 1);
-      await sendMail({
-        to: u.email,
-        subject: "Obnovení hesla",
-        text: `Ahoj ${greetName(u.name)},\n\nnové heslo si nastavíš zde (odkaz platí 1 hodinu):\n${link}\n\nPokud jsi o změnu nežádal/a, e-mail ignoruj.`,
-      });
+      await sendEmail(u.email, "passwordReset", { osloveni: greetName(u.name), odkaz: link });
     }
     // don't reveal whether the account exists
     return "Pokud účet existuje, poslali jsme ti e-mail s odkazem na nastavení hesla.";
