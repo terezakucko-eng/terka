@@ -56,12 +56,12 @@ export default async function TransferPage({ searchParams }: PageProps<"/platba/
         </Card>
       )}
       {!paid && !off && !t && (
-        <p className="mt-8 text-les/70">Zaplatit můžeš na recepci hotově nebo kartou.</p>
+        <p className="mt-8 text-les/70">Platební údaje ti brzy pošleme e-mailem.</p>
       )}
       {!paid && !off && (
         <p className="mt-6 max-w-xl text-sm text-les/70">
           {o.kind === "drop_in"
-            ? "Zaplať prosím převodem před lekcí, nebo na místě."
+            ? "Jakmile platba dorazí na účet, místo na lekci je tvoje. Pošli ji prosím co nejdřív – nejpozději před začátkem lekce."
             : "Jakmile platba dorazí, připíšeme ti nákup na účet – obvykle do 1–2 pracovních dnů. Údaje k platbě najdeš i ve svém účtu."}
         </p>
       )}
