@@ -115,6 +115,9 @@ export default async function PricingPage() {
                   {t.firstVisitPrice !== null && (
                     <span className="block text-xs">první lekce {formatPrice(t.firstVisitPrice)}</span>
                   )}
+                  {t.duoPrice !== null && t.capacity > 2 && (
+                    <span className="block text-xs">s kamarádkou {formatPrice(t.duoPrice)} za obě</span>
+                  )}
                   {!!t.memberSurcharge && (
                     <span className="block text-xs">
                       členové doplácí {formatPrice(t.memberSurcharge)}

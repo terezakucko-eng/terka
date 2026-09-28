@@ -124,6 +124,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
                 </span>
               </Link>
               <div className="flex items-center gap-3">
+                {b.guestName && <Badge>+1 {b.guestName}</Badge>}
                 {b.status === "waitlist" && <Badge tone="gold">Pořadník</Badge>}
                 {b.status === "pending_payment" && <Badge tone="gold">Čeká na platbu</Badge>}
                 {b.surcharge > 0 && !b.surchargePaidAt && <Badge tone="gold">Doplatek {formatPrice(b.surcharge)} na místě</Badge>}

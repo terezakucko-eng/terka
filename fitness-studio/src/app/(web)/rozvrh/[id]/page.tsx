@@ -36,15 +36,16 @@ function gcalLink(title: string, start: Date, durationMin: number, location: str
   })}`;
 }
 
-export default async function SessionPage({ params }: PageProps<"/rozvrh/[id]">) {
+export default async function SessionPage({ params, searchParams }: PageProps<"/rozvrh/[id]">) {
   const { id } = await params;
+  const { plus1 } = await searchParams;
   if (!UUID.test(id)) notFound();
   const db = await getDb();
   const detail = await sessionDetail(db, id);
   if (!detail) notFound();
   const [user, c] = await Promise.all([getCurrentUser(), getContent()]);
   const address = `${c("site.street")}, ${c("site.city")}`;
-  const view = (await sessionForUser(db, id, user?.id ?? null))!;
+  const view = (await sessionForUser(db, id, user?.id ?? null, undefined, plus1 === "1" ? 2 : 1))!;
   const { s, ct } = detail;
   const left = Math.max(0, s.capacity - view.occupied);
 
@@ -110,7 +111,8 @@ function BookingPanel({
     return (
       <div>
         <Badge tone={b.status === "pending_payment" ? "gold" : "green"}>{label}</Badge>
-        <h2 className="mt-4 text-2xl font-semibold">Těšíme se na tebe!</h2>
+        <h2 className="mt-4 text-2xl font-semibold">{b.guestName ? "Těšíme se na vás!" : "Těšíme se na tebe!"}</h2>
+        {b.guestName && <p className="mt-2 text-les/70">Rezervace je i pro kamarádku: <strong>{b.guestName}</strong>.</p>}
         {view.state !== "past" && view.state !== "cancelled" && (
           <>
             <a href={gcal} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-zeme underline underline-offset-4">
@@ -177,9 +179,23 @@ function BookingPanel({
 
   const firstEnabled = view.options.find((o) => !o.disabled);
   return (
-    <ActionForm action={bookAction}>
+    // remount on switch so the preselected payment follows the new options
+    <ActionForm key={view.withFriend ? "duo" : "solo"} action={bookAction}>
       <input type="hidden" name="sessionId" value={sessionId} />
-      <h2 className="text-2xl font-semibold">Jak chceš zaplatit?</h2>
+      {view.canBringFriend && (
+        <div className="mb-6 grid grid-cols-2 gap-1 rounded-full border border-linka bg-white/60 p-1 text-center text-sm font-semibold">
+          <Link href={`/rozvrh/${sessionId}`} scroll={false} className={cx("rounded-full py-2", !view.withFriend ? "bg-les text-papir" : "text-les/70")}>Jen já</Link>
+          <Link href={`/rozvrh/${sessionId}?plus1=1`} scroll={false} className={cx("rounded-full py-2", view.withFriend ? "bg-les text-papir" : "text-les/70")}>+1 kamarádka</Link>
+        </div>
+      )}
+      {view.withFriend && (
+        <label className="mb-6 block">
+          <span className="text-xs font-semibold uppercase tracking-wider text-les/70">Jméno kamarádky</span>
+          <input name="guestName" required maxLength={80} autoComplete="off" className="mt-1 w-full rounded-xl border border-linka bg-white/80 px-4 py-3" />
+          <span className="mt-1 block text-xs text-les/50">Rezervujeme 2 místa a zaplatíš za obě. Ve dvou se to lépe táhne!</span>
+        </label>
+      )}
+      <h2 className="text-2xl font-semibold">{view.withFriend ? "Jak zaplatíš za obě místa?" : "Jak chceš zaplatit?"}</h2>
       <fieldset className="mt-5 space-y-2">
         <legend className="sr-only">Způsob platby</legend>
         {view.options.map((o) => {

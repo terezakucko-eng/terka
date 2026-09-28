@@ -170,7 +170,7 @@ async function confirmDropIn(tx: Executor, order: Order, now: Date) {
     !other &&
     s.status === "scheduled" &&
     s.startsAt > now &&
-    (await occupancy(tx, s.id)) < s.capacity;
+    (await occupancy(tx, s.id)) + b.seats <= s.capacity;
   if (canRebook) {
     await tx
       .update(bookings)
@@ -179,7 +179,7 @@ async function confirmDropIn(tx: Executor, order: Order, now: Date) {
   } else {
     await changeCredits(tx, {
       userId: b.userId,
-      delta: s.creditCost,
+      delta: s.creditCost * b.seats,
       reason: "refund",
       orderId: order.id,
       note: "Platba dorazila po vypršení rezervace – vráceno jako kredit",

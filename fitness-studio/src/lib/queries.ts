@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte, inArray, lt, ne } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lt, ne } from "drizzle-orm";
 import type { DB } from "@/db";
 import {
   announcements,
@@ -8,7 +8,7 @@ import {
   instructors,
   products,
 } from "@/db/schema";
-import { OCCUPYING } from "@/domain/booking";
+import { OCCUPYING, seatsTaken } from "@/domain/booking";
 
 export type ScheduleItem = Awaited<ReturnType<typeof listSessions>>[number];
 
@@ -37,7 +37,7 @@ export async function listSessions(
   const ids = rows.map((r) => r.s.id);
 
   const occ = await db
-    .select({ id: bookings.sessionId, n: count() })
+    .select({ id: bookings.sessionId, n: seatsTaken })
     .from(bookings)
     .where(and(inArray(bookings.sessionId, ids), inArray(bookings.status, [...OCCUPYING])))
     .groupBy(bookings.sessionId);

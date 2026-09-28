@@ -49,7 +49,7 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
     <>
       <Link href="/admin/rozvrh" className="eyebrow text-les/60 hover:text-les">← Rozvrh</Link>
       <AdminTitle title={`${ct.name} · ${formatDay(s.startsAt)} ${formatRange(s.startsAt, s.durationMin)}`}>
-        {s.status === "cancelled" ? <Badge tone="red">Zrušeno</Badge> : <Badge tone="green">{active.length}/{s.capacity} přihlášeno</Badge>}
+        {s.status === "cancelled" ? <Badge tone="red">Zrušeno</Badge> : <Badge tone="green">{active.reduce((n, { b }) => n + b.seats, 0)}/{s.capacity} přihlášeno</Badge>}
       </AdminTitle>
       <p className="-mt-6 mb-8 text-les/60">{ins?.name ?? "Bez lektora"}{s.room && ` · ${s.room}`}{s.isFree && " · lekce zdarma"}</p>
 
@@ -61,6 +61,7 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
               <tr key={b.id}>
                 <Td>
                   {isAdmin ? <Link href={`/admin/klienti/${u.id}`} className="font-semibold underline-offset-4 hover:underline">{u.name}</Link> : <strong>{u.name}</strong>}
+                  {b.guestName && <><br /><Badge tone="gold">+1 {b.guestName}</Badge></>}
                   <br /><span className="text-xs text-les/50">{u.phone ?? u.email}</span>
                 </Td>
                 <Td>
