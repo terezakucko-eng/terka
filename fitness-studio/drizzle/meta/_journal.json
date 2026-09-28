@@ -162,6 +162,13 @@
       "when": 1790609234903,
       "tag": "0022_booking_pause",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1790612578846,
+      "tag": "0023_membership_fees",
+      "breakpoints": true
     }
   ]
 }

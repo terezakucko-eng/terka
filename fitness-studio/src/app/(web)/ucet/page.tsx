@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { and, asc, eq, gt } from "drizzle-orm";
+import { and, asc, eq, gt, ne } from "drizzle-orm";
 import { cancelBookingAction } from "@/app/actions/booking";
 import { cancelMassageAction } from "@/app/actions/massages";
 import { massageBookings, orders } from "@/db/schema";
@@ -12,11 +12,15 @@ import { requireUser } from "@/lib/auth";
 import { formatDate, formatDay, formatRange, formatTime } from "@/lib/dates";
 import { credits, formatPrice } from "@/lib/money";
 import { SurchargePay } from "@/components/surcharge-pay";
+import { openFees } from "@/domain/membership-fees";
+import { payOrderAction } from "@/app/actions/booking";
+import { cardPayments } from "@/lib/payments";
 
 export default async function AccountPage({ searchParams }: PageProps<"/ucet">) {
   const { vitej } = await searchParams;
   const user = await requireUser("/ucet");
   const db = await getDb();
+  const fees = await openFees(db, user.id);
   const [upcoming, ents, massages, unpaid] = await Promise.all([
     userBookings(db, user.id, "upcoming"),
     userEntitlements(db, user.id, true),
@@ -34,12 +38,25 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
     db
       .select()
       .from(orders)
-      .where(and(eq(orders.userId, user.id), eq(orders.status, "pending"), eq(orders.provider, "transfer")))
+      .where(and(eq(orders.userId, user.id), eq(orders.status, "pending"), eq(orders.provider, "transfer"), ne(orders.kind, "membership_fee")))
       .orderBy(asc(orders.createdAt)),
   ]);
 
   return (
     <div className="space-y-12">
+      {fees.map((o) => (
+        <div key={o.id} className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-zlato bg-zlato/10 p-5">
+          <p>
+            <span className="block font-semibold">{o.description}</span>
+            <span className="text-sm text-les/70">{formatPrice(o.amount)} · variabilní symbol {o.number}</span>
+          </p>
+          <ActionForm action={payOrderAction} className="flex flex-wrap gap-2">
+            <input type="hidden" name="orderId" value={o.id} />
+            {cardPayments() && <SubmitButton name="pay" value="card" variant="gold">Zaplatit kartou</SubmitButton>}
+            <SubmitButton name="pay" value="transfer" variant="outline">Převodem (QR)</SubmitButton>
+          </ActionForm>
+        </div>
+      ))}
       {user.bookingPausedUntil && user.bookingPausedUntil > new Date() && (
         <p className="rounded-2xl bg-chyba/10 p-5 text-sm text-chyba">
           Kvůli opakovanému pozdnímu odhlášení nebo nepříchodu je přihlašování na nové lekce pozastavené do{" "}

@@ -273,8 +273,9 @@ export async function abandonOrder(db: DB, orderId: string, now = new Date()) {
     const [o] = await tx
       .update(orders)
       .set({ status: "expired" })
-      .where(and(eq(orders.id, orderId), eq(orders.status, "pending")))
+      .where(and(eq(orders.id, orderId), eq(orders.status, "pending"), ne(orders.kind, "membership_fee")))
       .returning();
+    // a membership fee stays due when the card checkout is closed – it can still be paid
     if (!o) return;
     await tx
       .update(bookings)

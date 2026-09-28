@@ -24,7 +24,7 @@ export default async function PaymentResultPage({ searchParams }: PageProps<"/pl
         </h1>
         <p className="mt-3 text-les/70">
           {paid
-            ? mine?.kind === "drop_in" || mine?.kind === "surcharge" || mine?.kind === "massage"
+            ? mine?.kind === "drop_in" || mine?.kind === "surcharge" || mine?.kind === "massage" || mine?.kind === "membership_fee"
               ? "Zaplaceno, děkujeme. Těšíme se na tebe."
               : "Nákup máš na účtu, můžeš rovnou rezervovat."
             : cancelled

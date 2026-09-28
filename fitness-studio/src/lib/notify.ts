@@ -1,8 +1,11 @@
 import { eq, inArray } from "drizzle-orm";
 import type { DB } from "@/db";
-import { classSessions, classTypes, users, type Booking } from "@/db/schema";
+import { classSessions, classTypes, users, type Booking, type Order } from "@/db/schema";
 import { site } from "@/config/site";
 import type { StrikeOutcome } from "@/domain/strikes";
+import { periodLabel } from "@/domain/membership-fees";
+import { getContent } from "@/content";
+import { formatPrice } from "./money";
 import { formatDate, formatDay, formatTime } from "./dates";
 import { sendEmail } from "./email-templates";
 import { greetName } from "@/lib/vocative";
@@ -26,6 +29,28 @@ async function emails(db: DB, ids: string[]) {
 }
 
 const link = (sessionId: string) => `${site.url}/rozvrh/${sessionId}`;
+
+/** Membership fee due: amount, bank details and a link to the QR / card payment. */
+export async function notifyFee(db: DB, orders: Pick<Order, "id" | "userId" | "amount" | "number" | "period">[]) {
+  if (!orders.length) return 0;
+  const map = await emails(db, orders.map((o) => o.userId));
+  const account = (await getContent()).raw("massages.bankAccount").trim();
+  let sent = 0;
+  for (const o of orders) {
+    const u = map.get(o.userId);
+    if (!u) continue;
+    await sendEmail(u.email, "membershipFee", {
+      osloveni: greetName(u.name),
+      mesic: o.period ? periodLabel(o.period) : "",
+      castka: formatPrice(o.amount),
+      ucet: account || "viz odkaz",
+      vs: String(o.number ?? ""),
+      odkaz: `${site.url}/platba/prevod?order=${o.id}`,
+    });
+    sent++;
+  }
+  return sent;
+}
 
 /** Warning / pause e-mail after a member's late cancellation or no-show. */
 export async function notifyStrike(db: DB, userId: string, o: StrikeOutcome) {

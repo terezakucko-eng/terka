@@ -77,6 +77,7 @@ export const orderKind = pgEnum("order_kind", [
   "renewal",
   "surcharge", // doplatek člena za lekci (bookingId)
   "massage", // platba masáže kartou (massageBookingId)
+  "membership_fee", // měsíční členský příspěvek (period)
 ]);
 
 export const creditReason = pgEnum("credit_reason", [
@@ -281,6 +282,8 @@ export const orders = pgTable(
     bookingId: uuid("booking_id").references((): AnyPgColumn => bookings.id, { onDelete: "set null" }),
     /** kind = massage: placená masáž */
     massageBookingId: uuid("massage_booking_id").references((): AnyPgColumn => massageBookings.id, { onDelete: "set null" }),
+    /** kind = membership_fee: měsíc "YYYY-MM" */
+    period: text("period"),
     description: text("description").notNull(),
     amount: integer("amount").notNull(),
     currency: text("currency").notNull().default("CZK"),
@@ -295,6 +298,7 @@ export const orders = pgTable(
   (t) => [
     uniqueIndex("orders_provider_ref_idx").on(t.provider, t.providerRef),
     index("orders_user_idx").on(t.userId),
+    index("orders_period_idx").on(t.kind, t.period),
   ],
 );
 
@@ -321,6 +325,8 @@ export const entitlements = pgTable(
     subscriptionId: text("subscription_id"),
     /** předplatné zrušeno ke konci období */
     renewalCancelled: boolean("renewal_cancelled").notNull().default(false),
+    /** membership: vlastní měsíční příspěvek v haléřích; null = výchozí z Nastavení */
+    monthlyFee: integer("monthly_fee"),
     note: text("note"),
     createdAt: createdAt(),
   },

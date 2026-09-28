@@ -3,7 +3,10 @@ import { getDb } from "@/db";
 import { campaigns, users } from "@/db/schema";
 import { site } from "@/config/site";
 import { creditsExpiringSoon, expireCredits } from "@/domain/wallet";
-import { formatDate } from "@/lib/dates";
+import { dateKey, formatDate } from "@/lib/dates";
+import { getSettings } from "@/lib/settings";
+import { createMonthlyFees, currentPeriod, shiftPeriod } from "@/domain/membership-fees";
+import { notifyFee } from "@/lib/notify";
 import { sendEmail } from "@/lib/email-templates";
 import { expireStalePending } from "@/domain/booking";
 import { processCampaign } from "@/domain/campaigns";
@@ -37,6 +40,15 @@ export async function GET(req: Request) {
     creditWarnings++;
   }
 
+  // Membership fees for next month go out from the notice day on (idempotent, so a missed run catches up).
+  let feeNotices = 0;
+  const cfg = await getSettings(db);
+  const now = new Date();
+  if (cfg.membershipMonthlyFee > 0 && +dateKey(now).slice(8, 10) >= cfg.membershipFeeNoticeDay) {
+    const created = await createMonthlyFees(db, { period: shiftPeriod(currentPeriod(now), 1), amountKc: cfg.membershipMonthlyFee });
+    feeNotices = await notifyFee(db, created);
+  }
+
   const started = Date.now();
   let sent = 0;
   const footer = await newsletterFooter();
@@ -47,5 +59,5 @@ export async function GET(req: Request) {
       sent += r.sent;
     }
   }
-  return Response.json({ expired, sent, creditsExpired, creditWarnings });
+  return Response.json({ expired, sent, creditsExpired, creditWarnings, feeNotices });
 }

@@ -27,6 +27,10 @@ export const defaultSettings = {
   memberStrikeWindowDays: 30,
   /** Délka pauzy v přihlašování (dní) */
   memberPauseDays: 7,
+  /** Měsíční členský příspěvek v Kč; 0 = automatické výzvy vypnuté */
+  membershipMonthlyFee: 0,
+  /** Kterého dne v měsíci odejdou výzvy k platbě za následující měsíc */
+  membershipFeeNoticeDay: 20,
 };
 
 export type Settings = typeof defaultSettings;

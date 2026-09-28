@@ -548,9 +548,15 @@ export async function updateEntitlementAction(_: FormState, fd: FormData): Promi
       if (n === null || n < e.entriesUsed) throw new UserError(`Vstupů musí být aspoň ${e.entriesUsed} (už vyčerpané).`);
       entriesTotal = n;
     }
+    let monthlyFee = e.monthlyFee;
+    if (e.kind === "membership") {
+      const fee = field.str(fd, "monthlyFee").replace(/\s/g, "");
+      if (fee && !/^\d+$/.test(fee)) throw new UserError("Měsíční příspěvek zadej v celých korunách.");
+      monthlyFee = fee ? Number(fee) * 100 : null;
+    }
     await db
       .update(entitlements)
-      .set({ validUntil: until, entriesTotal })
+      .set({ validUntil: until, entriesTotal, monthlyFee })
       .where(eq(entitlements.id, e.id));
     return done(`Uloženo – platí do ${formatDate(until)}.`);
   });
