@@ -180,7 +180,7 @@ export const SECTIONS = {
       s3Title: t("Krok 3 – nadpis", "Plať, jak ti to sedí"),
       s3Text: ta(
         "Krok 3 – text",
-        "Kredit, permanentka, měsíční členství nebo jednorázový vstup kartou. Storno zdarma do {{storno_hodin}} h před lekcí.",
+        "Kredit, permanentka, členství nebo jednorázový vstup převodem. Storno zdarma do {{storno_hodin}} h před lekcí.",
       ),
       ctaPricing: t("Tlačítko ceník", "Ceník"),
       ctaClasses: t("Tlačítko lekce", "Typy lekcí"),
@@ -280,7 +280,7 @@ Napiš sem, jak studio vzniklo a co pro tebe pohyb znamená.
         "Po registraci ti ji připíšeme na účet, platí {{platnost_zdarma}} dní. Sleduj také lekce označené „Zdarma“ v rozvrhu.",
       ),
       membershipTitle: t("Členství – nadpis", "Členství"),
-      membershipText: ta("Členství – text", "Pro ty, kdo chodí pravidelně – nejvýhodnější cena za lekci. Platí se měsíčně."),
+      membershipText: ta("Členství – text", "Pro ty, kdo chodí pravidelně – nejvýhodnější cena za lekci. Platí se měsíčně, závazek na 12 měsíců."),
       passTitle: t("Permanentky – nadpis", "Permanentky"),
       passText: ta("Permanentky – text", "Balíček vstupů na lekce s platností. Běžná lekce = 1 vstup, u některých lekcí se strhne víc vstupů – vždy to najdeš u lekce."),
       creditTitle: t("Kredit – nadpis", "Kredit"),
@@ -326,7 +326,7 @@ Napiš sem, jak studio vzniklo a co pro tebe pohyb znamená.
 
 ## 2. Rezervace lekcí
 - Rezervace probíhá online přes klientský účet, nejdříve {{rezervace_dni}} dní před lekcí (s aktivním členstvím {{rezervace_dni_clenove}} dní).
-- Lekci lze zaplatit kreditem, permanentkou, členstvím, vstupem zdarma nebo jednorázově platební kartou.
+- Lekci lze zaplatit kreditem, permanentkou, členstvím, vstupem zdarma nebo jednorázově převodem.
 - Neuhrazená rezervace jednorázového vstupu se uvolní po {{platba_minut}} minutách.
 
 ## 3. Storno podmínky
@@ -338,7 +338,7 @@ Napiš sem, jak studio vzniklo a co pro tebe pohyb znamená.
 ## 4. Kredit, permanentky a členství
 - Kredit je nepřenosný a nepropadá. 1 kredit odpovídá ceně uvedené u lekce.
 - Permanentky platí po dobu uvedenou v ceníku od data nákupu.
-- Členství se automaticky obnovuje každý měsíc platbou kartou. Obnovení lze kdykoliv zrušit v účtu; členství pak platí do konce zaplaceného období.
+- Členství je závazné na 12 měsíců a platí se měsíčně. Členství v účtu klienta spravuje studio – o změnu nebo ukončení požádej na recepci.
 
 ## 5. Platby
 Online platby zpracovává Stripe Payments Europe, Ltd. Ceny jsou uvedeny v Kč včetně DPH (je-li provozovatel plátcem).
@@ -347,7 +347,15 @@ Online platby zpracovává Stripe Payments Europe, Ltd. Ceny jsou uvedeny v Kč 
 Spotřebitel bere na vědomí, že dle § 1837 písm. j) občanského zákoníku nelze odstoupit od smlouvy o využití volného času, je-li plněno v určeném termínu. U permanentek a kreditu lze odstoupit do 14 dnů od nákupu, pokud nebyly čerpány.
 
 ## 7. Zdraví a bezpečnost
-Klient cvičí na vlastní odpovědnost a je povinen upozornit lektora na zdravotní omezení.`,
+- Klient se lekcí účastní dobrovolně a na vlastní odpovědnost. Rezervací potvrzuje, že jeho zdravotní stav mu účast na zvolené lekci dovoluje.
+- Posouzení vlastního zdravotního stavu je odpovědností klienta. Má-li klient zdravotní potíže, je po úrazu či operaci, je těhotný nebo si není jistý, zda je pro něj cvičení vhodné, je povinen se před účastí poradit s lékařem.
+- Klient je povinen před lekcí upozornit lektora na veškerá zdravotní omezení, úrazy, těhotenství a užívané léky, které mohou mít vliv na cvičení. Lektor není lékař ani fyzioterapeut a zdravotní stav klienta neposuzuje.
+- Klient je povinen řídit se pokyny lektora, cvičit v mezích svých možností, cvik přerušit při bolesti či nevolnosti a neprodleně to lektorovi oznámit. Klient nesmí cvičit pod vlivem alkoholu, drog nebo léků snižujících pozornost.
+- Klient je povinen používat vybavení studia (včetně reformerů) jen podle pokynů lektora a vzniklou závadu ihned nahlásit.
+- Studio ani lektor neodpovídají za újmu, která vznikne tím, že klient zamlčel zdravotní omezení, nerespektoval pokyny lektora, cvičil nad rámec svých možností nebo porušil tyto podmínky či provozní řád. Za újmu způsobenou vlastním jednáním klienta odpovídá klient; za škodu, kterou klient úmyslně nebo z nedbalosti způsobí na vybavení studia nebo jiným osobám, odpovídá v plném rozsahu.
+- Lektor může klienta z lekce vyloučit nebo mu účast nedoporučit, pokud jeho stav či chování ohrožuje jeho samotného nebo ostatní. Vstup se v takovém případě nevrací.
+- Studio neodpovídá za odložené věci, cennosti a peníze, které nebyly předány do úschovy.
+- Tato ustanovení nevylučují odpovědnost studia v případech, kdy ji podle zákona vyloučit nelze.`,
       ),
     },
   },
@@ -364,9 +372,13 @@ Klient cvičí na vlastní odpovědnost a je povinen upozornit lektora na zdravo
 - Jméno, e-mail, telefon – vedení klientského účtu a rezervací (plnění smlouvy).
 - Historie rezervací a plateb – plnění smlouvy a zákonné účetní povinnosti.
 - E-mail a telefon pro novinky (newsletter, SMS, WhatsApp) – pouze se souhlasem, který lze kdykoliv odvolat v profilu nebo odkazem ve zprávě.
+- Datum narození a svátek – nepovinné, vyplňujete je sami v profilu, abychom vám mohli popřát. Kdykoliv je můžete v profilu smazat.
+- Přezdívka a profilová fotka (nebo zvolený avatar) – nepovinné, slouží k zobrazení u vašich reakcí na nástěnce, kde je uvidí její návštěvníci, a k tomu, aby vás recepce poznala. Kdykoliv je můžete v profilu změnit nebo odstranit.
+- Reakce na nástěnce – zobrazují se ostatním návštěvníkům nástěnky spolu s přezdívkou (případně křestním jménem) a profilovkou. Svou reakci můžete kdykoliv smazat.
+- Jméno kamarádky, kterou přivedete na lekci (+1) – jen pro evidenci rezervace; jméno nám předáváte se souhlasem dotyčné osoby.
 
 ## Příjemci
-Poskytovatel hostingu a databáze, platební brána Stripe, služby pro odesílání e-mailů, SMS a WhatsApp zpráv. Údaje neprodáváme.
+Poskytovatel hostingu a databáze, banka (platby převodem), služby pro odesílání e-mailů, SMS a WhatsApp zpráv. Údaje neprodáváme.
 
 ## Doba uložení
 Po dobu trvání účtu, účetní doklady po dobu stanovenou zákonem.

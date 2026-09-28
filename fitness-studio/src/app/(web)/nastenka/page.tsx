@@ -9,6 +9,8 @@ import { announcementComments, announcements, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { nbsp } from "@/lib/typography";
+import { Avatar } from "@/components/avatar";
+import { displayName } from "@/lib/profile";
 
 export const metadata: Metadata = { title: "Nástěnka" };
 
@@ -24,7 +26,7 @@ export default async function BoardPage() {
     .limit(30);
   const comments = posts.length
     ? await db
-        .select({ c: announcementComments, name: users.name })
+        .select({ c: announcementComments, author: { name: users.name, nickname: users.nickname, avatar: users.avatar } })
         .from(announcementComments)
         .innerJoin(users, eq(announcementComments.userId, users.id))
         .where(inArray(announcementComments.announcementId, posts.map((p) => p.id)))
@@ -49,10 +51,13 @@ export default async function BoardPage() {
               <p className="mt-3 whitespace-pre-line text-les/80">{nbsp(p.body)}</p>
 
               <div className="mt-6 space-y-3 border-t border-linka/60 pt-4">
-                {list.map(({ c: r, name }) => (
+                {list.map(({ c: r, author }) => (
                   <div key={r.id} className="rounded-xl bg-krem/50 px-4 py-3 text-sm">
                     <p className="flex flex-wrap items-center justify-between gap-2 text-xs text-les/60">
-                      <span><strong className="text-les">{name.split(" ")[0]}</strong> · {formatDateTime(r.createdAt)}</span>
+                      <span className="flex items-center gap-2">
+                        <Avatar user={author} size={28} />
+                        <span><strong className="text-les">{displayName(author)}</strong> · {formatDateTime(r.createdAt)}</span>
+                      </span>
                       {user && (user.id === r.userId || user.role !== "client") && (
                         <ActionForm action={deleteCommentAction} confirm="Smazat reakci?">
                           <input type="hidden" name="id" value={r.id} />
