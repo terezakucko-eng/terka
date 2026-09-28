@@ -195,6 +195,13 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
                       )}
                       <span className="whitespace-nowrap text-les/60">{formatDate(e.validFrom)} –</span>
                       <Input name="until" type="date" defaultValue={dateKey(e.validUntil)} className="w-40 px-2 py-1" aria-label="Platí do" />
+                      {e.kind === "membership" && !e.subscriptionId && (
+                        <label className="flex items-center gap-1 text-les/60">
+                          měsíčně
+                          <Input name="monthlyFee" type="number" min={0} defaultValue={e.monthlyFee !== null ? e.monthlyFee / 100 : ""} placeholder="výchozí" className="w-24 px-2 py-1" aria-label="Měsíční příspěvek (Kč)" />
+                          Kč
+                        </label>
+                      )}
                       <button className="font-semibold text-zeme underline">Uložit</button>
                     </ActionForm>
                   ) : (

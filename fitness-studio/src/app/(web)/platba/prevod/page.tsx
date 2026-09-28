@@ -9,6 +9,9 @@ import { orders } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { bankTransfer } from "@/lib/massage-payment";
 import { formatPrice } from "@/lib/money";
+import { cardPayments } from "@/lib/payments";
+import { payOrderAction } from "@/app/actions/booking";
+import { ActionForm, SubmitButton } from "@/components/forms";
 
 export const metadata: Metadata = { title: "Platba převodem" };
 
@@ -55,6 +58,12 @@ export default async function TransferPage({ searchParams }: PageProps<"/platba/
           )}
         </Card>
       )}
+      {!paid && !off && o.kind === "membership_fee" && cardPayments() && (
+        <ActionForm action={payOrderAction} className="mt-6">
+          <input type="hidden" name="orderId" value={o.id} />
+          <SubmitButton name="pay" value="card" variant="gold">Zaplatit kartou</SubmitButton>
+        </ActionForm>
+      )}
       {!paid && !off && !t && (
         <p className="mt-8 text-les/70">Platební údaje ti brzy pošleme e-mailem.</p>
       )}
@@ -62,7 +71,9 @@ export default async function TransferPage({ searchParams }: PageProps<"/platba/
         <p className="mt-6 max-w-xl text-sm text-les/70">
           {o.kind === "drop_in"
             ? "Jakmile platba dorazí na účet, místo na lekci je tvoje. Pošli ji prosím co nejdřív."
-            : o.kind === "surcharge"
+            : o.kind === "membership_fee"
+              ? "Jakmile platba dorazí, příspěvek označíme jako zaplacený – obvykle do 1–2 pracovních dnů."
+              : o.kind === "surcharge"
               ? "Jakmile platba dorazí, doplatek u rezervace označíme jako zaplacený – obvykle do 1–2 pracovních dnů."
               : "Jakmile platba dorazí, připíšeme ti nákup na účet – obvykle do 1–2 pracovních dnů. Údaje k platbě najdeš i ve svém účtu."}
         </p>

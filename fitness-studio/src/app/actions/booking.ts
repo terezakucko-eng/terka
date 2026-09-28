@@ -130,6 +130,26 @@ export async function paySurchargeAction(_: FormState, fd: FormData): Promise<Fo
   return res;
 }
 
+/** Pays an open order again (membership fee from Můj účet or the transfer page) – card or transfer. */
+export async function payOrderAction(_: FormState, fd: FormData): Promise<FormState> {
+  const user = await requireUser("/ucet");
+  let url: string | null = null;
+  const res = await attempt(async () => {
+    const db = await getDb();
+    const [o] = await db.select().from(orders).where(eq(orders.id, field.str(fd, "orderId")));
+    if (!o || o.userId !== user.id || o.kind !== "membership_fee") throw new UserError("Platba nenalezena.");
+    if (o.status !== "pending") throw new UserError("Tahle platba už je vyřízená.");
+    const method: PayMethod = field.str(fd, "pay") === "card" && cardPayments() ? "card" : "transfer";
+    try {
+      url = await startCheckout(db, o, user, null, method);
+    } catch (e) {
+      throw e instanceof UserError ? e : new UserError("Platební brána teď není dostupná. Zkus to prosím za chvíli, nebo zaplať převodem.");
+    }
+  });
+  if (url) redirect(url);
+  return res;
+}
+
 /** Test gateway (only without Stripe keys) – simulates a successful payment. */
 export async function testPayAction(_: FormState, fd: FormData): Promise<FormState> {
   const user = await requireUser();

@@ -21,6 +21,8 @@ const fields: { key: keyof Settings; label: string; hint: string }[] = [
   { key: "memberStrikeLimit", label: "Členové – prohřešků do pauzy", hint: "Pozdní odhlášení nebo nepříchod. Varování přijde o jeden dřív. 0 = vypnuto." },
   { key: "memberStrikeWindowDays", label: "Členové – prohřešky za posledních (dní)", hint: "" },
   { key: "memberPauseDays", label: "Členové – délka pauzy v přihlašování (dní)", hint: "" },
+  { key: "membershipMonthlyFee", label: "Členský příspěvek měsíčně (Kč)", hint: "Individuální částku nastavíš u člena. 0 = automatické výzvy vypnuté." },
+  { key: "membershipFeeNoticeDay", label: "Výzva k platbě za další měsíc – den v měsíci", hint: "20 = výzva za listopad odejde 20. října. 1–28." },
 ];
 
 export default async function AdminSettings() {

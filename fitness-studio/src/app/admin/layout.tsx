@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
+  BadgeCheck,
   CalendarDays,
   Cog,
   Flower2,
@@ -28,6 +29,7 @@ const items = [
   { href: "/admin/masaze", label: "Masáže", icon: Flower2, admin: false },
   { href: "/admin/klienti", label: "Klienti", icon: Users, admin: true },
   { href: "/admin/objednavky", label: "Platby", icon: Receipt, admin: true },
+  { href: "/admin/prispevky", label: "Příspěvky", icon: BadgeCheck, admin: true },
   { href: "/admin/zpravy", label: "Zprávy", icon: MessageSquare, admin: true },
   { href: "/admin/emaily", label: "E-maily", icon: Mail, admin: true },
   { href: "/admin/obsah", label: "Obsah webu", icon: FileText, admin: true },

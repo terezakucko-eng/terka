@@ -34,7 +34,7 @@ export default async function OrdersPage() {
             <Td>{{ stripe: "Karta online", transfer: `Převodem · VS ${o.number}`, reception: "Recepce", manual: "Ručně", test: "Test", pending: "—" }[o.provider] ?? o.provider}</Td>
             <Td><Badge tone={o.status === "paid" ? "green" : o.status === "pending" ? "gold" : "neutral"}>{orderStatusLabel[o.status]}</Badge></Td>
             <Td className="space-y-1 text-right">
-              {o.status === "pending" && (o.kind === "product" || o.kind === "drop_in") && (
+              {o.status === "pending" && o.kind !== "renewal" && (
                 <ActionForm action={markOrderPaidAction} confirm="Označit jako zaplacené a připsat klientovi?">
                   <input type="hidden" name="orderId" value={o.id} />
                   <button className="text-xs font-semibold text-zeme underline">Zaplaceno</button>

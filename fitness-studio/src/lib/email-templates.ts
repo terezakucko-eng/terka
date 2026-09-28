@@ -176,6 +176,20 @@ export const EMAILS = {
       pauza_dni: { label: "délka pauzy (dní)", sample: "7" },
     },
   },
+  membershipFee: {
+    title: "Členský příspěvek – výzva k platbě",
+    when: "Automaticky v nastavený den (výchozí 20.) za následující měsíc, nebo když v Příspěvcích klikneš na Výzva / Připomenout.",
+    subject: "Členský příspěvek za {{mesic}}",
+    body: "Ahoj {{osloveni}},\n\nposíláme platbu členského příspěvku za {{mesic}}: {{castka}}.\n\nÚčet: {{ucet}}\nVariabilní symbol: {{vs}}\n\nQR kód k platbě, případně platbu kartou najdeš tady: {{odkaz}}\n\nDěkujeme, že jsi s námi!",
+    vars: {
+      osloveni,
+      mesic: { label: "měsíc", sample: "listopad 2026" },
+      castka: { label: "částka", sample: "1 400 Kč" },
+      ucet: { label: "číslo účtu", sample: "123456789/0800" },
+      vs: { label: "variabilní symbol", sample: "1042" },
+      odkaz: { label: "odkaz na platbu", sample: `${site.url}/platba/prevod?order=…` },
+    },
+  },
   signature: {
     title: "Podpis pod každým e-mailem",
     when: "Připojí se na konec všech automatických e-mailů (hromadné zprávy mají vlastní patičku).",
