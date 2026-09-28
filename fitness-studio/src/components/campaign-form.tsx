@@ -4,6 +4,7 @@ import { useState } from "react";
 import { saveCampaignAction } from "@/app/admin/messaging-actions";
 import type { Campaign } from "@/db/schema";
 import { smsParts } from "@/lib/newsletter";
+import { ClientPicker, type ClientOpt } from "./client-picker";
 import { ActionForm, SubmitButton } from "./forms";
 import { Field, Input, Select, Textarea } from "./ui";
 
@@ -17,14 +18,17 @@ const segments = [
   ["new", "Noví – registrace za posledních X dní"],
   ["class_type", "Chodí na typ lekce (posledních X dní)"],
   ["session", "Přihlášení na konkrétní termín"],
+  ["people", "Vybraní klienti (podle jména)"],
 ] as const;
 
 export function CampaignForm({
   c,
+  clients,
   classTypes,
   sessions,
 }: {
   c?: Campaign;
+  clients: ClientOpt[];
   classTypes: Opt[];
   sessions: Opt[];
 }) {
@@ -77,6 +81,7 @@ export function CampaignForm({
           </Field>
         )}
       </div>
+      {segment === "people" && <ClientPicker clients={clients} initial={c?.audience.userIds ?? []} />}
 
       {channel === "email" && (
         <Field label="Předmět"><Input name="subject" defaultValue={c?.subject ?? ""} placeholder="Ahoj {{jmeno}}, máme pro tebe novinku" /></Field>

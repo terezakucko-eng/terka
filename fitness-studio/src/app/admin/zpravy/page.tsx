@@ -34,7 +34,7 @@ export default async function CampaignsPage() {
       </div>
       <div className="mb-8">
         <Panel title="+ Nová zpráva">
-          <CampaignForm classTypes={opts.classTypes} sessions={opts.sessions} />
+          <CampaignForm clients={opts.clients} classTypes={opts.classTypes} sessions={opts.sessions} />
         </Panel>
       </div>
       <Table head={["Název", "Kanál", "Typ", "Stav", "Příjemci", "Doručeno", "Vytvořeno"]}>

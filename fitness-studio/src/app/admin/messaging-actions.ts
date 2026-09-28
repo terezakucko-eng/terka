@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, gt, inArray } from "drizzle-orm";
+import { and, eq, gt, inArray, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { site } from "@/config/site";
@@ -26,7 +26,7 @@ import { sendMail } from "@/lib/mail";
 import { createPasswordLink } from "@/lib/password-links";
 import { normalizePhone } from "@/lib/phone";
 
-const SEGMENTS: Audience["segment"][] = ["all", "members", "passes", "inactive", "new", "class_type", "session"];
+const SEGMENTS: Audience["segment"][] = ["all", "members", "passes", "inactive", "new", "class_type", "session", "people"];
 
 export async function saveCampaignAction(_: FormState, fd: FormData): Promise<FormState> {
   const admin = await requireAdmin();
@@ -41,6 +41,10 @@ export async function saveCampaignAction(_: FormState, fd: FormData): Promise<Fo
       days: field.int(fd, "days") ?? undefined,
       classTypeId: field.str(fd, "classTypeId") || undefined,
       sessionId: field.str(fd, "sessionId") || undefined,
+      userIds:
+        segment === "people"
+          ? fd.getAll("userIds").map(String).filter((v) => /^[0-9a-f-]{36}$/i.test(v))
+          : undefined,
     };
     const values = {
       channel,
@@ -83,9 +87,9 @@ export async function deleteCampaignAction(_: FormState, fd: FormData): Promise<
   const res = await attempt(async () => {
     const [c] = await (await getDb())
       .delete(campaigns)
-      .where(and(eq(campaigns.id, field.str(fd, "id")), eq(campaigns.status, "draft")))
+      .where(and(eq(campaigns.id, field.str(fd, "id")), ne(campaigns.status, "sending")))
       .returning();
-    if (!c) throw new UserError("Smazat jde jen koncept.");
+    if (!c) throw new UserError("Zpráva se právě odesílá – smazat ji půjde, až odesílání doběhne.");
     ok = true;
   });
   if (ok) redirect("/admin/zpravy");

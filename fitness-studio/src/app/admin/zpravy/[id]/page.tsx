@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { and, eq } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 import { deleteCampaignAction, sendTestAction, startCampaignAction } from "@/app/admin/messaging-actions";
 import { AdminTitle, Stat, Table, Td } from "@/components/admin";
 import { CampaignForm } from "@/components/campaign-form";
@@ -44,6 +44,10 @@ export default async function CampaignDetail({ params }: PageProps<"/admin/zprav
       .innerJoin(users, eq(campaignMessages.userId, users.id))
       .where(and(eq(campaignMessages.campaignId, c.id), eq(campaignMessages.status, "failed")))
       .limit(100);
+    const [logged] = await db
+      .select({ n: count() })
+      .from(campaignMessages)
+      .where(and(eq(campaignMessages.campaignId, c.id), eq(campaignMessages.providerRef, "log")));
     return (
       <>
         {title}
@@ -52,6 +56,11 @@ export default async function CampaignDetail({ params }: PageProps<"/admin/zprav
           <Stat label="Odesláno" value={c.sentCount} sub={c.sentAt ? formatDateTime(c.sentAt) : "probíhá"} />
           <Stat label="Chyby" value={c.failedCount} />
         </div>
+        {logged.n > 0 && (
+          <p className="mt-6 rounded-xl bg-chyba/10 p-4 text-sm text-chyba">
+            {logged.n}× se zpráva jen zapsala do logu – poskytovatel {channelLabel[c.channel]} nebyl na serveru nastaven, klientům nic nepřišlo.
+          </p>
+        )}
         {c.status === "sending" && (
           <div className="mt-6">
             <CampaignRunner id={c.id} total={c.recipientCount} sent={c.sentCount + c.failedCount} />
@@ -71,6 +80,12 @@ export default async function CampaignDetail({ params }: PageProps<"/admin/zprav
           {c.subject && <p className="mb-3 font-semibold">{c.subject}</p>}
           {c.channel === "whatsapp" ? `Šablona: ${c.waTemplate} (${c.waLanguage}) · ${(c.waParams ?? []).join(", ")}` : c.body}
         </Card>
+        {c.status !== "sending" && (
+          <ActionForm action={deleteCampaignAction} confirm="Smazat zprávu z přehledu? Klientům už doručená zpráva tím nezmizí." className="mt-6">
+            <input type="hidden" name="id" value={c.id} />
+            <button className="text-xs font-semibold text-chyba underline">Smazat z přehledu</button>
+          </ActionForm>
+        )}
       </>
     );
   }
@@ -85,7 +100,7 @@ export default async function CampaignDetail({ params }: PageProps<"/admin/zprav
       {title}
       <div className="grid gap-8 xl:grid-cols-[1.5fr_1fr]">
         <Card>
-          <CampaignForm c={c} classTypes={opts.classTypes} sessions={opts.sessions} />
+          <CampaignForm c={c} clients={opts.clients} classTypes={opts.classTypes} sessions={opts.sessions} />
         </Card>
         <aside className="space-y-4">
           <Card>
