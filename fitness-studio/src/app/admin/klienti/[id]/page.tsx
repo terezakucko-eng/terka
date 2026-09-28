@@ -5,6 +5,8 @@ import {
   adjustCreditsAction,
   cancelEntitlementAction,
   clearPauseAction,
+  setCreditExpiryAction,
+  updateEntitlementAction,
   deductSolariumAction,
   deleteClientAction,
   grantEntitlementAction,
@@ -21,7 +23,7 @@ import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import { userBookings, userEntitlements, userLedger, userOrders } from "@/lib/account";
 import { requireAdmin } from "@/lib/auth";
-import { formatDate, formatDateTime } from "@/lib/dates";
+import { dateKey, formatDate, formatDateTime } from "@/lib/dates";
 import { formatPrice } from "@/lib/money";
 import { sellableProducts } from "@/lib/queries";
 import { normalizePhone } from "@/lib/phone";
@@ -139,6 +141,13 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
             <Field label="Poznámka"><Input name="note" placeholder="např. kompenzace" /></Field>
             <SubmitButton className="w-full">Uložit</SubmitButton>
           </ActionForm>
+          <ActionForm action={setCreditExpiryAction} className="mt-5 flex items-end gap-2 border-t border-linka pt-4">
+            <input type="hidden" name="userId" value={u.id} />
+            <Field label="Kredit platí do" hint="Prázdné = bez omezení">
+              <Input name="until" type="date" defaultValue={u.creditExpiresAt ? dateKey(u.creditExpiresAt) : ""} />
+            </Field>
+            <SubmitButton variant="outline">Uložit</SubmitButton>
+          </ActionForm>
         </Card>
         <Card>
           <h2 className="font-semibold">Přidělit vstupy / permanentku</h2>
@@ -173,8 +182,27 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
               <tr key={e.id} className={valid ? "" : "opacity-50"}>
                 <Td><strong>{e.name}</strong>{e.note && <><br /><span className="text-xs text-les/50">{e.note}</span></>}</Td>
                 <Td>{entitlementKindLabel[e.kind]}{e.subscriptionId && <Badge tone={e.renewalCancelled ? "red" : "green"}>{e.renewalCancelled ? "Obnova zrušena" : "Předplatné"}</Badge>}</Td>
-                <Td>{e.entriesTotal === null ? "neomezeně" : `${e.entriesUsed}/${e.entriesTotal}`}{e.weeklyLimit ? ` · ${e.weeklyLimit}×/týden` : ""}</Td>
-                <Td className="whitespace-nowrap">{formatDate(e.validFrom)} – {formatDate(e.validUntil)}</Td>
+                <Td colSpan={2}>
+                  {e.status === "active" ? (
+                    <ActionForm action={updateEntitlementAction} className="flex flex-wrap items-center gap-2 text-xs">
+                      <input type="hidden" name="id" value={e.id} />
+                      {e.entriesTotal === null ? (
+                        <span className="mr-2">neomezeně{e.weeklyLimit ? ` · ${e.weeklyLimit}×/týden` : ""}</span>
+                      ) : (
+                        <label className="flex items-center gap-1">
+                          {e.entriesUsed}/<Input name="entries" type="number" min={e.entriesUsed} defaultValue={e.entriesTotal} className="w-16 px-2 py-1" aria-label="Vstupů celkem" />
+                        </label>
+                      )}
+                      <span className="whitespace-nowrap text-les/60">{formatDate(e.validFrom)} –</span>
+                      <Input name="until" type="date" defaultValue={dateKey(e.validUntil)} className="w-40 px-2 py-1" aria-label="Platí do" />
+                      <button className="font-semibold text-zeme underline">Uložit</button>
+                    </ActionForm>
+                  ) : (
+                    <span className="text-xs">
+                      {e.entriesTotal === null ? "neomezeně" : `${e.entriesUsed}/${e.entriesTotal}`} · {formatDate(e.validFrom)} – {formatDate(e.validUntil)}
+                    </span>
+                  )}
+                </Td>
                 <Td>
                   {valid && (
                     <ActionForm action={cancelEntitlementAction} confirm="Zneplatnit?">

@@ -76,6 +76,8 @@ export async function grantEntitlement(
     name: string;
     entries: number | null;
     validityDays: number;
+    /** Exact end instead of validityDays (bulk grant "platí do"). */
+    validUntil?: Date;
     weeklyLimit?: number | null;
     note?: string | null;
   },
@@ -94,7 +96,7 @@ export async function grantEntitlement(
       entriesTotal: input.entries,
       weeklyLimit: input.weeklyLimit ?? null,
       validFrom: now,
-      validUntil: new Date(now.getTime() + input.validityDays * DAY),
+      validUntil: input.validUntil ?? new Date(now.getTime() + input.validityDays * DAY),
       note: input.note ?? null,
     })
     .returning();
