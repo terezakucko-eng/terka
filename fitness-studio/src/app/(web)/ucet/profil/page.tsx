@@ -4,14 +4,15 @@ import { ActionForm, SubmitButton } from "@/components/forms";
 import { ImageInput } from "@/components/image-input";
 import { Card, Field, Input, Select } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
-import { AVATAR_EMOJI, MONTHS, parseAvatar } from "@/lib/profile";
+import { MONTHS, OCTO_AVATARS, parseAvatar } from "@/lib/profile";
+import { PasswordInput } from "@/components/password-input";
 
 export default async function ProfilePage() {
   const user = await requireUser("/ucet/profil");
   const current = parseAvatar(user.avatar);
   const [nameDayMonth, nameDayDay] = user.nameDay?.split("-").map(Number) ?? [];
   const pickClass =
-    "flex size-12 cursor-pointer items-center justify-center rounded-full border-2 border-transparent bg-white/70 text-2xl transition has-[:checked]:border-zlato has-[:checked]:bg-zlato/15";
+    "flex size-14 cursor-pointer items-center justify-center rounded-full border-2 border-transparent bg-white/70 text-2xl transition has-[:checked]:border-zlato has-[:checked]:bg-zlato/15";
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -21,18 +22,25 @@ export default async function ProfilePage() {
           <Avatar user={user} size={96} className="text-4xl" />
           <div className="flex-1 space-y-5">
             <fieldset>
-              <legend className="mb-2 text-xs font-semibold uppercase tracking-wider text-les/70">Vyber si avatara</legend>
+              <legend className="mb-2 text-xs font-semibold uppercase tracking-wider text-les/70">Vyber si chobotničku</legend>
               <div className="flex flex-wrap gap-2">
-                {current.kind === "photo" && (
+                {current.kind === "photo" && !OCTO_AVATARS.includes(user.avatar ?? "") && (
                   <label className={pickClass} title="Ponechat fotku">
                     <input type="radio" name="avatar" value="keep" defaultChecked className="sr-only" />
                     <Avatar user={user} size={40} />
                   </label>
                 )}
-                {AVATAR_EMOJI.map((e) => (
-                  <label key={e} className={pickClass}>
-                    <input type="radio" name="avatar" value={e} defaultChecked={current.kind === "emoji" && current.emoji === e} className="sr-only" />
-                    {e}
+                {current.kind === "emoji" && (
+                  <label className={pickClass} title="Ponechat">
+                    <input type="radio" name="avatar" value={current.emoji} defaultChecked className="sr-only" />
+                    {current.emoji}
+                  </label>
+                )}
+                {OCTO_AVATARS.map((v, i) => (
+                  <label key={v} className={pickClass} title={`Chobotnička ${i + 1}`}>
+                    <input type="radio" name="avatar" value={v} defaultChecked={user.avatar === v} className="sr-only" />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`/avatars/octo-${i + 1}.svg`} alt="" width={44} height={44} className="rounded-full" />
                   </label>
                 ))}
                 <label className={pickClass} title="Jen iniciály">
@@ -76,7 +84,7 @@ export default async function ProfilePage() {
           </div>
           <label className="flex gap-3 text-sm">
             <input type="checkbox" name="reminders" defaultChecked={user.remindersOptIn} className="mt-0.5 accent-[#674329]" />
-            <span>Připomeň mi e-mailem lekci nebo masáž den předem</span>
+            <span>Připomeň mi e-mailem lekci nebo masáž 3 hodiny předem</span>
           </label>
           <fieldset className="space-y-2 text-sm">
             <legend className="mb-1 text-xs font-semibold uppercase tracking-wider text-les/70">Chci dostávat novinky a akce</legend>
@@ -90,8 +98,8 @@ export default async function ProfilePage() {
       <Card>
         <h2 className="text-xl font-semibold">Změna hesla</h2>
         <ActionForm action={changePasswordAction} className="mt-5 space-y-4" resetOnSuccess>
-          <Field label="Současné heslo"><Input name="current" type="password" autoComplete="current-password" required /></Field>
-          <Field label="Nové heslo" hint="Alespoň 8 znaků."><Input name="password" type="password" autoComplete="new-password" minLength={8} required /></Field>
+          <Field label="Současné heslo"><PasswordInput name="current" autoComplete="current-password" required /></Field>
+          <Field label="Nové heslo" hint="Alespoň 8 znaků."><PasswordInput name="password" autoComplete="new-password" minLength={8} required /></Field>
           <SubmitButton>Změnit heslo</SubmitButton>
         </ActionForm>
       </Card>

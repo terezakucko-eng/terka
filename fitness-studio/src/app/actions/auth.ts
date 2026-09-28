@@ -23,7 +23,7 @@ import { sendMail } from "@/lib/mail";
 import { createPasswordLink, hashToken } from "@/lib/password-links";
 import { deleteImage, storeImage, uploadedFile } from "@/lib/media";
 import { normalizePhone } from "@/lib/phone";
-import { AVATAR_EMOJI, cleanBirthDate, cleanNameDay } from "@/lib/profile";
+import { AVATAR_EMOJI, OCTO_AVATARS, cleanBirthDate, cleanNameDay } from "@/lib/profile";
 
 /** Only allow local redirects after login. */
 function safeNext(v: string) {
@@ -179,6 +179,7 @@ export async function updateAvatarAction(_: FormState, fd: FormData): Promise<Fo
     let avatar: string | null;
     if (file) avatar = await storeImage(db, file, 480, true);
     else if (pick === "none") avatar = null;
+    else if (OCTO_AVATARS.includes(pick)) avatar = pick;
     else if ((AVATAR_EMOJI as readonly string[]).includes(pick)) avatar = `emoji:${pick}`;
     else if (pick === "keep") return "Nic se nezměnilo.";
     else throw new UserError("Vyber avatar nebo nahraj fotku.");

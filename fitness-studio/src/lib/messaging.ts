@@ -1,11 +1,13 @@
 import "server-only";
+import { createHash, randomBytes } from "node:crypto";
 import { site } from "@/config/site";
 
 /**
  * Delivery for bulk messages. Every channel has a real provider and a
  * "log" fallback used when keys are missing (development / testing):
  *   e-mail   → Resend            RESEND_API_KEY, MAIL_FROM
- *   SMS      → BulkGate (CZ)     BULKGATE_APP_ID, BULKGATE_APP_TOKEN, BULKGATE_SENDER
+ *   SMS      → SMSbrána.cz       SMSBRANA_LOGIN, SMSBRANA_PASSWORD (SMS Connect)
+ *              or BulkGate (CZ)  BULKGATE_APP_ID, BULKGATE_APP_TOKEN, BULKGATE_SENDER
  *   WhatsApp → Meta Cloud API    WHATSAPP_TOKEN, WHATSAPP_PHONE_NUMBER_ID
  */
 export type SendResult = { ok: true; ref?: string } | { ok: false; error: string };
@@ -13,7 +15,11 @@ export type SendResult = { ok: true; ref?: string } | { ok: false; error: string
 export function providerStatus() {
   return {
     email: process.env.RESEND_API_KEY ? "Resend" : null,
-    sms: process.env.BULKGATE_APP_ID && process.env.BULKGATE_APP_TOKEN ? "BulkGate" : null,
+    sms: process.env.SMSBRANA_LOGIN && process.env.SMSBRANA_PASSWORD
+      ? "SMSbrána.cz"
+      : process.env.BULKGATE_APP_ID && process.env.BULKGATE_APP_TOKEN
+        ? "BulkGate"
+        : null,
     whatsapp:
       process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID
         ? "WhatsApp Business (Meta)"
@@ -75,7 +81,40 @@ export async function sendEmailBatch(msgs: EmailMessage[]): Promise<SendResult[]
 
 /* ------------------------------------------------------------------- SMS */
 
+/** "20260928T101500" – the timestamp SMS Connect signs with. */
+const smsConnectTime = (d: Date) => d.toISOString().slice(0, 19).replace(/[-:]/g, "");
+
+/**
+ * SMSbrána.cz – SMS Connect HTTP API. Signed login: auth = md5(password + time + salt),
+ * so the password itself never travels. Replies with XML where <err>0</err> means sent.
+ */
+export async function sendSmsBrana(to: string, text: string, now = new Date()): Promise<SendResult> {
+  const login = process.env.SMSBRANA_LOGIN!;
+  const password = process.env.SMSBRANA_PASSWORD!;
+  const time = smsConnectTime(now);
+  const sul = randomBytes(8).toString("hex");
+  const params = new URLSearchParams({
+    action: "send_sms",
+    login,
+    time,
+    sul,
+    auth: createHash("md5").update(password + time + sul).digest("hex"),
+    number: to.replace(/^\+/, ""),
+    message: text,
+  });
+  try {
+    const res = await fetch(`https://api.smsbrana.cz/smsconnect/http.php?${params}`);
+    const body = await res.text();
+    const err = body.match(/<err>(\d+)<\/err>/)?.[1];
+    if (res.ok && err === "0") return { ok: true, ref: body.match(/<sms_id>([^<]+)<\/sms_id>/)?.[1] };
+    return { ok: false, error: `SMSbrána ${res.status}, chyba ${err ?? "?"}: ${body.slice(0, 200)}` };
+  } catch (e) {
+    return { ok: false, error: `SMSbrána: ${(e as Error).message}` };
+  }
+}
+
 export async function sendSms(to: string, text: string): Promise<SendResult> {
+  if (process.env.SMSBRANA_LOGIN && process.env.SMSBRANA_PASSWORD) return sendSmsBrana(to, text);
   const id = process.env.BULKGATE_APP_ID;
   const token = process.env.BULKGATE_APP_TOKEN;
   if (!id || !token) {

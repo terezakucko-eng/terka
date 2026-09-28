@@ -247,7 +247,7 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
             <label className="flex items-center gap-2"><input type="checkbox" name="whatsappConsent" defaultChecked={u.whatsappConsent} /> WhatsApp</label>
           </fieldset>
           <label className="flex items-center gap-2 text-sm sm:col-span-2">
-            <input type="checkbox" name="remindersOptIn" defaultChecked={u.remindersOptIn} /> Posílat připomínku lekce/masáže den předem
+            <input type="checkbox" name="remindersOptIn" defaultChecked={u.remindersOptIn} /> Posílat připomínku lekce/masáže 3 hodiny předem
           </label>
           <div className="sm:col-span-2"><Field label="Interní poznámka"><Textarea name="adminNote" rows={2} defaultValue={u.adminNote ?? ""} /></Field></div>
           <div className="sm:col-span-2"><SubmitButton>Uložit</SubmitButton></div>

@@ -16,7 +16,7 @@ import { requireUser } from "@/lib/auth";
 import { UserError } from "@/lib/errors";
 import { attempt, field, type FormState } from "@/lib/form";
 import { notifyBooked, notifyCancelled, notifyPromoted } from "@/lib/notify";
-import { paymentProvider, startCheckout } from "@/lib/payments";
+import { cardPayments, paymentProvider, startCheckout, type PayMethod } from "@/lib/payments";
 
 const METHODS: Method[] = ["credits", "pass", "membership", "free", "drop_in", "free_class"];
 
@@ -30,7 +30,8 @@ async function confirmHealth(user: { id: string; healthConfirmedAt: Date | null 
 export async function bookAction(_: FormState, fd: FormData): Promise<FormState> {
   const sessionId = field.str(fd, "sessionId");
   const user = await requireUser(`/rozvrh/${sessionId}`);
-  const [method, entitlementId] = field.str(fd, "option").split(":");
+  const [method, entitlementId, pay] = field.str(fd, "option").split(":");
+  const payMethod: PayMethod = pay === "card" && cardPayments() ? "card" : "transfer";
   let checkoutUrl: string | null = null;
 
   const res = await attempt(async () => {
@@ -42,13 +43,13 @@ export async function bookAction(_: FormState, fd: FormData): Promise<FormState>
       sessionId,
       method: method as Method,
       entitlementId: entitlementId || undefined,
-      payLater: paymentProvider() === "transfer",
+      payLater: payMethod === "transfer",
       guestName: field.str(fd, "guestName") || undefined,
     });
     if (order) {
       if (booking.status === "confirmed") await notifyBooked(db, booking);
       try {
-        checkoutUrl = await startCheckout(db, order, user);
+        checkoutUrl = await startCheckout(db, order, user, null, payMethod);
       } catch (e) {
         await abandonOrder(db, order.id);
         throw e instanceof UserError ? e : new UserError("Platební brána teď není dostupná.");
@@ -100,7 +101,7 @@ export async function buyProductAction(_: FormState, fd: FormData): Promise<Form
       userId: user.id,
       productId: field.str(fd, "productId"),
     });
-    url = await startCheckout(db, order, user, product);
+    url = await startCheckout(db, order, user, product, field.str(fd, "pay") === "card" && cardPayments() ? "card" : "transfer");
   });
   if (url) redirect(url);
   return res;
