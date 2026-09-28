@@ -34,6 +34,8 @@ export const getContent = cache(async () => {
   };
   const c = (key: ContentKey | `${SectionId}.${string}`) => nbsp(fillPlaceholders(raw(key), vars));
   c.raw = raw;
+  /** Fills the global placeholders (plus `extra`) without typography tweaks – for e-mails. */
+  c.fill = (text: string, extra: Record<string, string> = {}) => fillPlaceholders(text, { ...vars, ...extra });
   c.isSaved = (key: string) => saved.has(key);
   return c;
 });

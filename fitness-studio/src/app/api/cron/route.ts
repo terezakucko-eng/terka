@@ -4,11 +4,12 @@ import { campaigns, users } from "@/db/schema";
 import { site } from "@/config/site";
 import { creditsExpiringSoon, expireCredits } from "@/domain/wallet";
 import { formatDate } from "@/lib/dates";
-import { sendMail } from "@/lib/mail";
+import { sendEmail } from "@/lib/email-templates";
 import { expireStalePending } from "@/domain/booking";
 import { processCampaign } from "@/domain/campaigns";
 import { campaignSender, newsletterFooter } from "@/lib/campaign-sender";
 import { unsubscribeUrl } from "@/lib/links";
+import { greetName } from "@/lib/vocative";
 
 export const maxDuration = 60;
 
@@ -26,10 +27,11 @@ export async function GET(req: Request) {
   const creditsExpired = await expireCredits(db);
   let creditWarnings = 0;
   for (const u of await creditsExpiringSoon(db)) {
-    await sendMail({
-      to: u.email,
-      subject: "Tvůj kredit brzy propadne",
-      text: `Ahoj ${u.name},\n\nna účtu máš ${u.balance} kreditů, které platí do ${formatDate(u.expiresAt!)}. Využij je na lekci, nebo si kredit dobij – každé dobití prodlouží platnost celého zůstatku.\n\nRozvrh: ${site.url}/rozvrh`,
+    await sendEmail(u.email, "creditExpiry", {
+      osloveni: greetName(u.name),
+      kredit: String(u.balance),
+      platnost: formatDate(u.expiresAt!),
+      odkaz: `${site.url}/rozvrh`,
     });
     await db.update(users).set({ creditExpiryWarnedAt: new Date() }).where(eq(users.id, u.id));
     creditWarnings++;

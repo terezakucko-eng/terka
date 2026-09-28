@@ -18,6 +18,7 @@ import { credits, formatPrice } from "@/lib/money";
 import { sessionDetail } from "@/lib/queries";
 import { getContent } from "@/content";
 import { nbsp } from "@/lib/typography";
+import { SurchargePay } from "@/components/surcharge-pay";
 
 const UUID = /^[0-9a-f-]{36}$/i;
 
@@ -128,6 +129,7 @@ function BookingPanel({
         <Badge tone={b.status === "pending_payment" ? "gold" : "green"}>{label}</Badge>
         <h2 className="mt-4 text-2xl font-semibold">{b.guestName ? "Těšíme se na vás!" : "Těšíme se na tebe!"}</h2>
         {b.guestName && <p className="mt-2 text-les/70">Rezervace je i pro kamarádku: <strong>{b.guestName}</strong>.</p>}
+        {b.surcharge > 0 && !b.surchargePaidAt && view.state !== "cancelled" && <SurchargePay bookingId={b.id} amount={b.surcharge} />}
         {view.state !== "past" && view.state !== "cancelled" && (
           <>
             <a href={gcal} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-zeme underline underline-offset-4">

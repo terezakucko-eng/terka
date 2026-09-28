@@ -11,6 +11,7 @@ import { activeMassageServices, freeSlotsByDay, isMember, massagePassesFor } fro
 import { getCurrentUser } from "@/lib/auth";
 import { formatDay, formatShortDay, formatTime } from "@/lib/dates";
 import { formatPrice } from "@/lib/money";
+import { cardPayments } from "@/lib/payments";
 import { nbsp } from "@/lib/typography";
 
 async function load(slug: string) {
@@ -37,6 +38,7 @@ export default async function MassagePage({ params, searchParams }: PageProps<"/
   const day = typeof den === "string" && byDay.has(den) ? den : days[0];
   const slots = day ? byDay.get(day)! : [];
   const bankAccount = c("massages.bankAccount").trim();
+  const card = cardPayments();
   const here = `/masaze/${slug}${day ? `?den=${day}` : ""}`;
 
   return (
@@ -104,8 +106,9 @@ export default async function MassagePage({ params, searchParams }: PageProps<"/
                   {passes.length > 0 && (
                     <PayOption value="pass" title="Permanentkou" sub={`Strhne se 1 vstup (zbývá ${passLeft})`} checked />
                   )}
-                  <PayOption value="on_site" title="Na místě" sub="Kartou při návštěvě" checked={passes.length === 0} />
-                  {bankAccount && <PayOption value="transfer" title="Předem převodem" sub="Údaje a QR kód hned po rezervaci" />}
+                  {card && <PayOption value="card" title="Kartou online" sub="Zaplatíš hned po rezervaci" checked={passes.length === 0} />}
+                  {bankAccount && <PayOption value="transfer" title="Převodem" sub="Údaje a QR kód hned po rezervaci" checked={passes.length === 0 && !card} />}
+                  {!card && !bankAccount && <PayOption value="on_site" title="Na místě" sub="Při návštěvě" checked={passes.length === 0} />}
                 </div>
               </fieldset>
 

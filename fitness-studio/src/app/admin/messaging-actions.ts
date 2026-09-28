@@ -3,7 +3,6 @@
 import { and, eq, gt, inArray, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { site } from "@/config/site";
 import { getDb } from "@/db";
 import { campaigns, passwordResets, users, type Audience } from "@/db/schema";
 import { processCampaign, startCampaign, type Channel, type Recipient } from "@/domain/campaigns";
@@ -22,9 +21,10 @@ import { campaignSender, newsletterFooter } from "@/lib/campaign-sender";
 import { UserError, errorMessage } from "@/lib/errors";
 import { attempt, field, type FormState } from "@/lib/form";
 import { unsubscribeUrl } from "@/lib/links";
-import { sendMail } from "@/lib/mail";
+import { sendEmail } from "@/lib/email-templates";
 import { createPasswordLink } from "@/lib/password-links";
 import { normalizePhone } from "@/lib/phone";
+import { greetName } from "@/lib/vocative";
 
 const SEGMENTS: Audience["segment"][] = ["all", "members", "passes", "inactive", "new", "class_type", "session", "people"];
 
@@ -239,11 +239,7 @@ export async function inviteImportedAction(): Promise<FormState> {
     const batch = pending.filter((u) => !skip.has(u.id)).slice(0, 100);
     for (const u of batch) {
       const link = await createPasswordLink(u.id, 14 * 24, db);
-      await sendMail({
-        to: u.email,
-        subject: `${site.name}: tvůj účet v novém rezervačním systému`,
-        text: `Ahoj ${u.name.split(" ")[0]},\n\nspouštíme nový web a rezervace ${site.name}. Tvůj účet jsme převedli – včetně kreditu a permanentek.\n\nStačí si nastavit heslo (odkaz platí 14 dní):\n${link}\n\nPak se přihlásíš e-mailem ${u.email} a můžeš rezervovat.\n\nTěšíme se na tebe!`,
-      });
+      await sendEmail(u.email, "invite", { osloveni: greetName(u.name), odkaz: link, prihlaseni: u.email });
     }
     const left = pending.length - skip.size - batch.length;
     return `Pozvánka odeslána ${batch.length} klientům.${left > 0 ? ` Zbývá ${left} – klikni znovu.` : ""}${skip.size ? ` ${skip.size} už pozvánku dostalo v posledních 7 dnech.` : ""}`;

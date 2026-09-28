@@ -11,6 +11,7 @@ import {
   type Campaign,
 } from "@/db/schema";
 import { UserError } from "@/lib/errors";
+import { vocative } from "@/lib/vocative";
 
 const DAY = 86_400_000;
 
@@ -140,11 +141,12 @@ export async function audienceRecipients(
 
 export type Recipient = Awaited<ReturnType<typeof audienceRecipients>>[number];
 
-/** Replaces {{jmeno}}, {{cele_jmeno}}, {{kredit}}, {{odhlasit}}. */
+/** Replaces {{jmeno}}, {{osloveni}} (5. pád), {{cele_jmeno}}, {{kredit}}, {{odhlasit}}. */
 export function personalize(text: string, r: Recipient, unsubscribeUrl: string) {
   const first = r.name.trim().split(/\s+/)[0] ?? "";
   return text
     .replaceAll("{{jmeno}}", first)
+    .replaceAll("{{osloveni}}", vocative(first))
     .replaceAll("{{cele_jmeno}}", r.name)
     .replaceAll("{{kredit}}", String(r.creditBalance))
     .replaceAll("{{odhlasit}}", unsubscribeUrl);

@@ -2,7 +2,8 @@ import { getDb } from "@/db";
 import { site } from "@/config/site";
 import { dueReminders, markReminded } from "@/domain/reminders";
 import { formatDay, formatTime } from "@/lib/dates";
-import { sendMail } from "@/lib/mail";
+import { sendEmail } from "@/lib/email-templates";
+import { greetName } from "@/lib/vocative";
 
 export const maxDuration = 60;
 
@@ -20,10 +21,12 @@ export async function GET(req: Request) {
 
   for (const b of classes) {
     try {
-      await sendMail({
-        to: b.email,
-        subject: `Za chvíli: ${b.name} v ${formatTime(b.startsAt)}`,
-        text: `Ahoj ${b.userName},\n\npřipomínáme dnešní lekci ${b.name} – ${formatDay(b.startsAt)} v ${formatTime(b.startsAt)}.\n\nKdyby ses nakonec nemohl/a dostavit, zruš prosím rezervaci, ať se místo uvolní dalším: ${site.url}/rozvrh/${b.sessionId}\n\nTěšíme se!`,
+      await sendEmail(b.email, "reminderClass", {
+        osloveni: greetName(b.userName),
+        lekce: b.name,
+        den: formatDay(b.startsAt),
+        cas: formatTime(b.startsAt),
+        odkaz: `${site.url}/rozvrh/${b.sessionId}`,
       });
       done.classes.push(b.id);
     } catch {
@@ -32,10 +35,12 @@ export async function GET(req: Request) {
   }
   for (const m of massages) {
     try {
-      await sendMail({
-        to: m.email,
-        subject: `Za chvíli: ${m.name} v ${formatTime(m.startsAt)}`,
-        text: `Ahoj ${m.userName},\n\npřipomínáme dnešní masáž ${m.name} – ${formatDay(m.startsAt)} v ${formatTime(m.startsAt)}.\n\nDetail a případné zrušení: ${site.url}/masaze/rezervace/${m.id}\n\nTěšíme se!`,
+      await sendEmail(m.email, "reminderMassage", {
+        osloveni: greetName(m.userName),
+        masaz: m.name,
+        den: formatDay(m.startsAt),
+        cas: formatTime(m.startsAt),
+        odkaz: `${site.url}/masaze/rezervace/${m.id}`,
       });
       done.massages.push(m.id);
     } catch {

@@ -4,13 +4,16 @@ import type { DB, Executor } from "@/db";
 import {
   bookings,
   classSessions,
+  classTypes,
   entitlements,
+  massageBookings,
   orders,
   products,
   type Order,
   type Product,
 } from "@/db/schema";
 import { UserError } from "@/lib/errors";
+import { formatDay, formatTime } from "@/lib/dates";
 import { occupancy } from "./booking";
 import { changeCredits, extendCreditValidity } from "./wallet";
 
@@ -129,6 +132,10 @@ export async function fulfillOrder(
     }
 
     if (paid.kind === "drop_in") await confirmDropIn(tx, paid, now);
+    if (paid.kind === "surcharge" && paid.bookingId)
+      await tx.update(bookings).set({ surchargePaidAt: now }).where(eq(bookings.id, paid.bookingId));
+    if (paid.kind === "massage" && paid.massageBookingId)
+      await tx.update(massageBookings).set({ paidAt: now }).where(eq(massageBookings.id, paid.massageBookingId));
     return { order: paid, alreadyPaid: false };
   });
 }
@@ -279,6 +286,69 @@ export async function abandonOrder(db: DB, orderId: string, now = new Date()) {
         ),
       );
   });
+}
+
+/** Reuses the client's open order for the same thing, so a retry doesn't pile up orders. */
+async function openOrder(tx: Executor, where: ReturnType<typeof and>) {
+  const [o] = await tx
+    .select()
+    .from(orders)
+    .where(and(where, eq(orders.status, "pending")))
+    .orderBy(desc(orders.createdAt))
+    .limit(1);
+  return o ?? null;
+}
+
+/** Member surcharge (Reformer, Individuál) paid online – by card or bank transfer. */
+export async function createSurchargeOrder(db: Executor, input: { userId: string; bookingId: string }) {
+  const [row] = await db
+    .select({ b: bookings, s: classSessions, typeName: classTypes.name })
+    .from(bookings)
+    .innerJoin(classSessions, eq(bookings.sessionId, classSessions.id))
+    .innerJoin(classTypes, eq(classSessions.classTypeId, classTypes.id))
+    .where(and(eq(bookings.id, input.bookingId), eq(bookings.userId, input.userId)));
+  if (!row || row.b.surcharge <= 0) throw new UserError("K téhle rezervaci se nic nedoplácí.");
+  if (row.b.surchargePaidAt) throw new UserError("Doplatek už je zaplacený.");
+  if (!["confirmed", "attended"].includes(row.b.status)) throw new UserError("Rezervace je zrušená.");
+  const existing = await openOrder(db, and(eq(orders.kind, "surcharge"), eq(orders.bookingId, row.b.id)));
+  if (existing) return existing;
+  const [order] = await db
+    .insert(orders)
+    .values({
+      userId: input.userId,
+      kind: "surcharge",
+      bookingId: row.b.id,
+      sessionId: row.s.id,
+      description: `Doplatek – ${row.typeName} ${formatDay(row.s.startsAt)} ${formatTime(row.s.startsAt)}`,
+      amount: row.b.surcharge,
+      provider: "pending",
+    })
+    .returning();
+  return order;
+}
+
+/** Card payment of a massage booked online. */
+export async function createMassageOrder(db: Executor, input: { userId: string; bookingId: string }) {
+  const [b] = await db
+    .select()
+    .from(massageBookings)
+    .where(and(eq(massageBookings.id, input.bookingId), eq(massageBookings.userId, input.userId)));
+  if (!b || b.status === "cancelled") throw new UserError("Rezervace je zrušená.");
+  if (b.paidAt || b.payment === "pass") throw new UserError("Masáž už je zaplacená.");
+  const existing = await openOrder(db, and(eq(orders.kind, "massage"), eq(orders.massageBookingId, b.id)));
+  if (existing) return existing;
+  const [order] = await db
+    .insert(orders)
+    .values({
+      userId: input.userId,
+      kind: "massage",
+      massageBookingId: b.id,
+      description: `Masáž ${b.serviceName} – ${formatDay(b.startsAt)} ${formatTime(b.startsAt)}`,
+      amount: b.price,
+      provider: "pending",
+    })
+    .returning();
+  return order;
 }
 
 /** Reception sale – cash or card terminal, delivered immediately. */
