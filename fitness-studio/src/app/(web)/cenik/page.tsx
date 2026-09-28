@@ -9,7 +9,7 @@ import { activeClassTypes, activeProducts } from "@/lib/queries";
 import { getSettings } from "@/lib/settings";
 import { getContent, type Content } from "@/content";
 
-export const metadata: Metadata = { title: "Ceník, členství a permanentky" };
+export const metadata: Metadata = { title: "Ceník, členství a permanentky" };
 
 const groups = (c: Content): { kind: Product["kind"]; title: string; text: string }[] => [
   { kind: "membership", title: c("pricing.membershipTitle"), text: c("pricing.membershipText") },

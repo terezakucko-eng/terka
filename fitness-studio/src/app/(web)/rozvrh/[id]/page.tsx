@@ -14,6 +14,7 @@ import { formatDay, formatRange } from "@/lib/dates";
 import { credits, formatPrice } from "@/lib/money";
 import { sessionDetail } from "@/lib/queries";
 import { getContent } from "@/content";
+import { nbsp } from "@/lib/typography";
 
 const UUID = /^[0-9a-f-]{36}$/i;
 
@@ -66,8 +67,8 @@ export default async function SessionPage({ params }: PageProps<"/rozvrh/[id]">)
                 Z permanentky se na tuhle lekci strhnou {ct.passEntries} vstupy.
               </p>
             )}
-            {s.note && <p className="mt-6 rounded-xl border border-zlato/40 bg-zlato/10 p-4 text-zlato-light">{s.note}</p>}
-            <p className="mt-8 max-w-xl leading-relaxed text-papir/70">{ct.description}</p>
+            {s.note && <p className="mt-6 rounded-xl border border-zlato/40 bg-zlato/10 p-4 text-zlato-light">{nbsp(s.note)}</p>}
+            <p className="mt-8 max-w-xl leading-relaxed text-papir/70">{nbsp(ct.description)}</p>
             <p className="eyebrow mt-6 text-papir/50">Úroveň: {ct.level}</p>
             <dl className="mt-8 grid max-w-md grid-cols-3 gap-6 border-t border-zlato/20 pt-6 text-sm">
               <div><dt className="eyebrow text-papir/50">Cena</dt><dd className="mt-1 font-semibold">{s.isFree ? "Zdarma" : credits(s.creditCost)}</dd></div>
@@ -144,7 +145,7 @@ function BookingPanel({
     return (
       <div>
         <h2 className="text-2xl font-semibold">Rezervuj si místo</h2>
-        <p className="mt-3 text-les/70">Pro rezervaci se přihlas. Nový? Registrace trvá minutu a první lekce je zdarma.</p>
+        <p className="mt-3 text-les/70">Pro rezervaci se přihlas. Nový? Registrace trvá minutu a první lekce je zdarma.</p>
         <div className="mt-6 flex flex-col gap-3">
           <ButtonLink href={`/prihlaseni?next=/rozvrh/${sessionId}`}>Přihlásit se</ButtonLink>
           <ButtonLink href={`/registrace?next=/rozvrh/${sessionId}`} variant="outline">Vytvořit účet</ButtonLink>
@@ -160,13 +161,13 @@ function BookingPanel({
         {b?.status === "waitlist" ? (
           <ActionForm action={cancelBookingAction} className="mt-4">
             <input type="hidden" name="bookingId" value={b.id} />
-            <p className="text-les/70">Jsi v pořadníku na <strong>{view.waitlistPosition}. místě</strong>. Když se uvolní místo, automaticky tě přihlásíme a strhneme vstup z tvé permanentky/kreditu.</p>
-            <SubmitButton variant="outline" className="mt-5">Odejít z pořadníku</SubmitButton>
+            <p className="text-les/70">Jsi v pořadníku na <strong>{view.waitlistPosition}. místě</strong>. Když se uvolní místo, automaticky tě přihlásíme a strhneme vstup z tvé permanentky/kreditu.</p>
+            <SubmitButton variant="outline" className="mt-5">Odejít z pořadníku</SubmitButton>
           </ActionForm>
         ) : (
           <ActionForm action={waitlistAction} className="mt-4">
             <input type="hidden" name="sessionId" value={sessionId} />
-            <p className="text-les/70">Zapiš se do pořadníku. Jakmile někdo zruší, místo automaticky dostaneš a přijde ti e-mail. Potřebuješ mít kredit, permanentku nebo členství.</p>
+            <p className="text-les/70">Zapiš se do pořadníku. Jakmile někdo zruší, místo automaticky dostaneš a přijde ti e-mail. Potřebuješ mít kredit, permanentku nebo členství.</p>
             <SubmitButton className="mt-5">Zapsat do pořadníku</SubmitButton>
           </ActionForm>
         )}

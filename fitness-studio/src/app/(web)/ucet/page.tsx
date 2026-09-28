@@ -41,7 +41,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
     <div className="space-y-12">
       {vitej && (
         <p className="rounded-2xl bg-forest p-6 text-papir">
-          <span className="text-gold text-xl font-semibold">Vítej v OCTOPUSH!</span>
+          <span className="text-gold text-xl font-semibold">Vítej v OCTOPUSH!</span>
           <br />
           Na účtu máš připravenou úvodní lekci zdarma. <Link href="/rozvrh" className="underline">Vyber si ji v rozvrhu →</Link>
         </p>
@@ -58,7 +58,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
           <ButtonLink href="/cenik" variant="outline-light" className="mt-6 px-4 py-2">Dobít</ButtonLink>
         </Card>
         <Card className="md:col-span-2">
-          <Eyebrow className="text-zeme">Permanentky a členství</Eyebrow>
+          <Eyebrow className="text-zeme">Permanentky a členství</Eyebrow>
           {ents.length === 0 ? (
             <p className="mt-4 text-les/60">
               Žádná aktivní permanentka. <Link href="/cenik" className="font-semibold text-zeme underline">Prohlédnout ceník</Link>
@@ -111,7 +111,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
           <Link href="/rozvrh" className="eyebrow text-zeme underline underline-offset-4">Rezervovat další</Link>
         </div>
         <div className="mt-5 space-y-3">
-          {upcoming.length === 0 && <Empty>Zatím nemáš žádnou rezervaci. Vyber si lekci v rozvrhu.</Empty>}
+          {upcoming.length === 0 && <Empty>Zatím nemáš žádnou rezervaci. Vyber si lekci v rozvrhu.</Empty>}
           {upcoming.map(({ b, s, ct }) => (
             <Card key={b.id} className="flex flex-wrap items-center justify-between gap-4 p-4 sm:p-5">
               <Link href={`/rozvrh/${s.id}`} className="flex items-center gap-4">

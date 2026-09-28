@@ -7,6 +7,7 @@ import { formatDate, pragueLocalToDate } from "@/lib/dates";
 import { activeClassTypes, activeProducts } from "@/lib/queries";
 import { getContent } from "@/content";
 import { ContentImage } from "@/components/content-image";
+import { nbsp } from "@/lib/typography";
 
 export const metadata: Metadata = { title: "Lekce" };
 
@@ -33,7 +34,7 @@ export default async function ClassesPage() {
               <h2 className="mt-4 flex items-center gap-3 text-3xl font-semibold tracking-tight">
                 <span className="size-3 rounded-full" style={{ background: t.color }} /> {t.name}
               </h2>
-              <p className="mt-4 flex-1 text-les/70">{t.description}</p>
+              <p className="mt-4 flex-1 text-les/70">{nbsp(t.description)}</p>
               <p className="mt-6 text-sm text-les/60">
                 {t.durationMin} min · {credits(t.creditCost)}
                 {t.dropInPrice !== null && ` · jednorázově ${formatPrice(t.dropInPrice)}`}
@@ -49,7 +50,7 @@ export default async function ClassesPage() {
                 </p>
               )}
               <Link href={`/rozvrh?lekce=${t.slug}`} className="eyebrow mt-6 text-zeme underline underline-offset-4 hover:text-les">
-                Termíny v rozvrhu →
+                Termíny v rozvrhu →
               </Link>
               </div>
             </article>

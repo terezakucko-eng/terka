@@ -7,7 +7,7 @@ import { Card, Container, Eyebrow } from "@/components/ui";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
 
-export const metadata: Metadata = { title: "Odhlášení z odběru", robots: { index: false } };
+export const metadata: Metadata = { title: "Odhlášení z odběru", robots: { index: false } };
 
 export default async function UnsubscribePage({ params }: PageProps<"/o/[token]">) {
   const { token } = await params;
@@ -32,10 +32,10 @@ export default async function UnsubscribePage({ params }: PageProps<"/o/[token]"
               <input type="hidden" name="token" value={token} />
               <SubmitButton variant="dark">Odhlásit ze všech novinek</SubmitButton>
             </ActionForm>
-            <p className="mt-4 text-xs text-les/50">Informace k tvým rezervacím (potvrzení, zrušení lekce) ti budeme posílat dál.</p>
+            <p className="mt-4 text-xs text-les/50">Informace k tvým rezervacím (potvrzení, zrušení lekce) ti budeme posílat dál.</p>
           </>
         ) : (
-          <p className="mt-3 text-les/70">Nejsi přihlášený/á k odběru žádných novinek. Kdyby sis to rozmyslel/a, zapneš je v profilu svého účtu.</p>
+          <p className="mt-3 text-les/70">Nejsi přihlášený/á k odběru žádných novinek. Kdyby sis to rozmyslel/a, zapneš je v profilu svého účtu.</p>
         )}
       </Card>
     </Container>
