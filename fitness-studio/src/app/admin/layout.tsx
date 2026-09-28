@@ -46,7 +46,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const nav = items.filter((i) => !i.admin || user.role === "admin");
   return (
     <div className="flex min-h-screen flex-col bg-papir lg:flex-row">
-      <aside className="bg-les text-papir lg:sticky lg:top-0 lg:h-screen lg:w-60 lg:shrink-0">
+      <aside className="bg-les text-papir lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-60 lg:shrink-0 lg:flex-col">
         <div className="flex items-center justify-between px-5 py-4 lg:block lg:py-6">
           <Link href="/admin" className="flex items-center gap-3">
             <Symbol className="w-8" />
@@ -54,7 +54,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
           </Link>
           <Link href="/" className="eyebrow text-papir/50 hover:text-zlato-light lg:mt-3 lg:block">← Web</Link>
         </div>
-        <nav className="flex gap-1 overflow-x-auto px-3 pb-3 lg:flex-col lg:pb-0">
+        <nav className="flex gap-1 overflow-x-auto px-3 pb-3 lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-y-auto lg:pb-2">
           {nav.map((i) => (
             <Link
               key={i.href}
@@ -65,7 +65,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
             </Link>
           ))}
         </nav>
-        <div className="hidden px-5 py-6 text-xs text-papir/50 lg:absolute lg:bottom-0 lg:block">
+        <div className="hidden shrink-0 border-t border-papir/10 px-5 py-4 text-xs text-papir/50 lg:block">
           <p>{user.name}</p>
           <form action={logoutAction}>
             <button className="mt-1 underline hover:text-papir">Odhlásit</button>

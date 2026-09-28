@@ -1,5 +1,6 @@
 "use server";
 
+import { toSafeHtml } from "@/lib/rich-html";
 import { and, eq, gte, inArray, lt } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -193,7 +194,7 @@ export async function saveAnnouncementAction(_: FormState, fd: FormData): Promis
     const db = await getDb();
     const values = {
       title: required(field.str(fd, "title"), "Vyplň nadpis."),
-      body: required(field.str(fd, "body"), "Vyplň text."),
+      body: required(toSafeHtml(field.str(fd, "body")), "Vyplň text."),
       isPinned: field.bool(fd, "isPinned"),
       isPublished: field.bool(fd, "isPublished"),
     };

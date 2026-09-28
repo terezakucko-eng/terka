@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import {
@@ -46,8 +46,22 @@ export function RichEditor({ name, defaultValue, minHeight = 260 }: { name: stri
     onUpdate: ({ editor }) => setHtml(editor.isEmpty ? "" : editor.getHTML()),
   });
 
+  // Form reset (e.g. after saving a new post) also clears the editor.
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const form = box.current?.closest("form");
+    if (!form || !editor) return;
+    const onReset = () => {
+      editor.commands.setContent(defaultValue);
+      setHtml(defaultValue);
+    };
+    form.addEventListener("reset", onReset);
+    return () => form.removeEventListener("reset", onReset);
+  }, [editor, defaultValue]);
+
   return (
     <div
+      ref={box}
       className="overflow-hidden rounded-xl border border-linka bg-white/80 focus-within:border-les"
       style={{ "--min-h": `${minHeight}px` } as React.CSSProperties}
     >

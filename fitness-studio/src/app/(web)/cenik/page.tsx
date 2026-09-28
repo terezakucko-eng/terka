@@ -10,7 +10,11 @@ import { getSettings } from "@/lib/settings";
 import { getContent, type Content } from "@/content";
 import { nbsp } from "@/lib/typography";
 
-export const metadata: Metadata = { title: "Ceník, členství a permanentky" };
+export const metadata: Metadata = {
+  title: "Ceník, členství a permanentky",
+  description: "Ceník studia OCTOPUSH v Ostravě: členství, permanentky, kredity, jednorázové vstupy a masáže. Platba kartou nebo převodem.",
+  alternates: { canonical: "/cenik" },
+};
 
 const groups = (c: Content): { kind: Product["kind"]; title: string; text: string }[] => [
   { kind: "membership", title: c("pricing.membershipTitle"), text: c("pricing.membershipText") },

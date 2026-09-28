@@ -32,6 +32,7 @@ export async function generateMetadata(): Promise<Metadata> {
       description: c("site.description"),
       images: [c("homeHero.image")],
     },
+    twitter: { card: "summary_large_image" },
   };
 }
 

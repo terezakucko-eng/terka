@@ -4,7 +4,7 @@ import { ActionForm, SubmitButton } from "@/components/forms";
 import { Eyebrow, Field } from "@/components/ui";
 import { PasswordInput } from "@/components/password-input";
 
-export const metadata: Metadata = { title: "Nové heslo" };
+export const metadata: Metadata = { title: "Nové heslo", robots: { index: false } };
 
 export default async function ResetPage({ searchParams }: PageProps<"/obnova-hesla">) {
   const { token } = await searchParams;

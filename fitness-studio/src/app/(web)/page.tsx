@@ -1,4 +1,6 @@
+import { RichText } from "@/components/rich-text";
 import { AnimatedOctopus } from "@/components/animated-octopus";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { getContent } from "@/content";
@@ -14,6 +16,8 @@ import { formatDate, formatShortDay } from "@/lib/dates";
 import { formatPrice } from "@/lib/money";
 import { activeProducts, listSessions, publishedAnnouncements } from "@/lib/queries";
 import { nbsp } from "@/lib/typography";
+
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 export default async function Home() {
   const db = await getDb();
@@ -162,7 +166,7 @@ export default async function Home() {
                 <article key={a.id} className="border-t border-les/80 pt-5">
                   <p className="eyebrow text-les/50">{formatDate(a.createdAt)}</p>
                   <h3 className="mt-2 text-xl font-semibold">{nbsp(a.title)}</h3>
-                  <p className="mt-2 whitespace-pre-line text-les/70">{nbsp(a.body)}</p>
+                  <RichText text={a.body} className="mt-2 line-clamp-6 text-les/70" />
                 </article>
               ))}
             </div>

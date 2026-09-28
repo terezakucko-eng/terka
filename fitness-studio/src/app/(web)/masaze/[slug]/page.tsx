@@ -21,7 +21,13 @@ async function load(slug: string) {
 
 export async function generateMetadata({ params }: PageProps<"/masaze/[slug]">): Promise<Metadata> {
   const m = await load((await params).slug);
-  return m ? { title: `${m.name} – masáž` } : {};
+  return m
+    ? {
+        title: `${m.name} – masáž`,
+        description: m.description.replace(/\s+/g, " ").slice(0, 160) || undefined,
+        alternates: { canonical: `/masaze/${m.slug}` },
+      }
+    : {};
 }
 
 export default async function MassagePage({ params, searchParams }: PageProps<"/masaze/[slug]">) {

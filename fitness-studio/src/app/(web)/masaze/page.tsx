@@ -8,7 +8,11 @@ import { activeMassageServices } from "@/domain/massages";
 import { formatPrice } from "@/lib/money";
 import { nbsp } from "@/lib/typography";
 
-export const metadata: Metadata = { title: "Masáže" };
+export const metadata: Metadata = {
+  title: "Masáže",
+  description: "Masáže ve studiu OCTOPUSH v Ostravě. Vyber si masáž a volný termín a zarezervuj si ji online.",
+  alternates: { canonical: "/masaze" },
+};
 
 export default async function MassagesPage() {
   const [services, c] = await Promise.all([activeMassageServices(await getDb()), getContent()]);

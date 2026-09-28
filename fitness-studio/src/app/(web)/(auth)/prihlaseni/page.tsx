@@ -8,7 +8,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getContent } from "@/content";
 import { PasswordInput } from "@/components/password-input";
 
-export const metadata: Metadata = { title: "Přihlášení" };
+export const metadata: Metadata = { title: "Přihlášení", robots: { index: false } };
 
 export default async function LoginPage({ searchParams }: PageProps<"/prihlaseni">) {
   const { next } = await searchParams;

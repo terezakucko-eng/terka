@@ -72,5 +72,7 @@ const OPTIONS: sanitizeHtml.IOptions = {
 /** Any stored rich text (HTML or legacy markdown) → safe HTML. */
 export function toSafeHtml(text: string): string {
   if (!text.trim()) return "";
-  return sanitizeHtml(isHtml(text) ? text : legacyToHtml(text), OPTIONS).trim();
+  return sanitizeHtml(isHtml(text) ? text : legacyToHtml(text), OPTIONS)
+    .replace(/(<p>(\s|<br \/>|<br>)*<\/p>\s*)+$/, "") // empty lines left at the end of the editor
+    .trim();
 }
