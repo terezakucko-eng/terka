@@ -117,8 +117,8 @@ export async function paySurchargeAction(_: FormState, fd: FormData): Promise<Fo
     const method: PayMethod = field.str(fd, "pay") === "card" && cardPayments() ? "card" : "transfer";
     try {
       url = await startCheckout(db, order, user, null, method);
-    } catch {
-      throw new UserError("Platební brána teď není dostupná. Zkus to prosím za chvíli, nebo zaplať převodem.");
+    } catch (e) {
+      throw e instanceof UserError ? e : new UserError("Platební brána teď není dostupná. Zkus to prosím za chvíli, nebo zaplať převodem.");
     }
   });
   if (url) redirect(url);
