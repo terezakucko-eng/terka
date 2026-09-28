@@ -137,6 +137,8 @@ export const users = pgTable("users", {
   birthDate: text("birth_date"),
   /** Svátek "MM-DD" */
   nameDay: text("name_day"),
+  /** Kdy klient potvrdil, že mu zdravotní stav cvičení dovoluje */
+  healthConfirmedAt: timestamp("health_confirmed_at", { withTimezone: true }),
   stripeCustomerId: text("stripe_customer_id"),
   createdAt: createdAt(),
 });

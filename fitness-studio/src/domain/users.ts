@@ -19,6 +19,7 @@ export async function registerUser(
     marketingConsent?: boolean;
     smsConsent?: boolean;
     whatsappConsent?: boolean;
+    healthConfirmed?: boolean;
   },
   now = new Date(),
 ) {
@@ -40,6 +41,7 @@ export async function registerUser(
         email,
         name: input.name.trim(),
         phone: input.phone?.trim() || null,
+        healthConfirmedAt: input.healthConfirmed ? now : null,
         passwordHash: input.passwordHash,
         marketingConsent: input.marketingConsent ?? false,
         smsConsent: input.smsConsent ?? false,

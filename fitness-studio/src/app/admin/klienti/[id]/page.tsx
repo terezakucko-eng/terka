@@ -55,6 +55,7 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
           {u.nickname && <p>Přezdívka: <strong>{u.nickname}</strong></p>}
           {u.birthDate && <p>Narozeniny: <strong>{formatDate(new Date(`${u.birthDate}T12:00:00Z`))}</strong></p>}
           {u.nameDay && <p>Svátek: <strong>{formatDayMonth(u.nameDay)}</strong></p>}
+          <p>{u.healthConfirmedAt ? `Zdravotní způsobilost potvrzena ${formatDate(u.healthConfirmedAt)}` : "Zdravotní způsobilost zatím nepotvrzena (potvrdí při další rezervaci)"}</p>
         </div>
       </div>
       <AdminTitle title={u.name}>

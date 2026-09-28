@@ -41,3 +41,17 @@ describe("profile helpers", () => {
     expect(upcomingCelebrations(people, "2027-02-28", 1).map((x) => x.user.id)).toEqual(["c"]);
   });
 });
+
+describe("health confirmation", () => {
+  it("is stored when the client registers with it", async () => {
+    const { testDb } = await import("./helpers");
+    const { registerUser } = await import("@/domain/users");
+    const h = await testDb();
+    const now = new Date("2026-09-28T10:00:00Z");
+    const yes = await registerUser(h.db, { email: "h1@test.cz", name: "A", passwordHash: "x", healthConfirmed: true }, now);
+    const no = await registerUser(h.db, { email: "h2@test.cz", name: "B", passwordHash: "x" }, now);
+    expect(yes.healthConfirmedAt).toEqual(now);
+    expect(no.healthConfirmedAt).toBeNull();
+    await h.close();
+  });
+});

@@ -68,8 +68,10 @@ export async function registerAction(_: FormState, fd: FormData): Promise<FormSt
     const parsed = registerSchema.safeParse(Object.fromEntries(fd));
     if (!parsed.success) throw new UserError(parsed.error.issues[0].message);
     const d = parsed.data;
+    if (!field.bool(fd, "health")) throw new UserError("Potvrď prosím, že ti zdravotní stav cvičení dovoluje.");
     const db = await getDb();
     const user = await registerUser(db, {
+      healthConfirmed: true,
       email: d.email,
       name: d.name,
       phone: normalizePhone(d.phone) ?? (d.phone || null),
