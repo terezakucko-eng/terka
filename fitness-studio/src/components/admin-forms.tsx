@@ -26,10 +26,10 @@ export function SessionFields({
           {instructorList.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
         </Select>
       </Field>
-      <Field label="Kapacita" hint={s ? undefined : "Prázdné = dle typu lekce"}>
+      <Field label="Kapacita" hint={s ? undefined : "Předvyplněno podle typu lekce"}>
         <Input name="capacity" type="number" min={1} defaultValue={s?.capacity} />
       </Field>
-      <Field label="Délka (min)" hint={s ? undefined : "Prázdné = dle typu lekce"}>
+      <Field label="Délka (min)" hint={s ? undefined : "Předvyplněno podle typu lekce"}>
         <Input name="durationMin" type="number" min={10} defaultValue={s?.durationMin} />
       </Field>
       <Field label="Cena v kreditech">

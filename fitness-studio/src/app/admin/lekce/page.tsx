@@ -61,6 +61,9 @@ function ClassTypeForm({ t }: { t?: ClassType }) {
         </Field>
         {t?.imageUrl && <label className="flex items-center gap-2 text-xs"><input type="checkbox" name="removeImage" /> Odebrat fotku</label>}
       </div>
+      <Field label="Videoukázka – odkaz" hint="YouTube nebo Vimeo (klidně jako neveřejné video). Prázdné = bez videa.">
+        <Input name="videoUrl" type="url" placeholder="https://youtu.be/…" defaultValue={t?.videoUrl ?? ""} />
+      </Field>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="isActive" defaultChecked={t?.isActive ?? true} /> Aktivní (zobrazit na webu)</label>
       <SubmitButton>Uložit</SubmitButton>
     </ActionForm>

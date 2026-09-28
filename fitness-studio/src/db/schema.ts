@@ -121,6 +121,8 @@ export const users = pgTable("users", {
   marketingConsent: boolean("marketing_consent").notNull().default(false),
   smsConsent: boolean("sms_consent").notNull().default(false),
   whatsappConsent: boolean("whatsapp_consent").notNull().default(false),
+  /** Chce e-mailem připomínku lekce/masáže den předem */
+  remindersOptIn: boolean("reminders_opt_in").notNull().default(false),
   /** pro odhlašovací odkaz v newsletteru/SMS bez přihlášení */
   unsubscribeToken: text("unsubscribe_token")
     .notNull()
@@ -178,6 +180,8 @@ export const classTypes = pgTable("class_types", {
   capacity: integer("capacity").notNull().default(12),
   color: text("color").notNull().default("#7F40FF"),
   imageUrl: text("image_url"),
+  /** Odkaz na videoukázku (YouTube / Vimeo) */
+  videoUrl: text("video_url"),
   level: text("level").notNull().default("Pro všechny"),
   /** Doplatek pro členy za lekci (haléře); null = bez doplatku */
   memberSurcharge: integer("member_surcharge"),

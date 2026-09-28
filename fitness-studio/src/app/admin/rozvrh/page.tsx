@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { createSessionsAction, deleteSessionsAction, deleteSessionsRangeAction } from "@/app/admin/actions";
 import { AdminTitle, Panel, Table, Td } from "@/components/admin";
 import { SessionFields } from "@/components/admin-forms";
+import { TypeDefaults } from "@/components/type-defaults";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { spotsLabel } from "@/components/session-card";
 import { Badge, Field, Input, Select } from "@/components/ui";
@@ -66,6 +67,7 @@ export default async function AdminSchedule({ searchParams }: PageProps<"/admin/
           <Panel title="+ Přidat lekce (jednorázově nebo opakovaně)">
             <ActionForm action={createSessionsAction} className="space-y-5">
               <SessionFields types={types} instructorList={instructorList} />
+              <TypeDefaults types={types.map((t) => ({ id: t.id, capacity: t.capacity, durationMin: t.durationMin, creditCost: t.creditCost, dropInPrice: t.dropInPrice }))} />
               <div className="grid gap-4 sm:grid-cols-3">
                 <Field label="Datum (od)"><Input name="dateFrom" type="date" defaultValue={today} required /></Field>
                 <Field label="Čas začátku"><Input name="time" type="time" defaultValue="18:00" required /></Field>

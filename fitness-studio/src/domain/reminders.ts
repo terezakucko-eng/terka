@@ -9,7 +9,7 @@ function tomorrow(now: Date) {
   return { from: pragueLocalToDate(day), to: pragueLocalToDate(addDays(day, 1)) };
 }
 
-/** Confirmed classes and massages tomorrow whose reminder hasn't been sent yet. */
+/** Confirmed classes and massages tomorrow whose reminder hasn't been sent yet – only for clients who asked for reminders. */
 export async function dueReminders(db: DB, now = new Date()) {
   const { from, to } = tomorrow(now);
   const classes = await db
@@ -21,6 +21,7 @@ export async function dueReminders(db: DB, now = new Date()) {
     .where(
       and(
         eq(bookings.status, "confirmed"),
+        eq(users.remindersOptIn, true),
         isNull(bookings.reminderSentAt),
         eq(classSessions.status, "scheduled"),
         gte(classSessions.startsAt, from),
@@ -34,6 +35,7 @@ export async function dueReminders(db: DB, now = new Date()) {
     .where(
       and(
         eq(massageBookings.status, "confirmed"),
+        eq(users.remindersOptIn, true),
         isNull(massageBookings.reminderSentAt),
         gte(massageBookings.startsAt, from),
         lt(massageBookings.startsAt, to),

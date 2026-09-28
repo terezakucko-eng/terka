@@ -3,6 +3,7 @@ import { Menu, UserRound, X } from "lucide-react";
 import { getContent } from "@/content";
 import { getCurrentUser } from "@/lib/auth";
 import { LogoLink } from "./brand";
+import { CloseMenuOnClick } from "./close-menu-on-click";
 import { buttonClass } from "./ui";
 
 export async function SiteHeader() {
@@ -22,9 +23,9 @@ export async function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-zlato/15 bg-les/95 text-papir backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6 px-4 sm:px-6 xl:max-w-7xl">
         <LogoLink />
-        <nav className="hidden items-center gap-6 xl:flex" aria-label="Hlavní menu">
+        <nav className="mx-auto hidden items-center gap-5 xl:flex 2xl:gap-7" aria-label="Hlavní menu">
           {nav.map((n) => (
             <Link key={n.href} href={n.href} className="eyebrow whitespace-nowrap text-papir/75 transition hover:text-zlato-light">
               {n.label}
@@ -45,6 +46,7 @@ export async function SiteHeader() {
               <X className="hidden size-5 group-open:block" />
               <span className="sr-only">Menu</span>
             </summary>
+            <CloseMenuOnClick />
             <nav className="fixed inset-x-0 top-16 border-b border-zlato/20 bg-les px-6 py-6">
               <ul className="space-y-4">
                 {[...nav, account].map((n) => (

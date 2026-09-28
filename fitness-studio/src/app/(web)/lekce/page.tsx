@@ -8,6 +8,7 @@ import { activeClassTypes, activeProducts } from "@/lib/queries";
 import { getContent } from "@/content";
 import { ContentImage } from "@/components/content-image";
 import { nbsp } from "@/lib/typography";
+import { VideoEmbed } from "@/components/video-embed";
 
 export const metadata: Metadata = { title: "Lekce" };
 
@@ -35,6 +36,7 @@ export default async function ClassesPage() {
                 <span className="size-3 rounded-full" style={{ background: t.color }} /> {t.name}
               </h2>
               <p className="mt-4 flex-1 text-les/70">{nbsp(t.description)}</p>
+              <VideoEmbed url={t.videoUrl} title={t.name} className="mt-5" />
               <p className="mt-6 text-sm text-les/60">
                 {t.durationMin} min · {credits(t.creditCost)}
                 {t.dropInPrice !== null && ` · jednorázově ${formatPrice(t.dropInPrice)}`}

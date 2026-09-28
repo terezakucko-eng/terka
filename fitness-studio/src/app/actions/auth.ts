@@ -72,6 +72,7 @@ export async function registerAction(_: FormState, fd: FormData): Promise<FormSt
     const db = await getDb();
     const user = await registerUser(db, {
       healthConfirmed: true,
+      remindersOptIn: field.bool(fd, "reminders"),
       email: d.email,
       name: d.name,
       phone: normalizePhone(d.phone) ?? (d.phone || null),
@@ -159,6 +160,7 @@ export async function updateProfileAction(_: FormState, fd: FormData): Promise<F
         nickname: field.str(fd, "nickname").slice(0, 30) || null,
         birthDate: cleanBirthDate(field.str(fd, "birthDate")),
         nameDay: cleanNameDay(field.int(fd, "nameDayDay"), field.int(fd, "nameDayMonth")),
+        remindersOptIn: field.bool(fd, "reminders"),
       })
       .where(eq(users.id, user.id));
     return "Profil uložen.";
