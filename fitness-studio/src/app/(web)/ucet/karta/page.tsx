@@ -30,7 +30,7 @@ export default async function MemberCardPage() {
         </div>
         <div className="mx-auto mt-6 w-52 rounded-2xl bg-white p-3" dangerouslySetInnerHTML={{ __html: qr }} />
         <p className="mt-6 text-center text-xl font-semibold">{user.name}</p>
-        <p className="text-center text-sm text-papir/60">klientem od {formatDate(user.createdAt)}</p>
+        <p className="text-center text-sm text-papir/60">s námi od {formatDate(user.createdAt)}</p>
         <ul className="mt-6 space-y-2 border-t border-zlato/20 pt-4 text-sm">
           {ents.map((e) => (
             <li key={e.id} className="flex justify-between gap-3">

@@ -58,7 +58,7 @@ export async function GET() {
         </div>
 
         <span style={{ marginTop: 70, fontSize: 64, fontWeight: 600, textAlign: "center" }}>{user.name}</span>
-        <span style={{ marginTop: 14, fontSize: 32, color: "rgba(243,235,222,.6)" }}>klientem od {formatDate(user.createdAt)}</span>
+        <span style={{ marginTop: 14, fontSize: 32, color: "rgba(243,235,222,.6)" }}>s námi od {formatDate(user.createdAt)}</span>
         {membership && (
           <span style={{ marginTop: 26, fontSize: 34, color: "#f7dbb4" }}>
             {membership.name} · do {formatDate(membership.validUntil)}
