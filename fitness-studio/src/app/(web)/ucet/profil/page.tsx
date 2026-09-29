@@ -111,9 +111,9 @@ export default async function ProfilePage() {
         </ActionForm>
       </Card>
       <Card>
-        <h2 className="text-xl font-semibold">Upozornění v telefonu</h2>
+        <h2 className="text-xl font-semibold">Upozornění v tomhle zařízení</h2>
         <p className="mt-2 text-sm text-les/70">
-          Připomínka lekce, uvolněné místo z pořadníku nebo zrušená lekce ti přijde jako notifikace – rychleji než e-mail.
+          Připomínka lekce, uvolněné místo z pořadníku nebo zrušená lekce ti přijde jako notifikace – rychleji než e-mail. Zapíná se zvlášť v každém zařízení – v mobilu i v počítači.
         </p>
         <PushToggle publicKey={publicKey} className="mt-4" />
       </Card>

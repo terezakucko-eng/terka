@@ -47,10 +47,10 @@ export function WelcomeTour({ firstName, publicKey, marketing, reminders, sms, w
       ),
     },
     {
-      title: "2. Upozornění do telefonu",
+      title: "2. Upozornění v tomhle zařízení",
       body: (
         <>
-          <p className="mb-4">Dáme ti vědět, když se uvolní místo z pořadníku, když se lekce ruší, a připomeneme lekci před začátkem.</p>
+          <p className="mb-4">Dáme ti vědět, když se uvolní místo z pořadníku, když se lekce ruší, a připomeneme lekci před začátkem. Zapíná se zvlášť v každém zařízení – v mobilu i v počítači.</p>
           <PushToggle publicKey={publicKey} />
         </>
       ),
