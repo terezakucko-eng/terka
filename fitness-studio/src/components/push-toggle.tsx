@@ -3,6 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Bell, BellOff } from "lucide-react";
 import { removePushSubscription, savePushSubscription } from "@/app/actions/push";
+import { InstallGuide } from "./install-guide";
 import { cx } from "./ui";
 
 type State = "loading" | "unsupported" | "ios-home" | "denied" | "off" | "on";
@@ -83,10 +84,10 @@ export function PushToggle({ publicKey, className }: { publicKey: string; classN
       {shown === "loading" && <p className="text-les/50">Zjišťuji, jestli tohle zařízení umí upozornění…</p>}
       {shown === "unsupported" && <p className="text-les/60">Tenhle prohlížeč upozornění neumí. Zkus Chrome, Edge, Firefox nebo Safari.</p>}
       {shown === "ios-home" && (
-        <p className="text-les/70">
-          Na iPhonu fungují upozornění jen z aplikace na ploše: klepni na <strong>Sdílet</strong> (čtvereček se šipkou – v Safari
-          dole, v Chromu nahoře vedle adresy) → <strong>Přidat na plochu</strong>, otevři OCTOPUSH z plochy a tady je zapni.
-        </p>
+        <div className="text-les/70">
+          <p>Na iPhonu fungují upozornění jen z aplikace na ploše. Přidej si OCTOPUSH na plochu:</p>
+          <InstallGuide only={["ios"]} after="Pak otevři OCTOPUSH z plochy a upozornění tady zapni." />
+        </div>
       )}
       {shown === "denied" && (
         <p className="text-les/70">Upozornění máš pro tenhle web zakázaná. Povol je v nastavení prohlížeče (ikona zámku vedle adresy) a zkus to znovu.</p>

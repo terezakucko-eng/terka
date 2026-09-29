@@ -1,23 +1,15 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import { Download, Smartphone } from "lucide-react";
 import { cardPromptDoneAction, cardSavedAction } from "@/app/actions/card";
 import { shareOrDownload } from "@/lib/share-image";
-
-type Platform = "ios" | "android" | "other";
-
-const detect = (): Platform => {
-  const ua = navigator.userAgent;
-  return /iPhone|iPad|iPod/.test(ua) ? "ios" : /Android/.test(ua) ? "android" : "other";
-};
-const noSubscribe = () => () => {};
+import { InstallGuide } from "./install-guide";
 
 /** Save the member card to the phone: as a photo, or the whole site as an app on the home screen. */
 export function CardSave({ embedded }: { embedded?: boolean }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
-  const platform = useSyncExternalStore(noSubscribe, detect, () => "other" as Platform);
   const [install, setInstall] = useState<{ prompt: () => Promise<void> } | null>(null);
 
   useEffect(() => {
@@ -69,12 +61,8 @@ export function CardSave({ embedded }: { embedded?: boolean }) {
           >
             Přidat na plochu
           </button>
-        ) : platform === "ios" ? (
-          <p className="mt-2">Klepni na <strong>Sdílet</strong> (čtvereček se šipkou – v Safari dole, v Chromu nahoře vedle adresy) → <strong>Přidat na plochu</strong>. Rozvrh, rezervace i karta pak budou jedním klepnutím.</p>
-        ) : platform === "android" ? (
-          <p className="mt-2">V Chromu otevři menu <strong>⋮</strong> → <strong>Přidat na plochu</strong> (nebo „Nainstalovat aplikaci“).</p>
         ) : (
-          <p className="mt-2">Otevři tuhle stránku v mobilu – na iPhonu přes Sdílet → Přidat na plochu, na Androidu přes menu ⋮ → Přidat na plochu.</p>
+          <InstallGuide after="Rozvrh, rezervace i karta pak budou jedním klepnutím." />
         )}
       </div>
     </div>
