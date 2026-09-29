@@ -67,6 +67,9 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
           publicKey={(await vapidKeys(db)).publicKey}
           marketing={user.marketingConsent}
           reminders={user.remindersOptIn}
+          sms={user.smsConsent}
+          whatsapp={user.whatsappConsent}
+          hasPhone={!!user.phone}
         />
       )}
       {user.bookingPausedUntil && user.bookingPausedUntil > new Date() && (

@@ -8,17 +8,17 @@ import { CardSave } from "./card-save";
 import { PushToggle } from "./push-toggle";
 import { cx } from "./ui";
 
-type Props = { firstName: string; publicKey: string; marketing: boolean; reminders: boolean };
+type Props = { firstName: string; publicKey: string; marketing: boolean; reminders: boolean; sms: boolean; whatsapp: boolean; hasPhone: boolean };
 
 /**
  * Short tour after the first sign-in (also for clients moved from the old
  * system): member card on the phone, notifications, newsletter & reminders.
  * Every step can be skipped; finishing or closing hides it for good.
  */
-export function WelcomeTour({ firstName, publicKey, marketing, reminders }: Props) {
+export function WelcomeTour({ firstName, publicKey, marketing, reminders, sms, whatsapp, hasPhone }: Props) {
   const [open, setOpen] = useState(true);
   const [step, setStep] = useState(0);
-  const [prefs, setPrefs] = useState({ marketing, reminders });
+  const [prefs, setPrefs] = useState({ marketing, reminders, sms, whatsapp, phone: "" });
   if (!open) return null;
 
   const close = () => {
@@ -56,7 +56,7 @@ export function WelcomeTour({ firstName, publicKey, marketing, reminders }: Prop
       ),
     },
     {
-      title: "3. Novinky a připomínky e-mailem",
+      title: "3. Novinky a připomínky",
       body: (
         <div className="space-y-3">
           <label className="flex gap-3">
@@ -67,9 +67,28 @@ export function WelcomeTour({ firstName, publicKey, marketing, reminders }: Prop
               className="mt-1 accent-[#674329]"
             />
             <span>
-              <strong>Newsletter</strong> – nové lekce, workshopy a akce se dozvíš jako první. <span className="text-les/60">(doporučujeme)</span>
+              <strong>Newsletter e-mailem</strong> – nové lekce, workshopy a akce se dozvíš jako první. <span className="text-les/60">(doporučujeme)</span>
             </span>
           </label>
+          <label className="flex gap-3">
+            <input type="checkbox" checked={prefs.sms} onChange={(e) => setPrefs((p) => ({ ...p, sms: e.target.checked }))} className="mt-1 accent-[#674329]" />
+            <span><strong>Novinky a akce SMS</strong></span>
+          </label>
+          <label className="flex gap-3">
+            <input type="checkbox" checked={prefs.whatsapp} onChange={(e) => setPrefs((p) => ({ ...p, whatsapp: e.target.checked }))} className="mt-1 accent-[#674329]" />
+            <span><strong>Novinky a akce přes WhatsApp</strong></span>
+          </label>
+          {!hasPhone && (prefs.sms || prefs.whatsapp) && (
+            <input
+              type="tel"
+              value={prefs.phone}
+              onChange={(e) => setPrefs((p) => ({ ...p, phone: e.target.value }))}
+              placeholder="Tvůj telefon, např. 777 123 456"
+              aria-label="Telefon"
+              autoComplete="tel"
+              className="w-full rounded-xl border border-linka bg-white/70 px-4 py-2.5 text-sm"
+            />
+          )}
           <label className="flex gap-3">
             <input
               type="checkbox"
@@ -79,7 +98,7 @@ export function WelcomeTour({ firstName, publicKey, marketing, reminders }: Prop
             />
             <span><strong>Připomínka</strong> lekce nebo masáže 3 hodiny předem</span>
           </label>
-          <p className="text-xs text-les/50">Změnit to můžeš kdykoliv v profilu. Potvrzení rezervací a změny lekcí ti chodí vždy.</p>
+          <p className="text-xs text-les/50">Změnit to můžeš kdykoliv v profilu. Zrušení lekcí ze strany studia a platby ti chodí vždy.</p>
         </div>
       ),
       onNext: () => void tourPreferencesAction(prefs),
@@ -108,16 +127,21 @@ export function WelcomeTour({ firstName, publicKey, marketing, reminders }: Prop
         <div className="mt-7 flex items-center justify-between gap-3">
           {last ? (
             <>
-              <button type="button" onClick={close} className="text-xs text-les/60 underline">Zavřít</button>
+              <button type="button" onClick={() => setStep((x) => x - 1)} className="text-xs text-les/60 underline">← Zpět</button>
               <Link href="/rozvrh" onClick={close} className="rounded-full bg-les px-5 py-3 text-xs font-semibold uppercase tracking-wider text-papir">
                 Vybrat lekci
               </Link>
             </>
           ) : (
             <>
-              <button type="button" onClick={step === 0 ? close : next} className="text-xs text-les/60 underline">
-                {step === 0 ? "Teď ne" : "Přeskočit"}
-              </button>
+              <span className="flex items-center gap-4">
+                {step > 0 && (
+                  <button type="button" onClick={() => setStep((x) => x - 1)} className="text-xs text-les/60 underline">← Zpět</button>
+                )}
+                <button type="button" onClick={step === 0 ? close : next} className="text-xs text-les/60 underline">
+                  {step === 0 ? "Teď ne" : "Přeskočit"}
+                </button>
+              </span>
               <button
                 type="button"
                 onClick={() => {

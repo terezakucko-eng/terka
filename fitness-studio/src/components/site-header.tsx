@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Menu, UserRound, X } from "lucide-react";
 import { getContent } from "@/content";
 import { getCurrentUser } from "@/lib/auth";
+import { logoutAction } from "@/app/actions/auth";
 import { LogoLink } from "./brand";
 import { CloseMenuOnClick } from "./close-menu-on-click";
 import { buttonClass } from "./ui";
@@ -49,7 +50,7 @@ export async function SiteHeader() {
             <CloseMenuOnClick />
             <nav className="fixed inset-x-0 top-16 border-b border-zlato/20 bg-les px-6 py-6">
               <ul className="space-y-4">
-                {[...nav, account].map((n) => (
+                {nav.map((n) => (
                   <li key={n.href}>
                     <Link href={n.href} className="eyebrow block py-1 text-papir/90">
                       {n.label}
@@ -57,9 +58,23 @@ export async function SiteHeader() {
                   </li>
                 ))}
               </ul>
-              <Link href="/rozvrh" className={buttonClass("gold", "mt-6 w-full")}>
-                {c("nav.book")}
-              </Link>
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                <Link href={account.href} className={buttonClass("outline-light", "w-full px-3")}>
+                  <UserRound className="size-4" /> {account.label}
+                </Link>
+                <Link href="/rozvrh" className={buttonClass("gold", "w-full px-3")}>
+                  {c("nav.book")}
+                </Link>
+              </div>
+              {user ? (
+                <form action={logoutAction} className="mt-4 text-center">
+                  <button className="eyebrow text-papir/60 underline underline-offset-4 hover:text-papir">Odhlásit</button>
+                </form>
+              ) : (
+                <p className="mt-4 text-center text-xs text-papir/60">
+                  Nemáš účet? <Link href="/registrace" className="underline underline-offset-4">Zaregistruj se</Link> – první lekce je zdarma.
+                </p>
+              )}
             </nav>
           </details>
         </div>
