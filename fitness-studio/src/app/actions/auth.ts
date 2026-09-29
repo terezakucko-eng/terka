@@ -7,6 +7,7 @@ import { z } from "zod";
 import { site } from "@/config/site";
 import { getDb } from "@/db";
 import { passwordResets, users } from "@/db/schema";
+import { isThrottled, recordAttempt } from "@/lib/throttle";
 import { unsubscribe } from "@/domain/campaigns";
 import { IMPORTED_PASSWORD } from "@/domain/import";
 import { normalizeEmail, registerUser } from "@/domain/users";
@@ -37,17 +38,19 @@ export async function loginAction(_: FormState, fd: FormData): Promise<FormState
   let target: string | null = null;
   const res = await attempt(async () => {
     const db = await getDb();
-    const [u] = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, normalizeEmail(field.str(fd, "email"))));
+    const email = normalizeEmail(field.str(fd, "email"));
+    if (await isThrottled(db, "login", email))
+      throw new UserError("Příliš mnoho neúspěšných pokusů. Zkus to prosím za 15 minut, nebo si nastav nové heslo.");
+    const [u] = await db.select().from(users).where(eq(users.email, email));
     if (u?.passwordHash === IMPORTED_PASSWORD)
       throw new UserError(
         "Tvůj účet jsme převedli ze starého systému. Nastav si heslo přes „Zapomenuté heslo“.",
       );
     // same message for unknown e-mail & wrong password
-    if (!u || !(await verifyPassword(field.str(fd, "password"), u.passwordHash)))
+    if (!u || !(await verifyPassword(field.str(fd, "password"), u.passwordHash))) {
+      await recordAttempt(db, "login", email);
       throw new UserError("Nesprávný e-mail nebo heslo.");
+    }
     await startSession(u.id);
     target = safeNext(field.str(fd, "next")) ?? (u.role === "client" ? "/ucet" : "/admin");
   });
@@ -102,7 +105,9 @@ export async function requestResetAction(_: FormState, fd: FormData): Promise<Fo
     const db = await getDb();
     const email = normalizeEmail(field.str(fd, "email"));
     const [u] = await db.select().from(users).where(eq(users.email, email));
-    if (u) {
+    // at most a few e-mails per hour, so nobody can flood someone's inbox
+    if (u && !(await isThrottled(db, "reset", email))) {
+      await recordAttempt(db, "reset", email);
       const link = await createPasswordLink(u.id, 1);
       await sendEmail(u.email, "passwordReset", { osloveni: greetName(u.name), odkaz: link });
     }

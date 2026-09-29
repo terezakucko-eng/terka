@@ -629,6 +629,18 @@ export const reviews = pgTable(
   (t) => [uniqueIndex("reviews_user_idx").on(t.userId)],
 );
 
+/** Pokusy o přihlášení / obnovu hesla – ochrana proti hádání hesel a spamování e-mailů. */
+export const authAttempts = pgTable(
+  "auth_attempts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    kind: text("kind", { enum: ["login", "reset"] }).notNull(),
+    key: text("key").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("auth_attempts_key_idx").on(t.kind, t.key, t.createdAt)],
+);
+
 /** Týdenní (a ruční) zálohy dat – gzip JSON všech tabulek kromě obsahu obrázků. */
 export const backups = pgTable("backups", {
   id: uuid("id").primaryKey().defaultRandom(),
