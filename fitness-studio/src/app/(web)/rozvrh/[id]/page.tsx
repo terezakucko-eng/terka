@@ -13,7 +13,10 @@ import { VideoEmbed } from "@/components/video-embed";
 import { Badge, ButtonLink, Card, Container, Eyebrow, cx } from "@/components/ui";
 import { sessionForUser, stateMessage } from "@/domain/booking";
 import { getCurrentUser } from "@/lib/auth";
-import { formatDay, formatRange, formatWhen } from "@/lib/dates";
+import { formatDay, formatOpens, formatRange } from "@/lib/dates";
+
+/** "5. 10." already ends the sentence, "5. 10. v 18:00" needs its full stop */
+const endSentence = (s: string) => (s.endsWith(".") ? s : `${s}.`);
 import { credits, formatPrice } from "@/lib/money";
 import { sessionDetail } from "@/lib/queries";
 import { getContent } from "@/content";
@@ -157,14 +160,14 @@ function BookingPanel({
       <div>
         <h2 className="text-2xl font-semibold">Rezervace</h2>
         <p className="mt-3 text-les/70">
-          Rezervace se {view.isMemberWindow ? "ti " : ""}otevře <strong className="text-les">{formatWhen(view.opensAt)}</strong>.
+          Rezervace {view.isMemberWindow ? "ti " : ""}bude možná od <strong className="text-les">{endSentence(formatOpens(view.opensAt, true))}</strong>
         </p>
         {member && !view.isMemberWindow && (
           <p className="mt-3 rounded-xl bg-zlato/15 p-4 text-sm">
             {member <= now ? (
               <>Členové s aktivním členstvím si už rezervovat mohou.</>
             ) : (
-              <>Členové s aktivním členstvím si mohou rezervovat dřív – od <strong>{formatWhen(member)}</strong>.</>
+              <>Členové s aktivním členstvím si mohou rezervovat dřív – už od <strong>{endSentence(formatOpens(member, true))}</strong></>
             )}
             {!loggedIn && <> Jsi člen/ka? <Link href={`/prihlaseni?next=/rozvrh/${sessionId}`} className="underline">Přihlas se.</Link></>}
           </p>

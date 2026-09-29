@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ScheduleItem } from "@/lib/queries";
-import { formatRange, formatShortDay } from "@/lib/dates";
+import { formatOpens, formatRange } from "@/lib/dates";
 import { Badge, cx } from "./ui";
 
 /**
@@ -57,7 +57,7 @@ export function SessionCard({ s, compact, opensAt }: { s: ScheduleItem; compact?
         {s.myStatus ? (
           <Badge tone="dark">{myLabel[s.myStatus] ?? s.myStatus}</Badge>
         ) : opensAt ? (
-          <Badge>Rezervace od {formatShortDay(opensAt)}</Badge>
+          <Badge>Rezervace možná od{"\u00a0"}{formatOpens(opensAt)}</Badge>
         ) : (
           <Badge tone={spots.tone}>{spots.text}</Badge>
         )}
