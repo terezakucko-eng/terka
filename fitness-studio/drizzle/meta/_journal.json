@@ -239,6 +239,13 @@
       "when": 1790720704663,
       "tag": "0033_lesson_keywords",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1790722414883,
+      "tag": "0034_account_deletion",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { whatsappLink } from "@/lib/phone";
-import { and, count, eq, gt, ilike, isNotNull, lte, or, sql } from "drizzle-orm";
+import { and, count, eq, gt, ilike, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
 import { clientsBulkAction, deleteAllClientsAction } from "@/app/admin/actions";
 import { SelectAll } from "@/components/select-all";
 import { ActionForm, SubmitButton } from "@/components/forms";
@@ -29,7 +29,8 @@ export default async function ClientsPage({ searchParams }: PageProps<"/admin/kl
     db
       .select()
       .from(users)
-      .where(term ? or(ilike(users.name, like), ilike(users.email, like), ilike(users.phone, like)) : undefined),
+      // accounts the clients deleted themselves stay only for the payment history
+      .where(and(isNull(users.deletedAt), term ? or(ilike(users.name, like), ilike(users.email, like), ilike(users.phone, like)) : undefined)),
     db
       .selectDistinct({ userId: entitlements.userId, kind: entitlements.kind })
       .from(entitlements)
@@ -64,7 +65,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/admin/kl
   const tagCounts = new Map((Object.keys(TAGS) as Tag[]).map((t) => [t, withTags.filter((u) => u.tags.includes(t)).length]));
   const list = sortClients(tag ? withTags.filter((u) => u.tags.includes(tag)) : withTags, sort);
   const [[all], [imported]] = await Promise.all([
-    db.select({ n: count() }).from(users).where(eq(users.role, "client")),
+    db.select({ n: count() }).from(users).where(and(eq(users.role, "client"), isNull(users.deletedAt))),
     db.select({ n: count() }).from(users).where(and(eq(users.role, "client"), isNotNull(users.importedAt))),
   ]);
   const href = (p: { razeni?: string; stitek?: string | null }) => {

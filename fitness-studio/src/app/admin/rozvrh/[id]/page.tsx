@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import {
   adminAddBookingAction,
   adminCancelBookingAction,
@@ -38,7 +38,7 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
   const clientRows = await db
     .select({ id: users.id, name: users.name, email: users.email, phone: users.phone })
     .from(users)
-    .where(eq(users.role, "client"));
+    .where(and(eq(users.role, "client"), isNull(users.deletedAt)));
   const collator = new Intl.Collator("cs");
   const clientOpts = clientRows
     .map((u) => {

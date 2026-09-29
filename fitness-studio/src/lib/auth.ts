@@ -50,7 +50,8 @@ export const getCurrentUser = cache(async () => {
     if (!payload.sub) return null;
     const db = await getDb();
     const [user] = await db.select().from(users).where(eq(users.id, payload.sub));
-    return user ?? null;
+    // a deleted (anonymised) account is signed out everywhere
+    return user && !user.deletedAt ? user : null;
   } catch {
     return null;
   }
