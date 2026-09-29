@@ -159,6 +159,7 @@ export async function updateProfileAction(_: FormState, fd: FormData): Promise<F
         birthDate: cleanBirthDate(field.str(fd, "birthDate")),
         nameDay: cleanNameDay(field.int(fd, "nameDayDay"), field.int(fd, "nameDayMonth")),
         remindersOptIn: field.bool(fd, "reminders"),
+        bookingEmails: field.bool(fd, "bookingEmails"),
       })
       .where(eq(users.id, user.id));
     return "Profil uložen.";

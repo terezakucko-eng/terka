@@ -21,9 +21,9 @@ async function describe(db: DB, sessionId: string) {
 }
 
 async function emails(db: DB, ids: string[]) {
-  if (!ids.length) return new Map<string, { email: string; name: string }>();
+  if (!ids.length) return new Map<string, { email: string; name: string; bookingEmails: boolean }>();
   const rows = await db
-    .select({ id: users.id, email: users.email, name: users.name })
+    .select({ id: users.id, email: users.email, name: users.name, bookingEmails: users.bookingEmails })
     .from(users)
     .where(inArray(users.id, ids));
   return new Map(rows.map((r) => [r.id, r]));
@@ -70,9 +70,10 @@ export async function notifyStrike(db: DB, userId: string, o: StrikeOutcome) {
     await sendEmail(u.email, "strikePause", { osloveni: greetName(u.name), do: formatDate(o.until), pauza_dni: String(o.pauseDays) });
 }
 
-export async function notifyBooked(db: DB, b: Pick<Booking, "userId" | "sessionId"> & Partial<Pick<Booking, "guestName">>) {
+/** `byStudio`: reception added the client – they always hear about it. */
+export async function notifyBooked(db: DB, b: Pick<Booking, "userId" | "sessionId"> & Partial<Pick<Booking, "guestName">>, byStudio = false) {
   const u = (await emails(db, [b.userId])).get(b.userId);
-  if (!u) return;
+  if (!u || (!byStudio && !u.bookingEmails)) return;
   await sendEmail(u.email, "booked", {
     osloveni: greetName(u.name),
     lekce: await describe(db, b.sessionId),
@@ -81,9 +82,10 @@ export async function notifyBooked(db: DB, b: Pick<Booking, "userId" | "sessionI
   });
 }
 
+/** The client's own cancellation – skipped when they turned booking e-mails off. */
 export async function notifyCancelled(db: DB, b: Pick<Booking, "userId" | "sessionId">, refunded: boolean) {
   const u = (await emails(db, [b.userId])).get(b.userId);
-  if (!u) return;
+  if (!u || !u.bookingEmails) return;
   await sendEmail(u.email, "cancelled", {
     osloveni: greetName(u.name),
     lekce: await describe(db, b.sessionId),

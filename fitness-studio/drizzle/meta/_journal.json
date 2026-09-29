@@ -225,6 +225,13 @@
       "when": 1790718182465,
       "tag": "0031_device_tracking",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1790718806968,
+      "tag": "0032_booking_emails",
+      "breakpoints": true
     }
   ]
 }

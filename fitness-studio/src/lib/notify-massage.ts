@@ -13,10 +13,10 @@ const when = (b: MassageBooking) => `${formatDay(b.startsAt)} v ${formatTime(b.s
 
 async function recipient(db: DB, b: MassageBooking) {
   if (b.userId) {
-    const [u] = await db.select({ email: users.email, name: users.name }).from(users).where(eq(users.id, b.userId));
+    const [u] = await db.select({ email: users.email, name: users.name, bookingEmails: users.bookingEmails }).from(users).where(eq(users.id, b.userId));
     if (u) return u;
   }
-  return b.guestEmail ? { email: b.guestEmail, name: b.guestName ?? "" } : null;
+  return b.guestEmail ? { email: b.guestEmail, name: b.guestName ?? "", bookingEmails: true } : null;
 }
 
 export async function notifyMassageBooked(db: DB, b: MassageBooking, bankAccount: string, studioEmail: string) {
@@ -27,7 +27,10 @@ export async function notifyMassageBooked(db: DB, b: MassageBooking, bankAccount
       : b.payment === "transfer"
       ? `Cena: ${formatPrice(b.price)}. ${b.paidAt ? "Zaplaceno." : `Zaplatit můžeš ${[cardPayments() && "kartou v detailu rezervace", bankAccount && `převodem na účet ${bankAccount}, variabilní symbol ${b.variableSymbol}`].filter(Boolean).join(" nebo ")}.`}`
       : `Platba na místě: ${formatPrice(b.price)}.`;
-  if (u)
+  // payment instructions always go out; a plain confirmation only when wanted
+  // (the reception's booking passes no studio e-mail – then the client is always told)
+  const needsPayment = b.payment !== "pass" && !b.paidAt;
+  if (u && (u.bookingEmails || needsPayment || !studioEmail))
     await sendEmail(u.email, "massageBooked", {
       osloveni: greetName(u.name),
       masaz: b.serviceName,
@@ -46,7 +49,7 @@ export async function notifyMassageBooked(db: DB, b: MassageBooking, bankAccount
 export async function notifyMassageCancelled(db: DB, b: MassageBooking, studioEmail: string, byStudio: boolean) {
   const u = await recipient(db, b);
   const refund = b.paidAt ? "\nZaplacenou částku ti vrátíme." : "";
-  if (u)
+  if (u && (byStudio || u.bookingEmails))
     await sendEmail(u.email, "massageCancelled", {
       osloveni: greetName(u.name),
       kdo_zrusil: byStudio ? "musíme bohužel zrušit" : "zrušili jsme",
