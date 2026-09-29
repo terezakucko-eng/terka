@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { and, asc, eq, inArray, ne } from "drizzle-orm";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { createSessionsAction, deleteSessionsAction, deleteSessionsRangeAction } from "@/app/admin/actions";
 import { AdminTitle, Panel, Table, Td } from "@/components/admin";
@@ -8,6 +9,8 @@ import { ActionForm, SubmitButton } from "@/components/forms";
 import { spotsLabel } from "@/components/session-card";
 import { Badge, Field, Input, Select } from "@/components/ui";
 import { getDb } from "@/db";
+import { bookings, users } from "@/db/schema";
+import { splitName } from "@/lib/client-list";
 import { requireStaff } from "@/lib/auth";
 import { WEEKDAYS, addDays, dateKey, formatRange, formatShortDay, isDateKey, mondayOf, pragueLocalToDate } from "@/lib/dates";
 import { activeClassTypes, activeInstructors, listSessions } from "@/lib/queries";
@@ -23,6 +26,23 @@ export default async function AdminSchedule({ searchParams }: PageProps<"/admin/
     activeClassTypes(db),
     activeInstructors(db),
   ]);
+
+  // who's signed up, so the list can be read without opening each class
+  const signups = sessions.length
+    ? await db
+        .select({ sessionId: bookings.sessionId, status: bookings.status, guestName: bookings.guestName, userId: users.id, name: users.name })
+        .from(bookings)
+        .innerJoin(users, eq(bookings.userId, users.id))
+        .where(and(inArray(bookings.sessionId, sessions.map((x) => x.id)), ne(bookings.status, "cancelled")))
+        .orderBy(asc(bookings.createdAt))
+    : [];
+  const collator = new Intl.Collator("cs");
+  const peopleOf = (id: string) => {
+    const list = signups.filter((x) => x.sessionId === id);
+    const sortName = (n: string) => { const { first, last } = splitName(n); return last ? `${last} ${first}` : first; };
+    const going = list.filter((x) => x.status !== "waitlist").sort((a, b) => collator.compare(sortName(a.name), sortName(b.name)));
+    return { going, waiting: list.filter((x) => x.status === "waitlist"), sortName };
+  };
 
   const isAdmin = user.role === "admin";
   const table = (
@@ -43,7 +63,35 @@ export default async function AdminSchedule({ searchParams }: PageProps<"/admin/
               <strong>{s.classType.name}</strong> {s.isFree && <Badge tone="gold">Zdarma</Badge>}
             </Td>
             <Td>{s.instructor?.name ?? "—"}</Td>
-            <Td className="whitespace-nowrap">{s.occupied}/{s.capacity} <Badge tone={spots.tone}>{spots.text}</Badge></Td>
+            <Td>
+              {(() => {
+                const { going, waiting, sortName } = peopleOf(s.id);
+                const head = <span className="whitespace-nowrap">{s.occupied}/{s.capacity} <Badge tone={spots.tone}>{spots.text}</Badge></span>;
+                if (!going.length && !waiting.length) return head;
+                return (
+                  <details className="group">
+                    <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                      {head} <span className="ml-1 text-xs text-les/50 underline group-open:hidden">kdo</span>
+                    </summary>
+                    <ul className="mt-2 space-y-0.5 text-xs">
+                      {going.map((x) => (
+                        <li key={x.userId + x.status}>
+                          <Link href={`/admin/klienti/${x.userId}`} className="hover:underline">{sortName(x.name)}</Link>
+                          {x.guestName && <span className="text-les/60"> +1 {x.guestName}</span>}
+                          {x.status === "pending_payment" && <span className="text-zeme"> · čeká na platbu</span>}
+                          {x.status === "no_show" && <span className="text-chyba"> · nepřišel/a</span>}
+                        </li>
+                      ))}
+                      {waiting.map((x, i) => (
+                        <li key={x.userId + "w"} className="text-les/60">
+                          {i + 1}. náhradník: <Link href={`/admin/klienti/${x.userId}`} className="hover:underline">{sortName(x.name)}</Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                );
+              })()}
+            </Td>
             <Td><Link href={`/admin/rozvrh/${s.id}`} className="font-semibold text-zeme underline underline-offset-4">Detail</Link></Td>
           </tr>
         );

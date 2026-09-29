@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, asc, eq, gt } from "drizzle-orm";
 import {
   adjustCreditsAction,
   cancelEntitlementAction,
@@ -12,7 +12,9 @@ import {
   grantEntitlementAction,
   sellProductAction,
   updateClientAction,
+  adminCancelBookingAction,
 } from "@/app/admin/actions";
+import { adminCancelMassageAction } from "@/app/admin/massage-actions";
 import { AdminTitle, Stat, Table, Td } from "@/components/admin";
 import { Avatar } from "@/components/avatar";
 import { MONTHS, formatDayMonth } from "@/lib/profile";
@@ -20,7 +22,7 @@ import { ActionForm, SubmitButton } from "@/components/forms";
 import { bookingStatusLabel, creditReasonLabel, entitlementKindLabel, methodLabel, orderStatusLabel } from "@/components/labels";
 import { Badge, Button, Card, Field, Input, Select, Textarea } from "@/components/ui";
 import { getDb } from "@/db";
-import { users } from "@/db/schema";
+import { massageBookings, users } from "@/db/schema";
 import { userBookings, userEntitlements, userLedger, userOrders } from "@/lib/account";
 import { requireAdmin } from "@/lib/auth";
 import { dateKey, formatDate, formatDateTime } from "@/lib/dates";
@@ -46,7 +48,15 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
     userLedger(db, u.id),
     sellableProducts(db),
   ]);
-  const [sunPasses, sunUses] = await Promise.all([solariumPasses(db, u.id), recentSolariumUses(db, u.id, 5)]);
+  const [sunPasses, sunUses, massages] = await Promise.all([
+    solariumPasses(db, u.id),
+    recentSolariumUses(db, u.id, 5),
+    db
+      .select()
+      .from(massageBookings)
+      .where(and(eq(massageBookings.userId, u.id), eq(massageBookings.status, "confirmed"), gt(massageBookings.endsAt, new Date())))
+      .orderBy(asc(massageBookings.startsAt)),
+  ]);
   const sunLeft = sunPasses.reduce((s, p) => s + p.left, 0);
   const now = new Date();
   const attended = past.filter(({ b }) => b.status === "attended").length;
@@ -74,6 +84,53 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
         <Stat label="Nadcházející rezervace" value={upcoming.length} />
         <Stat label="Účast (posl. 30 lekcí)" value={attended} sub={`registrace ${formatDate(u.createdAt)}`} />
       </div>
+
+      <section className="mt-8">
+        <h2 className="mb-3 text-lg font-semibold">Aktivní rezervace</h2>
+        {upcoming.length === 0 && massages.length === 0 ? (
+          <p className="text-sm text-les/50">Žádné nadcházející lekce ani masáže.</p>
+        ) : (
+          <Table head={["Kdy", "Co", "Platba", "Stav", ""]}>
+            {upcoming.map(({ b, s, ct }) => (
+              <tr key={b.id} className={s.status === "cancelled" ? "opacity-50" : ""}>
+                <Td className="whitespace-nowrap">{formatDateTime(s.startsAt)}</Td>
+                <Td>
+                  <Link href={`/admin/rozvrh/${s.id}`} className="font-semibold underline-offset-4 hover:underline">{ct.name}</Link>
+                  {b.guestName && <span className="text-les/60"> · +1 {b.guestName}</span>}
+                </Td>
+                <Td>{b.method ? methodLabel[b.method] : "—"}</Td>
+                <Td>
+                  {s.status === "cancelled" ? <Badge tone="red">Lekce zrušena</Badge> : <Badge tone={b.status === "waitlist" ? "gold" : "green"}>{bookingStatusLabel[b.status]}</Badge>}
+                </Td>
+                <Td>
+                  {s.status !== "cancelled" && (
+                    <ActionForm action={adminCancelBookingAction} confirm="Odhlásit klienta z lekce?" className="flex items-center gap-3">
+                      <input type="hidden" name="bookingId" value={b.id} />
+                      <label className="flex items-center gap-1 text-xs"><input type="checkbox" name="refund" defaultChecked /> vrátit</label>
+                      <button className="text-xs font-semibold text-chyba underline">Odhlásit</button>
+                    </ActionForm>
+                  )}
+                </Td>
+              </tr>
+            ))}
+            {massages.map((m) => (
+              <tr key={m.id}>
+                <Td className="whitespace-nowrap">{formatDateTime(m.startsAt)}</Td>
+                <Td><Link href="/admin/masaze" className="font-semibold underline-offset-4 hover:underline">{m.serviceName}</Link> <span className="text-les/60">· masáž</span></Td>
+                <Td>{m.payment === "pass" ? "Permanentka" : m.paidAt ? "Zaplaceno" : m.payment === "transfer" ? "Převodem – nezaplaceno" : "Na místě"}</Td>
+                <Td><Badge tone="green">Potvrzeno</Badge></Td>
+                <Td>
+                  <ActionForm action={adminCancelMassageAction} confirm="Zrušit masáž?" className="flex items-center gap-3">
+                    <input type="hidden" name="id" value={m.id} />
+                    <label className="flex items-center gap-1 text-xs"><input type="checkbox" name="notify" defaultChecked /> e-mail</label>
+                    <button className="text-xs font-semibold text-chyba underline">Zrušit</button>
+                  </ActionForm>
+                </Td>
+              </tr>
+            ))}
+          </Table>
+        )}
+      </section>
 
       {(paused || strikes.strikes > 0) && (
         <Card className={`mt-6 flex flex-wrap items-center justify-between gap-4 ${paused ? "border-chyba/40" : ""}`}>
@@ -228,9 +285,9 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
 
       <div className="mt-10 grid gap-8 xl:grid-cols-2">
         <section>
-          <h2 className="mb-3 text-lg font-semibold">Rezervace</h2>
+          <h2 className="mb-3 text-lg font-semibold">Historie rezervací</h2>
           <Table head={["Lekce", "Kdy", "Platba", "Stav"]}>
-            {[...upcoming, ...past].map(({ b, s, ct }) => (
+            {past.map(({ b, s, ct }) => (
               <tr key={b.id}>
                 <Td><Link href={`/admin/rozvrh/${s.id}`} className="underline-offset-4 hover:underline">{ct.name}</Link></Td>
                 <Td className="whitespace-nowrap">{formatDateTime(s.startsAt)}</Td>
