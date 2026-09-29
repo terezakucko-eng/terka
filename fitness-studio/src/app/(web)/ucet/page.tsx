@@ -15,8 +15,10 @@ import { SurchargePay } from "@/components/surcharge-pay";
 import { openFees } from "@/domain/membership-fees";
 import { payOrderAction } from "@/app/actions/booking";
 import { cardPayments } from "@/lib/payments";
-import { cardPromptDoneAction } from "@/app/actions/card";
-import { CreditCard } from "lucide-react";
+import { WelcomeTour } from "@/components/welcome-tour";
+import { vapidKeys } from "@/lib/push";
+import { splitName } from "@/lib/client-list";
+import { vocative } from "@/lib/vocative";
 
 export default async function AccountPage({ searchParams }: PageProps<"/ucet">) {
   const { vitej } = await searchParams;
@@ -59,22 +61,13 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
           </ActionForm>
         </div>
       ))}
-      {!user.cardPromptAt && user.role === "client" && !vitej && (
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-forest p-5 text-papir">
-          <p className="flex items-center gap-3">
-            <CreditCard className="size-6 shrink-0 text-zlato" />
-            <span>
-              <span className="block font-semibold">Ulož si členskou kartu do mobilu</span>
-              <span className="text-sm text-papir/70">Na recepci pak stačí ukázat QR kód – a web si můžeš přidat na plochu jako aplikaci.</span>
-            </span>
-          </p>
-          <div className="flex items-center gap-4">
-            <ButtonLink href="/ucet/karta" variant="gold">Uložit kartu</ButtonLink>
-            <form action={cardPromptDoneAction}>
-              <button className="text-xs text-papir/60 underline hover:text-papir">Teď ne</button>
-            </form>
-          </div>
-        </div>
+      {!user.onboardedAt && user.role === "client" && (
+        <WelcomeTour
+          firstName={vocative(splitName(user.name).first || user.name)}
+          publicKey={(await vapidKeys(db)).publicKey}
+          marketing={user.marketingConsent}
+          reminders={user.remindersOptIn}
+        />
       )}
       {user.bookingPausedUntil && user.bookingPausedUntil > new Date() && (
         <p className="rounded-2xl bg-chyba/10 p-5 text-sm text-chyba">
