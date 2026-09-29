@@ -424,7 +424,7 @@ export async function adminAddBookingAction(_: FormState, fd: FormData): Promise
     const u = await findClient(field.str(fd, "client"));
     const mode = field.str(fd, "mode") === "admin" ? "admin" : "auto";
     const b = await adminAddBooking(db, { sessionId: field.str(fd, "sessionId"), userId: u.id, mode });
-    await notifyBooked(db, b);
+    await notifyBooked(db, b, true);
     return done(`${u.name} přidán/a.`);
   });
 }

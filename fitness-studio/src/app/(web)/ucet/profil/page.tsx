@@ -90,14 +90,21 @@ export default async function ProfilePage() {
             <input type="checkbox" name="reminders" defaultChecked={user.remindersOptIn} className="mt-0.5 accent-[#674329]" />
             <span>Připomeň mi e-mailem lekci nebo masáž 3 hodiny předem</span>
           </label>
+          <label className="flex gap-3 text-sm">
+            <input type="checkbox" name="bookingEmails" defaultChecked={user.bookingEmails} className="mt-0.5 accent-[#674329]" />
+            <span>
+              Posílej mi e-mailem potvrzení mých rezervací a odhlášení
+              <span className="block text-xs text-les/50">Zrušení lekce ze strany studia, uvolněné místo z pořadníku a platby ti přijdou vždy.</span>
+            </span>
+          </label>
           <fieldset className="space-y-2 text-sm">
             <legend className="mb-1 text-xs font-semibold uppercase tracking-wider text-les/70">Chci dostávat novinky a akce</legend>
             <label className="flex gap-3"><input type="checkbox" name="marketing" defaultChecked={user.marketingConsent} className="accent-[#674329]" /> E-mailem</label>
             <label className="flex gap-3"><input type="checkbox" name="sms" defaultChecked={user.smsConsent} className="accent-[#674329]" /> SMS</label>
             <label className="flex gap-3"><input type="checkbox" name="whatsapp" defaultChecked={user.whatsappConsent} className="accent-[#674329]" /> WhatsApp</label>
             <p className="text-xs text-les/60">
-              Doporučujeme aspoň newsletter – o nových lekcích, workshopech a akcích se dozvíš jako první. Provozní e-maily (potvrzení
-              rezervace, změny a zrušení lekcí, platby) ti chodí vždy.
+              Doporučujeme aspoň newsletter – o nových lekcích, workshopech a akcích se dozvíš jako první. Zrušení lekcí ze strany
+              studia, platby a obnova hesla ti chodí vždy.
             </p>
           </fieldset>
           <SubmitButton>Uložit</SubmitButton>

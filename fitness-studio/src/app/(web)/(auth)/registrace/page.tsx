@@ -46,8 +46,8 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registr
           <label className="flex gap-3"><input type="checkbox" name="whatsapp" className="mt-1 accent-[#674329]" /> WhatsApp</label>
           <p className="text-xs text-les/50">Odhlásit se můžeš kdykoliv v profilu nebo odkazem ve zprávě.</p>
           <p className="text-xs text-les/50">
-            Provozní e-maily a upozornění (potvrzení rezervace, zrušení nebo změna lekce, platby, obnova hesla) ti chodí vždy – bez nich
-            to nejde.
+            Provozní e-maily a upozornění (potvrzení rezervace, zrušení nebo změna lekce, platby, obnova hesla) ti chodí vždy.
+            Potvrzení vlastních rezervací si můžeš později vypnout v profilu.
           </p>
         </fieldset>
         <SubmitButton variant="gold" className="w-full">Vytvořit účet</SubmitButton>

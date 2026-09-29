@@ -135,6 +135,8 @@ export const users = pgTable("users", {
   whatsappConsent: boolean("whatsapp_consent").notNull().default(false),
   /** Chce e-mailem připomínku lekce/masáže 3 hodiny předem */
   remindersOptIn: boolean("reminders_opt_in").notNull().default(false),
+  /** Potvrzení vlastních rezervací a odhlášení e-mailem (klient si je může vypnout). */
+  bookingEmails: boolean("booking_emails").notNull().default(true),
   /** pro odhlašovací odkaz v newsletteru/SMS bez přihlášení */
   unsubscribeToken: text("unsubscribe_token")
     .notNull()
