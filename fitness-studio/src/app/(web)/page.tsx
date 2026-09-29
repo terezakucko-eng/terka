@@ -185,13 +185,23 @@ export default async function Home() {
                 <figure key={r.id} className="flex flex-col rounded-2xl bg-papir p-6 shadow-sm">
                   <Stars rating={r.rating} />
                   <blockquote className="mt-4 line-clamp-[8] flex-1 whitespace-pre-line text-les/85">{nbsp(r.body)}</blockquote>
-                  <figcaption className="mt-4 text-sm font-semibold">{r.authorName}</figcaption>
+                  <figcaption className="mt-4 text-sm font-semibold">
+                    {r.authorName}
+                    {r.source === "google" && <span className="ml-2 text-xs font-normal text-les/50">· Google</span>}
+                  </figcaption>
                 </figure>
               ))}
             </div>
-            <Link href="/recenze" className="eyebrow mt-8 inline-block text-zeme underline underline-offset-4">
-              Všechny recenze a napsat vlastní →
-            </Link>
+            <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-4">
+              <Link href="/recenze" className="eyebrow text-zeme underline underline-offset-4">
+                Všechny recenze a napsat vlastní →
+              </Link>
+              {c.googleReviewUrl && (
+                <a href={c.googleReviewUrl} target="_blank" rel="noopener" className="eyebrow text-zeme underline underline-offset-4">
+                  Ohodnotit nás na Googlu ↗
+                </a>
+              )}
+            </div>
           </Container>
         </section>
       )}

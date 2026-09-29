@@ -242,7 +242,7 @@ export const SECTIONS = {
       title: t("Nadpis", "Co říkají naši lidé."),
       intro: ta("Úvodní text", "Zkušenosti klientů OCTOPUSH. Chodíš k nám? Budeme rádi za pár slov."),
       homeTitle: t("Nadpis na úvodní stránce", "Co o nás říkají"),
-      googleUrl: { label: "Odkaz na hodnocení na Googlu (nepovinné)", type: "url", default: "", optional: true },
+      googleUrl: { label: "Odkaz na hodnocení na Googlu (prázdné = profil OCTOPUSH)", type: "url", default: "https://g.page/r/CUvZHNMtZbNBEAE/review", optional: true },
     },
   },
   board: {

@@ -22,7 +22,7 @@ export default async function ReviewsPage() {
   const [c, user, list, stats] = await Promise.all([getContent(), getCurrentUser(), approvedReviews(db), reviewStats(db)]);
   const mine = user ? await myReview(db, user.id) : null;
   const { first, last } = splitName(user?.name ?? "");
-  const google = c.raw("reviews.googleUrl");
+  const google = c.googleReviewUrl;
 
   return (
     <>
@@ -43,7 +43,7 @@ export default async function ReviewsPage() {
                 <Stars rating={r.rating} />
                 <span className="text-xs text-les/50">
                   {formatDate(r.createdAt)}
-                  {r.source === "google" && " · z Googlu"}
+                  {r.source === "google" && " · Google"}
                 </span>
               </div>
               <p className="mt-3 whitespace-pre-line text-les/85">{nbsp(r.body)}</p>
@@ -77,8 +77,11 @@ export default async function ReviewsPage() {
           </Card>
           {google && (
             <Card className="text-sm">
-              <p className="text-les/70">Pomůže nám i hodnocení na Googlu – díky němu nás najdou další lidé.</p>
-              <ButtonLink href={google} variant="outline" className="mt-4">Ohodnotit na Googlu</ButtonLink>
+              <h2 className="font-semibold">Ohodnoť nás i na Googlu</h2>
+              <p className="mt-2 text-les/70">Hodnocení na Googlu nám moc pomáhá – díky němu nás najdou další lidé. Stačí pár slov a hvězdičky.</p>
+              <a href={google} target="_blank" rel="noopener" className="mt-4 inline-flex rounded-full border border-les px-5 py-2.5 text-xs font-semibold uppercase tracking-wider">
+                Ohodnotit na Googlu ↗
+              </a>
             </Card>
           )}
         </aside>
