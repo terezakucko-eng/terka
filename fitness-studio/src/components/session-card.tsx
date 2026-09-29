@@ -33,8 +33,16 @@ const myLabel: Record<string, string> = {
   no_show: "Nedorazil/a",
 };
 
-/** `opensAt`: the class is beyond this viewer's booking window – show when booking opens instead. */
-export function SessionCard({ s, compact, opensAt }: { s: ScheduleItem; compact?: boolean; opensAt?: Date | null }) {
+/** `opens`: the class is beyond this viewer's booking window – show when booking opens instead. */
+export function SessionCard({
+  s,
+  compact,
+  opens,
+}: {
+  s: ScheduleItem;
+  compact?: boolean;
+  opens?: { at: Date; membersNow: boolean } | null;
+}) {
   const spots = spotsLabel(s);
   const past = s.startsAt <= new Date() || s.status === "cancelled";
   return (
@@ -56,8 +64,16 @@ export function SessionCard({ s, compact, opensAt }: { s: ScheduleItem; compact?
       <div className="mt-3 flex flex-wrap gap-1.5">
         {s.myStatus ? (
           <Badge tone="dark">{myLabel[s.myStatus] ?? s.myStatus}</Badge>
-        ) : opensAt ? (
-          <Badge>Rezervace možná od{"\u00a0"}{formatOpens(opensAt)}</Badge>
+        ) : opens ? (
+          opens.membersNow ? (
+            // two lines, so a narrow card doesn't break it mid-phrase
+            <span className="rounded-xl bg-krem/70 px-2.5 py-1 text-[0.72rem] font-semibold leading-snug text-les">
+              <span className="block">Pro členy už{"\u00a0"}teď</span>
+              <span className="block font-normal">ostatní od{"\u00a0"}{formatOpens(opens.at)}</span>
+            </span>
+          ) : (
+            <Badge>Rezervace možná od{"\u00a0"}{formatOpens(opens.at)}</Badge>
+          )
         ) : (
           <Badge tone={spots.tone}>{spots.text}</Badge>
         )}

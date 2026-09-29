@@ -10,7 +10,7 @@ import { VideoEmbed } from "@/components/video-embed";
 import { site } from "@/config/site";
 import { getDb } from "@/db";
 import { classTypes } from "@/db/schema";
-import { bookingOpensAt, bookingWindowFor } from "@/domain/booking";
+import { opensFor, bookingWindowFor } from "@/domain/booking";
 import { getCurrentUser } from "@/lib/auth";
 import { credits, formatPrice } from "@/lib/money";
 import { activeClassTypes, listSessions } from "@/lib/queries";
@@ -57,10 +57,7 @@ export default async function LessonPage({ params }: PageProps<"/lekce/[slug]">)
     getSettings(db),
   ]);
   const myWindow = await bookingWindowFor(db, settings, user?.id ?? null, now);
-  const opensAt = (s: { startsAt: Date }) => {
-    const at = bookingOpensAt(s, myWindow);
-    return at > now ? at : null;
-  };
+  const opens = (s: { startsAt: Date }) => opensFor(s, myWindow, settings, now);
   const tags = splitKeywords(t.keywords);
   const url = `${site.url}/lekce/${t.slug}`;
 
@@ -145,7 +142,7 @@ export default async function LessonPage({ params }: PageProps<"/lekce/[slug]">)
             {sessions.map((s) => (
               <div key={s.id}>
                 <p className="eyebrow mb-2 text-les/50">{formatShortDay(s.startsAt)}</p>
-                <SessionCard s={s} opensAt={opensAt(s)} />
+                <SessionCard s={s} opens={opens(s)} />
               </div>
             ))}
           </div>

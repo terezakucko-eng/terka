@@ -66,6 +66,16 @@ export function bookingOpensAt(s: Pick<ClassSession, "startsAt">, w: BookingWind
   return pragueLocalToDate(`${addDays(mondayOf(dateKey(s.startsAt)), -7 * w.n)}T00:00`);
 }
 
+/**
+ * For a class this viewer can't book yet: when it opens for them, and whether
+ * members can already book it (→ "Pro členy už teď · ostatní od 5. 10.").
+ */
+export function opensFor(s: Pick<ClassSession, "startsAt">, mine: BookingWindow, cfg: Settings, now: Date) {
+  const at = bookingOpensAt(s, mine);
+  if (at <= now) return null;
+  return { at, membersNow: bookingOpensAt(s, windowOf(cfg, true)) <= now };
+}
+
 /** First moment that is no longer bookable today (exclusive end of the window). */
 export function windowEnd(w: BookingWindow, now: Date) {
   if (w.kind === "days") return new Date(now.getTime() + w.n * DAY);
