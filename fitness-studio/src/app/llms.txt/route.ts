@@ -48,7 +48,7 @@ export async function GET() {
     `- [Obchodní podmínky](${u("/obchodni-podminky")})`,
     "",
     types.length ? "## Lekce" : "",
-    ...types.map((t) => `- ${t.name} (${t.durationMin} min, ${t.level})${t.description ? `: ${plain(t.description)}` : ""}`),
+    ...types.map((t) => `- [${t.name}](${u(`/lekce/${t.slug}`)}) (${t.durationMin} min, ${t.level})${t.description ? `: ${plain(t.description)}` : ""}`),
     "",
     products.length ? "## Ceník" : "",
     ...products.map((p) => `- ${p.name}: ${formatPrice(p.price)}${p.description ? ` – ${plain(p.description)}` : ""}`),

@@ -2,9 +2,11 @@ import type { MetadataRoute } from "next";
 import { site } from "@/config/site";
 import { getDb } from "@/db";
 import { activeMassageServices } from "@/domain/massages";
+import { activeClassTypes } from "@/lib/queries";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const massages = await activeMassageServices(await getDb()).catch(() => []);
+  const db = await getDb();
+  const [massages, lessons] = await Promise.all([activeMassageServices(db).catch(() => []), activeClassTypes(db).catch(() => [])]);
   const pages: [string, number][] = [
     ["", 1],
     ["/rozvrh", 0.9],
@@ -24,6 +26,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: (p === "/rozvrh" || p === "/nastenka" ? "daily" : "monthly") as "daily" | "monthly",
       priority,
     })),
+    ...lessons.map((t) => ({ url: `${site.url}/lekce/${t.slug}`, changeFrequency: "weekly" as const, priority: 0.8 })),
     ...massages.map((m) => ({ url: `${site.url}/masaze/${m.slug}`, changeFrequency: "monthly" as const, priority: 0.6 })),
   ];
 }

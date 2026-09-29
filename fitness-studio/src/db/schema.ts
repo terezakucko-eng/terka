@@ -215,6 +215,8 @@ export const classTypes = pgTable("class_types", {
   noPass: boolean("no_pass").notNull().default(false),
   /** Jednorázová cena pro dva (klient + kamarádka, haléře); null = 2× jednorázová cena */
   duoPrice: integer("duo_price"),
+  /** Hledané výrazy (čárkou), např. „zumba fitness, taneční lekce“ – na stránce lekce a pro vyhledávače */
+  keywords: text("keywords").notNull().default(""),
   isActive: boolean("is_active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
   /** Smazaný typ, který má v historii rezervace – skrytý všude, data zůstávají. */

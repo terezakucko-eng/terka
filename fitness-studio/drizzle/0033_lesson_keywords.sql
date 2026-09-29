@@ -1,0 +1,1 @@
+ALTER TABLE "class_types" ADD COLUMN "keywords" text DEFAULT '' NOT NULL;

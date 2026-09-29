@@ -24,6 +24,7 @@ import {
   setAttendance,
 } from "@/domain/booking";
 import { deleteClassType, deleteProduct } from "@/domain/catalog";
+import { LESSON_TEMPLATES } from "@/domain/lesson-templates";
 import { deleteClient, deleteClients, deleteOrder, deleteOrders, purgeSession, seriesFrom } from "@/domain/cleanup";
 import { fulfillOrder, sellAtReception } from "@/domain/orders";
 import { deductSolarium } from "@/domain/solarium";
@@ -84,6 +85,7 @@ export async function saveClassTypeAction(_: FormState, fd: FormData): Promise<F
       name,
       slug: field.str(fd, "slug") || slugify(name),
       description: field.str(fd, "description"),
+      keywords: field.str(fd, "keywords").slice(0, 500),
       durationMin: field.int(fd, "durationMin") ?? 60,
       capacity: field.int(fd, "capacity") ?? 12,
       creditCost: field.int(fd, "creditCost") ?? 1,
@@ -106,6 +108,29 @@ export async function saveClassTypeAction(_: FormState, fd: FormData): Promise<F
     if (id) await db.update(classTypes).set(values).where(eq(classTypes.id, id));
     else await db.insert(classTypes).values(values);
     return done(id ? "Lekce uložena." : "Lekce vytvořena.");
+  });
+}
+
+/** Admin → Lekce: a ready-made lesson, created hidden so its page can be prepared before going public. */
+export async function lessonFromTemplateAction(_: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  return attempt(async () => {
+    const tpl = LESSON_TEMPLATES.find((t) => t.slug === field.str(fd, "slug"));
+    if (!tpl) throw new UserError("Návrh nenalezen.");
+    const db = await getDb();
+    const [exists] = await db.select({ id: classTypes.id }).from(classTypes).where(eq(classTypes.slug, tpl.slug));
+    if (exists) throw new UserError(`Lekce s adresou /lekce/${tpl.slug} už existuje.`);
+    await db.insert(classTypes).values({
+      name: tpl.name,
+      slug: tpl.slug,
+      description: tpl.description,
+      keywords: tpl.keywords,
+      level: tpl.level ?? "Pro všechny",
+      durationMin: tpl.durationMin ?? 60,
+      isActive: false,
+      sortOrder: 100,
+    });
+    return done(`${tpl.name} je připravená jako neaktivní – doplň cenu a fotku, pak ji zapni.`);
   });
 }
 
