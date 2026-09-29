@@ -38,10 +38,17 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registr
         </label>
         <fieldset className="space-y-2 rounded-xl border border-linka/60 p-4 text-sm text-les/80">
           <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-les/60">Novinky a akce (nepovinné)</legend>
+          <p className="text-xs text-les/70">
+            Doporučujeme zaškrtnout aspoň newsletter – dozvíš se o nových lekcích, workshopech a akcích jako první.
+          </p>
           <label className="flex gap-3"><input type="checkbox" name="marketing" className="mt-1 accent-[#674329]" /> E-mailem (newsletter)</label>
           <label className="flex gap-3"><input type="checkbox" name="sms" className="mt-1 accent-[#674329]" /> SMS</label>
           <label className="flex gap-3"><input type="checkbox" name="whatsapp" className="mt-1 accent-[#674329]" /> WhatsApp</label>
           <p className="text-xs text-les/50">Odhlásit se můžeš kdykoliv v profilu nebo odkazem ve zprávě.</p>
+          <p className="text-xs text-les/50">
+            Provozní e-maily a upozornění (potvrzení rezervace, zrušení nebo změna lekce, platby, obnova hesla) ti chodí vždy – bez nich
+            to nejde.
+          </p>
         </fieldset>
         <SubmitButton variant="gold" className="w-full">Vytvořit účet</SubmitButton>
       </ActionForm>

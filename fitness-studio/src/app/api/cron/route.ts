@@ -14,6 +14,7 @@ import { campaignSender, newsletterFooter } from "@/lib/campaign-sender";
 import { unsubscribeUrl } from "@/lib/links";
 import { greetName } from "@/lib/vocative";
 import { createBackup, weeklyBackupDue } from "@/domain/backup";
+import { pruneAttempts } from "@/lib/throttle";
 
 export const maxDuration = 60;
 
@@ -52,6 +53,7 @@ export async function GET(req: Request) {
   }
 
   // weekly data backup (kept in the database, downloadable in Nastavení)
+  await pruneAttempts(db, now);
   const backup = (await weeklyBackupDue(db, now)) ? (await createBackup(db, "auto")).size : 0;
 
   const started = Date.now();

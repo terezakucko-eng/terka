@@ -91,6 +91,10 @@ export default async function ProfilePage() {
             <label className="flex gap-3"><input type="checkbox" name="marketing" defaultChecked={user.marketingConsent} className="accent-[#674329]" /> E-mailem</label>
             <label className="flex gap-3"><input type="checkbox" name="sms" defaultChecked={user.smsConsent} className="accent-[#674329]" /> SMS</label>
             <label className="flex gap-3"><input type="checkbox" name="whatsapp" defaultChecked={user.whatsappConsent} className="accent-[#674329]" /> WhatsApp</label>
+            <p className="text-xs text-les/60">
+              Doporučujeme aspoň newsletter – o nových lekcích, workshopech a akcích se dozvíš jako první. Provozní e-maily (potvrzení
+              rezervace, změny a zrušení lekcí, platby) ti chodí vždy.
+            </p>
           </fieldset>
           <SubmitButton>Uložit</SubmitButton>
         </ActionForm>

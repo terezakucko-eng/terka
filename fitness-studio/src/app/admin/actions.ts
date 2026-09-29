@@ -30,7 +30,7 @@ import { deductSolarium } from "@/domain/solarium";
 import { grantEntitlement, normalizeEmail } from "@/domain/users";
 import { changeCredits } from "@/domain/wallet";
 import { requireAdmin, requireStaff } from "@/lib/auth";
-import { addDays, dateKey, formatDate, pragueLocalToDate, weekdayOf, isDateKey } from "@/lib/dates";
+import { addDays, dateKey, formatDate, mondayOf, pragueLocalToDate, weekdayOf, isDateKey } from "@/lib/dates";
 import { UserError } from "@/lib/errors";
 import { attempt, field, type FormState } from "@/lib/form";
 import { notifyBooked, notifyPromoted, notifySessionCancelled, notifyStrike } from "@/lib/notify";
@@ -354,16 +354,18 @@ async function removeSessions(ids: string[]) {
 
 export async function deleteSessionAction(_: FormState, fd: FormData): Promise<FormState> {
   await requireAdmin();
-  let ok = false;
+  let back: string | null = null;
   const res = await attempt(async () => {
     const id = field.str(fd, "id");
-    const list = field.str(fd, "scope") === "series" ? await seriesFrom(await getDb(), id) : [{ id }];
+    const db = await getDb();
+    const [cur] = await db.select({ startsAt: classSessions.startsAt }).from(classSessions).where(eq(classSessions.id, id));
+    const list = field.str(fd, "scope") === "series" ? await seriesFrom(db, id) : [{ id }];
     await removeSessions(list.map((s) => s.id));
-    ok = true;
+    back = cur ? `/admin/rozvrh?tyden=${mondayOf(dateKey(cur.startsAt))}` : "/admin/rozvrh";
   });
-  if (ok) {
+  if (back) {
     revalidatePath("/", "layout");
-    redirect("/admin/rozvrh");
+    redirect(back);
   }
   return res;
 }

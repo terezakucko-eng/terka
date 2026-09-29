@@ -23,7 +23,7 @@ import { formatDay, formatRange, toLocalInput } from "@/lib/dates";
 import { activeClassTypes, activeInstructors, sessionDetail } from "@/lib/queries";
 import { Avatar } from "@/components/avatar";
 import { upcomingCelebrations } from "@/lib/profile";
-import { dateKey } from "@/lib/dates";
+import { dateKey, mondayOf } from "@/lib/dates";
 import { ClientSelect } from "@/components/client-select";
 import { splitName } from "@/lib/client-list";
 
@@ -63,7 +63,7 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
 
   return (
     <>
-      <Link href="/admin/rozvrh" className="eyebrow text-les/60 hover:text-les">← Rozvrh</Link>
+      <Link href={`/admin/rozvrh?tyden=${mondayOf(dateKey(s.startsAt))}`} className="eyebrow text-les/60 hover:text-les">← Rozvrh</Link>
       <AdminTitle title={`${ct.name} · ${formatDay(s.startsAt)} ${formatRange(s.startsAt, s.durationMin)}`}>
         {s.status === "cancelled" ? <Badge tone="red">Zrušeno</Badge> : <Badge tone="green">{active.reduce((n, { b }) => n + b.seats, 0)}/{s.capacity} přihlášeno</Badge>}
       </AdminTitle>
