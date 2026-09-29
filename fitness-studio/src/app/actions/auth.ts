@@ -26,6 +26,10 @@ import { deleteImage, storeImage, uploadedFile } from "@/lib/media";
 import { normalizePhone } from "@/lib/phone";
 import { AVATAR_EMOJI, OCTO_AVATARS, cleanBirthDate, cleanNameDay } from "@/lib/profile";
 import { greetName } from "@/lib/vocative";
+import { deleteOwnAccount } from "@/domain/account-deletion";
+import { notifyPromoted } from "@/lib/notify";
+import { getContent } from "@/content";
+import { sendMail } from "@/lib/mail";
 
 /** Only allow local redirects after login. */
 function safeNext(v: string) {
@@ -211,4 +215,33 @@ export async function unsubscribeAction(_: FormState, fd: FormData): Promise<For
     if (!ok) throw new UserError("Odkaz je neplatný.");
     return "Hotovo – už ti nebudeme posílat žádné novinky.";
   });
+}
+
+/** Profile → "Smazat účet": the client's own, confirmed with the password. */
+export async function deleteAccountAction(_: FormState, fd: FormData): Promise<FormState> {
+  const user = await requireUser("/ucet/profil");
+  let done = false;
+  const res = await attempt(async () => {
+    if (!field.bool(fd, "confirm")) throw new UserError("Zaškrtni prosím, že účet opravdu chceš smazat.");
+    if (!(await verifyPassword(field.str(fd, "password"), user.passwordHash))) throw new UserError("Heslo nesouhlasí.");
+    const db = await getDb();
+    const r = await deleteOwnAccount(db, user.id);
+    await notifyPromoted(db, r.promoted);
+    const c = await getContent();
+    await sendMail({
+      to: user.email,
+      subject: "Tvůj účet v OCTOPUSH je smazaný",
+      text: `Ahoj,\n\ntvůj účet na ${site.url} jsme podle tvého přání smazali${r.anonymised ? " – osobní údaje jsou odstraněné, záznamy o platbách musíme ze zákona uchovat" : ""}.\n\nKdyby ses chtěl/a vrátit, stačí se znovu zaregistrovat. Ať se ti daří!\n\n${site.name}`,
+    }).catch((e) => console.error("[account] mail failed", e));
+    await sendMail({
+      to: c.raw("site.email") || site.email,
+      subject: `Klient si smazal účet: ${user.name}`,
+      text: `${user.name} (${user.email}) si smazal/a účet${r.anonymised ? " – kvůli platbám je anonymizovaný, v přehledu plateb zůstává jako „Smazaný účet“" : " úplně"}.`,
+    }).catch((e) => console.error("[account] notify failed", e));
+    done = true;
+  });
+  if (!done) return res;
+  await endSession();
+  revalidatePath("/", "layout");
+  redirect("/ucet-smazan");
 }

@@ -1,4 +1,6 @@
-import { changePasswordAction, updateAvatarAction, updateProfileAction } from "@/app/actions/auth";
+import { changePasswordAction, deleteAccountAction, updateAvatarAction, updateProfileAction } from "@/app/actions/auth";
+import { deletionCheck } from "@/domain/account-deletion";
+import { credits } from "@/lib/money";
 import { Avatar } from "@/components/avatar";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { ImageInput } from "@/components/image-input";
@@ -12,7 +14,8 @@ import { PasswordInput } from "@/components/password-input";
 
 export default async function ProfilePage() {
   const user = await requireUser("/ucet/profil");
-  const { publicKey } = await vapidKeys(await getDb());
+  const db = await getDb();
+  const [{ publicKey }, deletion] = await Promise.all([vapidKeys(db), deletionCheck(db, user.id)]);
   const current = parseAvatar(user.avatar);
   const [nameDayMonth, nameDayDay] = user.nameDay?.split("-").map(Number) ?? [];
   const pickClass =
@@ -125,6 +128,33 @@ export default async function ProfilePage() {
           <SubmitButton>Změnit heslo</SubmitButton>
         </ActionForm>
       </Card>
+      {user.role === "client" && (
+        <details className="rounded-2xl border border-linka/60 p-5 text-sm sm:p-6">
+          <summary className="cursor-pointer font-semibold text-les/70">Smazat účet</summary>
+          {deletion.blocker ? (
+            <p className="mt-4 rounded-xl bg-zlato/15 p-4">{deletion.blocker}</p>
+          ) : (
+            <>
+              <ul className="mt-4 list-disc space-y-1 pl-5 text-les/75">
+                {deletion.upcomingBookings > 0 && <li>Zruší se tvoje nadcházející rezervace ({deletion.upcomingBookings}).</li>}
+                {user.creditBalance > 0 && <li>Propadne ti {credits(user.creditBalance)} na účtu.</li>}
+                <li>Propadnou nevyčerpané permanentky a vstupy.</li>
+                <li>Smažeme tvoje jméno, e-mail, telefon, profil, příspěvky na nástěnce i recenzi.</li>
+                <li>Záznamy o platbách musíme ze zákona uchovat – už ale bez tvého jména a kontaktu.</li>
+                <li>Smazání nejde vrátit. Kdykoliv se ale můžeš zaregistrovat znovu.</li>
+              </ul>
+              <ActionForm action={deleteAccountAction} confirm="Opravdu nevratně smazat účet?" className="mt-5 space-y-4">
+                <Field label="Pro potvrzení zadej heslo"><PasswordInput name="password" autoComplete="current-password" required /></Field>
+                <label className="flex gap-3">
+                  <input type="checkbox" name="confirm" required className="mt-1 accent-[#674329]" />
+                  <span>Rozumím, že účet i výše uvedené se nevratně smaže.</span>
+                </label>
+                <SubmitButton variant="danger">Smazat účet</SubmitButton>
+              </ActionForm>
+            </>
+          )}
+        </details>
+      )}
     </div>
   );
 }

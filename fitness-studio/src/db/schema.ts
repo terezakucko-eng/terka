@@ -160,6 +160,8 @@ export const users = pgTable("users", {
   /** Prohřešky se počítají až od tohoto okamžiku (po pauze nebo odpuštění) */
   strikesResetAt: timestamp("strikes_reset_at", { withTimezone: true }),
   stripeCustomerId: text("stripe_customer_id"),
+  /** Klient si smazal účet – osobní údaje jsou anonymizované, platby zůstávají kvůli účetnictví. */
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdAt: createdAt(),
 });
 
