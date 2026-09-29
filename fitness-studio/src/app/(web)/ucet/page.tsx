@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { and, asc, eq, gt, ne } from "drizzle-orm";
+import { and, asc, eq, gt, ne, sql } from "drizzle-orm";
 import { cancelBookingAction } from "@/app/actions/booking";
 import { cancelMassageAction } from "@/app/actions/massages";
-import { massageBookings, orders } from "@/db/schema";
+import { bookings, massageBookings, orders } from "@/db/schema";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { entitlementKindLabel } from "@/components/labels";
 import { Badge, ButtonLink, Card, Empty, Eyebrow } from "@/components/ui";
@@ -19,13 +19,15 @@ import { WelcomeTour } from "@/components/welcome-tour";
 import { vapidKeys } from "@/lib/push";
 import { splitName } from "@/lib/client-list";
 import { vocative } from "@/lib/vocative";
+import { myReview } from "@/domain/reviews";
+import { getContent } from "@/content";
 
 export default async function AccountPage({ searchParams }: PageProps<"/ucet">) {
   const { vitej } = await searchParams;
   const user = await requireUser("/ucet");
   const db = await getDb();
   const fees = await openFees(db, user.id);
-  const [upcoming, ents, massages, unpaid] = await Promise.all([
+  const [upcoming, ents, massages, unpaid, visits, review, content] = await Promise.all([
     userBookings(db, user.id, "upcoming"),
     userEntitlements(db, user.id, true),
     db
@@ -44,7 +46,17 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
       .from(orders)
       .where(and(eq(orders.userId, user.id), eq(orders.status, "pending"), eq(orders.provider, "transfer"), ne(orders.kind, "membership_fee")))
       .orderBy(asc(orders.createdAt)),
+    db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(bookings)
+      .where(and(eq(bookings.userId, user.id), eq(bookings.status, "attended")))
+      .then(([r]) => r.n),
+    myReview(db, user.id),
+    getContent(),
   ]);
+  // regulars who haven't written a review yet get a gentle nudge
+  const google = content.googleReviewUrl;
+  const askReview = user.role === "client" && visits >= 3 && !review;
 
   return (
     <div className="space-y-12">
@@ -67,6 +79,9 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
           publicKey={(await vapidKeys(db)).publicKey}
           marketing={user.marketingConsent}
           reminders={user.remindersOptIn}
+          sms={user.smsConsent}
+          whatsapp={user.whatsappConsent}
+          hasPhone={!!user.phone}
         />
       )}
       {user.bookingPausedUntil && user.bookingPausedUntil > new Date() && (
@@ -170,6 +185,23 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
           ))}
         </div>
       </section>
+
+      {askReview && (
+        <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-linka/60 bg-krem/40 p-5">
+          <p>
+            <span className="block font-semibold">Jak se ti u nás líbí?</span>
+            <span className="text-sm text-les/70">Máš za sebou už {visits} {visits <= 4 ? "lekce" : "lekcí"} – budeme moc rádi za pár slov. Nejvíc nám pomůže hodnocení na Googlu.</span>
+          </p>
+          <span className="flex flex-wrap gap-2">
+            {google && (
+              <a href={google} target="_blank" rel="noopener" className="rounded-full bg-les px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-papir">
+                Ohodnotit na Googlu ↗
+              </a>
+            )}
+            <ButtonLink href="/recenze" variant="outline" className="px-5 py-2.5">Napsat recenzi sem</ButtonLink>
+          </span>
+        </section>
+      )}
 
       {massages.length > 0 && (
         <section>

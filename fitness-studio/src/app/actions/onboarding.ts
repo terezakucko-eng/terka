@@ -5,13 +5,21 @@ import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
+import { normalizePhone } from "@/lib/phone";
 
-/** Newsletter and reminder e-mails, chosen in the welcome tour. */
-export async function tourPreferencesAction(prefs: { marketing: boolean; reminders: boolean }) {
+/** News (e-mail / SMS / WhatsApp), reminders and a missing phone number, chosen in the welcome tour. */
+export async function tourPreferencesAction(prefs: { marketing: boolean; reminders: boolean; sms: boolean; whatsapp: boolean; phone?: string }) {
   const user = await requireUser("/ucet");
+  const phone = prefs.phone?.trim() ? normalizePhone(prefs.phone) ?? prefs.phone.trim().slice(0, 30) : undefined;
   await (await getDb())
     .update(users)
-    .set({ marketingConsent: !!prefs.marketing, remindersOptIn: !!prefs.reminders })
+    .set({
+      marketingConsent: !!prefs.marketing,
+      remindersOptIn: !!prefs.reminders,
+      smsConsent: !!prefs.sms,
+      whatsappConsent: !!prefs.whatsapp,
+      ...(phone && !user.phone ? { phone } : {}),
+    })
     .where(eq(users.id, user.id));
 }
 

@@ -24,7 +24,7 @@ export async function saveReviewAction(_: FormState, fd: FormData): Promise<Form
       subject: `Nová recenze ke schválení (${"★".repeat(r.rating)})`,
       text: `${r.authorName} (${user.email}):\n\n${r.body}\n\nSchválit: ${site.url}/admin/recenze`,
     }).catch((e) => console.error("[reviews] notify failed", e));
-    return "Díky! Recenze se zobrazí, jakmile ji schválíme.";
+    return "Díky! Recenze se zobrazí, jakmile ji schválíme. A pokud chceš, zkopíruj ji i na Google (tlačítko níže) – moc nám to pomůže.";
   });
   revalidatePath("/recenze");
   return res;

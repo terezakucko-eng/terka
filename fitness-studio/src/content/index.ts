@@ -43,6 +43,8 @@ export const getContent = cache(async () => {
   /** Fills the global placeholders (plus `extra`) without typography tweaks – for e-mails. */
   c.fill = (text: string, extra: Record<string, string> = {}) => fillPlaceholders(text, { ...vars, ...extra });
   c.isSaved = (key: string) => saved.has(key);
+  /** Where clients rate us on Google – an empty saved field falls back to the studio's profile. */
+  c.googleReviewUrl = raw("reviews.googleUrl").trim() || (fieldDef("reviews.googleUrl")?.default ?? "");
   return c;
 });
 

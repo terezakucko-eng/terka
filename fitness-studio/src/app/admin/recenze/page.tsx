@@ -54,7 +54,8 @@ export default async function AdminReviews() {
       <AdminTitle title="Recenze" />
       <p className="-mt-4 mb-6 max-w-2xl text-sm text-les/60">
         Klienti píšou recenze na stránce Recenze – na web jdou až po schválení. Zvýrazněné se ukazují na úvodní stránce jako první.
-        Recenze z Googlu nebo starého webu můžeš vložit ručně (se souhlasem autora).
+        Recenze z Googlu nebo starého webu můžeš vložit ručně – zkopíruj text, jméno a hvězdičky a vyber „Google“, u recenze pak
+        bude štítek Google. Odkaz, kterým zveš klienty k hodnocení na Googlu, se nastavuje v Obsah webu → Recenze.
       </p>
       <div className="space-y-3">
         <Panel title="+ Vložit recenzi"><ReviewForm /></Panel>
