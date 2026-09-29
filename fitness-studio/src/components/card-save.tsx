@@ -70,11 +70,11 @@ export function CardSave({ embedded }: { embedded?: boolean }) {
             Přidat na plochu
           </button>
         ) : platform === "ios" ? (
-          <p className="mt-2">V Safari klepni na <strong>Sdílet</strong> (čtvereček se šipkou) → <strong>Přidat na plochu</strong>. Rozvrh, rezervace i karta pak budou jedním klepnutím.</p>
+          <p className="mt-2">Klepni na <strong>Sdílet</strong> (čtvereček se šipkou – v Safari dole, v Chromu nahoře vedle adresy) → <strong>Přidat na plochu</strong>. Rozvrh, rezervace i karta pak budou jedním klepnutím.</p>
         ) : platform === "android" ? (
           <p className="mt-2">V Chromu otevři menu <strong>⋮</strong> → <strong>Přidat na plochu</strong> (nebo „Nainstalovat aplikaci“).</p>
         ) : (
-          <p className="mt-2">Otevři tuhle stránku v mobilu – v Safari přes Sdílet → Přidat na plochu, v Chromu přes menu ⋮ → Přidat na plochu.</p>
+          <p className="mt-2">Otevři tuhle stránku v mobilu – na iPhonu přes Sdílet → Přidat na plochu, na Androidu přes menu ⋮ → Přidat na plochu.</p>
         )}
       </div>
     </div>

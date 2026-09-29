@@ -84,8 +84,8 @@ export function PushToggle({ publicKey, className }: { publicKey: string; classN
       {shown === "unsupported" && <p className="text-les/60">Tenhle prohlížeč upozornění neumí. Zkus Chrome, Edge, Firefox nebo Safari.</p>}
       {shown === "ios-home" && (
         <p className="text-les/70">
-          Na iPhonu fungují upozornění jen z aplikace na ploše: v Safari klepni na <strong>Sdílet</strong> →{" "}
-          <strong>Přidat na plochu</strong>, otevři OCTOPUSH z plochy a tady je zapni.
+          Na iPhonu fungují upozornění jen z aplikace na ploše: klepni na <strong>Sdílet</strong> (čtvereček se šipkou – v Safari
+          dole, v Chromu nahoře vedle adresy) → <strong>Přidat na plochu</strong>, otevři OCTOPUSH z plochy a tady je zapni.
         </p>
       )}
       {shown === "denied" && (
