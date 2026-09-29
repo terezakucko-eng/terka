@@ -1,4 +1,5 @@
 import { EditPageButton } from "@/components/edit-page-button";
+import { AppOpenTracker } from "@/components/app-open-tracker";
 import { Popup } from "@/components/popup";
 import { PromoBar } from "@/components/promo-bar";
 import { SiteFooter } from "@/components/site-footer";
@@ -18,6 +19,7 @@ export default async function WebLayout({ children }: LayoutProps<"/">) {
       <SiteFooter />
       <Popup />
       {user?.role === "admin" && <EditPageButton />}
+      {user && !user.appInstalledAt && <AppOpenTracker />}
     </>
   );
 }

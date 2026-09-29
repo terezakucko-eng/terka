@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { and, asc, eq, gt } from "drizzle-orm";
+import { and, asc, count, eq, gt } from "drizzle-orm";
 import {
   adjustCreditsAction,
   cancelEntitlementAction,
@@ -22,7 +22,7 @@ import { ActionForm, SubmitButton } from "@/components/forms";
 import { bookingStatusLabel, creditReasonLabel, entitlementKindLabel, methodLabel, orderStatusLabel } from "@/components/labels";
 import { Badge, Button, Card, Field, Input, Select, Textarea } from "@/components/ui";
 import { getDb } from "@/db";
-import { massageBookings, users } from "@/db/schema";
+import { massageBookings, pushSubscriptions, users } from "@/db/schema";
 import { userBookings, userEntitlements, userLedger, userOrders } from "@/lib/account";
 import { requireAdmin } from "@/lib/auth";
 import { dateKey, formatDate, formatDateTime } from "@/lib/dates";
@@ -48,7 +48,8 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
     userLedger(db, u.id),
     sellableProducts(db),
   ]);
-  const [sunPasses, sunUses, massages] = await Promise.all([
+  const [[{ n: pushDevices }], sunPasses, sunUses, massages] = await Promise.all([
+    db.select({ n: count() }).from(pushSubscriptions).where(eq(pushSubscriptions.userId, u.id)),
     solariumPasses(db, u.id),
     recentSolariumUses(db, u.id, 5),
     db
@@ -73,6 +74,12 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
           {u.birthDate && <p>Narozeniny: <strong>{formatDate(new Date(`${u.birthDate}T12:00:00Z`))}</strong></p>}
           {u.nameDay && <p>Svátek: <strong>{formatDayMonth(u.nameDay)}</strong></p>}
           <p>{u.healthConfirmedAt ? `Zdravotní způsobilost potvrzena ${formatDate(u.healthConfirmedAt)}` : "Zdravotní způsobilost zatím nepotvrzena (potvrdí při další rezervaci)"}</p>
+          <p>
+            Mobil: {pushDevices ? `push upozornění zapnutá (${pushDevices} zař.)` : "push upozornění vypnutá"}
+            {" · "}{u.cardSavedAt ? `karta uložená ${formatDate(u.cardSavedAt)}` : "karta neuložená"}
+            {" · "}{u.appInstalledAt ? `web na ploše od ${formatDate(u.appInstalledAt)}` : "web na ploše ne"}
+            {" · "}připomínky e-mailem {u.remindersOptIn ? "ano" : "ne"} · newsletter {u.marketingConsent ? "ano" : "ne"}
+          </p>
         </div>
       </div>
       <AdminTitle title={u.name}>

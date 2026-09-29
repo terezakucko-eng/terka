@@ -218,6 +218,13 @@
       "when": 1790717852696,
       "tag": "0030_onboarding",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1790718182465,
+      "tag": "0031_device_tracking",
+      "breakpoints": true
     }
   ]
 }

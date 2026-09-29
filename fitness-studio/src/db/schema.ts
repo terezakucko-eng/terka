@@ -125,6 +125,10 @@ export const users = pgTable("users", {
   cardPromptAt: timestamp("card_prompt_at", { withTimezone: true }),
   /** Klient prošel (nebo přeskočil) úvodního průvodce v účtu. */
   onboardedAt: timestamp("onboarded_at", { withTimezone: true }),
+  /** Kdy si klient uložil členskou kartu do mobilu (obrázek). */
+  cardSavedAt: timestamp("card_saved_at", { withTimezone: true }),
+  /** Kdy klient poprvé otevřel web jako aplikaci z plochy telefonu. */
+  appInstalledAt: timestamp("app_installed_at", { withTimezone: true }),
   /** souhlas s newsletterem (e-mail) */
   marketingConsent: boolean("marketing_consent").notNull().default(false),
   smsConsent: boolean("sms_consent").notNull().default(false),

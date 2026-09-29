@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Download, Smartphone } from "lucide-react";
-import { cardPromptDoneAction } from "@/app/actions/card";
+import { cardPromptDoneAction, cardSavedAction } from "@/app/actions/card";
 import { shareOrDownload } from "@/lib/share-image";
 
 type Platform = "ios" | "android" | "other";
@@ -35,7 +35,7 @@ export function CardSave({ embedded }: { embedded?: boolean }) {
     try {
       const how = await shareOrDownload("/api/karta", "octopush-clenska-karta.png", { title: "Členská karta OCTOPUSH" });
       setMsg(how === "shared" ? "Hotovo – vyber „Uložit obrázek“ a kartu najdeš ve fotkách." : "Karta je stažená – najdeš ji ve stažených souborech.");
-      void cardPromptDoneAction();
+      void cardSavedAction();
     } catch (e) {
       if ((e as Error).name !== "AbortError") setMsg("Uložení se nepovedlo, zkus to prosím znovu.");
     } finally {

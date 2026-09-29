@@ -7,8 +7,12 @@ import { ActionForm, SubmitButton } from "@/components/forms";
 import { AdminTitle, Panel, Table, Td } from "@/components/admin";
 import { Badge, Field, Input, Select } from "@/components/ui";
 import { getDb } from "@/db";
-import { entitlements, users } from "@/db/schema";
-import { SORTS, TAGS, sortClients, splitName, type Sort, type Tag } from "@/lib/client-list";
+import { entitlements, pushSubscriptions, users } from "@/db/schema";
+import { DEVICE_TAGS, SORTS, TAGS, sortClients, splitName, type Sort, type Tag } from "@/lib/client-list";
+import { Bell, CalendarClock, CreditCard, Mail, Smartphone } from "lucide-react";
+
+const isDeviceTag = (t: Tag): t is (typeof DEVICE_TAGS)[number] => (DEVICE_TAGS as readonly string[]).includes(t);
+const DEVICE_ICONS = { push: Bell, card: CreditCard, app: Smartphone, reminders: CalendarClock, newsletter: Mail } as const;
 import { requireAdmin } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
 
@@ -21,7 +25,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/admin/kl
   const db = await getDb();
   const now = new Date();
   const like = `%${term.replace(/[%_]/g, "")}%`;
-  const [rows, ents] = await Promise.all([
+  const [rows, ents, pushRows] = await Promise.all([
     db
       .select()
       .from(users)
@@ -37,7 +41,9 @@ export default async function ClientsPage({ searchParams }: PageProps<"/admin/kl
           sql`(${entitlements.entriesTotal} is null or ${entitlements.entriesUsed} < ${entitlements.entriesTotal})`,
         ),
       ),
+    db.selectDistinct({ userId: pushSubscriptions.userId }).from(pushSubscriptions),
   ]);
+  const withPush = new Set(pushRows.map((r) => r.userId));
   const kinds = new Map<string, Set<string>>();
   for (const e of ents) kinds.set(e.userId, (kinds.get(e.userId) ?? new Set()).add(e.kind));
   const tagsOf = (u: (typeof rows)[number]): Tag[] => {
@@ -46,6 +52,11 @@ export default async function ClientsPage({ searchParams }: PageProps<"/admin/kl
       t === "credit" ? u.creditBalance > 0
       : t === "paused" ? !!u.bookingPausedUntil && u.bookingPausedUntil > now
       : t === "noPassword" ? u.role === "client" && u.passwordHash.startsWith("!")
+      : t === "push" ? withPush.has(u.id)
+      : t === "card" ? !!u.cardSavedAt
+      : t === "app" ? !!u.appInstalledAt
+      : t === "reminders" ? u.remindersOptIn
+      : t === "newsletter" ? u.marketingConsent
       : k.has(t),
     );
   };
@@ -109,9 +120,17 @@ export default async function ClientsPage({ searchParams }: PageProps<"/admin/kl
               <Td>
                 <div className="flex flex-wrap gap-1">
                   {u.role !== "client" && <Badge tone="dark">{u.role === "admin" ? "Admin" : "Lektor"}</Badge>}
-                  {u.tags.map((t) => (
+                  {u.tags.filter((t) => !isDeviceTag(t)).map((t) => (
                     <Badge key={t} tone={t === "membership" ? "green" : t === "paused" ? "red" : t === "noPassword" ? "neutral" : "gold"}>{TAGS[t]}</Badge>
                   ))}
+                  {u.tags.some(isDeviceTag) && (
+                    <span className="inline-flex items-center gap-1 text-zeme">
+                      {u.tags.filter(isDeviceTag).map((t) => {
+                        const Icon = DEVICE_ICONS[t];
+                        return <Icon key={t} className="size-3.5" aria-label={TAGS[t]}><title>{TAGS[t]}</title></Icon>;
+                      })}
+                    </span>
+                  )}
                 </div>
               </Td>
               <Td>{u.email}</Td>
