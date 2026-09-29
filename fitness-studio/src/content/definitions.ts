@@ -151,22 +151,6 @@ export const SECTIONS = {
       caption: opt("Popisek fotky", "01 / Příroda"),
     },
   },
-  homeRebrand: {
-    title: "Úvod – přechod z MOVE IN ZONE (dočasné)",
-    page: "/",
-    fields: {
-      logo: { label: "Logo MOVE IN ZONE", type: "image", default: "", optional: true, hint: "Bez loga se ukáže jen text." },
-      title: opt("Nadpis", "MOVE IN ZONE je teď OCTOPUSH"),
-      text: optArea("Text", "Stejné studio, stejná lektorka i parta – mění se jen název a web. Permanentky, kredit i členství platí dál."),
-      until: {
-        label: "Zobrazovat do (RRRR-MM-DD)",
-        type: "text",
-        default: "2026-10-31",
-        hint: "Po tomhle dni pruh z úvodní stránky sám zmizí. Prázdné = nezobrazovat.",
-        optional: true,
-      },
-    },
-  },
   homeCharacter: {
     title: "Úvod – charakter značky a hodnoty",
     page: "/",

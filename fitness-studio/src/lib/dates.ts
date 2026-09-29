@@ -115,6 +115,20 @@ const weekdayFmt = fmt({ weekday: "long" });
 /** "2. října v 18:00 (pátek)" – reads right after "od" / "otevře" */
 export const formatWhen = (d: Date) => `${dayMonthFmt.format(d)} v ${timeFmt.format(d)} (${weekdayFmt.format(d)})`;
 
+const FROM_WEEKDAY = ["pondělí", "úterý", "středy", "čtvrtka", "pátku", "soboty", "neděle"];
+/**
+ * When booking opens, read after "od": "5. 10." at midnight (a new week),
+ * otherwise "7. 10. v 18:00"; `weekday` adds the day – "pondělí 5. 10.".
+ */
+export function formatOpens(d: Date, weekday = false) {
+  const time = timeFmt.format(d);
+  const atMidnight = time === "0:00" || time === "00:00";
+  // non-breaking spaces keep "5. 10." together in a narrow badge
+  const date = shortDateFmt.format(d).replace(/ /g, "\u00a0");
+  return `${weekday ? `${FROM_WEEKDAY[weekdayOf(dateKey(d))]} ` : ""}${date}${atMidnight ? "" : ` v\u00a0${time}`}`;
+}
+const shortDateFmt = fmt({ day: "numeric", month: "numeric" });
+
 export function formatRange(start: Date, durationMin: number) {
   return `${formatTime(start)} – ${formatTime(new Date(start.getTime() + durationMin * 60_000))}`;
 }
