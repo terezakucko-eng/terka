@@ -1,10 +1,18 @@
 import { asc, isNull } from "drizzle-orm";
-import { deleteClassTypeAction, lessonFromTemplateAction, saveClassTypeAction } from "@/app/admin/actions";
-import { LESSON_TEMPLATES } from "@/domain/lesson-templates";
+import {
+  deleteClassTypeAction,
+  fillAllLessonTextsAction,
+  hideLessonDraftAction,
+  lessonFromTemplateAction,
+  lessonTextFromTemplateAction,
+  saveClassTypeAction,
+} from "@/app/admin/actions";
+import { hiddenDrafts } from "@/domain/lesson-drafts";
+import { LESSON_TEMPLATES, templateFor } from "@/domain/lesson-templates";
 import { AdminTitle, Panel } from "@/components/admin";
 import { kc } from "@/components/admin-forms";
 import { ActionForm, SubmitButton } from "@/components/forms";
-import { Field, Input, Textarea } from "@/components/ui";
+import { Field, Input, Select, Textarea } from "@/components/ui";
 import { getDb } from "@/db";
 import { classTypes, type ClassType } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
@@ -59,7 +67,7 @@ function ClassTypeForm({ t }: { t?: ClassType }) {
           name="keywords"
           defaultValue={t?.keywords ?? ""}
           maxLength={500}
-          placeholder={LESSON_TEMPLATES.find((x) => x.slug === t?.slug)?.keywords ?? "např. zumba Ostrava, taneční fitness"}
+          placeholder={(t && templateFor(t)?.keywords) ?? "např. zumba Ostrava, taneční fitness"}
         />
       </Field>
       <div className="flex flex-wrap items-center gap-4">
@@ -83,15 +91,34 @@ function ClassTypeForm({ t }: { t?: ClassType }) {
 
 export default async function AdminClassTypes() {
   await requireAdmin();
-  const list = await (await getDb()).select().from(classTypes).where(isNull(classTypes.archivedAt)).orderBy(asc(classTypes.sortOrder));
-  const taken = new Set(list.map((t) => t.slug));
-  const ready = LESSON_TEMPLATES.filter((t) => !taken.has(t.slug));
+  const db = await getDb();
+  const [list, hidden] = await Promise.all([
+    db.select().from(classTypes).where(isNull(classTypes.archivedAt)).orderBy(asc(classTypes.sortOrder)),
+    hiddenDrafts(db),
+  ]);
+  const taken = new Set(list.map((t) => templateFor(t)).filter(Boolean));
+  const ready = LESSON_TEMPLATES.filter((t) => !taken.has(t) && !hidden.has(t.slug));
+  const hiddenList = LESSON_TEMPLATES.filter((t) => hidden.has(t.slug) && !taken.has(t));
+  const matched = list.filter((t) => templateFor(t));
   return (
     <>
       <AdminTitle title="Typy lekcí" />
       <div className="space-y-3">
         <Panel title="+ Nový typ lekce"><ClassTypeForm /></Panel>
-        {ready.length > 0 && (
+        {matched.length > 0 && (
+          <ActionForm
+            action={fillAllLessonTextsAction}
+            confirm={`Doplnit popis a hledané výrazy z návrhů lekcím: ${matched.map((t) => t.name).join(", ")}? Stávající popisy se přepíšou, jinak se nic nemění.`}
+            className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zlato/50 bg-zlato/10 p-4 text-sm"
+          >
+            <span>
+              <strong>Doplnit texty všem lekcím z návrhů</strong>
+              <span className="block text-les/60">{matched.map((t) => t.name).join(" · ")} – zůstanou aktivní, cena, fotka ani rozvrh se nemění.</span>
+            </span>
+            <SubmitButton variant="gold" className="px-4 py-2 text-[0.7rem]">Doplnit všem</SubmitButton>
+          </ActionForm>
+        )}
+        {(ready.length > 0 || hiddenList.length > 0) && (
           <Panel title="+ Připravené návrhy lekcí">
             <p className="mb-4 text-sm text-les/60">
               Lekce s hotovým popisem a hledanými výrazy. Vytvoří se jako <strong>neaktivní</strong> – stránku uvidíš jen ty. Až lekci
@@ -105,13 +132,36 @@ export default async function AdminClassTypes() {
                     <span className="block text-les/60">{t.keywords}</span>
                     {t.note && <span className="block text-xs text-zeme">⚠ {t.note}</span>}
                   </span>
-                  <ActionForm action={lessonFromTemplateAction}>
-                    <input type="hidden" name="slug" value={t.slug} />
-                    <SubmitButton variant="outline" className="px-4 py-2 text-[0.7rem]">Připravit</SubmitButton>
-                  </ActionForm>
+                  <span className="flex items-center gap-3">
+                    <ActionForm action={lessonFromTemplateAction}>
+                      <input type="hidden" name="slug" value={t.slug} />
+                      <SubmitButton variant="outline" className="px-4 py-2 text-[0.7rem]">Připravit</SubmitButton>
+                    </ActionForm>
+                    <ActionForm action={hideLessonDraftAction}>
+                      <input type="hidden" name="slug" value={t.slug} />
+                      <button className="text-xs font-semibold text-chyba underline">Smazat návrh</button>
+                    </ActionForm>
+                  </span>
                 </li>
               ))}
             </ul>
+            {hiddenList.length > 0 && (
+              <details className="mt-4 text-sm">
+                <summary className="cursor-pointer text-les/60 underline">Smazané návrhy ({hiddenList.length})</summary>
+                <ul className="mt-2 space-y-2">
+                  {hiddenList.map((t) => (
+                    <li key={t.slug}>
+                      <ActionForm action={hideLessonDraftAction} className="flex items-center gap-3">
+                        <input type="hidden" name="slug" value={t.slug} />
+                        <input type="hidden" name="do" value="show" />
+                        <span>{t.name}</span>
+                        <button className="text-xs font-semibold text-zeme underline">Vrátit</button>
+                      </ActionForm>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
           </Panel>
         )}
         {list.map((t) => (
@@ -119,6 +169,22 @@ export default async function AdminClassTypes() {
             <a href={`/lekce/${t.slug}`} target="_blank" className="mb-4 inline-block text-xs font-semibold text-zeme underline">
               {t.isActive ? "Stránka lekce ↗" : "Náhled stránky lekce (zatím skrytá) ↗"}
             </a>
+            <ActionForm
+              action={lessonTextFromTemplateAction}
+              confirm="Přepsat popis a hledané výrazy textem z návrhu?"
+              className="mb-5 flex flex-wrap items-end gap-2 rounded-xl bg-krem/40 p-3 text-sm"
+            >
+              <input type="hidden" name="id" value={t.id} />
+              <Field label="Doplnit popis a hledané výrazy z návrhu">
+                <Select name="template" defaultValue={templateFor(t)?.slug ?? ""}>
+                  <option value="" disabled>Vyber návrh…</option>
+                  {LESSON_TEMPLATES.map((x) => (
+                    <option key={x.slug} value={x.slug}>{x.name}</option>
+                  ))}
+                </Select>
+              </Field>
+              <SubmitButton variant="outline" className="px-4 py-2 text-[0.7rem]">Doplnit</SubmitButton>
+            </ActionForm>
             <ClassTypeForm t={t} />
             <ActionForm
               action={deleteClassTypeAction}

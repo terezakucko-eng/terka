@@ -1,7 +1,7 @@
 "use server";
 
 import { toSafeHtml } from "@/lib/rich-html";
-import { and, eq, gte, inArray, lt } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, lt } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
@@ -24,7 +24,8 @@ import {
   setAttendance,
 } from "@/domain/booking";
 import { deleteClassType, deleteProduct } from "@/domain/catalog";
-import { LESSON_TEMPLATES } from "@/domain/lesson-templates";
+import { LESSON_TEMPLATES, templateFor } from "@/domain/lesson-templates";
+import { fillLessonsFromDrafts, setDraftHidden } from "@/domain/lesson-drafts";
 import { deleteClient, deleteClients, deleteOrder, deleteOrders, purgeSession, seriesFrom } from "@/domain/cleanup";
 import { fulfillOrder, sellAtReception } from "@/domain/orders";
 import { deductSolarium } from "@/domain/solarium";
@@ -118,8 +119,9 @@ export async function lessonFromTemplateAction(_: FormState, fd: FormData): Prom
     const tpl = LESSON_TEMPLATES.find((t) => t.slug === field.str(fd, "slug"));
     if (!tpl) throw new UserError("Návrh nenalezen.");
     const db = await getDb();
-    const [exists] = await db.select({ id: classTypes.id }).from(classTypes).where(eq(classTypes.slug, tpl.slug));
-    if (exists) throw new UserError(`Lekce s adresou /lekce/${tpl.slug} už existuje.`);
+    const existing = await db.select({ slug: classTypes.slug, name: classTypes.name }).from(classTypes).where(isNull(classTypes.archivedAt));
+    const same = existing.find((c) => templateFor(c) === tpl);
+    if (same) throw new UserError(`Lekce „${same.name}“ už existuje – použij u ní „Doplnit popis z návrhu“.`);
     await db.insert(classTypes).values({
       name: tpl.name,
       slug: tpl.slug,
@@ -131,6 +133,39 @@ export async function lessonFromTemplateAction(_: FormState, fd: FormData): Prom
       sortOrder: 100,
     });
     return done(`${tpl.name} je připravená jako neaktivní – doplň cenu a fotku, pak ji zapni.`);
+  });
+}
+
+/** Admin → Lekce: an existing lesson takes a draft's description and search terms (name, prices and schedule stay). */
+export async function lessonTextFromTemplateAction(_: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  return attempt(async () => {
+    const tpl = LESSON_TEMPLATES.find((t) => t.slug === field.str(fd, "template"));
+    if (!tpl) throw new UserError("Vyber návrh.");
+    const id = required(field.str(fd, "id"), "Chybí lekce.");
+    await (await getDb()).update(classTypes).set({ description: tpl.description, keywords: tpl.keywords }).where(eq(classTypes.id, id));
+    return done(`Popis a hledané výrazy z návrhu „${tpl.name}“ jsou doplněné – klidně je ještě uprav.`);
+  });
+}
+
+/** Admin → Lekce: all lessons with a matching draft get its texts at once (they stay active). */
+export async function fillAllLessonTextsAction(): Promise<FormState> {
+  await requireAdmin();
+  return attempt(async () => {
+    const filled = await fillLessonsFromDrafts(await getDb());
+    if (!filled.length) throw new UserError("K žádné lekci jsme nenašli odpovídající návrh.");
+    return done(`Doplněno: ${filled.join(", ")}.`);
+  });
+}
+
+/** Admin → Lekce: hide a draft from "Připravené návrhy lekcí" (or bring it back). */
+export async function hideLessonDraftAction(_: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  return attempt(async () => {
+    const slug = field.str(fd, "slug");
+    if (!LESSON_TEMPLATES.some((t) => t.slug === slug)) throw new UserError("Návrh nenalezen.");
+    await setDraftHidden(await getDb(), slug, field.str(fd, "do") !== "show");
+    return done();
   });
 }
 
