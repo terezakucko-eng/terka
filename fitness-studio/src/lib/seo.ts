@@ -16,6 +16,8 @@ export function studioJsonLd(c: Content) {
     "@type": "SportsActivityLocation",
     "@id": `${site.url}/#studio`,
     name: site.name,
+    // people still search for the studio's previous name
+    alternateName: "MOVE IN ZONE",
     url: site.url,
     logo: `${site.url}/brand/logo-dark.png`,
     image: new URL(c.raw("homeHero.image") || "/brand/logo-dark.png", site.url).toString(),

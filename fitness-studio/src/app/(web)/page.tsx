@@ -20,6 +20,7 @@ import { approvedReviews, reviewStats, reviewsLabel } from "@/domain/reviews";
 import { bookingOpensAt, bookingWindowFor } from "@/domain/booking";
 import { getSettings } from "@/lib/settings";
 import { Stars } from "@/components/stars";
+import { pragueLocalToDate } from "@/lib/dates";
 
 export const metadata: Metadata = { alternates: { canonical: "/" } };
 
@@ -40,6 +41,9 @@ export default async function Home() {
     const at = bookingOpensAt(s, myWindow);
     return at > now ? at : null;
   };
+  // temporary strip for clients coming from the old name, hides itself after the chosen day
+  const rebrandUntil = c.raw("homeRebrand.until").trim();
+  const showRebrand = /^\d{4}-\d{2}-\d{2}$/.test(rebrandUntil) && now <= pragueLocalToDate(`${rebrandUntil}T23:59`);
   const cheapest = productList.find((p) => p.kind === "membership");
   const values = Array.from({ length: 8 }, (_, i) => ({
     title: c(`homeCharacter.v${i + 1}Title`),
@@ -52,6 +56,22 @@ export default async function Home() {
 
   return (
     <>
+      {showRebrand && (
+        <section className="border-b border-linka/60 bg-krem/60">
+          <Container className="flex flex-col items-center gap-3 py-5 text-center sm:flex-row sm:gap-6 sm:text-left">
+            {c.raw("homeRebrand.logo") && (
+              <span className="relative block h-14 w-28 shrink-0">
+                <ContentImage src={c.raw("homeRebrand.logo")} alt="Logo MOVE IN ZONE" fill sizes="112px" className="object-contain" />
+              </span>
+            )}
+            <p className="text-sm text-les/80">
+              <strong className="block text-base text-les">{c("homeRebrand.title")}</strong>
+              {c("homeRebrand.text")}
+            </p>
+          </Container>
+        </section>
+      )}
+
       {/* HERO */}
       <section className="bg-forest text-papir">
         <Container className="grid items-center gap-10 py-14 md:grid-cols-[1fr_1.1fr] md:py-8">
