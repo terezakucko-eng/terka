@@ -204,6 +204,13 @@
       "when": 1790712839904,
       "tag": "0028_card_prompt",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1790713648013,
+      "tag": "0029_push_subscriptions",
+      "breakpoints": true
     }
   ]
 }

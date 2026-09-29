@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { desc } from "drizzle-orm";
+import { countDistinct, desc } from "drizzle-orm";
 import { Trash2 } from "lucide-react";
 import { deleteCampaignAction } from "@/app/admin/messaging-actions";
 import { ActionForm } from "@/components/forms";
@@ -7,7 +7,9 @@ import { AdminTitle, Panel, Table, Td } from "@/components/admin";
 import { CampaignForm } from "@/components/campaign-form";
 import { Badge } from "@/components/ui";
 import { getDb } from "@/db";
-import { campaigns } from "@/db/schema";
+import { campaigns, pushSubscriptions } from "@/db/schema";
+import { vapidKeys } from "@/lib/push";
+import { PushPanel } from "@/components/push-panel";
 import { audienceOptions } from "@/lib/admin-options";
 import { requireAdmin } from "@/lib/auth";
 import { formatDateTime } from "@/lib/dates";
@@ -24,6 +26,10 @@ export default async function CampaignsPage() {
     audienceOptions(db),
   ]);
   const providers = providerStatus();
+  const [{ publicKey }, [{ n: subscribers }]] = await Promise.all([
+    vapidKeys(db),
+    db.select({ n: countDistinct(pushSubscriptions.userId) }).from(pushSubscriptions),
+  ]);
 
   return (
     <>
@@ -34,6 +40,11 @@ export default async function CampaignsPage() {
             {channelLabel[ch]}: {providers[ch] ?? "nenastaveno – jen do logu"}
           </Badge>
         ))}
+      </div>
+      <div className="mb-3">
+        <Panel title={`Push notifikace do mobilu (${subscribers} s upozorněním)`}>
+          <PushPanel publicKey={publicKey} subscribers={subscribers} />
+        </Panel>
       </div>
       <div className="mb-8">
         <Panel title="+ Nová zpráva">

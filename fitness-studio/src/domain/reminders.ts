@@ -14,7 +14,7 @@ const HOUR = 3_600_000;
 export async function dueReminders(db: DB, now = new Date()) {
   const until = new Date(now.getTime() + REMINDER_HOURS * HOUR);
   const classes = await db
-    .select({ id: bookings.id, createdAt: bookings.createdAt, sessionId: classSessions.id, startsAt: classSessions.startsAt, name: classTypes.name, email: users.email, userName: users.name })
+    .select({ id: bookings.id, createdAt: bookings.createdAt, sessionId: classSessions.id, startsAt: classSessions.startsAt, name: classTypes.name, email: users.email, userName: users.name, userId: users.id })
     .from(bookings)
     .innerJoin(classSessions, eq(bookings.sessionId, classSessions.id))
     .innerJoin(classTypes, eq(classSessions.classTypeId, classTypes.id))
@@ -30,7 +30,7 @@ export async function dueReminders(db: DB, now = new Date()) {
       ),
     );
   const massages = await db
-    .select({ id: massageBookings.id, startsAt: massageBookings.startsAt, createdAt: massageBookings.createdAt, name: massageBookings.serviceName, email: users.email, userName: users.name })
+    .select({ id: massageBookings.id, startsAt: massageBookings.startsAt, createdAt: massageBookings.createdAt, name: massageBookings.serviceName, email: users.email, userName: users.name, userId: users.id })
     .from(massageBookings)
     .innerJoin(users, eq(massageBookings.userId, users.id))
     .where(
