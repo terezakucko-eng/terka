@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "card_prompt_at" timestamp with time zone;

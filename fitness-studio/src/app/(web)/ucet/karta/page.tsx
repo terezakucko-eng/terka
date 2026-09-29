@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
 import { credits } from "@/lib/money";
 import { qrSvg } from "@/lib/qr-payment";
+import { CardSave } from "@/components/card-save";
 
 export const metadata: Metadata = { title: "Členská karta", robots: { index: false } };
 
@@ -29,7 +30,7 @@ export default async function MemberCardPage() {
         </div>
         <div className="mx-auto mt-6 w-52 rounded-2xl bg-white p-3" dangerouslySetInnerHTML={{ __html: qr }} />
         <p className="mt-6 text-center text-xl font-semibold">{user.name}</p>
-        <p className="text-center text-sm text-papir/60">klientem od {formatDate(user.createdAt)}</p>
+        <p className="text-center text-sm text-papir/60">s námi od {formatDate(user.createdAt)}</p>
         <ul className="mt-6 space-y-2 border-t border-zlato/20 pt-4 text-sm">
           {ents.map((e) => (
             <li key={e.id} className="flex justify-between gap-3">
@@ -46,6 +47,7 @@ export default async function MemberCardPage() {
         </ul>
       </div>
       <p className="mt-4 text-center text-sm text-les/60">Na recepci ukaž QR kód – načteme tvůj účet.</p>
+      <CardSave />
     </div>
   );
 }

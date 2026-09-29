@@ -86,7 +86,7 @@ export async function registerAction(_: FormState, fd: FormData): Promise<FormSt
       whatsappConsent: field.bool(fd, "whatsapp"),
     });
     await startSession(user.id);
-    await sendEmail(user.email, "welcome", { osloveni: greetName(user.name), odkaz: `${site.url}/rozvrh` });
+    await sendEmail(user.email, "welcome", { osloveni: greetName(user.name), odkaz: `${site.url}/rozvrh`, karta: `${site.url}/ucet/karta` });
     target = safeNext(field.str(fd, "next")) ?? "/ucet?vitej=1";
   });
   if (target) redirect(target);

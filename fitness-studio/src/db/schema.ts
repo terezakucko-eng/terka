@@ -121,6 +121,8 @@ export const users = pgTable("users", {
   creditExpiresAt: timestamp("credit_expires_at", { withTimezone: true }),
   /** Kdy jsme klientovi napsali, že kredit brzy propadne */
   creditExpiryWarnedAt: timestamp("credit_expiry_warned_at", { withTimezone: true }),
+  /** Klient si uložil členskou kartu do mobilu, nebo výzvu odmítl – výzva v účtu se už neukazuje. */
+  cardPromptAt: timestamp("card_prompt_at", { withTimezone: true }),
   /** souhlas s newsletterem (e-mail) */
   marketingConsent: boolean("marketing_consent").notNull().default(false),
   smsConsent: boolean("sms_consent").notNull().default(false),
