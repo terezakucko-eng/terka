@@ -29,8 +29,12 @@ export const EMAILS = {
     title: "Vítej po registraci",
     when: "Hned po založení účtu na webu.",
     subject: "Vítej v OCTOPUSH!",
-    body: "Ahoj {{osloveni}},\n\ndíky za registraci. Každý má svou cestu.\nNa účtu tě čeká úvodní lekce zdarma – vyber si ji v rozvrhu: {{odkaz}}",
-    vars: { osloveni, odkaz: { label: "odkaz na rozvrh", sample: `${site.url}/rozvrh` } },
+    body: "Ahoj {{osloveni}},\n\ndíky za registraci. Každý má svou cestu.\nNa účtu tě čeká úvodní lekce zdarma – vyber si ji v rozvrhu: {{odkaz}}\n\nUlož si do mobilu členskou kartu – na recepci pak stačí ukázat QR kód: {{karta}}",
+    vars: {
+      osloveni,
+      odkaz: { label: "odkaz na rozvrh", sample: `${site.url}/rozvrh` },
+      karta: { label: "odkaz na členskou kartu", sample: `${site.url}/ucet/karta` },
+    },
   },
   passwordReset: {
     title: "Obnovení hesla",

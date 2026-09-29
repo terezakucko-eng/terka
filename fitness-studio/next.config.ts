@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
   // fonts and logos read from disk by the stories image
   outputFileTracingIncludes: {
     "/api/story/\\[id\\]": ["./assets/fonts/**/*", "./public/brand/*.svg"],
+    "/api/karta": ["./assets/fonts/**/*", "./public/brand/*.svg"],
   },
   // browser-side hardening: HTTPS only, no framing (clickjacking), no MIME sniffing
   async headers() {

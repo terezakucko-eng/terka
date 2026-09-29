@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Download, Share2 } from "lucide-react";
+import { shareOrDownload } from "@/lib/share-image";
 
 /**
  * Stories image of a board post: on a phone "Sdílet do stories" opens the
@@ -17,18 +18,8 @@ export function StoryShare({ id, title, url }: { id: string; title: string; url:
     setBusy(true);
     setMsg("");
     try {
-      const blob = await (await fetch(src)).blob();
-      const file = new File([blob], fileName, { type: "image/png" });
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title, text: url });
-      } else {
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = fileName;
-        a.click();
-        URL.revokeObjectURL(a.href);
+      if ((await shareOrDownload(src, fileName, { title, text: url })) === "downloaded")
         setMsg("Obrázek je stažený – nahraj ho do stories v telefonu.");
-      }
     } catch (e) {
       if ((e as Error).name !== "AbortError") setMsg("Sdílení se nepovedlo, zkus obrázek stáhnout.");
     } finally {

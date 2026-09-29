@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
 import { credits } from "@/lib/money";
 import { qrSvg } from "@/lib/qr-payment";
+import { CardSave } from "@/components/card-save";
 
 export const metadata: Metadata = { title: "Členská karta", robots: { index: false } };
 
@@ -46,6 +47,7 @@ export default async function MemberCardPage() {
         </ul>
       </div>
       <p className="mt-4 text-center text-sm text-les/60">Na recepci ukaž QR kód – načteme tvůj účet.</p>
+      <CardSave />
     </div>
   );
 }
