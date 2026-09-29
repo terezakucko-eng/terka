@@ -10,6 +10,10 @@ export const defaultSettings = {
   bookingWindowDays: 21,
   /** Členové (aktivní členství) mohou rezervovat dál dopředu */
   memberBookingWindowDays: 21,
+  /** Rezervace po kalendářních týdnech: tento týden + X dalších (0 = platí dny výše) */
+  bookingWindowWeeks: 1,
+  /** …pro členy */
+  memberBookingWindowWeeks: 2,
   /** Rezervace se uzavírá X minut před začátkem */
   bookingCutoffMinutes: 0,
   /** Vstupy zdarma pro nově registrované */

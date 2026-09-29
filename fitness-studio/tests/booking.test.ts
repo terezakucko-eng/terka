@@ -122,7 +122,7 @@ describe("capacity & waitlist", () => {
   });
 
   it("members can book further ahead than others", async () => {
-    await saveSettings(h.db, { bookingWindowDays: 8, memberBookingWindowDays: 14 });
+    await saveSettings(h.db, { bookingWindowWeeks: 0, bookingWindowDays: 8, memberBookingWindowDays: 14 });
     try {
       const s = await makeSession(h.db, { startsAt: hours(24 * 11) });
       const other = await makeUser(h.db, 5);
@@ -138,6 +138,7 @@ describe("capacity & waitlist", () => {
       );
       expect(booking.status).toBe("confirmed");
     } finally {
+      await deleteSetting(h.db, "bookingWindowWeeks");
       await deleteSetting(h.db, "bookingWindowDays");
       await deleteSetting(h.db, "memberBookingWindowDays");
     }
