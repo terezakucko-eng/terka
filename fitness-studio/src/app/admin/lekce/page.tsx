@@ -1,5 +1,6 @@
 import { asc, isNull } from "drizzle-orm";
-import { deleteClassTypeAction, saveClassTypeAction } from "@/app/admin/actions";
+import { deleteClassTypeAction, lessonFromTemplateAction, saveClassTypeAction } from "@/app/admin/actions";
+import { LESSON_TEMPLATES } from "@/domain/lesson-templates";
 import { AdminTitle, Panel } from "@/components/admin";
 import { kc } from "@/components/admin-forms";
 import { ActionForm, SubmitButton } from "@/components/forms";
@@ -50,7 +51,17 @@ function ClassTypeForm({ t }: { t?: ClassType }) {
           <input type="checkbox" name="noPass" defaultChecked={t?.noPass ?? false} /> Permanentka na tuhle lekci neplatí
         </label>
       </fieldset>
-      <Field label="Popis"><Textarea name="description" rows={3} defaultValue={t?.description} /></Field>
+      <Field label="Popis" hint="Zobrazí se na stránce Lekce i na vlastní stránce lekce – pár vět o tom, co se na lekci dělá a pro koho je.">
+        <Textarea name="description" rows={3} defaultValue={t?.description} />
+      </Field>
+      <Field label="Hledané výrazy (čárkou)" hint="Co lidé píšou do Googlu, např. „zumba Ostrava, taneční fitness“. Ukážou se jako štítky na stránce lekce.">
+        <Input
+          name="keywords"
+          defaultValue={t?.keywords ?? ""}
+          maxLength={500}
+          placeholder={LESSON_TEMPLATES.find((x) => x.slug === t?.slug)?.keywords ?? "např. zumba Ostrava, taneční fitness"}
+        />
+      </Field>
       <div className="flex flex-wrap items-center gap-4">
         {t?.imageUrl && (
           // eslint-disable-next-line @next/next/no-img-element
@@ -73,13 +84,41 @@ function ClassTypeForm({ t }: { t?: ClassType }) {
 export default async function AdminClassTypes() {
   await requireAdmin();
   const list = await (await getDb()).select().from(classTypes).where(isNull(classTypes.archivedAt)).orderBy(asc(classTypes.sortOrder));
+  const taken = new Set(list.map((t) => t.slug));
+  const ready = LESSON_TEMPLATES.filter((t) => !taken.has(t.slug));
   return (
     <>
       <AdminTitle title="Typy lekcí" />
       <div className="space-y-3">
         <Panel title="+ Nový typ lekce"><ClassTypeForm /></Panel>
+        {ready.length > 0 && (
+          <Panel title="+ Připravené návrhy lekcí">
+            <p className="mb-4 text-sm text-les/60">
+              Lekce s hotovým popisem a hledanými výrazy. Vytvoří se jako <strong>neaktivní</strong> – stránku uvidíš jen ty. Až lekci
+              budeš nabízet, doplň cenu a fotku a zaškrtni „Aktivní“: stránka se zveřejní a dostane se do mapy webu pro Google.
+            </p>
+            <ul className="divide-y divide-linka/60">
+              {ready.map((t) => (
+                <li key={t.slug} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                  <span className="max-w-xl text-sm">
+                    <strong>{t.name}</strong> <span className="text-les/50">/lekce/{t.slug}</span>
+                    <span className="block text-les/60">{t.keywords}</span>
+                    {t.note && <span className="block text-xs text-zeme">⚠ {t.note}</span>}
+                  </span>
+                  <ActionForm action={lessonFromTemplateAction}>
+                    <input type="hidden" name="slug" value={t.slug} />
+                    <SubmitButton variant="outline" className="px-4 py-2 text-[0.7rem]">Připravit</SubmitButton>
+                  </ActionForm>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+        )}
         {list.map((t) => (
           <Panel key={t.id} title={`${t.name}${t.isActive ? "" : " · neaktivní"}`}>
+            <a href={`/lekce/${t.slug}`} target="_blank" className="mb-4 inline-block text-xs font-semibold text-zeme underline">
+              {t.isActive ? "Stránka lekce ↗" : "Náhled stránky lekce (zatím skrytá) ↗"}
+            </a>
             <ClassTypeForm t={t} />
             <ActionForm
               action={deleteClassTypeAction}

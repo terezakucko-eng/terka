@@ -232,6 +232,13 @@
       "when": 1790718806968,
       "tag": "0032_booking_emails",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1790720704663,
+      "tag": "0033_lesson_keywords",
+      "breakpoints": true
     }
   ]
 }

@@ -10,11 +10,16 @@ import { ContentImage } from "@/components/content-image";
 import { nbsp } from "@/lib/typography";
 import { VideoEmbed } from "@/components/video-embed";
 
-export const metadata: Metadata = {
-  title: "Lekce",
-  description: "Tanec, pilates, silový trénink a další lekce ve studiu OCTOPUSH v Ostravě. Pro koho jsou, jak probíhají a kolik stojí.",
-  alternates: { canonical: "/lekce" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const names = (await activeClassTypes(await getDb())).map((t) => t.name);
+  const list = names.slice(0, 6).join(", ");
+  return {
+    title: "Skupinové lekce Ostrava",
+    description: `Skupinové lekce ve studiu OCTOPUSH v Ostravě${list ? `: ${list}` : ""}. Pro koho jsou, jak probíhají a kolik stojí – rezervace online.`.slice(0, 160),
+    keywords: ["skupinové lekce Ostrava", "cvičení Ostrava", ...names.map((n) => `${n} Ostrava`)],
+    alternates: { canonical: "/lekce" },
+  };
+}
 
 export default async function ClassesPage() {
   const db = await getDb();
@@ -37,7 +42,8 @@ export default async function ClassesPage() {
               <div className="flex flex-1 flex-col p-8">
               <p className="eyebrow text-les/50">{String(i + 1).padStart(2, "0")} / {t.level}</p>
               <h2 className="mt-4 flex items-center gap-3 text-3xl font-semibold tracking-tight">
-                <span className="size-3 rounded-full" style={{ background: t.color }} /> {t.name}
+                <span className="size-3 rounded-full" style={{ background: t.color }} />
+                <Link href={`/lekce/${t.slug}`} className="hover:underline">{t.name}</Link>
               </h2>
               <p className="mt-4 flex-1 text-les/70">{nbsp(t.description)}</p>
               <VideoEmbed url={t.videoUrl} title={t.name} className="mt-5" />
@@ -56,9 +62,14 @@ export default async function ClassesPage() {
                   {t.memberSurchargeFrom && ` od ${formatDate(pragueLocalToDate(t.memberSurchargeFrom))}`}.
                 </p>
               )}
-              <Link href={`/rozvrh?lekce=${t.slug}`} className="eyebrow mt-6 text-zeme underline underline-offset-4 hover:text-les">
-                Termíny v rozvrhu →
-              </Link>
+              <p className="mt-6 flex flex-wrap gap-x-6 gap-y-2">
+                <Link href={`/lekce/${t.slug}`} className="eyebrow text-zeme underline underline-offset-4 hover:text-les">
+                  Víc o lekci →
+                </Link>
+                <Link href={`/rozvrh?lekce=${t.slug}`} className="eyebrow text-zeme underline underline-offset-4 hover:text-les">
+                  Termíny v rozvrhu →
+                </Link>
+              </p>
               </div>
             </article>
           ))}

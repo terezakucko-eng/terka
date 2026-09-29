@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Allura, DM_Sans } from "next/font/google";
 import { site } from "@/config/site";
 import { connection } from "next/server";
+import { splitKeywords } from "@/lib/keywords";
 import { getContent } from "@/content";
 import "./globals.css";
 
@@ -24,6 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: new URL(site.url),
     title: { default: title, template: `%s · ${site.name}` },
     description: c("site.description"),
+    keywords: splitKeywords(c.raw("site.keywords")),
     openGraph: {
       type: "website",
       locale: "cs_CZ",

@@ -55,6 +55,14 @@ export const SECTIONS = {
         "Popis webu pro Google a sdílení",
         "Studio pohybu a rovnováhy. Tanec, pilates, silový trénink a komunita lidí, kteří jdou svou cestou. Rezervuj si lekci online během pár vteřin.",
       ),
+      keywords: {
+        label: "Hledané výrazy pro celý web (čárkou)",
+        type: "textarea",
+        default:
+          "fitness Ostrava, fitko Ostrava, fitko pro ženy, fitness studio Ostrava, skupinové lekce Ostrava, skupinové cvičení, cvičení Ostrava, cvičení pro ženy, cvičení pro začátečníky, Ostrava-Jih, masáže Ostrava, MOVE IN ZONE",
+        hint: "Obecné výrazy o studiu. Výrazy k jednotlivým lekcím (zumba, pilates…) patří k lekci v Administrace → Lekce – na web se dostanou, až bude lekce aktivní.",
+        optional: true,
+      },
       pillars: opt("Pilíře (patička)", "Pohyb · Lidé · Příroda · Harmonie"),
       email: t("E-mail", "ahoj@octopush.fit"),
       phone: t("Telefon", "+420 777 000 000"),

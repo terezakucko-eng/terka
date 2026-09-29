@@ -22,6 +22,7 @@ export function studioJsonLd(c: Content) {
     logo: `${site.url}/brand/logo-dark.png`,
     image: new URL(c.raw("homeHero.image") || "/brand/logo-dark.png", site.url).toString(),
     description: c.raw("site.description"),
+    keywords: c.raw("site.keywords") || undefined,
     slogan: c.raw("site.tagline"),
     email: real(c.raw("site.email")),
     telephone: real(c.raw("site.phone")),
