@@ -16,7 +16,15 @@ export const TAGS = {
   free: "Vstup zdarma",
   paused: "Pauza",
   noPassword: "Nepřihlášen",
+  push: "Push notifikace",
+  card: "Karta v mobilu",
+  app: "Aplikace na ploše",
+  reminders: "Připomínky e-mailem",
+  newsletter: "Newsletter",
 } as const;
+
+/** Tags about the client's phone & e-mail settings – shown as small icons, not badges. */
+export const DEVICE_TAGS = ["push", "card", "app", "reminders", "newsletter"] as const;
 
 export type Tag = keyof typeof TAGS;
 

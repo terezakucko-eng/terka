@@ -11,7 +11,7 @@ import {
   type ClassSession,
   type Entitlement,
 } from "@/db/schema";
-import { dateKey, weekRange } from "@/lib/dates";
+import { addDays, dateKey, mondayOf, pragueLocalToDate, weekRange } from "@/lib/dates";
 import { UserError } from "@/lib/errors";
 import { credits as creditsLabel, formatPrice } from "@/lib/money";
 import { getSettings, type Settings } from "@/lib/settings";
@@ -48,30 +48,54 @@ const MIN = 60_000;
 const HOUR = 60 * MIN;
 const DAY = 24 * HOUR;
 
+/**
+ * How far ahead a client may book: whole calendar weeks ("this week + N more",
+ * opening on Monday 00:00) or a rolling number of days when weeks are 0.
+ */
+export type BookingWindow = { kind: "weeks" | "days"; n: number };
+
+export function windowOf(cfg: Settings, member: boolean): BookingWindow {
+  if (cfg.bookingWindowWeeks > 0)
+    return { kind: "weeks", n: member ? Math.max(cfg.memberBookingWindowWeeks, cfg.bookingWindowWeeks) : cfg.bookingWindowWeeks };
+  return { kind: "days", n: member ? Math.max(cfg.memberBookingWindowDays, cfg.bookingWindowDays) : cfg.bookingWindowDays };
+}
+
+/** When booking opens for a class under the given window. */
+export function bookingOpensAt(s: Pick<ClassSession, "startsAt">, w: BookingWindow) {
+  if (w.kind === "days") return new Date(s.startsAt.getTime() - w.n * DAY);
+  return pragueLocalToDate(`${addDays(mondayOf(dateKey(s.startsAt)), -7 * w.n)}T00:00`);
+}
+
+/** First moment that is no longer bookable today (exclusive end of the window). */
+export function windowEnd(w: BookingWindow, now: Date) {
+  if (w.kind === "days") return new Date(now.getTime() + w.n * DAY);
+  return pragueLocalToDate(`${addDays(mondayOf(dateKey(now)), 7 * (w.n + 1))}T00:00`);
+}
+
+const sameWindow = (a: BookingWindow, b: BookingWindow) => a.kind === b.kind && a.n === b.n;
+
 export function sessionState(
   s: ClassSession,
   occupied: number,
   cfg: Settings,
   now: Date,
-  windowDays = cfg.bookingWindowDays,
+  window: BookingWindow = windowOf(cfg, false),
 ): SessionState {
   if (s.status === "cancelled") return "cancelled";
   if (s.startsAt <= now) return "past";
   if (s.startsAt.getTime() - cfg.bookingCutoffMinutes * MIN <= now.getTime())
     return "closed";
-  if (s.startsAt.getTime() > now.getTime() + windowDays * DAY)
+  if (bookingOpensAt(s, window) > now)
     return "not_open";
   if (occupied >= s.capacity) return "full";
   return "bookable";
 }
 
-/** When booking opens for a class with the given window (the check above, turned around). */
-export const bookingOpensAt = (s: Pick<ClassSession, "startsAt">, windowDays: number) =>
-  new Date(s.startsAt.getTime() - windowDays * DAY);
-
-/** How many days ahead this client may book: members get the longer window. */
-export async function bookingWindowFor(tx: Executor, cfg: Settings, userId: string | null, now: Date) {
-  if (!userId || cfg.memberBookingWindowDays <= cfg.bookingWindowDays) return cfg.bookingWindowDays;
+/** The booking window of this client: members (active membership) get the longer one. */
+export async function bookingWindowFor(tx: Executor, cfg: Settings, userId: string | null, now: Date): Promise<BookingWindow> {
+  const regular = windowOf(cfg, false);
+  const member = windowOf(cfg, true);
+  if (!userId || sameWindow(regular, member)) return regular;
   const [m] = await tx
     .select({ id: entitlements.id })
     .from(entitlements)
@@ -85,7 +109,7 @@ export async function bookingWindowFor(tx: Executor, cfg: Settings, userId: stri
       ),
     )
     .limit(1);
-  return m ? cfg.memberBookingWindowDays : cfg.bookingWindowDays;
+  return m ? member : regular;
 }
 
 export function isLateCancel(s: ClassSession, cfg: Settings, now: Date) {
@@ -844,8 +868,8 @@ export async function sessionForUser(
     .where(eq(classSessions.id, sessionId));
   if (!s) return null;
   const occupied = await occupancy(db, s.id);
-  const windowDays = await bookingWindowFor(db, cfg, userId, now);
-  const state = sessionState(s, occupied, cfg, now, windowDays);
+  const window = await bookingWindowFor(db, cfg, userId, now);
+  const state = sessionState(s, occupied, cfg, now, window);
   // +1 only for group classes with two spots left
   const canBringFriend = guestAllowed(s) && s.capacity - occupied >= 2;
   const withFriend = seats > 1 && canBringFriend;
@@ -874,8 +898,8 @@ export async function sessionForUser(
     lateCancel: isLateCancel(s, cfg, now),
     cfg,
     /** not_open: when this viewer can book; members' earlier start when they have a longer window */
-    opensAt: bookingOpensAt(s, windowDays),
-    memberOpensAt: cfg.memberBookingWindowDays > cfg.bookingWindowDays ? bookingOpensAt(s, cfg.memberBookingWindowDays) : null,
-    isMemberWindow: cfg.memberBookingWindowDays > cfg.bookingWindowDays && windowDays === cfg.memberBookingWindowDays,
+    opensAt: bookingOpensAt(s, window),
+    memberOpensAt: sameWindow(windowOf(cfg, true), windowOf(cfg, false)) ? null : bookingOpensAt(s, windowOf(cfg, true)),
+    isMemberWindow: !sameWindow(windowOf(cfg, true), windowOf(cfg, false)) && sameWindow(window, windowOf(cfg, true)),
   };
 }

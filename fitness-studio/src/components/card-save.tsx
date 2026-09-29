@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Download, Smartphone } from "lucide-react";
-import { cardPromptDoneAction } from "@/app/actions/card";
+import { cardPromptDoneAction, cardSavedAction } from "@/app/actions/card";
 import { shareOrDownload } from "@/lib/share-image";
 
 type Platform = "ios" | "android" | "other";
@@ -14,7 +14,7 @@ const detect = (): Platform => {
 const noSubscribe = () => () => {};
 
 /** Save the member card to the phone: as a photo, or the whole site as an app on the home screen. */
-export function CardSave() {
+export function CardSave({ embedded }: { embedded?: boolean }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const platform = useSyncExternalStore(noSubscribe, detect, () => "other" as Platform);
@@ -35,7 +35,7 @@ export function CardSave() {
     try {
       const how = await shareOrDownload("/api/karta", "octopush-clenska-karta.png", { title: "Členská karta OCTOPUSH" });
       setMsg(how === "shared" ? "Hotovo – vyber „Uložit obrázek“ a kartu najdeš ve fotkách." : "Karta je stažená – najdeš ji ve stažených souborech.");
-      void cardPromptDoneAction();
+      void cardSavedAction();
     } catch (e) {
       if ((e as Error).name !== "AbortError") setMsg("Uložení se nepovedlo, zkus to prosím znovu.");
     } finally {
@@ -44,8 +44,8 @@ export function CardSave() {
   }
 
   return (
-    <div className="mt-6 space-y-4 rounded-2xl border border-linka/60 bg-white/60 p-5 text-sm">
-      <p className="font-semibold">Ulož si kartu do mobilu</p>
+    <div className={embedded ? "space-y-4 text-sm" : "mt-6 space-y-4 rounded-2xl border border-linka/60 bg-white/60 p-5 text-sm"}>
+      {!embedded && <p className="font-semibold">Ulož si kartu do mobilu</p>}
       <button
         type="button"
         onClick={save}

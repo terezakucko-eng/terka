@@ -1,4 +1,5 @@
 import "server-only";
+import { windowOf, type BookingWindow } from "@/domain/booking";
 import { cache } from "react";
 import { getDb } from "@/db";
 import { content } from "@/db/schema";
@@ -26,6 +27,8 @@ export const getContent = cache(async () => {
     pauza_dni: String(cfg.memberPauseDays),
     rezervace_dni: String(cfg.bookingWindowDays),
     rezervace_dni_clenove: String(Math.max(cfg.memberBookingWindowDays, cfg.bookingWindowDays)),
+    rezervace_okno: windowText(windowOf(cfg, false)),
+    rezervace_okno_clenove: windowText(windowOf(cfg, true)),
     platba_minut: String(cfg.pendingPaymentMinutes),
     vstupy_zdarma: String(cfg.welcomeFreeEntries),
     platnost_zdarma: String(cfg.welcomeFreeValidityDays),
@@ -50,4 +53,12 @@ export async function sectionValues(id: string) {
   const c = await getContent();
   const section = (SECTIONS as Record<string, SectionDef>)[id];
   return Object.fromEntries(Object.keys(section.fields).map((f) => [f, c.raw(`${id}.${f}`)]));
+}
+
+/** "tento a příští týden", "tento týden a další 2 týdny", "21 dní dopředu" */
+function windowText(w: BookingWindow) {
+  if (w.kind === "days") return `${w.n} dní dopředu`;
+  if (w.n === 0) return "jen tento týden";
+  if (w.n === 1) return "tento a příští týden";
+  return `tento týden a další ${w.n} ${w.n <= 4 ? "týdny" : "týdnů"}`;
 }

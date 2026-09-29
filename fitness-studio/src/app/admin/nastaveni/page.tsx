@@ -13,8 +13,10 @@ import { getSettings, type Settings } from "@/lib/settings";
 
 const fields: { key: keyof Settings; label: string; hint: string }[] = [
   { key: "cancellationHours", label: "Storno zdarma (hodin před lekcí)", hint: "Později vstup propadá." },
-  { key: "bookingWindowDays", label: "Rezervace dopředu (dní)", hint: "Jak daleko do budoucna mohou rezervovat ostatní klienti." },
-  { key: "memberBookingWindowDays", label: "Rezervace dopředu pro členy (dní)", hint: "Klienti s aktivním členstvím. Musí být aspoň tolik jako u ostatních." },
+  { key: "bookingWindowWeeks", label: "Rezervace – kolik dalších týdnů (klienti)", hint: "1 = tento týden + příští. Nový týden se otevírá v pondělí o půlnoci. 0 = řídit se dny níže." },
+  { key: "memberBookingWindowWeeks", label: "Rezervace – kolik dalších týdnů (členové)", hint: "2 = tento týden + další dva. Klienti s aktivním členstvím." },
+  { key: "bookingWindowDays", label: "Rezervace dopředu (dní)", hint: "Platí jen když je počet týdnů 0. Používá se i pro masáže." },
+  { key: "memberBookingWindowDays", label: "Rezervace dopředu pro členy (dní)", hint: "Platí jen když je počet týdnů 0." },
   { key: "bookingCutoffMinutes", label: "Uzávěrka rezervací (min před začátkem)", hint: "0 = do začátku lekce." },
   { key: "welcomeFreeEntries", label: "Vstupy zdarma pro nové klienty", hint: "0 = vypnuto." },
   { key: "welcomeFreeValidityDays", label: "Platnost úvodního vstupu (dní)", hint: "" },

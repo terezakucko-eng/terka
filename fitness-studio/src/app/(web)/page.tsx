@@ -35,9 +35,9 @@ export default async function Home() {
     approvedReviews(db, 3),
     reviewStats(db),
   ]);
-  const windowDays = await bookingWindowFor(db, await getSettings(db), user?.id ?? null, now);
+  const myWindow = await bookingWindowFor(db, await getSettings(db), user?.id ?? null, now);
   const opensAt = (s: { startsAt: Date }) => {
-    const at = bookingOpensAt(s, windowDays);
+    const at = bookingOpensAt(s, myWindow);
     return at > now ? at : null;
   };
   const cheapest = productList.find((p) => p.kind === "membership");

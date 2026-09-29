@@ -16,7 +16,7 @@ import {
 import { activeClassTypes, listSessions } from "@/lib/queries";
 import { getContent } from "@/content";
 import { getSettings } from "@/lib/settings";
-import { bookingOpensAt, bookingWindowFor } from "@/domain/booking";
+import { bookingOpensAt, bookingWindowFor, windowEnd, windowOf } from "@/domain/booking";
 
 export const metadata: Metadata = {
   title: "Rozvrh a rezervace",
@@ -39,8 +39,8 @@ export default async function SchedulePage({ searchParams }: PageProps<"/rozvrh"
   const filter = types.find((t) => t.slug === lekce);
   const now = new Date();
   // Classes are visible only as far ahead as anyone (members) can book them.
-  const lastDay = addDays(today, Math.max(cfg.bookingWindowDays, cfg.memberBookingWindowDays));
-  const horizon = pragueLocalToDate(addDays(lastDay, 1));
+  const horizon = windowEnd(windowOf(cfg, true), now);
+  const lastDay = dateKey(new Date(horizon.getTime() - 1));
   const hasNextWeek = addDays(monday, 7) <= lastDay;
   // clients see only what's still ahead: no cancelled and no finished classes
   const sessions = (
@@ -52,9 +52,9 @@ export default async function SchedulePage({ searchParams }: PageProps<"/rozvrh"
   ).filter((s) => +s.startsAt + s.durationMin * 60_000 > +now && s.startsAt < horizon);
 
   // beyond this viewer's window (non-members see what members can already book) → "Rezervace od …"
-  const windowDays = await bookingWindowFor(db, cfg, user?.id ?? null, now);
+  const myWindow = await bookingWindowFor(db, cfg, user?.id ?? null, now);
   const opensAt = (s: (typeof sessions)[number]) => {
-    const at = bookingOpensAt(s, windowDays);
+    const at = bookingOpensAt(s, myWindow);
     return at > now ? at : null;
   };
 
