@@ -8,6 +8,8 @@ import { formatDate } from "@/lib/dates";
 import { credits } from "@/lib/money";
 import { qrSvg } from "@/lib/qr-payment";
 import { CardSave } from "@/components/card-save";
+import { PushToggle } from "@/components/push-toggle";
+import { vapidKeys } from "@/lib/push";
 
 export const metadata: Metadata = { title: "Členská karta", robots: { index: false } };
 
@@ -18,6 +20,7 @@ export const metadata: Metadata = { title: "Členská karta", robots: { index: f
 export default async function MemberCardPage() {
   const user = await requireUser("/ucet/karta");
   const ents = await userEntitlements(await getDb(), user.id, true);
+  const { publicKey } = await vapidKeys(await getDb());
   const qr = await qrSvg(`${site.url}/admin/klienti/${user.id}`);
 
   return (
@@ -48,6 +51,11 @@ export default async function MemberCardPage() {
       </div>
       <p className="mt-4 text-center text-sm text-les/60">Na recepci ukaž QR kód – načteme tvůj účet.</p>
       <CardSave />
+      <div className="mt-4 rounded-2xl border border-linka/60 bg-white/60 p-5">
+        <p className="text-sm font-semibold">Upozornění v telefonu</p>
+        <p className="mt-1 text-sm text-les/70">Připomínky lekcí a uvolněná místa z pořadníku ti přijdou jako notifikace.</p>
+        <PushToggle publicKey={publicKey} className="mt-3" />
+      </div>
     </div>
   );
 }

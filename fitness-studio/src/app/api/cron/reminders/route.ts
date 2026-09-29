@@ -4,6 +4,7 @@ import { dueReminders, markReminded } from "@/domain/reminders";
 import { formatDay, formatTime } from "@/lib/dates";
 import { sendEmail } from "@/lib/email-templates";
 import { greetName } from "@/lib/vocative";
+import { pushQuietly } from "@/lib/push";
 
 export const maxDuration = 60;
 
@@ -28,6 +29,7 @@ export async function GET(req: Request) {
         cas: formatTime(b.startsAt),
         odkaz: `${site.url}/rozvrh/${b.sessionId}`,
       });
+      await pushQuietly(db, [b.userId], { title: `Za chvíli: ${b.name} v ${formatTime(b.startsAt)}`, body: "Připomínka lekce – těšíme se na tebe!", url: `${site.url}/rozvrh/${b.sessionId}` });
       done.classes.push(b.id);
     } catch {
       // the next run would be too late anyway – just skip this one
@@ -42,6 +44,7 @@ export async function GET(req: Request) {
         cas: formatTime(m.startsAt),
         odkaz: `${site.url}/masaze/rezervace/${m.id}`,
       });
+      await pushQuietly(db, [m.userId], { title: `Za chvíli: ${m.name} v ${formatTime(m.startsAt)}`, body: "Připomínka masáže – těšíme se na tebe!", url: `${site.url}/masaze/rezervace/${m.id}` });
       done.massages.push(m.id);
     } catch {
       // skip

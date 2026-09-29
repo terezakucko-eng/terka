@@ -9,6 +9,7 @@ import { formatPrice } from "./money";
 import { formatDate, formatDay, formatTime } from "./dates";
 import { sendEmail } from "./email-templates";
 import { greetName } from "@/lib/vocative";
+import { pushQuietly } from "./push";
 
 async function describe(db: DB, sessionId: string) {
   const [row] = await db
@@ -95,11 +96,9 @@ export async function notifyPromoted(db: DB, promoted: Pick<Booking, "userId" | 
   for (const p of promoted) {
     const u = map.get(p.userId);
     if (!u) continue;
-    await sendEmail(u.email, "promoted", {
-      osloveni: greetName(u.name),
-      lekce: await describe(db, p.sessionId),
-      odkaz: link(p.sessionId),
-    });
+    const lekce = await describe(db, p.sessionId);
+    await sendEmail(u.email, "promoted", { osloveni: greetName(u.name), lekce, odkaz: link(p.sessionId) });
+    await pushQuietly(db, [p.userId], { title: "Uvolnilo se místo – jdeš na lekci", body: lekce, url: link(p.sessionId) });
   }
 }
 
@@ -111,4 +110,5 @@ export async function notifySessionCancelled(db: DB, sessionId: string, userIds:
     if (!u) continue;
     await sendEmail(u.email, "sessionCancelled", { osloveni: greetName(u.name), lekce: what, odkaz: `${site.url}/rozvrh` });
   }
+  await pushQuietly(db, userIds, { title: "Lekce je zrušená", body: what, url: `${site.url}/rozvrh` });
 }

@@ -643,6 +643,23 @@ export const authAttempts = pgTable(
   (t) => [index("auth_attempts_key_idx").on(t.kind, t.key, t.createdAt)],
 );
 
+/** Push notifikace: zařízení (prohlížeč / aplikace na ploše), která si je zapnula. */
+export const pushSubscriptions = pgTable(
+  "push_subscriptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    endpoint: text("endpoint").notNull().unique(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    userAgent: text("user_agent"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("push_subscriptions_user_idx").on(t.userId)],
+);
+
 /** Týdenní (a ruční) zálohy dat – gzip JSON všech tabulek kromě obsahu obrázků. */
 export const backups = pgTable("backups", {
   id: uuid("id").primaryKey().defaultRandom(),

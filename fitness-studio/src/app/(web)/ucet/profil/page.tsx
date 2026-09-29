@@ -4,11 +4,15 @@ import { ActionForm, SubmitButton } from "@/components/forms";
 import { ImageInput } from "@/components/image-input";
 import { Card, Field, Input, Select } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
+import { getDb } from "@/db";
+import { vapidKeys } from "@/lib/push";
+import { PushToggle } from "@/components/push-toggle";
 import { MONTHS, OCTO_AVATARS, parseAvatar } from "@/lib/profile";
 import { PasswordInput } from "@/components/password-input";
 
 export default async function ProfilePage() {
   const user = await requireUser("/ucet/profil");
+  const { publicKey } = await vapidKeys(await getDb());
   const current = parseAvatar(user.avatar);
   const [nameDayMonth, nameDayDay] = user.nameDay?.split("-").map(Number) ?? [];
   const pickClass =
@@ -98,6 +102,13 @@ export default async function ProfilePage() {
           </fieldset>
           <SubmitButton>Uložit</SubmitButton>
         </ActionForm>
+      </Card>
+      <Card>
+        <h2 className="text-xl font-semibold">Upozornění v telefonu</h2>
+        <p className="mt-2 text-sm text-les/70">
+          Připomínka lekce, uvolněné místo z pořadníku nebo zrušená lekce ti přijde jako notifikace – rychleji než e-mail.
+        </p>
+        <PushToggle publicKey={publicKey} className="mt-4" />
       </Card>
       <Card>
         <h2 className="text-xl font-semibold">Změna hesla</h2>

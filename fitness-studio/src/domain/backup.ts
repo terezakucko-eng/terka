@@ -3,7 +3,7 @@ import { and, desc, eq, getTableColumns, is, notInArray } from "drizzle-orm";
 import { PgTable, getTableConfig } from "drizzle-orm/pg-core";
 import type { Executor } from "@/db";
 import * as schema from "@/db/schema";
-import { backups, media } from "@/db/schema";
+import { backups, media, settings } from "@/db/schema";
 
 const DAY = 86_400_000;
 /** Weekly backups kept (manual ones are kept until deleted). */
@@ -28,6 +28,9 @@ export async function createBackup(db: Executor, kind: "auto" | "manual") {
       const { data: _data, ...cols } = getTableColumns(media);
       void _data;
       rows = await db.select(cols).from(media);
+    } else if (table === settings) {
+      // the push notification signing key stays out of downloadable files
+      rows = (await db.select().from(settings)).filter((r) => r.key !== "vapid");
     } else {
       rows = await db.select().from(table);
     }
