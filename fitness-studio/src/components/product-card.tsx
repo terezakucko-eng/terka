@@ -12,9 +12,11 @@ function perks(p: Product): string[] {
     case "membership":
       return [
         p.weeklyLimit ? `Až ${p.weeklyLimit} lekce týdně` : "Neomezeně lekcí",
+        "Přednostní rezervace – termíny si zamluvíš dřív než ostatní",
+        "Přednost v pořadníku, když je lekce plná",
+        "Slevy na služby studia",
         p.recurring ? "Platí se každý měsíc" : `Platnost ${p.validityDays ?? 30} dní`,
         "Závazek na 12 měsíců",
-        "Přednost v pořadníku, když je lekce plná",
       ];
     case "pass":
       return [
