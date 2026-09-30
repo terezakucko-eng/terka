@@ -8,7 +8,7 @@ import { formatDate } from "@/lib/dates";
 import { credits } from "@/lib/money";
 import { qrSvg } from "@/lib/qr-payment";
 import { CardSave } from "@/components/card-save";
-import { PushToggle } from "@/components/push-toggle";
+import { PushSection, PushToggle } from "@/components/push-toggle";
 import { vapidKeys } from "@/lib/push";
 
 export const metadata: Metadata = { title: "Členská karta", robots: { index: false } };
@@ -51,11 +51,11 @@ export default async function MemberCardPage() {
       </div>
       <p className="mt-4 text-center text-sm text-les/60">Na recepci ukaž QR kód – načteme tvůj účet.</p>
       <CardSave />
-      <div className="mt-4 rounded-2xl border border-linka/60 bg-white/60 p-5">
+      <PushSection className="mt-4 rounded-2xl border border-linka/60 bg-white/60 p-5">
         <p className="text-sm font-semibold">Upozornění v tomhle zařízení</p>
         <p className="mt-1 text-sm text-les/70">Připomínky lekcí a uvolněná místa z pořadníku ti přijdou jako notifikace. Zapíná se zvlášť v každém zařízení – v mobilu i v počítači.</p>
-        <PushToggle publicKey={publicKey} className="mt-3" installAbove />
-      </div>
+        <PushToggle publicKey={publicKey} className="mt-3" />
+      </PushSection>
     </div>
   );
 }

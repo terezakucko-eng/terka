@@ -3,7 +3,6 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Bell, BellOff } from "lucide-react";
 import { removePushSubscription, savePushSubscription } from "@/app/actions/push";
-import { InstallButton } from "./install-button";
 import { cx } from "./ui";
 
 type State = "loading" | "unsupported" | "ios-home" | "denied" | "off" | "on";
@@ -16,14 +15,39 @@ const support = (): "yes" | "no" | "ios-home" => {
   return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window ? "yes" : "no";
 };
 
+/** "yes" when this device can turn notifications on right now. */
+export const usePushSupport = () => useSyncExternalStore(noSubscribe, support, () => "no" as const);
+
+/**
+ * Wraps the "Upozornění" block of a page. On an iPhone outside the home-screen
+ * app there's nothing to switch on yet, so the whole block stays hidden – the
+ * "Přidat na plochu" button next to it is the way there.
+ */
+export function PushSection({ className, children }: { className?: string; children: React.ReactNode }) {
+  return usePushSupport() === "ios-home" ? null : <div className={className}>{children}</div>;
+}
+
+/** Asks for permission and registers this device; throws when the browser refuses or doesn't answer. */
+export async function enablePush(publicKey: string): Promise<"granted" | "denied"> {
+  if ((await Notification.requestPermission()) !== "granted") return "denied";
+  const reg = await navigator.serviceWorker.ready;
+  // the browser's push service (Google / Apple / Mozilla) sometimes doesn't answer – don't spin forever
+  const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 20_000));
+  const sub =
+    (await reg.pushManager.getSubscription()) ??
+    (await Promise.race([reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(publicKey) }), timeout]));
+  await savePushSubscription(sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } });
+  return "granted";
+}
+
 function keyBytes(base64: string) {
   const b64 = (base64 + "=".repeat((4 - (base64.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/");
   return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 }
 
 /** Turn push notifications on/off for this device. */
-export function PushToggle({ publicKey, className, installAbove }: { publicKey: string; className?: string; installAbove?: boolean }) {
-  const supported = useSyncExternalStore(noSubscribe, support, () => "no" as const);
+export function PushToggle({ publicKey, className }: { publicKey: string; className?: string }) {
+  const supported = usePushSupport();
   const [state, setState] = useState<State>("loading");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -43,17 +67,10 @@ export function PushToggle({ publicKey, className, installAbove }: { publicKey: 
     setBusy(true);
     setMsg("");
     try {
-      if ((await Notification.requestPermission()) !== "granted") {
+      if ((await enablePush(publicKey)) === "denied") {
         setState("denied");
         return;
       }
-      const reg = await navigator.serviceWorker.ready;
-      // the browser's push service (Google / Apple / Mozilla) sometimes doesn't answer – don't spin forever
-      const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 20_000));
-      const sub =
-        (await reg.pushManager.getSubscription()) ??
-        (await Promise.race([reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(publicKey) }), timeout]));
-      await savePushSubscription(sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } });
       setState("on");
       setMsg("Hotovo – upozornění ti budou chodit do tohohle zařízení.");
     } catch {
@@ -82,15 +99,6 @@ export function PushToggle({ publicKey, className, installAbove }: { publicKey: 
     <div className={cx("space-y-2 text-sm", className)}>
       {shown === "loading" && <p className="text-les/50">Zjišťuji, jestli tohle zařízení umí upozornění…</p>}
       {shown === "unsupported" && <p className="text-les/60">Tenhle prohlížeč upozornění neumí. Zkus Chrome, Edge, Firefox nebo Safari.</p>}
-      {shown === "ios-home" && (
-        <div className="space-y-3 text-les/70">
-          <p>
-            Na iPhonu fungují upozornění jen z aplikace na ploše. Přidej si OCTOPUSH na plochu{installAbove ? " tlačítkem výše" : ""}, otevři ho
-            odtamtud a upozornění tady zapni.
-          </p>
-          {!installAbove && <InstallButton after="Pak otevři OCTOPUSH z plochy a v profilu zapni Upozornění." />}
-        </div>
-      )}
       {shown === "denied" && (
         <p className="text-les/70">Upozornění máš pro tenhle web zakázaná. Povol je v nastavení prohlížeče (ikona zámku vedle adresy) a zkus to znovu.</p>
       )}
