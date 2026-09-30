@@ -14,7 +14,7 @@ import { AdminTitle, Panel, Table, Td } from "@/components/admin";
 import { SessionFields } from "@/components/admin-forms";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { bookingStatusLabel, methodLabel } from "@/components/labels";
-import { Badge, Card, Field, Input, Select } from "@/components/ui";
+import { Badge, Card, Field, Input, Select, cx } from "@/components/ui";
 import { getDb } from "@/db";
 import { bookings, users } from "@/db/schema";
 import { formatPrice } from "@/lib/money";
@@ -60,6 +60,68 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
   const waitlist = list.filter(({ b }) => b.status === "waitlist");
   const cancelled = list.filter(({ b }) => b.status === "cancelled");
   const isAdmin = staff.role === "admin";
+  type Row = (typeof list)[number];
+  const who = (b: Row["b"], u: Row["u"]) => (
+    <>
+      <span className="flex items-center gap-2">
+        <Avatar user={u} size={28} />
+        {isAdmin ? <Link href={`/admin/klienti/${u.id}`} className="font-semibold underline-offset-4 hover:underline">{u.name}</Link> : <strong>{u.name}</strong>}
+        {upcomingCelebrations([u], dateKey(s.startsAt), 1).map((x) => (
+          <span key={x.kind} title={x.kind === "birthday" ? "Má narozeniny" : "Má svátek"}>{x.kind === "birthday" ? "🎂" : "🌷"}</span>
+        ))}
+      </span>
+      {b.guestName && <><br /><Badge tone="gold">+1 {b.guestName}</Badge></>}
+      <br /><span className="break-all text-xs text-les/50">{u.phone ?? u.email}</span>
+    </>
+  );
+  const pay = (b: Row["b"]) => (
+    <>
+      {b.method ? methodLabel[b.method] : "—"}
+      {b.surcharge > 0 && (
+        <ActionForm action={setSurchargePaidAction} className="mt-1">
+          <input type="hidden" name="bookingId" value={b.id} />
+          <input type="hidden" name="paid" value={b.surchargePaidAt ? "false" : "true"} />
+          <button title={b.surchargePaidAt ? "Zrušit zaplacení" : "Označit jako zaplacené"}>
+            <Badge tone={b.surchargePaidAt ? "green" : "gold"}>
+              Doplatek {formatPrice(b.surcharge)} {b.surchargePaidAt ? "✓" : "– nezaplaceno"}
+            </Badge>
+          </button>
+        </ActionForm>
+      )}
+    </>
+  );
+  const statusBadge = (b: Row["b"]) => (
+    <Badge tone={b.status === "attended" ? "green" : b.status === "no_show" ? "red" : "neutral"}>{bookingStatusLabel[b.status]}</Badge>
+  );
+  const attendance = (b: Row["b"], big?: string) =>
+    b.status !== "pending_payment" && (
+      <div className={big ? "mt-3 flex gap-2" : "flex gap-1"}>
+        {(["attended", "no_show", "confirmed"] as const).map((st) => (
+          <ActionForm key={st} action={attendanceAction} className={big && st !== "confirmed" ? "flex-1" : undefined}>
+            <input type="hidden" name="bookingId" value={b.id} />
+            <input type="hidden" name="status" value={st} />
+            <button
+              disabled={b.status === st}
+              title={st === "confirmed" ? "Zrušit označení" : undefined}
+              className={cx(
+                "whitespace-nowrap rounded-full border border-linka px-2.5 py-1 text-xs font-semibold hover:border-les disabled:border-les disabled:bg-les disabled:text-papir",
+                big && st !== "confirmed" && "w-full",
+                big,
+              )}
+            >
+              {st === "attended" ? "✓ Přišel" : st === "no_show" ? "✗ Nepřišel" : "—"}
+            </button>
+          </ActionForm>
+        ))}
+      </div>
+    );
+  const cancel = (b: Row["b"]) => (
+    <ActionForm action={adminCancelBookingAction} confirm="Odhlásit klienta z lekce?" className="flex items-center gap-3">
+      <input type="hidden" name="bookingId" value={b.id} />
+      <label className="flex items-center gap-1 text-xs"><input type="checkbox" name="refund" defaultChecked /> vrátit vstup</label>
+      <button className="text-xs font-semibold text-chyba underline">Odhlásit</button>
+    </ActionForm>
+  );
 
   return (
     <>
@@ -69,60 +131,32 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
       </AdminTitle>
       <p className="-mt-6 mb-8 text-les/60">{ins?.name ?? "Bez lektora"}{s.room && ` · ${s.room}`}{s.isFree && " · lekce zdarma"}</p>
 
-      <div className="grid gap-8 xl:grid-cols-[1.4fr_1fr]">
+      <div className="grid gap-8 xl:grid-cols-[1.4fr_1fr] [&>*]:min-w-0">
         <section className="space-y-6">
           <h2 className="text-lg font-semibold">Přihlášení klienti a docházka</h2>
-          <Table head={["Klient", "Platba", "Stav", "Docházka", ""]}>
+          {/* phones: one card per client, big attendance buttons */}
+          <ul className="space-y-3 md:hidden">
+            {active.map(({ b, u }) => (
+              <li key={b.id} className="rounded-2xl border border-linka/60 bg-white/60 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">{who(b, u)}</div>
+                  {statusBadge(b)}
+                </div>
+                <div className="mt-2 text-sm text-les/70">{pay(b)}</div>
+                {attendance(b, "flex-1 py-2.5 text-sm")}
+                <div className="mt-3 border-t border-linka/40 pt-3">{cancel(b)}</div>
+              </li>
+            ))}
+            {active.length === 0 && <li className="text-sm text-les/50">Zatím nikdo.</li>}
+          </ul>
+          <Table head={["Klient", "Platba", "Stav", "Docházka", ""]} className="max-md:hidden">
             {active.map(({ b, u }) => (
               <tr key={b.id}>
-                <Td>
-                  <span className="flex items-center gap-2">
-                    <Avatar user={u} size={28} />
-                    {isAdmin ? <Link href={`/admin/klienti/${u.id}`} className="font-semibold underline-offset-4 hover:underline">{u.name}</Link> : <strong>{u.name}</strong>}
-                    {upcomingCelebrations([u], dateKey(s.startsAt), 1).map((x) => (
-                      <span key={x.kind} title={x.kind === "birthday" ? "Má narozeniny" : "Má svátek"}>{x.kind === "birthday" ? "🎂" : "🌷"}</span>
-                    ))}
-                  </span>
-                  {b.guestName && <><br /><Badge tone="gold">+1 {b.guestName}</Badge></>}
-                  <br /><span className="text-xs text-les/50">{u.phone ?? u.email}</span>
-                </Td>
-                <Td>
-                  {b.method ? methodLabel[b.method] : "—"}
-                  {b.surcharge > 0 && (
-                    <ActionForm action={setSurchargePaidAction} className="mt-1">
-                      <input type="hidden" name="bookingId" value={b.id} />
-                      <input type="hidden" name="paid" value={b.surchargePaidAt ? "false" : "true"} />
-                      <button title={b.surchargePaidAt ? "Zrušit zaplacení" : "Označit jako zaplacené"}>
-                        <Badge tone={b.surchargePaidAt ? "green" : "gold"}>
-                          Doplatek {formatPrice(b.surcharge)} {b.surchargePaidAt ? "✓" : "– nezaplaceno"}
-                        </Badge>
-                      </button>
-                    </ActionForm>
-                  )}
-                </Td>
-                <Td><Badge tone={b.status === "attended" ? "green" : b.status === "no_show" ? "red" : "neutral"}>{bookingStatusLabel[b.status]}</Badge></Td>
-                <Td>
-                  {b.status !== "pending_payment" && (
-                    <div className="flex gap-1">
-                      {(["attended", "no_show", "confirmed"] as const).map((st) => (
-                        <ActionForm key={st} action={attendanceAction}>
-                          <input type="hidden" name="bookingId" value={b.id} />
-                          <input type="hidden" name="status" value={st} />
-                          <button disabled={b.status === st} className="rounded-full border border-linka px-2.5 py-1 text-xs font-semibold hover:border-les disabled:border-les disabled:bg-les disabled:text-papir">
-                            {st === "attended" ? "✓ Přišel" : st === "no_show" ? "✗ Nepřišel" : "—"}
-                          </button>
-                        </ActionForm>
-                      ))}
-                    </div>
-                  )}
-                </Td>
-                <Td>
-                  <ActionForm action={adminCancelBookingAction} confirm="Odhlásit klienta z lekce?">
-                    <input type="hidden" name="bookingId" value={b.id} />
-                    <label className="flex items-center gap-1 text-xs"><input type="checkbox" name="refund" defaultChecked /> vrátit</label>
-                    <button className="text-xs font-semibold text-chyba underline">Odhlásit</button>
-                  </ActionForm>
-                </Td>
+                <Td>{who(b, u)}</Td>
+                <Td>{pay(b)}</Td>
+                <Td>{statusBadge(b)}</Td>
+                <Td>{attendance(b)}</Td>
+                <Td>{cancel(b)}</Td>
               </tr>
             ))}
             {active.length === 0 && <tr><Td className="text-les/50">Zatím nikdo.</Td></tr>}

@@ -74,7 +74,8 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
           </form>
         </div>
       </aside>
-      <main className="min-w-0 flex-1 px-4 py-8 sm:px-8">{children}</main>
+      {/* grid cells may shrink – a wide table then scrolls inside its box instead of widening the page */}
+      <main className="min-w-0 flex-1 px-4 py-8 sm:px-8 [&_.grid>*]:min-w-0">{children}</main>
     </div>
   );
 }
