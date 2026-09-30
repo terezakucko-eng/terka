@@ -1,4 +1,5 @@
-import { Check } from "lucide-react";
+import Link from "next/link";
+import { Check, Minus } from "lucide-react";
 import { buyProductAction } from "@/app/actions/booking";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { Badge, ButtonLink, cx } from "@/components/ui";
@@ -11,12 +12,14 @@ function perks(p: Product): string[] {
   switch (p.kind) {
     case "membership":
       return [
-        p.weeklyLimit ? `Až ${p.weeklyLimit} lekce týdně` : "Neomezeně lekcí",
+        p.weeklyLimit ? `Až ${p.weeklyLimit} standardní skupinové lekce týdně` : "Neomezený vstup na standardní skupinové lekce",
+        "Zvýhodněný vstup na lekce Reformer a individuální tréninky",
         "Přednostní rezervace – termíny si zamluvíš dřív než ostatní",
         "Přednost v pořadníku, když je lekce plná",
         "Slevy na služby studia",
-        p.recurring ? "Platí se každý měsíc" : `Platnost ${p.validityDays ?? 30} dní`,
-        "Závazek na 12 měsíců",
+        "Vstup zdarma do posilovací a cardio zóny",
+        "Vstup do infrasauny zdarma",
+        "…a další výhody",
       ];
     case "pass":
       return [
@@ -53,6 +56,7 @@ export function ProductCard({
   loggedIn,
   next,
   passNotes = [],
+  passExclusions = [],
   creditNotes = [],
 }: {
   p: Product;
@@ -60,6 +64,8 @@ export function ProductCard({
   next: string;
   /** e.g. "Reformer fusion = 2 vstupy" – shown on pass cards */
   passNotes?: string[];
+  /** e.g. "Neplatí na: Individuální trénink" – shown on pass cards with a red minus */
+  passExclusions?: string[];
   /** e.g. "Většina lekcí: 220 kreditů" – shown on credit pack cards */
   creditNotes?: string[];
 }) {
@@ -86,10 +92,31 @@ export function ProductCard({
                           <Check className={cx("mt-0.5 size-4 shrink-0", p.highlight ? "text-zlato" : "text-salvej")} /> {x}
                         </li>
                       ))}
+                      {p.kind === "pass" &&
+                        passExclusions.map((x) => (
+                          <li key={x} className="flex gap-2">
+                            <Minus className={cx("mt-0.5 size-4 shrink-0", p.highlight ? "text-[#e8836b]" : "text-chyba")} /> {x}
+                          </li>
+                        ))}
                     </ul>
+                    {p.kind === "membership" && (
+                      // a condition, not a perk – no check mark
+                      <p className={cx("mt-5 border-t pt-4 text-xs", p.highlight ? "border-papir/15 text-papir/60" : "border-linka/60 text-les/60")}>
+                        Členství je závazné na 12 měsíců – 12 měsíčních plateb po {formatPrice(p.price)}.
+                      </p>
+                    )}
                     {loggedIn ? (
                       <ActionForm action={buyProductAction} className="mt-6 space-y-2">
                         <input type="hidden" name="productId" value={p.id} />
+                        {p.kind === "membership" && (
+                          <label className={cx("mb-3 flex gap-3 text-xs", p.highlight ? "text-papir/80" : "text-les/70")}>
+                            <input type="checkbox" name="commitment" required className="mt-0.5 size-4 shrink-0 accent-[#c9a26b]" />
+                            <span>
+                              Beru na vědomí, že členství je závazné na 12 měsíců, a souhlasím s{"\u00a0"}
+                              <Link href="/obchodni-podminky" target="_blank" className="underline">obchodními podmínkami</Link>.
+                            </span>
+                          </label>
+                        )}
                         {card && (
                           <SubmitButton name="pay" value="card" variant={p.highlight ? "gold" : "dark"} className="w-full" pendingText="Moment…">
                             {p.kind === "membership" && p.recurring ? "Platit kartou měsíčně" : "Koupit – kartou"}

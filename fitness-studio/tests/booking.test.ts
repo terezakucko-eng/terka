@@ -226,6 +226,16 @@ describe("passes, memberships, free entries", () => {
     ).rejects.toThrow(/limit/);
   });
 
+  it("membership bought online needs the 12-month commitment ticked", async () => {
+    const u = await makeUser(h.db);
+    const p = await makeProduct(h.db, { kind: "membership", validityDays: 30 });
+    await expect(createProductOrder(h.db, { userId: u.id, productId: p.id, commitmentAccepted: false }, NOW)).rejects.toThrow(
+      /12 měsíců/,
+    );
+    const { order } = await createProductOrder(h.db, { userId: u.id, productId: p.id, commitmentAccepted: true }, NOW);
+    expect(order.productId).toBe(p.id);
+  });
+
   it("membership renewal creates a new period once per invoice", async () => {
     const u = await makeUser(h.db);
     const p = await makeProduct(h.db, { kind: "membership", validityDays: 30, recurring: true });

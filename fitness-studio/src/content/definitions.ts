@@ -382,7 +382,10 @@ Napiš sem, jak studio vzniklo a co pro tebe pohyb znamená.
 ## 4. Kredit, permanentky a členství
 - Kredit je nepřenosný a nepropadá. 1 kredit odpovídá ceně uvedené u lekce.
 - Permanentky platí po dobu uvedenou v ceníku od data nákupu.
-- Členství je závazné na 12 měsíců a platí se měsíčně. Členství v účtu klienta spravuje studio – o změnu nebo ukončení požádej na recepci.
+- Členství se uzavírá na dobu určitou 12 měsíců a platí se 12 měsíčními platbami ve výši uvedené v ceníku. Cena členství platí za podmínky, že klient uhradí všech 12 plateb.
+- Závazek na 12 měsíců klient potvrzuje při nákupu členství (zaškrtnutím souhlasu na webu nebo podpisem na recepci).
+- Členství nelze během 12 měsíců jednostranně zrušit. Předčasné ukončení je možné jen po dohodě se studiem.
+- Členství v účtu klienta spravuje studio – o změnu požádej na recepci.
 
 ## 5. Platby
 Online platby zpracovává Stripe Payments Europe, Ltd. Ceny jsou uvedeny v Kč včetně DPH (je-li provozovatel plátcem).

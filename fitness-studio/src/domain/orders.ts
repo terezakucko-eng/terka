@@ -21,7 +21,8 @@ const DAY = 86_400_000;
 
 export async function createProductOrder(
   db: Executor,
-  input: { userId: string; productId: string },
+  /** commitmentAccepted: false = the client didn't tick the 12-month box online (reception sales leave it out) */
+  input: { userId: string; productId: string; commitmentAccepted?: boolean },
   now = new Date(),
 ) {
   const [p] = await db
@@ -29,6 +30,8 @@ export async function createProductOrder(
     .from(products)
     .where(eq(products.id, input.productId));
   if (!p || !p.isActive) throw new UserError("Produkt není v nabídce.");
+  if (p.kind === "membership" && input.commitmentAccepted === false)
+    throw new UserError("Před zaplacením prosím potvrď, že bereš na vědomí závazek na 12 měsíců.");
   if (p.membersOnly && !(await isMember(db, input.userId, now)))
     throw new UserError("Tenhle produkt je jen pro členy. Zastav se na recepci nebo si pořiď členství.");
   const [order] = await db
