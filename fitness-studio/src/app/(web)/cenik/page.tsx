@@ -42,8 +42,8 @@ export default async function PricingPage() {
     ...(multi.length
       ? ["Běžná lekce = 1 vstup", ...multi.map((t) => `${t.name} = ${entriesLabel(t.passEntries)}`)]
       : ["1 lekce = 1 vstup"]),
-    ...(noPass.length ? [`Neplatí na: ${noPass.map((t) => t.name).join(", ")}`] : []),
   ];
+  const passExclusions = noPass.length ? [`Neplatí na: ${noPass.map((t) => t.name).join(", ")}`] : [];
   // How many credits a class takes: the usual price once, the exceptions by name.
   const costs = types.filter((t) => t.creditCost > 0).map((t) => t.creditCost);
   const usual = costs.sort((a, b) => costs.filter((c) => c === b).length - costs.filter((c) => c === a).length)[0];
@@ -106,7 +106,7 @@ export default async function PricingPage() {
               <p className="mt-3 max-w-xl text-les/70">{g.text}</p>
               <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                 {items.map((p) => (
-                  <ProductCard key={p.id} p={p} loggedIn={!!user} next="/cenik" passNotes={passNotes} creditNotes={creditNotes} />
+                  <ProductCard key={p.id} p={p} loggedIn={!!user} next="/cenik" passNotes={passNotes} passExclusions={passExclusions} creditNotes={creditNotes} />
                 ))}
               </div>
             </section>

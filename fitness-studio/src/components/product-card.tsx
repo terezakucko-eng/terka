@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Check } from "lucide-react";
+import { Check, Minus } from "lucide-react";
 import { buyProductAction } from "@/app/actions/booking";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { Badge, ButtonLink, cx } from "@/components/ui";
@@ -56,6 +56,7 @@ export function ProductCard({
   loggedIn,
   next,
   passNotes = [],
+  passExclusions = [],
   creditNotes = [],
 }: {
   p: Product;
@@ -63,6 +64,8 @@ export function ProductCard({
   next: string;
   /** e.g. "Reformer fusion = 2 vstupy" – shown on pass cards */
   passNotes?: string[];
+  /** e.g. "Neplatí na: Individuální trénink" – shown on pass cards with a red minus */
+  passExclusions?: string[];
   /** e.g. "Většina lekcí: 220 kreditů" – shown on credit pack cards */
   creditNotes?: string[];
 }) {
@@ -89,6 +92,12 @@ export function ProductCard({
                           <Check className={cx("mt-0.5 size-4 shrink-0", p.highlight ? "text-zlato" : "text-salvej")} /> {x}
                         </li>
                       ))}
+                      {p.kind === "pass" &&
+                        passExclusions.map((x) => (
+                          <li key={x} className="flex gap-2">
+                            <Minus className={cx("mt-0.5 size-4 shrink-0", p.highlight ? "text-[#e8836b]" : "text-chyba")} /> {x}
+                          </li>
+                        ))}
                     </ul>
                     {p.kind === "membership" && (
                       // a condition, not a perk – no check mark
