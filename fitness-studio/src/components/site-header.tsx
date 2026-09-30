@@ -48,33 +48,35 @@ export async function SiteHeader() {
               <span className="sr-only">Menu</span>
             </summary>
             <CloseMenuOnClick />
-            <nav className="fixed inset-x-0 top-16 border-b border-zlato/20 bg-les px-6 py-6">
-              <ul className="space-y-4">
-                {nav.map((n) => (
-                  <li key={n.href}>
-                    <Link href={n.href} className="eyebrow block py-1 text-papir/90">
-                      {n.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-6 grid grid-cols-2 gap-3">
-                <Link href={account.href} className={buttonClass("outline-light", "w-full px-3")}>
-                  <UserRound className="size-4" /> {account.label}
-                </Link>
-                <Link href="/rozvrh" className={buttonClass("gold", "w-full px-3")}>
-                  {c("nav.book")}
-                </Link>
+            <nav className="fixed inset-x-0 top-16 max-h-[calc(100dvh-4rem)] overflow-y-auto border-b border-zlato/20 bg-les px-6 pb-8 pt-4">
+              <div className="mx-auto max-w-sm text-center">
+                <ul className="divide-y divide-zlato/10">
+                  {nav.map((n) => (
+                    <li key={n.href}>
+                      <Link href={n.href} className="eyebrow block py-3.5 text-papir/90 hover:text-zlato-light">
+                        {n.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-6 space-y-3">
+                  <Link href="/rozvrh" className={buttonClass("gold", "w-full")}>
+                    {c("nav.book")}
+                  </Link>
+                  <Link href={account.href} className={buttonClass("outline-light", "w-full")}>
+                    <UserRound className="size-4" /> {account.label}
+                  </Link>
+                </div>
+                {user ? (
+                  <form action={logoutAction} className="mt-5">
+                    <button className="text-xs tracking-wider text-papir/50 underline underline-offset-4 hover:text-papir">Odhlásit se</button>
+                  </form>
+                ) : (
+                  <p className="mt-5 text-xs text-papir/60">
+                    Nemáš účet? <Link href="/registrace" className="underline underline-offset-4">Zaregistruj se</Link> – první lekce je zdarma.
+                  </p>
+                )}
               </div>
-              {user ? (
-                <form action={logoutAction} className="mt-4 text-center">
-                  <button className="eyebrow text-papir/60 underline underline-offset-4 hover:text-papir">Odhlásit</button>
-                </form>
-              ) : (
-                <p className="mt-4 text-center text-xs text-papir/60">
-                  Nemáš účet? <Link href="/registrace" className="underline underline-offset-4">Zaregistruj se</Link> – první lekce je zdarma.
-                </p>
-              )}
             </nav>
           </details>
         </div>
