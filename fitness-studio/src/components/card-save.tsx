@@ -1,25 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Download, Smartphone } from "lucide-react";
-import { cardPromptDoneAction, cardSavedAction } from "@/app/actions/card";
+import { useState } from "react";
+import { Download } from "lucide-react";
+import { cardSavedAction } from "@/app/actions/card";
 import { shareOrDownload } from "@/lib/share-image";
-import { InstallGuide } from "./install-guide";
+import { InstallButton } from "./install-button";
 
 /** Save the member card to the phone: as a photo, or the whole site as an app on the home screen. */
 export function CardSave({ embedded }: { embedded?: boolean }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
-  const [install, setInstall] = useState<{ prompt: () => Promise<void> } | null>(null);
-
-  useEffect(() => {
-    const onPrompt = (e: Event) => {
-      e.preventDefault();
-      setInstall(e as unknown as { prompt: () => Promise<void> });
-    };
-    window.addEventListener("beforeinstallprompt", onPrompt);
-    return () => window.removeEventListener("beforeinstallprompt", onPrompt);
-  }, []);
 
   async function save() {
     setBusy(true);
@@ -48,22 +38,8 @@ export function CardSave({ embedded }: { embedded?: boolean }) {
       </button>
       {msg && <p className="text-xs text-les/70">{msg}</p>}
       <div className="border-t border-linka/60 pt-4 text-les/70">
-        <p className="flex items-center gap-2 font-semibold text-les"><Smartphone className="size-4" /> Nebo si přidej OCTOPUSH na plochu</p>
-        {install ? (
-          <button
-            type="button"
-            onClick={async () => {
-              await install.prompt();
-              setInstall(null);
-              void cardPromptDoneAction();
-            }}
-            className="mt-3 inline-flex items-center gap-2 rounded-full border border-les px-4 py-2 text-xs font-semibold"
-          >
-            Přidat na plochu
-          </button>
-        ) : (
-          <InstallGuide after="Rozvrh, rezervace i karta pak budou jedním klepnutím." />
-        )}
+        <p className="mb-3">Nebo si přidej OCTOPUSH na plochu – rozvrh, rezervace i karta pak budou jedním klepnutím.</p>
+        <InstallButton className="bg-transparent border border-les text-les" />
       </div>
     </div>
   );

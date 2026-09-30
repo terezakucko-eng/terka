@@ -54,7 +54,7 @@ export default async function MemberCardPage() {
       <div className="mt-4 rounded-2xl border border-linka/60 bg-white/60 p-5">
         <p className="text-sm font-semibold">Upozornění v tomhle zařízení</p>
         <p className="mt-1 text-sm text-les/70">Připomínky lekcí a uvolněná místa z pořadníku ti přijdou jako notifikace. Zapíná se zvlášť v každém zařízení – v mobilu i v počítači.</p>
-        <PushToggle publicKey={publicKey} className="mt-3" />
+        <PushToggle publicKey={publicKey} className="mt-3" installAbove />
       </div>
     </div>
   );
