@@ -157,7 +157,7 @@ await db.insert(products).values([
   {
     kind: "membership",
     name: "Členství Unlimited",
-    description: "Neomezeně lekcí. Automaticky se obnovuje každý měsíc, zrušíš kdykoliv.",
+    description: "Neomezeně lekcí. Platí se měsíčně, závazek na 12 měsíců.",
     price: 189000,
     validityDays: 30,
     recurring: true,

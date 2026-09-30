@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Check } from "lucide-react";
 import { buyProductAction } from "@/app/actions/booking";
 import { ActionForm, SubmitButton } from "@/components/forms";
@@ -89,12 +90,21 @@ export function ProductCard({
                     {p.kind === "membership" && (
                       // a condition, not a perk – no check mark
                       <p className={cx("mt-5 border-t pt-4 text-xs", p.highlight ? "border-papir/15 text-papir/60" : "border-linka/60 text-les/60")}>
-                        Cenu {formatPrice(p.price)} měsíčně máš při 12 platbách po sobě (členství na 12 měsíců).
+                        Členství je závazné na 12 měsíců – 12 měsíčních plateb po {formatPrice(p.price)}.
                       </p>
                     )}
                     {loggedIn ? (
                       <ActionForm action={buyProductAction} className="mt-6 space-y-2">
                         <input type="hidden" name="productId" value={p.id} />
+                        {p.kind === "membership" && (
+                          <label className={cx("mb-3 flex gap-3 text-xs", p.highlight ? "text-papir/80" : "text-les/70")}>
+                            <input type="checkbox" name="commitment" required className="mt-0.5 size-4 shrink-0 accent-[#c9a26b]" />
+                            <span>
+                              Beru na vědomí, že členství je závazné na 12 měsíců, a souhlasím s{"\u00a0"}
+                              <Link href="/obchodni-podminky" target="_blank" className="underline">obchodními podmínkami</Link>.
+                            </span>
+                          </label>
+                        )}
                         {card && (
                           <SubmitButton name="pay" value="card" variant={p.highlight ? "gold" : "dark"} className="w-full" pendingText="Moment…">
                             {p.kind === "membership" && p.recurring ? "Platit kartou měsíčně" : "Koupit – kartou"}
