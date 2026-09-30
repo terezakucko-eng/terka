@@ -17,6 +17,7 @@ function perks(p: Product): string[] {
         "Přednostní rezervace – termíny si zamluvíš dřív než ostatní",
         "Přednost v pořadníku, když je lekce plná",
         "Slevy na služby studia",
+        "Vstup zdarma do posilovací a cardio zóny",
         "Vstup do infrasauny zdarma",
         "…a další výhody",
       ];
