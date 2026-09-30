@@ -17,6 +17,7 @@ function perks(p: Product): string[] {
         "Přednost v pořadníku, když je lekce plná",
         "Slevy na služby studia",
         "Vstup do infrasauny zdarma",
+        "…a další výhody",
       ];
     case "pass":
       return [
