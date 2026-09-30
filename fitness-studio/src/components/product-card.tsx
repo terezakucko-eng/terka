@@ -16,7 +16,6 @@ function perks(p: Product): string[] {
         "Přednost v pořadníku, když je lekce plná",
         "Slevy na služby studia",
         "Vstup do infrasauny zdarma",
-        "Platí se měsíčně, závazek na 12 měsíců",
       ];
     case "pass":
       return [
@@ -87,6 +86,12 @@ export function ProductCard({
                         </li>
                       ))}
                     </ul>
+                    {p.kind === "membership" && (
+                      // a condition, not a perk – no check mark
+                      <p className={cx("mt-5 border-t pt-4 text-xs", p.highlight ? "border-papir/15 text-papir/60" : "border-linka/60 text-les/60")}>
+                        Cenu {formatPrice(p.price)} měsíčně máš při 12 platbách po sobě (členství na 12 měsíců).
+                      </p>
+                    )}
                     {loggedIn ? (
                       <ActionForm action={buyProductAction} className="mt-6 space-y-2">
                         <input type="hidden" name="productId" value={p.id} />
