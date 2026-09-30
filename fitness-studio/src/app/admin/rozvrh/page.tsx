@@ -7,7 +7,7 @@ import { SessionFields } from "@/components/admin-forms";
 import { TypeDefaults } from "@/components/type-defaults";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { spotsLabel } from "@/components/session-card";
-import { Badge, Field, Input, Select } from "@/components/ui";
+import { Badge, Field, Input, Select, cx } from "@/components/ui";
 import { getDb } from "@/db";
 import { bookings, users } from "@/db/schema";
 import { splitName } from "@/lib/client-list";
@@ -45,10 +45,74 @@ export default async function AdminSchedule({ searchParams }: PageProps<"/admin/
   };
 
   const isAdmin = user.role === "admin";
+  type Item = (typeof sessions)[number];
+  const occupancy = (s: Item) => {
+    const spots = spotsLabel(s);
+    const { going, waiting, sortName } = peopleOf(s.id);
+    const head = <span className="whitespace-nowrap">{s.occupied}/{s.capacity} <Badge tone={spots.tone}>{spots.text}</Badge></span>;
+    if (!going.length && !waiting.length) return head;
+    return (
+      <details className="group">
+        <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+          {head} <span className="ml-1 text-xs text-les/50 underline group-open:hidden">kdo</span>
+        </summary>
+        <ul className="mt-2 space-y-0.5 text-xs">
+          {going.map((x) => (
+            <li key={x.userId + x.status}>
+              <Link href={`/admin/klienti/${x.userId}`} className="hover:underline">{sortName(x.name)}</Link>
+              {x.guestName && <span className="text-les/60"> +1 {x.guestName}</span>}
+              {x.status === "pending_payment" && <span className="text-zeme"> · čeká na platbu</span>}
+              {x.status === "no_show" && <span className="text-chyba"> · nepřišel/a</span>}
+            </li>
+          ))}
+          {waiting.map((x, i) => (
+            <li key={x.userId + "w"} className="text-les/60">
+              {i + 1}. náhradník: <Link href={`/admin/klienti/${x.userId}`} className="hover:underline">{sortName(x.name)}</Link>
+            </li>
+          ))}
+        </ul>
+      </details>
+    );
+  };
+  // phones: a compact list grouped by day instead of the wide table
+  const byDay = [...new Set(sessions.map((x) => dateKey(x.startsAt)))];
+  const mobileList = (
+    <div className="space-y-5 md:hidden">
+      {byDay.map((d) => (
+        <section key={d}>
+          <h2 className="eyebrow mb-2 text-les/60">{formatShortDay(sessions.find((x) => dateKey(x.startsAt) === d)!.startsAt)}</h2>
+          <ul className="divide-y divide-linka/50 overflow-hidden rounded-2xl border border-linka/60 bg-white/60">
+            {sessions.filter((x) => dateKey(x.startsAt) === d).map((s) => (
+              <li key={s.id} className={cx("flex gap-3 p-3", s.status === "cancelled" && "opacity-50")}>
+                {isAdmin && (
+                  <input type="checkbox" name="ids" value={s.id} aria-label={`Vybrat ${s.classType.name}`} className="mt-1 size-4 shrink-0" />
+                )}
+                <div className="min-w-0 flex-1 text-sm">
+                  <Link href={`/admin/rozvrh/${s.id}`} className="flex items-baseline justify-between gap-2">
+                    <span className="font-semibold">
+                      <span className="mr-1.5 inline-block size-2 rounded-full align-middle" style={{ background: s.classType.color }} />
+                      {s.classType.name}
+                    </span>
+                    <span className="shrink-0 tabular-nums text-les/60">{formatRange(s.startsAt, s.durationMin)}</span>
+                  </Link>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-les/70">
+                    {s.isFree && <Badge tone="gold">Zdarma</Badge>}
+                    {s.status === "cancelled" && <Badge tone="red">Zrušeno</Badge>}
+                    <span>{s.instructor?.name ?? "Bez lektora"}</span>
+                  </div>
+                  <div className="mt-1.5">{occupancy(s)}</div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+      {sessions.length === 0 && <p className="py-10 text-center text-les/50">Tento týden nejsou žádné lekce.</p>}
+    </div>
+  );
   const table = (
-    <Table head={[...(isAdmin ? [""] : []), "Den", "Čas", "Lekce", "Lektor", "Obsazenost", ""]}>
+    <Table head={[...(isAdmin ? [""] : []), "Den", "Čas", "Lekce", "Lektor", "Obsazenost", ""]} className="max-md:hidden">
       {sessions.map((s) => {
-        const spots = spotsLabel(s);
         return (
           <tr key={s.id} className={s.status === "cancelled" ? "opacity-50" : ""}>
             {isAdmin && (
@@ -64,33 +128,7 @@ export default async function AdminSchedule({ searchParams }: PageProps<"/admin/
             </Td>
             <Td>{s.instructor?.name ?? "—"}</Td>
             <Td>
-              {(() => {
-                const { going, waiting, sortName } = peopleOf(s.id);
-                const head = <span className="whitespace-nowrap">{s.occupied}/{s.capacity} <Badge tone={spots.tone}>{spots.text}</Badge></span>;
-                if (!going.length && !waiting.length) return head;
-                return (
-                  <details className="group">
-                    <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-                      {head} <span className="ml-1 text-xs text-les/50 underline group-open:hidden">kdo</span>
-                    </summary>
-                    <ul className="mt-2 space-y-0.5 text-xs">
-                      {going.map((x) => (
-                        <li key={x.userId + x.status}>
-                          <Link href={`/admin/klienti/${x.userId}`} className="hover:underline">{sortName(x.name)}</Link>
-                          {x.guestName && <span className="text-les/60"> +1 {x.guestName}</span>}
-                          {x.status === "pending_payment" && <span className="text-zeme"> · čeká na platbu</span>}
-                          {x.status === "no_show" && <span className="text-chyba"> · nepřišel/a</span>}
-                        </li>
-                      ))}
-                      {waiting.map((x, i) => (
-                        <li key={x.userId + "w"} className="text-les/60">
-                          {i + 1}. náhradník: <Link href={`/admin/klienti/${x.userId}`} className="hover:underline">{sortName(x.name)}</Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </details>
-                );
-              })()}
+              {occupancy(s)}
             </Td>
             <Td><Link href={`/admin/rozvrh/${s.id}`} className="font-semibold text-zeme underline underline-offset-4">Detail</Link></Td>
           </tr>
@@ -173,11 +211,15 @@ export default async function AdminSchedule({ searchParams }: PageProps<"/admin/
           confirm="Smazat zaškrtnuté lekce z rozvrhu? Přihlášeným klientům se vrátí vstup/kredit a přijde jim e-mail."
           className="space-y-3"
         >
+          {mobileList}
           {table}
           <SubmitButton variant="ghost" className="text-chyba">Smazat zaškrtnuté lekce</SubmitButton>
         </ActionForm>
       ) : (
-        table
+        <>
+          {mobileList}
+          {table}
+        </>
       )}
     </>
   );

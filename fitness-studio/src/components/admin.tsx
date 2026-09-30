@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Children, cloneElement, isValidElement, type ReactElement, type ReactNode } from "react";
 import { cx } from "./ui";
 
 export function AdminTitle({ title, children }: { title: string; children?: ReactNode }) {
@@ -10,21 +10,45 @@ export function AdminTitle({ title, children }: { title: string; children?: Reac
   );
 }
 
+/**
+ * Admin table. On phones every row turns into a card: the header row hides and
+ * each cell shows its column name above the value – nothing scrolls sideways.
+ */
 export function Table({ head, children, className }: { head: ReactNode[]; children: ReactNode; className?: string }) {
+  const rows = Children.map(children, (row) => {
+    if (!isValidElement<{ children?: ReactNode }>(row) || row.type !== "tr") return row;
+    const cells = Children.toArray(row.props.children).map((cell, i) =>
+      isValidElement(cell) && cell.type === Td ? cloneElement(cell as ReactElement<TdProps>, { label: head[i] }) : cell,
+    );
+    return cloneElement(row, {}, cells);
+  });
   return (
-    <div className={cx("overflow-x-auto rounded-2xl border border-linka/60 bg-white/60", className)}>
-      <table className="w-full text-left text-sm">
-        <thead className="border-b border-linka/60 bg-krem/40 text-xs uppercase tracking-wider text-les/60">
+    <div className={cx("rounded-2xl border border-linka/60 bg-white/60 md:overflow-x-auto", className)}>
+      <table className="w-full text-left text-sm max-md:block">
+        <thead className="border-b border-linka/60 bg-krem/40 text-xs uppercase tracking-wider text-les/60 max-md:hidden">
           <tr>{head.map((h, i) => <th key={i} className="px-4 py-3 font-semibold whitespace-nowrap">{h}</th>)}</tr>
         </thead>
-        <tbody className="divide-y divide-linka/40">{children}</tbody>
+        <tbody className="divide-y divide-linka/40 max-md:block [&>tr]:max-md:block [&>tr]:max-md:px-4 [&>tr]:max-md:py-3">{rows}</tbody>
       </table>
     </div>
   );
 }
 
-export function Td({ children, className, colSpan }: { children?: ReactNode; className?: string; colSpan?: number }) {
-  return <td colSpan={colSpan} className={cx("px-4 py-3 align-top", className)}>{children}</td>;
+type TdProps = { children?: ReactNode; className?: string; colSpan?: number; label?: ReactNode };
+
+export function Td({ children, className, colSpan, label }: TdProps) {
+  const empty = children === null || children === undefined || children === false || children === "";
+  return (
+    <td
+      colSpan={colSpan}
+      className={cx("px-4 py-3 align-top max-md:flex max-md:gap-3 max-md:px-0 max-md:py-1", empty && "max-md:hidden", className)}
+    >
+      {label && !empty && (
+        <span className="w-24 shrink-0 pt-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-les/45 md:hidden">{label}</span>
+      )}
+      <div className="min-w-0 max-md:flex-1">{children}</div>
+    </td>
+  );
 }
 
 export function Stat({ label, value, sub }: { label: string; value: ReactNode; sub?: ReactNode }) {
