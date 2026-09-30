@@ -78,7 +78,6 @@ export function PushToggle({ publicKey, className }: { publicKey: string; classN
     }
   }
 
-  const btn = "inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold disabled:opacity-50";
   return (
     <div className={cx("space-y-2 text-sm", className)}>
       {shown === "loading" && <p className="text-les/50">Zjišťuji, jestli tohle zařízení umí upozornění…</p>}
@@ -92,18 +91,39 @@ export function PushToggle({ publicKey, className }: { publicKey: string; classN
       {shown === "denied" && (
         <p className="text-les/70">Upozornění máš pro tenhle web zakázaná. Povol je v nastavení prohlížeče (ikona zámku vedle adresy) a zkus to znovu.</p>
       )}
-      {shown === "off" && (
-        <button type="button" onClick={enable} disabled={busy} className={cx(btn, "bg-les text-papir")}>
-          <Bell className="size-4" /> {busy ? "Zapínám…" : "Zapnout upozornění"}
+      {(shown === "off" || shown === "on") && (
+        <button
+          type="button"
+          role="switch"
+          aria-checked={shown === "on"}
+          onClick={shown === "on" ? disable : enable}
+          disabled={busy}
+          className="flex w-full items-center justify-between gap-4 rounded-2xl border border-linka/60 bg-white/60 px-4 py-3 text-left disabled:opacity-60"
+        >
+          <span className="flex items-center gap-3">
+            {shown === "on" ? <Bell className="size-5 text-ok" /> : <BellOff className="size-5 text-les/40" />}
+            <span>
+              <span className="block font-semibold">Upozornění</span>
+              <span className="block text-xs text-les/60">
+                {busy ? (shown === "on" ? "Vypínám…" : "Zapínám…") : shown === "on" ? "Zapnuto v tomhle zařízení" : "Vypnuto"}
+              </span>
+            </span>
+          </span>
+          <span
+            aria-hidden
+            className={cx(
+              "relative h-7 w-12 shrink-0 rounded-full transition-colors",
+              shown === "on" ? "bg-ok" : "bg-linka",
+            )}
+          >
+            <span
+              className={cx(
+                "absolute top-0.5 size-6 rounded-full bg-white shadow transition-transform",
+                shown === "on" ? "translate-x-[1.375rem]" : "translate-x-0.5",
+              )}
+            />
+          </span>
         </button>
-      )}
-      {shown === "on" && (
-        <p className="flex flex-wrap items-center gap-3">
-          <span className="inline-flex items-center gap-2 font-semibold text-ok"><Bell className="size-4" /> Upozornění jsou zapnutá</span>
-          <button type="button" onClick={disable} disabled={busy} className={cx(btn, "border border-linka text-les/70")}>
-            <BellOff className="size-4" /> Vypnout
-          </button>
-        </p>
       )}
       {msg && <p className="text-xs text-les/70">{msg}</p>}
     </div>
