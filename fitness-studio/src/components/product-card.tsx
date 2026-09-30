@@ -15,8 +15,8 @@ function perks(p: Product): string[] {
         "Přednostní rezervace – termíny si zamluvíš dřív než ostatní",
         "Přednost v pořadníku, když je lekce plná",
         "Slevy na služby studia",
-        p.recurring ? "Platí se každý měsíc" : `Platnost ${p.validityDays ?? 30} dní`,
-        "Závazek na 12 měsíců",
+        "Vstup do infrasauny zdarma",
+        "Platí se měsíčně, závazek na 12 měsíců",
       ];
     case "pass":
       return [
