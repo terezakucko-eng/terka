@@ -1,7 +1,6 @@
 import { asc, isNull } from "drizzle-orm";
 import {
   deleteClassTypeAction,
-  fillAllLessonTextsAction,
   hideLessonDraftAction,
   lessonFromTemplateAction,
   lessonTextFromTemplateAction,
@@ -99,25 +98,11 @@ export default async function AdminClassTypes() {
   const taken = new Set(list.map((t) => templateFor(t)).filter(Boolean));
   const ready = LESSON_TEMPLATES.filter((t) => !taken.has(t) && !hidden.has(t.slug));
   const hiddenList = LESSON_TEMPLATES.filter((t) => hidden.has(t.slug) && !taken.has(t));
-  const matched = list.filter((t) => templateFor(t));
   return (
     <>
       <AdminTitle title="Typy lekcí" />
       <div className="space-y-3">
         <Panel title="+ Nový typ lekce"><ClassTypeForm /></Panel>
-        {matched.length > 0 && (
-          <ActionForm
-            action={fillAllLessonTextsAction}
-            confirm={`Doplnit popis a hledané výrazy z návrhů lekcím: ${matched.map((t) => t.name).join(", ")}? Stávající popisy se přepíšou, jinak se nic nemění.`}
-            className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zlato/50 bg-zlato/10 p-4 text-sm"
-          >
-            <span>
-              <strong>Doplnit texty všem lekcím z návrhů</strong>
-              <span className="block text-les/60">{matched.map((t) => t.name).join(" · ")} – zůstanou aktivní, cena, fotka ani rozvrh se nemění.</span>
-            </span>
-            <SubmitButton variant="gold" className="px-4 py-2 text-[0.7rem]">Doplnit všem</SubmitButton>
-          </ActionForm>
-        )}
         {(ready.length > 0 || hiddenList.length > 0) && (
           <Panel title="+ Připravené návrhy lekcí">
             <p className="mb-4 text-sm text-les/60">

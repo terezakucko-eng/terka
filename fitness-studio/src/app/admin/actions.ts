@@ -25,7 +25,7 @@ import {
 } from "@/domain/booking";
 import { deleteClassType, deleteProduct } from "@/domain/catalog";
 import { LESSON_TEMPLATES, templateFor } from "@/domain/lesson-templates";
-import { fillLessonsFromDrafts, setDraftHidden } from "@/domain/lesson-drafts";
+import { setDraftHidden } from "@/domain/lesson-drafts";
 import { deleteClient, deleteClients, deleteOrder, deleteOrders, purgeSession, seriesFrom } from "@/domain/cleanup";
 import { fulfillOrder, sellAtReception } from "@/domain/orders";
 import { deductSolarium } from "@/domain/solarium";
@@ -145,16 +145,6 @@ export async function lessonTextFromTemplateAction(_: FormState, fd: FormData): 
     const id = required(field.str(fd, "id"), "Chybí lekce.");
     await (await getDb()).update(classTypes).set({ description: tpl.description, keywords: tpl.keywords }).where(eq(classTypes.id, id));
     return done(`Popis a hledané výrazy z návrhu „${tpl.name}“ jsou doplněné – klidně je ještě uprav.`);
-  });
-}
-
-/** Admin → Lekce: all lessons with a matching draft get its texts at once (they stay active). */
-export async function fillAllLessonTextsAction(): Promise<FormState> {
-  await requireAdmin();
-  return attempt(async () => {
-    const filled = await fillLessonsFromDrafts(await getDb());
-    if (!filled.length) throw new UserError("K žádné lekci jsme nenašli odpovídající návrh.");
-    return done(`Doplněno: ${filled.join(", ")}.`);
   });
 }
 
