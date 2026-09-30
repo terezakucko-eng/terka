@@ -96,12 +96,55 @@ export const LESSON_TEMPLATES: LessonTemplate[] = [
     durationMin: 55,
   },
   {
-    name: "Piloxing",
-    slug: "piloxing",
+    name: "Piloxing SSP",
+    slug: "piloxing-ssp",
     description:
-      "Kombinace pilates, boxu a tance. Intervalová lekce naplno spaluje, posiluje a zlepšuje kondici – a u toho se vybiješ.",
-    keywords: "piloxing Ostrava, box fitness, pilates a box, kardio",
-    note: "Piloxing je chráněná značka – jen s licencí instruktora.",
+      "Původní Piloxing: spojení pilates, boxu a tance v jedné intervalové lekci. Rychlé boxerské kombinace střídá pilates pro pevný střed těla a taneční pasáže. Spálíš, zpevníš a vybiješ se – na boso a bez zkušeností.",
+    keywords: "piloxing Ostrava, piloxing SSP, pilates a box, box fitness, kardio pro ženy",
+    note: "Piloxing je chráněná značka – jen s licencí instruktora pro daný program.",
+  },
+  {
+    name: "Piloxing Barre",
+    slug: "piloxing-barre",
+    description:
+      "Piloxing u baletní tyče: pilates, balet a prvky boxu v plynulé lekci. Drobné přesné pohyby a výdrže tvarují nohy, hýždě a střed těla, zlepšují držení i rovnováhu. Nízká zátěž kloubů, pořádný efekt.",
+    keywords: "piloxing barre Ostrava, barre Ostrava, balet fitness, pilates u tyče, tvarování postavy",
+    durationMin: 55,
+    note: "Piloxing je chráněná značka – jen s licencí instruktora pro daný program.",
+  },
+  {
+    name: "Piloxing Knockout",
+    slug: "piloxing-knockout",
+    description:
+      "Nejintenzivnější Piloxing: intervaly boxu, plyometrie a funkčního posilování – často s lehkými rukavicemi se zátěží. Vysoký tep, síla a kondice, u které se opravdu vybiješ.",
+    keywords: "piloxing knockout Ostrava, box fitness Ostrava, HIIT, intervalový trénink, kickbox fitness",
+    level: "Mírně pokročilí",
+    note: "Piloxing je chráněná značka – jen s licencí instruktora pro daný program.",
+  },
+  {
+    name: "DeepWork",
+    slug: "deepwork",
+    description:
+      "Funkční trénink s vlastní vahou postavený na rovnováze sil – napětí a uvolnění, síla a vytrvalost. Kruhová choreografie ve vlnách intenzity rozproudí celé tělo, posílí střed a zlepší kondici i koordinaci. Každý si tempo řídí sám.",
+    keywords: "DeepWork Ostrava, deep work trénink, funkční trénink, kondiční trénink, cvičení vlastní vahou",
+    durationMin: 50,
+    note: "DeepWORK® je chráněná značka – jen s licencí instruktora.",
+  },
+  {
+    name: "DNS",
+    slug: "dns",
+    description:
+      "Cvičení podle Dynamické neuromuskulární stabilizace (DNS) prof. Koláře. Pracujeme s dechem, hlubokým stabilizačním systémem a polohami z vývoje dítěte. Pomáhá při bolestech zad, zlepšuje držení těla a je skvělým základem pro jakýkoli další pohyb.",
+    keywords: "DNS Ostrava, dynamická neuromuskulární stabilizace, cvičení na záda, stabilizace páteře, zdravá záda",
+    durationMin: 55,
+    note: "Pojem DNS / DNS Exercise používejte jen s certifikací (Prague School of Rehabilitation).",
+  },
+  {
+    name: "BodyWork",
+    slug: "bodywork",
+    description:
+      "Celotělová lekce, která spojuje zpevnění, mobilitu a protažení. Posílíš hluboké svaly, uvolníš ztuhlá místa a odejdeš s lehkým a vzpřímeným tělem. Vhodné pro všechny úrovně i jako doplněk k intenzivnějším tréninkům.",
+    keywords: "bodywork Ostrava, zpevnění a protažení, mobilita, cvičení pro ženy, zdravé tělo",
   },
   {
     name: "BOSU",
