@@ -21,6 +21,8 @@ import { getSettings } from "@/lib/settings";
 import { nbsp } from "@/lib/typography";
 
 const CITY = "Ostrava";
+/** "Individuální trénink" is one-to-one – everything else is a group class. */
+const kindOf = (name: string) => (/individu/i.test(name) ? "osobní trénink" : "skupinová lekce");
 
 async function load(slug: string) {
   const [t] = await (await getDb())
@@ -33,7 +35,7 @@ async function load(slug: string) {
 export async function generateMetadata({ params }: PageProps<"/lekce/[slug]">): Promise<Metadata> {
   const t = await load((await params).slug);
   if (!t) return {};
-  const intro = `${t.name} v Ostravě – skupinová lekce ve studiu ${site.name}.`;
+  const intro = `${t.name} v Ostravě – ${kindOf(t.name)} ve studiu ${site.name}.`;
   return {
     title: `${t.name} ${CITY}`,
     description: `${intro} ${t.description.replace(/\s+/g, " ")}`.slice(0, 160),
@@ -106,7 +108,7 @@ export default async function LessonPage({ params }: PageProps<"/lekce/[slug]">)
             <Link href="/lekce" className="eyebrow inline-flex items-center gap-2 text-les/50 hover:text-les">
               <ArrowLeft className="size-3.5" /> Všechny lekce
             </Link>
-            <Eyebrow className="mt-6 text-zeme">Skupinová lekce · {CITY}</Eyebrow>
+            <Eyebrow className="mt-6 text-zeme">{kindOf(t.name)} · {CITY}</Eyebrow>
             <h1 className="mt-3 flex items-center gap-4 text-4xl font-semibold tracking-tight sm:text-5xl">
               <span className="size-4 shrink-0 rounded-full" style={{ background: t.color }} aria-hidden />
               {t.name}
@@ -146,7 +148,13 @@ export default async function LessonPage({ params }: PageProps<"/lekce/[slug]">)
               </div>
             ))}
           </div>
-          {sessions.length === 0 && <Empty>Termíny právě chystáme – mrkni do rozvrhu nebo nás sleduj na Nástěnce.</Empty>}
+          {sessions.length === 0 && (
+            <Empty>
+              {kindOf(t.name) === "osobní trénink"
+                ? "Termín domluvíme přímo s tebou – napiš nám nebo zavolej (kontakty najdeš dole na stránce)."
+                : "Termíny právě chystáme – mrkni do rozvrhu nebo nás sleduj na Nástěnce."}
+            </Empty>
+          )}
         </section>
 
         {tags.length > 0 && (

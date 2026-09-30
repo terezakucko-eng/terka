@@ -16,12 +16,59 @@ export type LessonTemplate = {
 
 export const LESSON_TEMPLATES: LessonTemplate[] = [
   {
-    name: "Zumba",
-    slug: "zumba",
+    name: "Zumba fitness",
+    slug: "zumba-fitness",
     description:
       "Taneční fitness party na latinskoamerické a světové rytmy. Jednoduché kroky zvládne každý, spálíš spoustu energie a ani si toho nevšimneš. Žádné taneční zkušenosti nepotřebuješ.",
     keywords: "zumba Ostrava, zumba fitness, taneční fitness, tanec, taneční lekce, cvičení pro ženy",
     note: "Název Zumba smí používat jen lektor/ka s licencí ZIN.",
+  },
+  {
+    name: "Zumba Toning",
+    slug: "zumba-toning",
+    description:
+      "Zumba s lehkými činkami (toning sticks). Tančíš na stejně skvělou hudbu, ale navíc posiluješ paže, střed těla, hýždě a stehna. Ideální, když chceš spojit kardio se zpevněním postavy.",
+    keywords: "zumba toning Ostrava, zumba s činkami, taneční posilování, zumba, zpevnění postavy",
+    durationMin: 45,
+    note: "Zumba Toning smí vést jen lektor/ka s licencí ZIN.",
+  },
+  {
+    name: "Strong Nation",
+    slug: "strong-nation",
+    description:
+      "Vysoce intenzivní intervalový trénink, kde každý pohyb sedí přesně na hudbu. Síla, kardio a výskoky s vlastní vahou – žádné taneční kroky, jen poctivá dřina, která ubíhá sama.",
+    keywords: "Strong Nation Ostrava, STRONG by Zumba, HIIT Ostrava, intervalový trénink, kondiční trénink",
+    level: "Mírně pokročilí",
+    note: "STRONG Nation® je chráněná značka – jen s licencí instruktora.",
+  },
+  {
+    name: "Reformer fusion",
+    slug: "reformer-fusion",
+    description:
+      "Pilates na reformeru v kombinaci s prvky silového a funkčního tréninku. Pružiny stroje dávají odpor i oporu, takže posílíš hluboké svaly, zlepšíš držení těla a protáhneš se – šetrně ke kloubům. Malá skupina, individuální přístup.",
+    keywords: "reformer Ostrava, pilates reformer Ostrava, reformer pilates, pilates, zpevnění středu těla",
+    durationMin: 55,
+  },
+  {
+    name: "Zdravé tělo | silový trénink",
+    slug: "zdrave-telo-silovy-trenink",
+    description:
+      "Posilování s vlastní vahou, činkami a pomůckami se zaměřením na zdravý pohyb a správnou techniku. Zpevníš celé tělo, podpoříš záda a klouby a získáš sílu do běžného života.",
+    keywords: "posilování Ostrava, silový trénink pro ženy, fitko pro ženy, posilování pro začátečníky, zdravá záda",
+  },
+  {
+    name: "Zdravé tělo | cardio trénink",
+    slug: "zdrave-telo-cardio-trenink",
+    description:
+      "Kondiční trénink pro zdravé srdce a lepší výdrž. Střídáme tempo i cviky tak, aby se zapotil každý – začátečník i pokročilý. Spálíš kalorie a odejdeš nabitá energií.",
+    keywords: "cardio Ostrava, kardio trénink, spalování tuků, kondiční cvičení, cvičení pro ženy",
+  },
+  {
+    name: "Individuální trénink",
+    slug: "individualni-trenink",
+    description:
+      "Osobní trénink jeden na jednoho, celý čas jen pro tebe. Plán ušijeme na míru tvému cíli – zpevnění, síla, kondice, návrat po pauze nebo pomoc s technikou. Termín se domlouvá individuálně.",
+    keywords: "osobní trenérka Ostrava, osobní trenér Ostrava, individuální trénink, trénink na míru",
   },
   {
     name: "BODYPUMP",
@@ -126,3 +173,15 @@ export const LESSON_TEMPLATES: LessonTemplate[] = [
     durationMin: 50,
   },
 ];
+
+/** "Zdravé tělo | silový trénink" → "zdravetelosilovytrenink" – names match however they're spelled. */
+const key = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+
+/** The draft for an existing lesson – same web address or the same name. */
+export const templateFor = (ct: { slug: string; name: string }) =>
+  LESSON_TEMPLATES.find((t) => t.slug === ct.slug || key(t.name) === key(ct.name));
