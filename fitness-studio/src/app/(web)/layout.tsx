@@ -1,5 +1,6 @@
 import { EditPageButton } from "@/components/edit-page-button";
 import { AppOpenTracker } from "@/components/app-open-tracker";
+import { InstallCatcher } from "@/components/install-catcher";
 import { Popup } from "@/components/popup";
 import { PromoBar } from "@/components/promo-bar";
 import { SiteFooter } from "@/components/site-footer";
@@ -18,6 +19,7 @@ export default async function WebLayout({ children }: LayoutProps<"/">) {
       <main className="flex-1">{children}</main>
       <SiteFooter />
       <Popup />
+      <InstallCatcher />
       {user?.role === "admin" && <EditPageButton />}
       {user && !user.appInstalledAt && <AppOpenTracker />}
     </>

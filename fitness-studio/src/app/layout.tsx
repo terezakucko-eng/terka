@@ -3,6 +3,7 @@ import { Allura, DM_Sans } from "next/font/google";
 import { site } from "@/config/site";
 import { connection } from "next/server";
 import { splitKeywords } from "@/lib/keywords";
+import { EARLY_CATCH } from "@/lib/install-prompt";
 import { getContent } from "@/content";
 import "./globals.css";
 
@@ -43,6 +44,9 @@ export const viewport: Viewport = { themeColor: "#1a281b" };
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="cs" className={`${dmSans.variable} ${allura.variable} h-full`}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: EARLY_CATCH }} />
+      </head>
       <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );

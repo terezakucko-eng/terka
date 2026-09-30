@@ -3,7 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Bell, BellOff } from "lucide-react";
 import { removePushSubscription, savePushSubscription } from "@/app/actions/push";
-import { InstallGuide } from "./install-guide";
+import { InstallButton } from "./install-button";
 import { cx } from "./ui";
 
 type State = "loading" | "unsupported" | "ios-home" | "denied" | "off" | "on";
@@ -22,7 +22,7 @@ function keyBytes(base64: string) {
 }
 
 /** Turn push notifications on/off for this device. */
-export function PushToggle({ publicKey, className }: { publicKey: string; className?: string }) {
+export function PushToggle({ publicKey, className, installAbove }: { publicKey: string; className?: string; installAbove?: boolean }) {
   const supported = useSyncExternalStore(noSubscribe, support, () => "no" as const);
   const [state, setState] = useState<State>("loading");
   const [busy, setBusy] = useState(false);
@@ -83,9 +83,12 @@ export function PushToggle({ publicKey, className }: { publicKey: string; classN
       {shown === "loading" && <p className="text-les/50">Zjišťuji, jestli tohle zařízení umí upozornění…</p>}
       {shown === "unsupported" && <p className="text-les/60">Tenhle prohlížeč upozornění neumí. Zkus Chrome, Edge, Firefox nebo Safari.</p>}
       {shown === "ios-home" && (
-        <div className="text-les/70">
-          <p>Na iPhonu fungují upozornění jen z aplikace na ploše. Přidej si OCTOPUSH na plochu:</p>
-          <InstallGuide only={["ios"]} after="Pak otevři OCTOPUSH z plochy a upozornění tady zapni." />
+        <div className="space-y-3 text-les/70">
+          <p>
+            Na iPhonu fungují upozornění jen z aplikace na ploše. Přidej si OCTOPUSH na plochu{installAbove ? " tlačítkem výše" : ""}, otevři ho
+            odtamtud a upozornění tady zapni.
+          </p>
+          {!installAbove && <InstallButton after="Pak otevři OCTOPUSH z plochy a v profilu zapni Upozornění." />}
         </div>
       )}
       {shown === "denied" && (

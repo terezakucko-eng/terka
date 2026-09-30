@@ -9,6 +9,7 @@ import { requireUser } from "@/lib/auth";
 import { getDb } from "@/db";
 import { vapidKeys } from "@/lib/push";
 import { PushToggle } from "@/components/push-toggle";
+import { InstallButton } from "@/components/install-button";
 import { MONTHS, OCTO_AVATARS, parseAvatar } from "@/lib/profile";
 import { PasswordInput } from "@/components/password-input";
 
@@ -114,11 +115,14 @@ export default async function ProfilePage() {
         </ActionForm>
       </Card>
       <Card>
-        <h2 className="text-xl font-semibold">Upozornění v tomhle zařízení</h2>
+        <h2 className="text-xl font-semibold">OCTOPUSH v mobilu</h2>
+        <p className="mt-2 text-sm text-les/70">Přidej si web na plochu – rozvrh, rezervace i členská karta budou jedním klepnutím jako aplikace.</p>
+        <InstallButton className="mt-4" />
+        <h2 className="mt-8 text-xl font-semibold">Upozornění v tomhle zařízení</h2>
         <p className="mt-2 text-sm text-les/70">
           Připomínka lekce, uvolněné místo z pořadníku nebo zrušená lekce ti přijde jako notifikace – rychleji než e-mail. Zapíná se zvlášť v každém zařízení – v mobilu i v počítači.
         </p>
-        <PushToggle publicKey={publicKey} className="mt-4" />
+        <PushToggle publicKey={publicKey} className="mt-4" installAbove />
       </Card>
       <Card>
         <h2 className="text-xl font-semibold">Změna hesla</h2>
