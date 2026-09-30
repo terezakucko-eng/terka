@@ -12,7 +12,8 @@ function perks(p: Product): string[] {
   switch (p.kind) {
     case "membership":
       return [
-        p.weeklyLimit ? `Až ${p.weeklyLimit} lekce týdně` : "Neomezeně lekcí",
+        p.weeklyLimit ? `Až ${p.weeklyLimit} standardní skupinové lekce týdně` : "Neomezený vstup na standardní skupinové lekce",
+        "Zvýhodněný vstup na lekce Reformer a individuální tréninky",
         "Přednostní rezervace – termíny si zamluvíš dřív než ostatní",
         "Přednost v pořadníku, když je lekce plná",
         "Slevy na služby studia",
