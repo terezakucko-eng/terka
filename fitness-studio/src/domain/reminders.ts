@@ -1,4 +1,5 @@
 import { and, eq, gt, inArray, isNull, lte } from "drizzle-orm";
+import { sessionNameSql } from "@/lib/session-name";
 import type { DB } from "@/db";
 import { bookings, classSessions, classTypes, massageBookings, users } from "@/db/schema";
 
@@ -14,7 +15,7 @@ const HOUR = 3_600_000;
 export async function dueReminders(db: DB, now = new Date()) {
   const until = new Date(now.getTime() + REMINDER_HOURS * HOUR);
   const classes = await db
-    .select({ id: bookings.id, createdAt: bookings.createdAt, sessionId: classSessions.id, startsAt: classSessions.startsAt, name: classTypes.name, email: users.email, userName: users.name, userId: users.id })
+    .select({ id: bookings.id, createdAt: bookings.createdAt, sessionId: classSessions.id, startsAt: classSessions.startsAt, name: sessionNameSql, email: users.email, userName: users.name, userId: users.id })
     .from(bookings)
     .innerJoin(classSessions, eq(bookings.sessionId, classSessions.id))
     .innerJoin(classTypes, eq(classSessions.classTypeId, classTypes.id))

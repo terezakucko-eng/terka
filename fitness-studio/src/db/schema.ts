@@ -244,6 +244,8 @@ export const classSessions = pgTable(
     /** Lekce zdarma pro všechny přihlášené (open class, den otevřených dveří…) */
     isFree: boolean("is_free").notNull().default(false),
     room: text("room"),
+    /** Vlastní název termínu (např. „Dýňový brunch“); null = název lekce */
+    title: text("title"),
     note: text("note"),
     status: sessionStatus("status").notNull().default("scheduled"),
     seriesId: uuid("series_id"),

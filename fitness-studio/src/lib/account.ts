@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, gte, inArray, lt, ne } from "drizzle-orm";
+import { sessionName } from "./session-name";
 import type { DB } from "@/db";
 import {
   bookings,
@@ -17,7 +18,7 @@ export async function userBookings(
   now = new Date(),
   limit = 50,
 ) {
-  return db
+  const rows = await db
     .select({ b: bookings, s: classSessions, ct: classTypes, ins: instructors })
     .from(bookings)
     .innerJoin(classSessions, eq(bookings.sessionId, classSessions.id))
@@ -33,6 +34,7 @@ export async function userBookings(
     )
     .orderBy(when === "upcoming" ? asc(classSessions.startsAt) : desc(classSessions.startsAt))
     .limit(limit);
+  return rows.map((r) => ({ ...r, ct: { ...r.ct, name: sessionName(r.s, r.ct) } }));
 }
 
 export async function userEntitlements(db: DB, userId: string, activeOnly: boolean, now = new Date()) {

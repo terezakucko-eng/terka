@@ -45,6 +45,11 @@ export function SessionFields({
         <input type="checkbox" name="isFree" defaultChecked={s?.isFree} className="size-4 accent-[#674329]" />
         Lekce zdarma pro všechny
       </label>
+      <div className="sm:col-span-2">
+        <Field label="Vlastní název termínu" hint="Prázdné = název lekce. Např. „Dýňový brunch“.">
+          <Input name="title" defaultValue={s?.title ?? ""} />
+        </Field>
+      </div>
       <div className="sm:col-span-2 lg:col-span-4">
         <Field label="Poznámka pro klienty">
           <Textarea name="note" rows={2} defaultValue={s?.note ?? ""} />

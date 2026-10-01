@@ -1,4 +1,5 @@
 import { eq, inArray } from "drizzle-orm";
+import { sessionName } from "./session-name";
 import type { DB } from "@/db";
 import { classSessions, classTypes, users, type Booking, type Order } from "@/db/schema";
 import { site } from "@/config/site";
@@ -17,7 +18,7 @@ async function describe(db: DB, sessionId: string) {
     .from(classSessions)
     .innerJoin(classTypes, eq(classSessions.classTypeId, classTypes.id))
     .where(eq(classSessions.id, sessionId));
-  return `${row.ct.name} – ${formatDay(row.s.startsAt)} v ${formatTime(row.s.startsAt)}`;
+  return `${sessionName(row.s, row.ct)} – ${formatDay(row.s.startsAt)} v ${formatTime(row.s.startsAt)}`;
 }
 
 async function emails(db: DB, ids: string[]) {

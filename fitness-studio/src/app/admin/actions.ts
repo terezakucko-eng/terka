@@ -129,6 +129,7 @@ export async function lessonFromTemplateAction(_: FormState, fd: FormData): Prom
       keywords: tpl.keywords,
       level: tpl.level ?? "Pro všechny",
       durationMin: tpl.durationMin ?? 60,
+      ...(tpl.capacity ? { capacity: tpl.capacity } : {}),
       isActive: false,
       sortOrder: 100,
     });
@@ -300,6 +301,7 @@ async function sessionValues(fd: FormData) {
       dropInPrice: isFree ? null : (field.money(fd, "dropInPrice") ?? ct.dropInPrice),
       isFree,
       room: field.optional(fd, "room"),
+      title: field.optional(fd, "title"),
       note: field.optional(fd, "note"),
     },
   };
