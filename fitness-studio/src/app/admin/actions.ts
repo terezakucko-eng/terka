@@ -129,6 +129,7 @@ export async function lessonFromTemplateAction(_: FormState, fd: FormData): Prom
       keywords: tpl.keywords,
       level: tpl.level ?? "Pro všechny",
       durationMin: tpl.durationMin ?? 60,
+      ...(tpl.capacity ? { capacity: tpl.capacity } : {}),
       isActive: false,
       sortOrder: 100,
     });
