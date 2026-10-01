@@ -187,6 +187,15 @@ export const LESSON_TEMPLATES: LessonTemplate[] = [
     keywords: "kettlebell Ostrava, kettlebell trénink, silový trénink, posilování pro ženy, funkční trénink, kondiční trénink",
   },
   {
+    name: "Fitness brunch",
+    slug: "fitness-brunch",
+    description:
+      "Víkendové dopoledne pro tělo i duši. Nejdřív si spolu pořádně zacvičíme, pak se posadíme k bohatému brunchi – zdravě, dobře a v příjemné společnosti. Ideální pro sebe i s kamarádkou. Kapacita je omezená, místo i jídlo rezervuješ předem.",
+    keywords: "fitness brunch Ostrava, cvičení a snídaně, brunch Ostrava, víkendové cvičení, cvičení s kamarádkou, akce pro ženy",
+    durationMin: 120,
+    note: "Doporučení: jednorázově 490 Kč, členové doplatek 290 Kč (za jídlo), permanentka neplatí, úvodní vstup zdarma neplatí.",
+  },
+  {
     name: "Tabata",
     slug: "tabata",
     description:
