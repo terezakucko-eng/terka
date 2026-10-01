@@ -180,6 +180,13 @@ export const LESSON_TEMPLATES: LessonTemplate[] = [
     note: "Název CrossFit smí používat jen oficiální afiliace – proto „Cross trénink“.",
   },
   {
+    name: "Kettlebell",
+    slug: "kettlebell",
+    description:
+      "Silový a kondiční trénink s kettlebellem – švihy, dřepy, tlaky a přenosy. Posílíš celé tělo, hlavně zadek, záda a střed těla, a zároveň zapracuješ na kondici. Lektorka hlídá správnou techniku, váhu si zvolíš podle sebe, takže lekce sedí začátečnicím i pokročilým.",
+    keywords: "kettlebell Ostrava, kettlebell trénink, silový trénink, posilování pro ženy, funkční trénink, kondiční trénink",
+  },
+  {
     name: "Tabata",
     slug: "tabata",
     description:
