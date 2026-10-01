@@ -9,6 +9,7 @@ import {
   products,
 } from "@/db/schema";
 import { OCCUPYING, seatsTaken } from "@/domain/booking";
+import { sessionName } from "./session-name";
 
 export type ScheduleItem = Awaited<ReturnType<typeof listSessions>>[number];
 
@@ -59,7 +60,7 @@ export async function listSessions(
 
   return rows.map((r) => ({
     ...r.s,
-    classType: r.ct,
+    classType: { ...r.ct, name: sessionName(r.s, r.ct) },
     instructor: r.ins,
     occupied: occMap.get(r.s.id) ?? 0,
     myStatus: mineMap.get(r.s.id) ?? null,
@@ -73,7 +74,7 @@ export async function sessionDetail(db: DB, id: string) {
     .innerJoin(classTypes, eq(classSessions.classTypeId, classTypes.id))
     .leftJoin(instructors, eq(classSessions.instructorId, instructors.id))
     .where(eq(classSessions.id, id));
-  return r ?? null;
+  return r ? { ...r, ct: { ...r.ct, name: sessionName(r.s, r.ct) } } : null;
 }
 
 export const activeClassTypes = (db: DB) =>

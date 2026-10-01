@@ -1,4 +1,5 @@
 import { and, asc, eq, gte } from "drizzle-orm";
+import { sessionNameSql } from "./session-name";
 import type { DB } from "@/db";
 import { classSessions, classTypes, users } from "@/db/schema";
 import { formatDateTime } from "./dates";
@@ -8,7 +9,7 @@ import { activeClassTypes } from "./queries";
 export async function audienceOptions(db: DB) {
   const types = await activeClassTypes(db);
   const rows = await db
-    .select({ id: classSessions.id, startsAt: classSessions.startsAt, name: classTypes.name })
+    .select({ id: classSessions.id, startsAt: classSessions.startsAt, name: sessionNameSql })
     .from(classSessions)
     .innerJoin(classTypes, eq(classSessions.classTypeId, classTypes.id))
     .where(and(gte(classSessions.startsAt, new Date(Date.now() - 7 * 86_400_000))))

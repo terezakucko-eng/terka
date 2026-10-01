@@ -192,8 +192,8 @@ export const LESSON_TEMPLATES: LessonTemplate[] = [
     name: "Fitness brunch",
     slug: "fitness-brunch",
     description:
-      "Víkendové dopoledne pro tělo i duši. Nejdřív si spolu pořádně zacvičíme, pak se posadíme k domácímu brunchi, který pro vás připravíme přímo ve studiu – zdravě, dobře a v příjemné společnosti. Ideální pro sebe i s kamarádkou. Jen 10 míst, rezervuj si předem.",
-    keywords: "fitness brunch Ostrava, cvičení a snídaně, brunch Ostrava, víkendové cvičení, cvičení s kamarádkou, akce pro ženy",
+      "Víkendové dopoledne pro tělo i duši. Nejdřív si spolu pořádně zacvičíme, pak si sedneme ke zdravé snídani, kterou pro vás připravíme přímo ve studiu – čerstvé dobroty, matcha, výběrová káva a ten skvělý pocit po pohybu. Ideální pro sebe i s kamarádkou. Jen 10 míst, rezervuj si předem.",
+    keywords: "fitness brunch Ostrava, cvičení a snídaně, zdravá snídaně, matcha, brunch Ostrava, víkendové cvičení, cvičení s kamarádkou, akce pro ženy",
     durationMin: 120,
     capacity: 10,
     note: "Doporučení: jednorázově 390 Kč, pro dva 690 Kč, členové doplatek 150 Kč (jen suroviny), permanentka neplatí, úvodní vstup zdarma neplatí.",

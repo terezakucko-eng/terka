@@ -301,6 +301,7 @@ async function sessionValues(fd: FormData) {
       dropInPrice: isFree ? null : (field.money(fd, "dropInPrice") ?? ct.dropInPrice),
       isFree,
       room: field.optional(fd, "room"),
+      title: field.optional(fd, "title"),
       note: field.optional(fd, "note"),
     },
   };

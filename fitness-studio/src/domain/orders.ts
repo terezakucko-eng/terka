@@ -1,4 +1,5 @@
 import { isMember } from "./massages";
+import { sessionNameSql } from "@/lib/session-name";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import type { DB, Executor } from "@/db";
 import {
@@ -306,7 +307,7 @@ async function openOrder(tx: Executor, where: ReturnType<typeof and>) {
 /** Member surcharge (Reformer, Individuál) paid online – by card or bank transfer. */
 export async function createSurchargeOrder(db: Executor, input: { userId: string; bookingId: string }) {
   const [row] = await db
-    .select({ b: bookings, s: classSessions, typeName: classTypes.name })
+    .select({ b: bookings, s: classSessions, typeName: sessionNameSql })
     .from(bookings)
     .innerJoin(classSessions, eq(bookings.sessionId, classSessions.id))
     .innerJoin(classTypes, eq(classSessions.classTypeId, classTypes.id))
