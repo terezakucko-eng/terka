@@ -7,7 +7,7 @@ import { X } from "lucide-react";
 const KEY = "octopush-popup-seen";
 
 /** Shows the pop-up once per visitor (per content version) a moment after the page loads. */
-export function PopupShell({ id, children }: { id: string; children: ReactNode }) {
+export function PopupShell({ id, wide, children }: { id: string; wide?: boolean; children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const box = useRef<HTMLDivElement>(null);
@@ -52,7 +52,7 @@ export function PopupShell({ id, children }: { id: string; children: ReactNode }
           e.stopPropagation();
           if ((e.target as HTMLElement).closest("[data-popup-close]")) close();
         }}
-        className="relative w-full max-w-lg overflow-hidden rounded-2xl bg-papir text-les shadow-2xl outline-none"
+        className={`relative w-full ${wide ? "max-w-3xl" : "max-w-lg"} overflow-hidden rounded-2xl bg-papir text-les shadow-2xl outline-none`}
       >
         <button
           type="button"
