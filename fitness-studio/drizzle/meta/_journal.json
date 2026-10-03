@@ -267,6 +267,13 @@
       "when": 1791024078453,
       "tag": "0037_popup_opening_final",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1791026381066,
+      "tag": "0038_popup_opening_links",
+      "breakpoints": true
     }
   ]
 }
