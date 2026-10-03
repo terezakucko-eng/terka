@@ -260,6 +260,13 @@
       "when": 1791022801092,
       "tag": "0036_popup_opening",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1791024078453,
+      "tag": "0037_popup_opening_final",
+      "breakpoints": true
     }
   ]
 }
