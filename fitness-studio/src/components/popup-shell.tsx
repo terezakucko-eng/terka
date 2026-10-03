@@ -42,7 +42,7 @@ export function PopupShell({ id, wide, children }: { id: string; wide?: boolean;
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-les/60 p-4 backdrop-blur-sm sm:items-center" onClick={close}>
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-les/60 p-4 backdrop-blur-sm" onClick={close}>
       <div
         ref={box}
         role="dialog"
