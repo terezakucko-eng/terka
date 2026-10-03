@@ -16,8 +16,10 @@ export async function Popup() {
   const url = c("popup.buttonUrl").trim();
   const label = c("popup.buttonLabel").trim();
   const external = /^https?:\/\//.test(url);
+  // a finished poster says it all – without text and button only the (clickable) picture shows
+  const imageOnly = !!image && !text && !(url && label);
   return (
-    <PopupShell id={`${title}|${text}|${image}|${until}`}>
+    <PopupShell id={`${title}|${text}|${image}|${until}|${label}`} wide={imageOnly}>
       {image &&
         (url ? (
           // the picture is usually the poster itself – a tap on it does what the button does
@@ -27,14 +29,14 @@ export async function Popup() {
             {...(external ? { target: "_blank", rel: "noreferrer" } : {})}
             className="relative block aspect-[16/9] overflow-hidden"
           >
-            <ContentImage src={image} alt={title} fill sizes="(min-width: 640px) 32rem, 100vw" className="object-cover" />
+            <ContentImage src={image} alt={title} fill sizes="(min-width: 640px) 48rem, 100vw" className="object-cover" />
           </Link>
         ) : (
           <div className="relative aspect-[16/9] overflow-hidden">
             <ContentImage src={image} alt="" fill sizes="(min-width: 640px) 32rem, 100vw" className="object-cover" />
           </div>
         ))}
-      <div className="p-7 sm:p-8">
+      <div className={imageOnly ? "sr-only" : "p-7 sm:p-8"}>
         <h2 className="pr-8 text-2xl font-semibold tracking-tight">{title}</h2>
         {text && <p className="mt-3 whitespace-pre-line text-les/75">{nbsp(text)}</p>}
         {url && label && (

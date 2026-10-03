@@ -111,7 +111,13 @@ export const SECTIONS = {
         hint: "Prázdné = okno se nezobrazuje. Každý návštěvník ho uvidí jednou; po změně textu znovu.",
       },
       text: optArea("Text", ""),
-      image: { label: "Obrázek (nepovinný)", type: "image", default: "", optional: true },
+      image: {
+        label: "Obrázek (nepovinný)",
+        type: "image",
+        default: "",
+        optional: true,
+        hint: "Na šířku 16 : 9 (např. 1600 × 900). Hotový plakát? Nech text i tlačítko prázdné – ukáže se jen obrázek a klik na něj vede na odkaz tlačítka.",
+      },
       buttonLabel: opt("Text tlačítka", "Chci to"),
       buttonUrl: t("Kam tlačítko vede", "/cenik", "Stránka webu (/cenik, /rozvrh…) nebo celá adresa https://…"),
       until: {
