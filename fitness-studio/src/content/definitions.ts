@@ -120,7 +120,13 @@ export const SECTIONS = {
       },
       buttonLabel: opt("Text tlačítka", "Chci to"),
       buttonUrl: t("Kam tlačítko vede", "/cenik", "Stránka webu (/cenik, /rozvrh…) nebo celá adresa https://…"),
-      buttonLabel2: opt("Druhé tlačítko – text", ""),
+      buttonLabel2: {
+        label: "Druhé tlačítko – text (nepovinné)",
+        type: "text",
+        default: "",
+        optional: true,
+        hint: "Stačí jedno tlačítko? Nech druhé tlačítko prázdné (text i odkaz) – ukáže se jen první.",
+      },
       buttonUrl2: opt("Druhé tlačítko – kam vede", ""),
       until: {
         label: "Zobrazovat do (včetně)",
