@@ -253,6 +253,13 @@
       "when": 1790894500797,
       "tag": "0035_session_title",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1791022801092,
+      "tag": "0036_popup_opening",
+      "breakpoints": true
     }
   ]
 }
