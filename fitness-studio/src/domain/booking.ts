@@ -285,7 +285,9 @@ async function entitlementProblem(
     return "Kamarádku můžeš vzít s permanentkou, kreditem nebo jednorázově.";
   if (e.kind === "pass" && (await classRules(tx, s)).noPass)
     return "Permanentka na tuhle lekci neplatí.";
-  if (e.kind === "free" && (await classRules(tx, s)).noFreeEntry)
+  if (e.classTypeId && e.classTypeId !== s.classTypeId) return "Platí jen na jinou lekci.";
+  // a free entry given for this very class counts even where intro entries don't
+  if (e.kind === "free" && !e.classTypeId && (await classRules(tx, s)).noFreeEntry)
     return "Úvodní vstup zdarma na tuhle lekci použít nejde.";
   if (e.validFrom > s.startsAt || e.validUntil <= s.startsAt)
     return "Na datum lekce už neplatí.";
@@ -349,7 +351,10 @@ export async function bookingOptions(
   const rules = await classRules(tx, s);
   const surcharge = memberSurchargeFor(rules, s);
   const rank: Record<ClassKind, number> = { membership: 0, pass: 1, free: 2 };
-  const classEnts = ents.flatMap((e) => (isClassKind(e.kind) ? [{ ...e, kind: e.kind }] : []));
+  // entries tied to another class (e.g. a free Reformer entry) aren't offered here at all
+  const classEnts = ents.flatMap((e) =>
+    isClassKind(e.kind) && (!e.classTypeId || e.classTypeId === s.classTypeId) ? [{ ...e, kind: e.kind }] : [],
+  );
   classEnts.sort((a, b) => rank[a.kind] - rank[b.kind]);
   for (const e of classEnts) {
     const problem = await entitlementProblem(tx, e, s, seats);

@@ -1,0 +1,2 @@
+ALTER TABLE "entitlements" ADD COLUMN "class_type_id" uuid;--> statement-breakpoint
+ALTER TABLE "entitlements" ADD CONSTRAINT "entitlements_class_type_id_class_types_id_fk" FOREIGN KEY ("class_type_id") REFERENCES "public"."class_types"("id") ON DELETE set null ON UPDATE no action;
