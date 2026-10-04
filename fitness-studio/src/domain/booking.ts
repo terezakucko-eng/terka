@@ -239,7 +239,7 @@ export function memberSurchargeFor(rules: ClassRules, s: Pick<ClassSession, "sta
   return rules.memberSurcharge;
 }
 
-/** Entries a booking takes from this entitlement: passes may cost more (Reformer = 2), a friend doubles it. */
+/** Entries a booking takes from this entitlement: passes may cost more (Reformer = 2), a friend doubles it (free entries too). */
 function entriesFor(e: Pick<Entitlement, "kind">, rules: Pick<ClassRules, "passEntries">, seats = 1) {
   return (e.kind === "pass" ? Math.max(1, rules.passEntries) : 1) * seats;
 }
@@ -281,8 +281,8 @@ async function entitlementProblem(
   seats = 1,
 ): Promise<string | null> {
   if (e.status !== "active") return "Oprávnění není aktivní.";
-  if (seats > 1 && e.kind !== "pass")
-    return "Kamarádku můžeš vzít s permanentkou, kreditem nebo jednorázově.";
+  if (seats > 1 && e.kind === "membership")
+    return "Kamarádku můžeš vzít s permanentkou, vstupem zdarma, kreditem nebo jednorázově.";
   if (e.kind === "pass" && (await classRules(tx, s)).noPass)
     return "Permanentka na tuhle lekci neplatí.";
   if (e.classTypeId && e.classTypeId !== s.classTypeId) return "Platí jen na jinou lekci.";
