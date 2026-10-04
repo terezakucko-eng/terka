@@ -51,4 +51,22 @@ describe("free entries for one class (e.g. Reformer)", () => {
     const [e] = await h.db.select().from(entitlements).where(eq(entitlements.id, ref.id));
     expect(e.entriesUsed).toBe(1);
   });
+
+  it("can bring a friend: one entry per person", async () => {
+    const u = await makeUser(h.db);
+    const s = await makeSession(h.db, { capacity: 6 });
+    const two = await grantEntitlement(h.db, { userId: u.id, kind: "free", name: "Vstup zdarma", entries: 2, validityDays: 30, classTypeId: s.classTypeId }, NOW);
+    const opt = (await bookingOptions(h.db, u.id, s, 2)).find((o) => o.entitlementId === two.id)!;
+    expect(opt.disabled).toBeUndefined();
+    expect(opt.detail).toMatch(/strhnou se 2 vstupy/);
+    await bookSession(h.db, { userId: u.id, sessionId: s.id, method: "free", entitlementId: two.id, guestName: "Kamarádka" }, NOW);
+    const [e] = await h.db.select().from(entitlements).where(eq(entitlements.id, two.id));
+    expect(e.entriesUsed).toBe(2);
+
+    // with just one entry left there is no room for the friend
+    const u2 = await makeUser(h.db);
+    const one = await grantEntitlement(h.db, { userId: u2.id, kind: "free", name: "Vstup zdarma", entries: 1, validityDays: 30 }, NOW);
+    const s2 = await makeSession(h.db, { capacity: 6 });
+    expect((await bookingOptions(h.db, u2.id, s2, 2)).find((o) => o.entitlementId === one.id)?.disabled).toMatch(/potřebuješ 2 vstupy/);
+  });
 });

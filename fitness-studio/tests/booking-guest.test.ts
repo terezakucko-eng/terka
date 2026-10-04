@@ -40,7 +40,7 @@ describe("bringing a friend (+1)", () => {
     expect(e.entriesUsed).toBe(4);
   });
 
-  it("membership and the free entry can't pay for a friend", async () => {
+  it("membership can't pay for a friend", async () => {
     const s = await makeSession(h.db, { capacity: 5 });
     const u = await makeUser(h.db);
     await grantEntitlement(h.db, { userId: u.id, kind: "membership", name: "Členství", entries: null, validityDays: 30 }, NOW);
