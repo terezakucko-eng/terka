@@ -9,12 +9,15 @@ import { getSettings } from "@/lib/settings";
 import { getContent } from "@/content";
 import { PasswordInput } from "@/components/password-input";
 import { HONEYPOT, STAMP, formStamp } from "@/lib/bot-guard";
+import { turnstileSiteKey } from "@/lib/turnstile";
+import { TurnstileWidget } from "@/components/turnstile";
 
 export const metadata: Metadata = { title: "Registrace" };
 
 export default async function RegisterPage({ searchParams }: PageProps<"/registrace">) {
   const { next } = await searchParams;
   const [cfg, c] = await Promise.all([getSettings(await getDb()), getContent()]);
+  const turnstileKey = turnstileSiteKey();
   return (
     <>
       <Eyebrow className="text-zeme">Nový účet</Eyebrow>
@@ -56,6 +59,7 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registr
             Potvrzení vlastních rezervací si můžeš později vypnout v profilu.
           </p>
         </fieldset>
+        {turnstileKey && <TurnstileWidget siteKey={turnstileKey} />}
         <SubmitButton variant="gold" className="w-full">Vytvořit účet</SubmitButton>
       </ActionForm>
       <p className="mt-6 text-sm">Už máš účet? <Link href="/prihlaseni" className="font-semibold text-zeme underline underline-offset-4">Přihlas se</Link></p>

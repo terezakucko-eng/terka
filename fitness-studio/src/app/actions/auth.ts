@@ -10,6 +10,7 @@ import { getDb } from "@/db";
 import { passwordResets, users } from "@/db/schema";
 import { isThrottled, recordAttempt } from "@/lib/throttle";
 import { looksLikeBot } from "@/lib/bot-guard";
+import { turnstileOk } from "@/lib/turnstile";
 import { unsubscribe } from "@/domain/campaigns";
 import { IMPORTED_PASSWORD } from "@/domain/import";
 import { normalizeEmail, registerUser } from "@/domain/users";
@@ -82,6 +83,8 @@ export async function registerAction(_: FormState, fd: FormData): Promise<FormSt
     if (looksLikeBot(fd)) throw new UserError("Registraci se nepodařilo odeslat. Načti prosím stránku znovu a zkus to ještě jednou.");
     const db = await getDb();
     const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    if (!(await turnstileOk(field.str(fd, "cf-turnstile-response"), ip)))
+      throw new UserError("Ověření, že nejsi robot, se nepovedlo. Počkej prosím chvilku a zkus to znovu.");
     if (await isThrottled(db, "register", ip))
       throw new UserError("Z tohoto připojení vzniklo v poslední hodině moc účtů. Zkus to prosím později.");
     await recordAttempt(db, "register", ip);
