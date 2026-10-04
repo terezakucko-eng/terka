@@ -206,12 +206,12 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
             <Field label="Poznámka"><Input name="note" placeholder="např. kompenzace" /></Field>
             <SubmitButton className="w-full">Uložit</SubmitButton>
           </ActionForm>
-          <ActionForm action={setCreditExpiryAction} className="mt-5 flex items-end gap-2 border-t border-linka pt-4">
+          <ActionForm action={setCreditExpiryAction} className="mt-5 space-y-3 border-t border-linka pt-4">
             <input type="hidden" name="userId" value={u.id} />
             <Field label="Kredit platí do" hint="Prázdné = bez omezení">
               <Input name="until" type="date" defaultValue={u.creditExpiresAt ? dateKey(u.creditExpiresAt) : ""} />
             </Field>
-            <SubmitButton variant="outline">Uložit</SubmitButton>
+            <SubmitButton variant="outline" className="w-full">Uložit</SubmitButton>
           </ActionForm>
         </Card>
         <Card>
