@@ -79,6 +79,8 @@ export async function grantEntitlement(
     /** Exact end instead of validityDays (bulk grant "platí do"). */
     validUntil?: Date;
     weeklyLimit?: number | null;
+    /** Only for this class type (e.g. free entries for Reformer). */
+    classTypeId?: string | null;
     note?: string | null;
   },
   now = new Date(),
@@ -95,6 +97,7 @@ export async function grantEntitlement(
       name: input.name,
       entriesTotal: input.entries,
       weeklyLimit: input.weeklyLimit ?? null,
+      classTypeId: input.classTypeId || null,
       validFrom: now,
       validUntil: input.validUntil ?? new Date(now.getTime() + input.validityDays * DAY),
       note: input.note ?? null,

@@ -14,6 +14,7 @@ import { Bell, CalendarClock, CreditCard, Mail, Smartphone } from "lucide-react"
 const isDeviceTag = (t: Tag): t is (typeof DEVICE_TAGS)[number] => (DEVICE_TAGS as readonly string[]).includes(t);
 const DEVICE_ICONS = { push: Bell, card: CreditCard, app: Smartphone, reminders: CalendarClock, newsletter: Mail } as const;
 import { requireAdmin } from "@/lib/auth";
+import { activeClassTypes } from "@/lib/queries";
 import { formatDate } from "@/lib/dates";
 
 export default async function ClientsPage({ searchParams }: PageProps<"/admin/klienti">) {
@@ -25,7 +26,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/admin/kl
   const db = await getDb();
   const now = new Date();
   const like = `%${term.replace(/[%_]/g, "")}%`;
-  const [rows, ents, pushRows] = await Promise.all([
+  const [rows, ents, pushRows, lessonTypes] = await Promise.all([
     db
       .select()
       .from(users)
@@ -43,6 +44,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/admin/kl
         ),
       ),
     db.selectDistinct({ userId: pushSubscriptions.userId }).from(pushSubscriptions),
+    activeClassTypes(db),
   ]);
   const withPush = new Set(pushRows.map((r) => r.userId));
   const kinds = new Map<string, Set<string>>();
@@ -151,7 +153,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/admin/kl
         <div className="rounded-2xl border border-linka bg-white/60 p-5">
           <h2 className="font-semibold">Přidělit zaškrtnutým klientům</h2>
           <p className="mt-1 text-sm text-les/60">Tip: nahoře vyfiltruj štítkem nebo vyhledej, pak zaškrtni všechny v záhlaví tabulky.</p>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Field label="Co">
               <Select name="kind" defaultValue="membership">
                 <option value="membership">Členství</option>
@@ -161,6 +163,12 @@ export default async function ClientsPage({ searchParams }: PageProps<"/admin/kl
             </Field>
             <Field label="Název" hint="Prázdné = podle typu"><Input name="name" placeholder="např. Členství 12 měsíců" /></Field>
             <Field label="Vstupů" hint="Jen u permanentky / vstupu zdarma"><Input name="entries" type="number" min={1} /></Field>
+            <Field label="Platí na lekci" hint="Prázdné = na kteroukoli">
+              <Select name="classTypeId" defaultValue="">
+                <option value="">Na kteroukoli lekci</option>
+                {lessonTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </Select>
+            </Field>
             <Field label="Platí do"><Input name="until" type="date" /></Field>
             <Field label="Poznámka"><Input name="note" placeholder="např. převod ze starého systému" /></Field>
           </div>

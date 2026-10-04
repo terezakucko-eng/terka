@@ -27,7 +27,7 @@ import { userBookings, userEntitlements, userLedger, userOrders } from "@/lib/ac
 import { requireAdmin } from "@/lib/auth";
 import { dateKey, formatDate, formatDateTime } from "@/lib/dates";
 import { formatPrice } from "@/lib/money";
-import { sellableProducts } from "@/lib/queries";
+import { activeClassTypes, sellableProducts } from "@/lib/queries";
 import { normalizePhone } from "@/lib/phone";
 import { recentSolariumUses, solariumPasses } from "@/domain/solarium";
 import { greetName } from "@/lib/vocative";
@@ -40,13 +40,14 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
   const db = await getDb();
   const [u] = await db.select().from(users).where(eq(users.id, id));
   if (!u) notFound();
-  const [upcoming, past, ents, orderList, ledger, productList] = await Promise.all([
+  const [upcoming, past, ents, orderList, ledger, productList, lessonTypes] = await Promise.all([
     userBookings(db, u.id, "upcoming"),
     userBookings(db, u.id, "past", new Date(), 30),
     userEntitlements(db, u.id, false),
     userOrders(db, u.id),
     userLedger(db, u.id),
     sellableProducts(db),
+    activeClassTypes(db),
   ]);
   const [[{ n: pushDevices }], sunPasses, sunUses, massages] = await Promise.all([
     db.select({ n: count() }).from(pushSubscriptions).where(eq(pushSubscriptions.userId, u.id)),
@@ -231,7 +232,13 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
               <Field label="Platnost (dny)"><Input name="validityDays" type="number" min={1} defaultValue={30} /></Field>
               <Field label="Limit / týden"><Input name="weeklyLimit" type="number" min={1} /></Field>
             </div>
-            <Field label="Název"><Input name="name" placeholder="např. Dárek k narozeninám" /></Field>
+            <Field label="Platí na lekci" hint="Např. vstup zdarma jen na Reformer. U solária a masáží se nepoužije.">
+              <Select name="classTypeId" defaultValue="">
+                <option value="">Na kteroukoli lekci</option>
+                {lessonTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </Select>
+            </Field>
+            <Field label="Název" hint="Prázdné = podle typu a lekce, např. „Vstup zdarma – Reformer“"><Input name="name" placeholder="např. Dárek k narozeninám" /></Field>
             <SubmitButton className="w-full">Přidělit</SubmitButton>
           </ActionForm>
         </Card>

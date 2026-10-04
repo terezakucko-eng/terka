@@ -558,24 +558,41 @@ export async function deductSolariumAction(_: FormState, fd: FormData): Promise<
   });
 }
 
+/** Optional "only for this class" on a grant: the class type and the name suffix it adds. */
+async function grantClassType(fd: FormData) {
+  const id = field.str(fd, "classTypeId");
+  if (!id) return { classTypeId: null, suffix: "", lesson: undefined };
+  const [ct] = await (await getDb()).select({ id: classTypes.id, name: classTypes.name }).from(classTypes).where(eq(classTypes.id, id));
+  if (!ct) throw new UserError("Lekce nenalezena.");
+  return { classTypeId: ct.id, suffix: ` – ${ct.name}`, lesson: ct.name };
+}
+
+/** The client must see which class a restricted entry is for, even under a custom name. */
+const withLesson = (name: string, only: { lesson?: string; suffix: string }) =>
+  only.lesson && !name.toLowerCase().includes(only.lesson.toLowerCase()) ? name + only.suffix : name;
+
 export async function grantEntitlementAction(_: FormState, fd: FormData): Promise<FormState> {
   await requireAdmin();
   return attempt(async () => {
     const kind = field.str(fd, "kind") as "free" | "pass" | "membership" | "solarium" | "massage_pass";
     if (!["free", "pass", "membership", "solarium", "massage_pass"].includes(kind)) throw new UserError("Vyber typ.");
     if (kind === "solarium" && !field.int(fd, "entries")) throw new UserError("Vyplň počet minut.");
+    const only = ["free", "pass", "membership"].includes(kind) ? await grantClassType(fd) : { classTypeId: null, suffix: "", lesson: undefined };
     await grantEntitlement(await getDb(), {
       userId: field.str(fd, "userId"),
       kind,
-      name:
+      classTypeId: only.classTypeId,
+      name: withLesson(
         field.str(fd, "name") ||
-        {
-          free: "Vstup zdarma",
-          pass: "Permanentka",
-          membership: "Členství",
-          solarium: "Solárium",
-          massage_pass: "Permanentka na masáže",
-        }[kind],
+          {
+            free: "Vstup zdarma",
+            pass: "Permanentka",
+            membership: "Členství",
+            solarium: "Solárium",
+            massage_pass: "Permanentka na masáže",
+          }[kind],
+        only,
+      ),
       entries: field.int(fd, "entries"),
       validityDays: field.int(fd, "validityDays") ?? 30,
       weeklyLimit: field.int(fd, "weeklyLimit"),
@@ -722,11 +739,12 @@ export async function bulkGrantAction(_: FormState, fd: FormData): Promise<FormS
     if (validUntil <= new Date()) throw new UserError("Datum konce musí být v budoucnu.");
     const entries = kind === "membership" ? null : field.int(fd, "entries");
     if (kind !== "membership" && !entries) throw new UserError("Vyplň počet vstupů.");
-    const name = field.str(fd, "name") || { free: "Vstup zdarma", pass: "Permanentka", membership: "Členství" }[kind];
+    const only = await grantClassType(fd);
+    const name = withLesson(field.str(fd, "name") || { free: "Vstup zdarma", pass: "Permanentka", membership: "Členství" }[kind], only);
     const db = await getDb();
     const clients = await db.select({ id: users.id }).from(users).where(and(inArray(users.id, ids), eq(users.role, "client")));
     for (const c of clients)
-      await grantEntitlement(db, { userId: c.id, kind, name, entries, validityDays: 1, validUntil, note: field.optional(fd, "note") });
+      await grantEntitlement(db, { userId: c.id, kind, name, entries, validityDays: 1, validUntil, classTypeId: only.classTypeId, note: field.optional(fd, "note") });
     return done(`${name} přiděleno ${clients.length} klientům (platí do ${formatDate(validUntil)}).`);
   });
 }

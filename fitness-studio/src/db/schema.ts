@@ -336,6 +336,8 @@ export const entitlements = pgTable(
     weeklyLimit: integer("weekly_limit"),
     /** massage_pass: na kterou masáž; null = na kteroukoli */
     massageServiceId: uuid("massage_service_id").references((): AnyPgColumn => massageServices.id),
+    /** Platí jen na tento typ lekce (např. vstup zdarma na Reformer); null = na kteroukoli */
+    classTypeId: uuid("class_type_id").references((): AnyPgColumn => classTypes.id, { onDelete: "set null" }),
     validFrom: timestamp("valid_from", { withTimezone: true }).notNull(),
     validUntil: timestamp("valid_until", { withTimezone: true }).notNull(),
     status: entitlementStatus("status").notNull().default("active"),
