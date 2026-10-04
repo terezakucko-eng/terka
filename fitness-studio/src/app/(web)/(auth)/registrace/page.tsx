@@ -8,6 +8,7 @@ import { getDb } from "@/db";
 import { getSettings } from "@/lib/settings";
 import { getContent } from "@/content";
 import { PasswordInput } from "@/components/password-input";
+import { HONEYPOT, STAMP, formStamp } from "@/lib/bot-guard";
 
 export const metadata: Metadata = { title: "Registrace" };
 
@@ -23,6 +24,11 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registr
       )}
       <ActionForm action={registerAction} className="mt-8 space-y-4">
         <input type="hidden" name="next" value={typeof next === "string" ? next : ""} />
+        <input type="hidden" name={STAMP} value={formStamp()} />
+        {/* bots fill every field; people never see this one */}
+        <div aria-hidden className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
+          <label>Web <input name={HONEYPOT} tabIndex={-1} autoComplete="off" defaultValue="" /></label>
+        </div>
         <Field label="Jméno a příjmení"><Input name="name" autoComplete="name" required /></Field>
         <Field label="E-mail"><Input name="email" type="email" autoComplete="email" required /></Field>
         <Field label="Telefon" hint="Nepovinné – pro rychlé info o změnách lekcí."><Input name="phone" type="tel" autoComplete="tel" /></Field>
