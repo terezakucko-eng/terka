@@ -18,6 +18,9 @@ import {
 } from "@/db/schema";
 import {
   adminAddBooking,
+  bookingOptions,
+  type AdminPay,
+  type Method,
   cancelBooking,
   cancelSession,
   occupancy,
@@ -469,15 +472,30 @@ async function findClient(ref: string) {
   return u;
 }
 
+/** What the picked client can pay this session with (reception's "Přidat klienta"). */
+export async function adminBookingOptionsAction(sessionId: string, clientId: string, withFriend: boolean) {
+  await requireStaff();
+  const db = await getDb();
+  const [s] = await db.select().from(classSessions).where(eq(classSessions.id, sessionId));
+  if (!s || !/^[0-9a-f-]{36}$/i.test(clientId)) return [];
+  const opts = await bookingOptions(db, clientId, s, withFriend ? 2 : 1);
+  return opts.filter((o) => o.method !== "drop_in");
+}
+
 export async function adminAddBookingAction(_: FormState, fd: FormData): Promise<FormState> {
   await requireStaff();
   return attempt(async () => {
     const db = await getDb();
     const u = await findClient(field.str(fd, "client"));
-    const mode = field.str(fd, "mode") === "admin" ? "admin" : "auto";
-    const b = await adminAddBooking(db, { sessionId: field.str(fd, "sessionId"), userId: u.id, mode });
+    // "auto" | "admin" | "<method>:<entitlementId?>"
+    const raw = field.str(fd, "pay") || field.str(fd, "mode") || "auto";
+    const [method, entitlementId] = raw.split(":");
+    const pay: AdminPay =
+      raw === "admin" ? "admin" : raw === "auto" ? "auto" : { method: method as Method, entitlementId: entitlementId || undefined };
+    const guestName = field.str(fd, "guestName");
+    const b = await adminAddBooking(db, { sessionId: field.str(fd, "sessionId"), userId: u.id, pay, guestName });
     await notifyBooked(db, b, true);
-    return done(`${u.name} přidán/a.`);
+    return done(guestName ? `${u.name} + ${guestName} přidáni.` : `${u.name} přidán/a.`);
   });
 }
 

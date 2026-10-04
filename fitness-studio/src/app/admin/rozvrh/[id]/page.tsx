@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import {
-  adminAddBookingAction,
   adminCancelBookingAction,
   attendanceAction,
   cancelSessionAction,
@@ -14,7 +13,7 @@ import { AdminTitle, Panel, Table, Td } from "@/components/admin";
 import { SessionFields } from "@/components/admin-forms";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { bookingStatusLabel, methodLabel } from "@/components/labels";
-import { Badge, Card, Field, Input, Select, cx } from "@/components/ui";
+import { Badge, Card, Field, Input, cx } from "@/components/ui";
 import { getDb } from "@/db";
 import { bookings, users } from "@/db/schema";
 import { formatPrice } from "@/lib/money";
@@ -24,7 +23,8 @@ import { activeClassTypes, activeInstructors, sessionDetail } from "@/lib/querie
 import { Avatar } from "@/components/avatar";
 import { upcomingCelebrations } from "@/lib/profile";
 import { dateKey, mondayOf } from "@/lib/dates";
-import { ClientSelect } from "@/components/client-select";
+import { AdminAddBooking } from "@/components/admin-add-booking";
+import { guestAllowed } from "@/domain/booking";
 import { splitName } from "@/lib/client-list";
 
 export default async function AdminSessionPage({ params }: PageProps<"/admin/rozvrh/[id]">) {
@@ -190,21 +190,7 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
           {s.status !== "cancelled" && (
             <Card>
               <h2 className="font-semibold">Přidat klienta</h2>
-              <ActionForm action={adminAddBookingAction} className="mt-4 space-y-3" resetOnSuccess>
-                <input type="hidden" name="sessionId" value={s.id} />
-                {/* not a <Field>: a wrapping <label> would click the "remove" button right after picking */}
-                <div>
-                  <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-les/70">Klient</span>
-                  <ClientSelect name="client" clients={clientOpts} />
-                </div>
-                <Field label="Platba">
-                  <Select name="mode">
-                    <option value="auto">Strhnout automaticky (členství / permanentka / kredit)</option>
-                    <option value="admin">Bez strhnutí (zaplaceno na místě / host)</option>
-                  </Select>
-                </Field>
-                <SubmitButton className="w-full">Přidat na lekci</SubmitButton>
-              </ActionForm>
+              <AdminAddBooking sessionId={s.id} clients={clientOpts} friendAllowed={guestAllowed(s)} />
               <p className="mt-2 text-xs text-les/50">Recepce může přidat i nad kapacitu.</p>
             </Card>
           )}
