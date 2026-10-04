@@ -809,9 +809,20 @@ export async function cancelSession(db: DB, sessionId: string, now = new Date())
 }
 
 /** Reception adds a client – may overbook. `auto` charges like a normal booking. */
+/** How reception pays for a booking it makes: pick automatically, don't charge, or a chosen option. */
+export type AdminPay = "auto" | "admin" | { method: Method; entitlementId?: string };
+
 export async function adminAddBooking(
   db: DB,
-  input: { sessionId: string; userId: string; mode: "auto" | "admin" },
+  input: {
+    sessionId: string;
+    userId: string;
+    /** @deprecated use `pay` */
+    mode?: "auto" | "admin";
+    pay?: AdminPay;
+    /** A friend coming along (+1) – takes a second spot and is charged too. */
+    guestName?: string;
+  },
   now = new Date(),
 ) {
   return db.transaction(async (tx) => {
@@ -820,17 +831,28 @@ export async function adminAddBooking(
     const existing = await activeBooking(tx, input.userId, s.id);
     if (existing && existing.status !== "waitlist")
       throw new UserError("Klient už je na lekci přihlášen.");
+    const guestName = input.guestName?.trim().slice(0, 80) || null;
+    const seats = guestName ? 2 : 1;
+    if (guestName && !guestAllowed(s)) throw new UserError("Na individuální lekci kamarádku přidat nejde.");
 
+    const pay = input.pay ?? input.mode ?? "auto";
     let method: Method = "admin";
     let entitlementId: string | undefined;
-    if (input.mode === "auto") {
-      const opt = autoOption(await bookingOptions(tx, input.userId, s));
+    if (pay === "auto") {
+      const opt = autoOption(await bookingOptions(tx, input.userId, s, seats));
       if (!opt)
         throw new UserError(
-          "Klient nemá čím zaplatit (kredit, permanentku ani členství).",
+          guestName
+            ? "Klient nemá čím zaplatit za dva (permanentka, vstupy zdarma nebo kredit)."
+            : "Klient nemá čím zaplatit (kredit, permanentku ani členství).",
         );
       method = opt.method;
       entitlementId = opt.entitlementId;
+    } else if (pay !== "admin") {
+      if (pay.method === "drop_in" || pay.method === "admin") throw new UserError("Vyber, z čeho se má strhnout.");
+      if (pay.method === "free_class" && !s.isFree) throw new UserError("Tahle lekce není zdarma.");
+      method = pay.method;
+      entitlementId = pay.entitlementId;
     }
 
     if (existing) {
@@ -841,7 +863,7 @@ export async function adminAddBooking(
     }
     const [booking] = await tx
       .insert(bookings)
-      .values({ userId: input.userId, sessionId: s.id, status: "confirmed", method })
+      .values({ userId: input.userId, sessionId: s.id, status: "confirmed", method, guestName, seats })
       .returning();
     await charge(tx, booking, s, method, entitlementId);
     return booking;

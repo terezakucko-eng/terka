@@ -11,7 +11,16 @@ const fold = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCa
  * Pick one client by surname, first name, phone or e-mail. Submits the
  * client's id as `name` (or the typed e-mail when nobody was picked).
  */
-export function ClientSelect({ clients, name }: { clients: ClientOpt[]; name: string }) {
+export function ClientSelect({
+  clients,
+  name,
+  onPick,
+}: {
+  clients: ClientOpt[];
+  name: string;
+  /** Called with the picked client's id, or null when cleared. */
+  onPick?: (id: string | null) => void;
+}) {
   const [picked, setPicked] = useState<ClientOpt | null>(null);
   const [q, setQ] = useState("");
   const box = useRef<HTMLDivElement>(null);
@@ -36,14 +45,16 @@ export function ClientSelect({ clients, name }: { clients: ClientOpt[]; name: st
     const reset = () => {
       setPicked(null);
       setQ("");
+      onPick?.(null);
     };
     form.addEventListener("reset", reset);
     return () => form.removeEventListener("reset", reset);
-  }, []);
+  }, [onPick]);
 
   const pick = (c: ClientOpt) => {
     setPicked(c);
     setQ("");
+    onPick?.(c.id);
   };
 
   return (
@@ -52,7 +63,14 @@ export function ClientSelect({ clients, name }: { clients: ClientOpt[]; name: st
       {picked ? (
         <span className="inline-flex items-center gap-2 rounded-full bg-les px-4 py-2 text-sm text-krem">
           {picked.label} <span className="text-xs text-krem/60">{picked.sub}</span>
-          <button type="button" aria-label="Vybrat jiného klienta" onClick={() => setPicked(null)}>
+          <button
+            type="button"
+            aria-label="Vybrat jiného klienta"
+            onClick={() => {
+              setPicked(null);
+              onPick?.(null);
+            }}
+          >
             <X className="size-4" />
           </button>
         </span>
