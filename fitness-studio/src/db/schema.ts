@@ -650,7 +650,7 @@ export const authAttempts = pgTable(
   "auth_attempts",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    kind: text("kind", { enum: ["login", "reset"] }).notNull(),
+    kind: text("kind", { enum: ["login", "reset", "register"] }).notNull(),
     key: text("key").notNull(),
     createdAt: createdAt(),
   },

@@ -2,12 +2,14 @@
 
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { site } from "@/config/site";
 import { getDb } from "@/db";
 import { passwordResets, users } from "@/db/schema";
 import { isThrottled, recordAttempt } from "@/lib/throttle";
+import { looksLikeBot } from "@/lib/bot-guard";
 import { unsubscribe } from "@/domain/campaigns";
 import { IMPORTED_PASSWORD } from "@/domain/import";
 import { normalizeEmail, registerUser } from "@/domain/users";
@@ -63,7 +65,7 @@ export async function loginAction(_: FormState, fd: FormData): Promise<FormState
 }
 
 const registerSchema = z.object({
-  name: z.string().trim().min(2, "Vyplň jméno a příjmení."),
+  name: z.string().trim().min(2, "Vyplň jméno a příjmení.").regex(/\S\s+\S/, "Vyplň jméno i příjmení."),
   email: z.email("Zadej platný e-mail."),
   phone: z.string().trim().max(30).optional(),
   password,
@@ -77,7 +79,12 @@ export async function registerAction(_: FormState, fd: FormData): Promise<FormSt
     if (!parsed.success) throw new UserError(parsed.error.issues[0].message);
     const d = parsed.data;
     if (!field.bool(fd, "health")) throw new UserError("Potvrď prosím, že ti zdravotní stav cvičení dovoluje.");
+    if (looksLikeBot(fd)) throw new UserError("Registraci se nepodařilo odeslat. Načti prosím stránku znovu a zkus to ještě jednou.");
     const db = await getDb();
+    const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    if (await isThrottled(db, "register", ip))
+      throw new UserError("Z tohoto připojení vzniklo v poslední hodině moc účtů. Zkus to prosím později.");
+    await recordAttempt(db, "register", ip);
     const user = await registerUser(db, {
       healthConfirmed: true,
       remindersOptIn: field.bool(fd, "reminders"),
