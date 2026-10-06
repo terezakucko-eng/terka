@@ -130,8 +130,8 @@ function BookingPanel({
     return (
       <div>
         <Badge tone={b.status === "pending_payment" ? "gold" : "green"}>{label}</Badge>
-        <h2 className="mt-4 text-2xl font-semibold">{b.guestName ? "Těšíme se na vás!" : "Těšíme se na tebe!"}</h2>
-        {b.guestName && <p className="mt-2 text-les/70">Rezervace je i pro kamarádku: <strong>{b.guestName}</strong>.</p>}
+        <h2 className="mt-4 text-2xl font-semibold">{b.guestName || b.isHold ? "Těšíme se na vás!" : "Těšíme se na tebe!"}</h2>
+        {b.isHold ? <p className="mt-2 text-les/70">Držíš tu {b.seats} {b.seats === 1 ? "místo" : b.seats < 5 ? "místa" : "míst"}.</p> : b.guestName && <p className="mt-2 text-les/70">Rezervace je i pro kamarádku: <strong>{b.guestName}</strong>.</p>}
         {b.surcharge > 0 && !b.surchargePaidAt && view.state !== "cancelled" && <SurchargePay bookingId={b.id} amount={b.surcharge} />}
         {view.state !== "past" && view.state !== "cancelled" && (
           <>

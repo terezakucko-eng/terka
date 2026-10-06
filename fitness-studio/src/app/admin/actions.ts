@@ -23,6 +23,7 @@ import {
   type Method,
   cancelBooking,
   cancelSession,
+  holdSeats,
   occupancy,
   setAttendance,
 } from "@/domain/booking";
@@ -496,6 +497,18 @@ export async function adminAddBookingAction(_: FormState, fd: FormData): Promise
     const b = await adminAddBooking(db, { sessionId: field.str(fd, "sessionId"), userId: u.id, pay, guestName });
     await notifyBooked(db, b, true);
     return done(guestName ? `${u.name} + ${guestName} přidáni.` : `${u.name} přidán/a.`);
+  });
+}
+
+/** Staff keeps spots on a class for themselves; 0 releases them. */
+export async function holdSeatsAction(_: FormState, fd: FormData): Promise<FormState> {
+  const staff = await requireStaff();
+  return attempt(async () => {
+    const db = await getDb();
+    const seats = field.int(fd, "seats") ?? 0;
+    const r = await holdSeats(db, { sessionId: field.str(fd, "sessionId"), userId: staff.id, seats, note: field.str(fd, "note") });
+    await notifyPromoted(db, r.promoted);
+    return done(seats ? `Drženo ${seats} ${seats === 1 ? "místo" : seats < 5 ? "místa" : "míst"}.` : "Místa uvolněna.");
   });
 }
 

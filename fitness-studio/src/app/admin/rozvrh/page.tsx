@@ -30,7 +30,7 @@ export default async function AdminSchedule({ searchParams }: PageProps<"/admin/
   // who's signed up, so the list can be read without opening each class
   const signups = sessions.length
     ? await db
-        .select({ sessionId: bookings.sessionId, status: bookings.status, guestName: bookings.guestName, userId: users.id, name: users.name })
+        .select({ sessionId: bookings.sessionId, status: bookings.status, guestName: bookings.guestName, seats: bookings.seats, isHold: bookings.isHold, userId: users.id, name: users.name })
         .from(bookings)
         .innerJoin(users, eq(bookings.userId, users.id))
         .where(and(inArray(bookings.sessionId, sessions.map((x) => x.id)), ne(bookings.status, "cancelled")))
@@ -60,7 +60,7 @@ export default async function AdminSchedule({ searchParams }: PageProps<"/admin/
           {going.map((x) => (
             <li key={x.userId + x.status}>
               <Link href={`/admin/klienti/${x.userId}`} className="hover:underline">{sortName(x.name)}</Link>
-              {x.guestName && <span className="text-les/60"> +1 {x.guestName}</span>}
+              {x.isHold ? <span className="text-zeme"> · drží {x.seats} {x.seats === 1 ? "místo" : x.seats < 5 ? "místa" : "míst"}{x.guestName ? ` (${x.guestName})` : ""}</span> : x.guestName && <span className="text-les/60"> +1 {x.guestName}</span>}
               {x.status === "pending_payment" && <span className="text-zeme"> · čeká na platbu</span>}
               {x.status === "no_show" && <span className="text-chyba"> · nepřišel/a</span>}
             </li>

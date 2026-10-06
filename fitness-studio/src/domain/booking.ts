@@ -775,6 +775,52 @@ export async function cancelBooking(
   });
 }
 
+/**
+ * Staff keeps spots on a class for themselves (e.g. 10 places for their own guests).
+ * Setting the same session again changes the number; 0 releases the spots
+ * and lets the waitlist move up.
+ */
+export async function holdSeats(
+  db: DB,
+  input: { sessionId: string; userId: string; seats: number; note?: string },
+  now = new Date(),
+) {
+  return db.transaction(async (tx) => {
+    const s = await lockSession(tx, input.sessionId);
+    if (s.status === "cancelled") throw new UserError("Lekce je zrušená.");
+    const seats = Math.floor(input.seats);
+    if (!(seats >= 0) || seats > 200) throw new UserError("Zadej počet míst.");
+    const existing = await activeBooking(tx, input.userId, s.id);
+    if (existing && !existing.isHold)
+      throw new UserError("Na lekci už jsi přihlášená jako klientka – zruš tu rezervaci, nebo místa drž přes jiný účet.");
+    const note = input.note?.trim().slice(0, 80) || null;
+
+    if (seats === 0) {
+      if (!existing) throw new UserError("Na téhle lekci žádná místa nedržíš.");
+      await tx.update(bookings).set({ status: "cancelled", cancelledAt: now }).where(eq(bookings.id, existing.id));
+      const promoted = await promoteWaitlist(tx, s, now);
+      return { booking: null, promoted };
+    }
+
+    const free = s.capacity - ((await occupancy(tx, s.id)) - (existing?.seats ?? 0));
+    if (seats > free)
+      throw new UserError(free > 0 ? `Volných míst je jen ${free}.` : "Lekce je plná.");
+
+    let booking: Booking;
+    if (existing) {
+      [booking] = await tx.update(bookings).set({ seats, guestName: note }).where(eq(bookings.id, existing.id)).returning();
+    } else {
+      [booking] = await tx
+        .insert(bookings)
+        .values({ userId: input.userId, sessionId: s.id, status: "confirmed", method: "admin", seats, guestName: note, isHold: true })
+        .returning();
+    }
+    // fewer spots held than before → others on the waitlist can move up
+    const promoted = existing && existing.seats > seats ? await promoteWaitlist(tx, s, now) : [];
+    return { booking, promoted };
+  });
+}
+
 /** Studio cancels a class – everyone gets their entry back. */
 export async function cancelSession(db: DB, sessionId: string, now = new Date()) {
   return db.transaction(async (tx) => {

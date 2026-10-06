@@ -4,6 +4,7 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 import {
   adminCancelBookingAction,
   attendanceAction,
+  holdSeatsAction,
   cancelSessionAction,
   deleteSessionAction,
   setSurchargePaidAction,
@@ -60,6 +61,7 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
   const waitlist = list.filter(({ b }) => b.status === "waitlist");
   const cancelled = list.filter(({ b }) => b.status === "cancelled");
   const isAdmin = staff.role === "admin";
+  const myHold = active.find(({ b, u }) => b.isHold && u.id === staff.id)?.b;
   type Row = (typeof list)[number];
   const who = (b: Row["b"], u: Row["u"]) => (
     <>
@@ -70,7 +72,7 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
           <span key={x.kind} title={x.kind === "birthday" ? "Má narozeniny" : "Má svátek"}>{x.kind === "birthday" ? "🎂" : "🌷"}</span>
         ))}
       </span>
-      {b.guestName && <><br /><Badge tone="gold">+1 {b.guestName}</Badge></>}
+      {b.isHold ? <><br /><Badge tone="gold">Drží {b.seats} {b.seats === 1 ? "místo" : b.seats < 5 ? "místa" : "míst"}{b.guestName ? ` · ${b.guestName}` : ""}</Badge></> : b.guestName && <><br /><Badge tone="gold">+1 {b.guestName}</Badge></>}
       <br /><span className="break-all text-xs text-les/50">{u.phone ?? u.email}</span>
     </>
   );
@@ -192,6 +194,23 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
               <h2 className="font-semibold">Přidat klienta</h2>
               <AdminAddBooking sessionId={s.id} clients={clientOpts} friendAllowed={guestAllowed(s)} />
               <p className="mt-2 text-xs text-les/50">Recepce může přidat i nad kapacitu.</p>
+            </Card>
+          )}
+          {s.status !== "cancelled" && (
+            <Card>
+              <h2 className="font-semibold">Místa pro mě</h2>
+              <p className="mt-1 text-xs text-les/60">
+                Zablokuj si místa pro sebe nebo své hosty – na webu se počítají jako obsazená. Klientům nic nechodí.
+              </p>
+              <ActionForm action={holdSeatsAction} className="mt-4 space-y-3">
+                <input type="hidden" name="sessionId" value={s.id} />
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Počet míst" hint="0 = uvolnit"><Input name="seats" type="number" min={0} max={s.capacity} defaultValue={myHold?.seats ?? 1} required /></Field>
+                  <Field label="Poznámka"><Input name="note" defaultValue={myHold?.guestName ?? ""} placeholder="např. firma XY" maxLength={80} /></Field>
+                </div>
+                <SubmitButton className="w-full">{myHold ? "Změnit počet" : "Zablokovat místa"}</SubmitButton>
+              </ActionForm>
+              {myHold && <p className="mt-2 text-xs text-les/60">Teď držíš {myHold.seats} {myHold.seats === 1 ? "místo" : myHold.seats < 5 ? "místa" : "míst"}.</p>}
             </Card>
           )}
           {isAdmin && (
