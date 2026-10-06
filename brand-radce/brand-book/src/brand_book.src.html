@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brand Book 4.0 – Růžový slon</title>
+<link rel="icon" href="{{asset:ruzovy_slon_logo_rgb-03_symbol-in-frame-color.svg}}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@700;800&family=Roboto:ital,wght@0,400;0,600;0,700;1,700&display=swap" rel="stylesheet">
+<style>
+/* ===== Barvy a gradienty – výhradně oficiální paleta Slon 4.0 ===== */
+:root {
+  --ruzova: #DC004E;       /* Pantone 1925 C */
+  --tmava: #240A49;        /* Pantone 275 C */
+  --bila: #FFFFFF;
+  --kremova: #FCEAEA;      /* Pantone 698 C */
+  --ruzova-sek: #F29BA8;   /* Pantone 1905 C */
+  --purpurova: #7E3386;    /* Pantone 526 C */
+  --fuchsiova: #B23291;    /* Pantone 241 C */
+
+  --r10: #fbe5ed; --r20: #f8ccdc; --r40: #f199b8; --r60: #ea6695; --r80: #e33371;
+  --p10: #f2ebf3; --p20: #e5d6e7; --p40: #cbadcf; --p60: #b285b6; --p80: #985c9e;
+  --f10: #f7eaf4; --f20: #f0d6e9; --f40: #e0add3; --f60: #d184bd; --f80: #c15ba7;
+
+  --g-bila-kremova: linear-gradient(135deg, #FFFFFF 0%, #FCEAEA 100%);
+  --g-bila-r20: linear-gradient(135deg, #FFFFFF 0%, #F8CCDC 100%);
+  --g-bila-p20: linear-gradient(135deg, #FFFFFF 0%, #E5D6E7 100%);
+  --g-bila-f20: linear-gradient(135deg, #FFFFFF 0%, #F0D6E9 100%);
+  --g-r20-kremova: linear-gradient(135deg, #F8CCDC 0%, #FCEAEA 100%);
+  --g-r20-p20: linear-gradient(135deg, #F8CCDC 0%, #E5D6E7 100%);
+  --g-kremova-f20: linear-gradient(135deg, #FCEAEA 0%, #F0D6E9 100%);
+
+  --font-head: "Inter Tight", Arial, Helvetica, sans-serif;
+  --font-body: Roboto, Arial, Helvetica, sans-serif;
+
+  --wrap: 1080px;
+  --gutter: 32px;
+  --nav-h: 64px;
+  --radius: 20px;
+}
+
+/* ===== Základ ===== */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: calc(var(--nav-h) + 16px); -webkit-text-size-adjust: 100%; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0;
+  background: var(--bila);
+  color: var(--tmava);
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 17px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+img { display: block; max-width: 100%; height: auto; }
+p { margin: 0 0 1em; }
+p:last-child { margin-bottom: 0; }
+strong, b { font-weight: 700; }
+h1, h2, h3, h4 { font-family: var(--font-head); margin: 0; color: var(--tmava); letter-spacing: -0.02em; }
+h1, h2 { font-weight: 800; }
+h3, h4 { font-weight: 700; }
+h2 { font-size: clamp(34px, 4.6vw, 56px); line-height: 1.04; margin-bottom: 40px; }
+h3 { font-size: 26px; line-height: 1.15; }
+h4 { font-size: 19px; line-height: 1.25; }
+ul { margin: 0; padding: 0; list-style: none; }
+a { color: inherit; }
+
+.wrap { max-width: calc(var(--wrap) + 2 * var(--gutter)); margin: 0 auto; padding: 0 var(--gutter); }
+.sec { padding: 112px 0; position: relative; }
+.label {
+  display: block;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ruzova);
+  margin-bottom: 18px;
+}
+.lead { font-size: 22px; line-height: 1.5; }
+.accent { color: var(--ruzova); font-weight: 700; }
+
+/* ===== Navigace ===== */
+.nav {
+  position: sticky; top: 0; z-index: 50;
+  height: var(--nav-h);
+  background: rgba(255, 255, 255, 0.94);
+  -webkit-backdrop-filter: saturate(1.4) blur(10px);
+  backdrop-filter: saturate(1.4) blur(10px);
+  border-bottom: 1px solid var(--r20);
+}
+.nav .wrap { height: 100%; display: flex; align-items: center; gap: 28px; }
+.nav-logo { flex: 0 0 auto; display: flex; align-items: center; }
+.nav-logo img { width: 58px; height: auto; }
+.nav-links {
+  flex: 1 1 auto; min-width: 0;
+  display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, #000 88%, transparent);
+  padding-right: 40px;
+}
+.nav-links::-webkit-scrollbar { display: none; }
+.nav-links a {
+  flex: 0 0 auto;
+  font-family: var(--font-body); font-weight: 600; font-size: 14px;
+  text-decoration: none; color: var(--tmava);
+  padding: 8px 12px; border-radius: 999px;
+  transition: background-color .2s, color .2s;
+  white-space: nowrap;
+}
+.nav-links a:hover { background: var(--r10); color: var(--ruzova); }
+.nav-links a.is-active { background: var(--ruzova); color: var(--bila); }
+
+/* ===== Hero ===== */
+.hero {
+  position: relative; overflow: hidden;
+  background: var(--g-bila-kremova);
+  min-height: calc(92vh - var(--nav-h));
+  display: flex; align-items: center;
+  padding: 72px 0 80px;
+}
+.hero-kiss {
+  position: absolute; z-index: 0; pointer-events: none;
+  width: 1040px; max-width: none;
+  right: -300px; top: 50%; transform: translateY(-46%);
+}
+.hero-grid {
+  position: relative; z-index: 1; width: 100%;
+  display: grid; grid-template-columns: 1.05fr 1fr; gap: 24px; align-items: center;
+}
+.hero-kicker {
+  font-family: var(--font-head); font-weight: 800;
+  font-size: 18px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--ruzova); margin-bottom: 22px;
+}
+.hero h1 {
+  font-size: clamp(56px, 9vw, 112px); line-height: 0.92; letter-spacing: -0.035em;
+  color: var(--ruzova); margin-bottom: 32px;
+}
+.hero-motto {
+  font-family: var(--font-head); font-weight: 700;
+  font-size: clamp(22px, 2.4vw, 30px); line-height: 1.25; letter-spacing: -0.01em;
+  max-width: 470px; margin: 0;
+}
+.hero-dzin { width: 112%; max-width: 640px; justify-self: end; margin-right: -4%; }
+
+/* ===== Strategie značky ===== */
+.split { display: grid; grid-template-columns: 340px 1fr; gap: 56px; align-items: start; }
+.split > h2 { margin-bottom: 0; }
+.split-sticky > h2 { position: sticky; top: calc(var(--nav-h) + 32px); }
+
+/* ===== Růžový slon je svět… ===== */
+.svet { background: var(--g-r20-kremova); overflow: hidden; }
+.svet h2 { color: var(--ruzova); margin-bottom: 20px; }
+.svet .lead { max-width: 760px; margin-bottom: 32px; }
+.svet-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 72px; }
+.svet-quote {
+  margin: 0; padding: 48px 0 0; border-top: 2px solid var(--bila);
+  font-family: var(--font-head); font-weight: 800;
+  font-size: clamp(30px, 4.4vw, 56px); line-height: 1.12; letter-spacing: -0.025em;
+  color: var(--ruzova);
+}
+.svet-quote span { display: block; }
+
+/* ===== Vize a Mise ===== */
+.vm { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.vm-card { border-radius: var(--radius); padding: 44px 40px; }
+.vm-card.vize { background: var(--r10); }
+.vm-card.mise { background: var(--p10); }
+.vm-card h3 { margin-bottom: 18px; }
+.vm-card.vize h3 { color: var(--ruzova); }
+.vm-card.mise h3 { color: var(--purpurova); }
+.vm-statement {
+  font-family: var(--font-head); font-weight: 800;
+  font-size: clamp(26px, 3vw, 36px); line-height: 1.12; letter-spacing: -0.02em;
+  margin-bottom: 16px;
+}
+
+/* ===== Bannery Severka a Brand Essence ===== */
+.banner { padding: 96px 0; position: relative; overflow: hidden; }
+.banner h3 {
+  font-size: 15px; letter-spacing: 0.12em; text-transform: uppercase;
+  margin-bottom: 22px;
+}
+.banner p {
+  font-family: var(--font-head); font-weight: 800;
+  font-size: clamp(32px, 5.2vw, 64px); line-height: 1.04; letter-spacing: -0.03em;
+  max-width: 900px; margin: 0;
+}
+.banner-tmava { background: var(--tmava); color: var(--bila); }
+.banner-tmava h3 { color: var(--r40); }
+.banner-ruzova { background: var(--ruzova); color: var(--bila); }
+.banner-ruzova h3 { color: var(--bila); }
+
+/* ===== V co věří ===== */
+.veri p {
+  font-size: 21px; line-height: 1.5;
+  padding: 24px 0; margin: 0;
+  border-top: 1px solid var(--r20);
+}
+.veri p:first-child { border-top: 0; padding-top: 0; }
+
+/* ===== Role značky ===== */
+.role-claim {
+  font-family: var(--font-head); font-weight: 800;
+  font-size: clamp(28px, 3.4vw, 42px); line-height: 1.1; letter-spacing: -0.025em;
+  color: var(--ruzova); max-width: 880px; margin-bottom: 48px;
+}
+.role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px 48px; margin-bottom: 64px; }
+.panel { border-radius: var(--radius); padding: 48px; }
+.panel-r10 { background: var(--r10); }
+.panel h3 { margin-bottom: 28px; }
+.dots { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 40px; }
+.dots li { position: relative; padding-left: 26px; }
+.dots li::before {
+  content: ""; position: absolute; left: 0; top: 0.62em;
+  width: 10px; height: 10px; border-radius: 50%; background: var(--ruzova);
+}
+
+/* ===== Co měníme ===== */
+.menime { background: var(--g-bila-p20); }
+.zmeny { width: 100%; border-collapse: collapse; }
+.zmeny th {
+  font-family: var(--font-head); font-weight: 700; font-size: 15px;
+  letter-spacing: 0.08em; text-transform: uppercase; text-align: left;
+  color: var(--purpurova); padding: 0 0 16px;
+}
+.zmeny td {
+  padding: 22px 0; border-top: 1px solid var(--p20);
+  font-family: var(--font-head); font-size: clamp(22px, 2.8vw, 34px); line-height: 1.15; letter-spacing: -0.02em;
+  vertical-align: middle;
+}
+.zmeny thead td { border: 0; padding: 0; }
+.zmeny td.pred { width: 42%; font-weight: 700; color: var(--purpurova); }
+.zmeny td.sipka { width: 12%; font-weight: 800; color: var(--ruzova); text-align: center; }
+.zmeny td.po { font-weight: 800; color: var(--tmava); }
+
+/* ===== Tři pilíře ===== */
+.pilire { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: stretch; }
+.pilir { border-radius: var(--radius); padding: 36px 30px 34px; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+.pilir-num {
+  font-family: var(--font-head); font-weight: 800; font-size: 96px; line-height: 0.8;
+  letter-spacing: -0.04em; margin-bottom: 26px; display: block;
+}
+.pilir h3 { font-weight: 800; font-size: 25px; margin-bottom: 20px; }
+.pilir p { font-size: 16px; line-height: 1.6; }
+.pilir .reakce { font-style: italic; font-weight: 700; margin-top: auto; padding-top: 12px; }
+.pilir-1 { background: var(--g-bila-r20); }
+.pilir-1 .pilir-num { color: var(--r40); }
+.pilir-1 h3, .pilir-1 .reakce { color: var(--ruzova); }
+.pilir-2 { background: var(--g-bila-p20); }
+.pilir-2 .pilir-num { color: var(--p40); }
+.pilir-2 h3, .pilir-2 .reakce { color: var(--purpurova); }
+.pilir-3 { background: var(--g-bila-f20); }
+.pilir-3 .pilir-num { color: var(--f40); }
+.pilir-3 h3, .pilir-3 .reakce { color: var(--fuchsiova); }
+
+/* ===== Brand kódy ===== */
+.kody { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.kod {
+  border: 1px solid var(--r20); border-radius: var(--radius);
+  padding: 26px 24px 24px; background: var(--bila);
+  display: flex; flex-direction: column; gap: 4px;
+}
+.kod-ikona {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: var(--r10); color: var(--ruzova);
+  display: grid; place-items: center; margin-bottom: 18px; overflow: hidden;
+}
+.kod-ikona svg { width: 30px; height: 30px; }
+.kod-ikona svg.pusinka { width: 38px; height: auto; }
+.kod-ikona img { width: 100%; height: 100%; object-fit: cover; }
+.kod-typ { font-family: var(--font-body); font-weight: 600; font-size: 14px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--purpurova); }
+.kod-hodnota { font-family: var(--font-head); font-weight: 800; font-size: 25px; line-height: 1.1; letter-spacing: -0.02em; }
+
+/* ===== Džin ===== */
+.dzin { background: var(--g-kremova-f20); overflow: hidden; }
+.dzin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+.dzin h2 { margin-bottom: 36px; }
+.dzin h3 { color: var(--fuchsiova); margin-bottom: 20px; }
+.dzin-img { width: 100%; max-width: 560px; justify-self: center; }
+
+/* ===== Koho provázíme ===== */
+.persona { border-radius: var(--radius); padding: 52px 48px; margin-bottom: 24px; }
+.persona:last-child { margin-bottom: 0; }
+.persona-evelina { background: var(--g-bila-r20); }
+.persona-max { background: var(--g-bila-p20); }
+.persona h3 { font-weight: 800; font-size: clamp(40px, 5vw, 64px); line-height: 1; letter-spacing: -0.03em; margin-bottom: 22px; }
+.persona-evelina h3 { color: var(--ruzova); }
+.persona-max h3 { color: var(--purpurova); }
+.persona-intro { font-size: 20px; line-height: 1.55; max-width: 860px; margin-bottom: 40px; }
+.persona-bloky { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+.persona-blok { background: var(--bila); border-radius: 16px; padding: 24px 22px; }
+.persona-blok h4 { font-size: 17px; margin-bottom: 14px; }
+.persona-evelina .persona-blok h4 { color: var(--ruzova); }
+.persona-max .persona-blok h4 { color: var(--purpurova); }
+.persona-blok li { position: relative; padding-left: 16px; font-size: 15.5px; line-height: 1.45; margin-bottom: 6px; }
+.persona-blok li::before { content: ""; position: absolute; left: 0; top: 0.6em; width: 6px; height: 6px; border-radius: 50%; }
+.persona-evelina .persona-blok li::before { background: var(--ruzova); }
+.persona-max .persona-blok li::before { background: var(--purpurova); }
+.mluvime { border-radius: 16px; padding: 28px 30px; color: var(--bila); }
+.persona-evelina .mluvime { background: var(--ruzova); }
+.persona-max .mluvime { background: var(--purpurova); }
+.mluvime h4 { color: var(--bila); margin-bottom: 8px; }
+.mluvime p { font-size: 18px; line-height: 1.55; }
+
+/* ===== Kdy přicházíme ===== */
+.kdy-intro { max-width: 780px; margin-bottom: 44px; }
+.situace { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; margin-bottom: 24px; }
+.situace-karta { grid-column: span 2; border-radius: var(--radius); padding: 30px 28px; background: var(--r10); }
+.situace-karta:nth-child(n+4) { grid-column: span 3; }
+.situace-karta:nth-child(2) { background: var(--p10); }
+.situace-karta:nth-child(3) { background: var(--f10); }
+.situace-karta:nth-child(4) { background: var(--p10); }
+.situace-karta:nth-child(5) { background: var(--kremova); }
+.situace-karta h3 { font-size: 23px; margin-bottom: 16px; }
+.situace-karta li { position: relative; padding-left: 18px; font-size: 16px; line-height: 1.5; margin-bottom: 8px; }
+.situace-karta li::before { content: ""; position: absolute; left: 0; top: 0.62em; width: 7px; height: 7px; border-radius: 50%; background: var(--ruzova); }
+.poznamka { border-left: 4px solid var(--ruzova); padding: 6px 0 6px 24px; max-width: 820px; }
+.poznamka h4 { color: var(--ruzova); margin-bottom: 6px; }
+
+/* ===== Charakter Džina ===== */
+.charakter-text { max-width: 820px; margin-bottom: 56px; }
+.charakter-text p { font-size: 19px; line-height: 1.6; }
+.charakter-text p:first-child {
+  font-family: var(--font-head); font-weight: 800;
+  font-size: clamp(26px, 3vw, 36px); line-height: 1.15; letter-spacing: -0.02em;
+  color: var(--ruzova);
+}
+.charakter-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.charakter-col { border-radius: var(--radius); padding: 40px; }
+.charakter-col.ano { background: var(--r10); }
+.charakter-col.ne { background: var(--p10); }
+.charakter-col h3 { margin-bottom: 22px; }
+.charakter-col.ano h3 { color: var(--ruzova); }
+.charakter-col.ne h3 { color: var(--purpurova); }
+.charakter-col li { position: relative; padding: 10px 0 10px 30px; border-top: 1px solid var(--bila); font-size: 18px; line-height: 1.4; }
+.charakter-col li:first-child { border-top: 0; }
+.charakter-col li::before { content: ""; position: absolute; left: 0; top: 17px; width: 12px; height: 12px; border-radius: 50%; }
+.charakter-col.ano li::before { background: var(--ruzova); }
+.charakter-col.ne li::before { border: 2px solid var(--purpurova); }
+
+/* ===== Pata ===== */
+.pata { background: var(--tmava); padding: 64px 0; }
+.pata .wrap { display: flex; justify-content: center; }
+.pata img { width: 96px; height: auto; }
+
+/* ===== Mobil (< 900 px) ===== */
+@media screen and (max-width: 899px) {
+  :root { --gutter: 24px; --nav-h: 58px; }
+  body { font-size: 16px; }
+  .sec { padding: 72px 0; }
+  h2 { margin-bottom: 28px; }
+  .nav .wrap { gap: 14px; }
+  .nav-logo img { width: 50px; }
+  .hero { min-height: 0; padding: 48px 0 0; }
+  .hero-grid { grid-template-columns: 1fr; gap: 8px; }
+  .hero-kiss { width: 160vw; right: -62vw; top: auto; bottom: -14vw; transform: none; }
+  .hero-dzin { justify-self: center; width: 100%; max-width: 460px; margin-right: 0; }
+  .split { grid-template-columns: 1fr; gap: 0; }
+  .split > h2 { margin-bottom: 28px; }
+  .split-sticky > h2 { position: static; }
+  .lead { font-size: 19px; }
+  .svet-cols, .vm, .role-grid, .dots, .dzin-grid, .charakter-cols { grid-template-columns: 1fr; }
+  .svet-cols { gap: 0; margin-bottom: 48px; }
+  .svet-cols p:first-child { margin-bottom: 1em; }
+  .vm-card, .panel, .persona, .charakter-col { padding: 32px 24px; }
+  .banner { padding: 64px 0; }
+  .veri p { font-size: 18px; padding: 18px 0; }
+  .pilire { grid-template-columns: 1fr; }
+  .kody { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .kod { padding: 20px 16px; }
+  .kod-ikona { width: 52px; height: 52px; margin-bottom: 12px; }
+  .kod-ikona svg { width: 26px; height: 26px; }
+  .kod-hodnota { font-size: 21px; }
+  .dzin-img { max-width: 420px; }
+  .persona-intro { font-size: 18px; }
+  .persona-bloky { grid-template-columns: 1fr 1fr; }
+  .situace { grid-template-columns: 1fr; }
+  .situace-karta, .situace-karta:nth-child(n+4) { grid-column: auto; }
+  .zmeny td { padding: 16px 0; }
+}
+@media screen and (max-width: 560px) {
+  :root { --gutter: 16px; }
+  .persona-bloky { grid-template-columns: 1fr; }
+  .nav-links a { padding: 7px 10px; font-size: 13px; }
+  .zmeny td.sipka { width: 10%; }
+}
+
+/* ===== Tisk / PDF ===== */
+@media print {
+  @page { size: A4; margin: 14mm 12mm; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  html { scroll-behavior: auto; }
+  body { font-size: 10.5pt; line-height: 1.5; overflow: visible; }
+  :root { --gutter: 0px; }
+  .nav { display: none; }
+  .wrap { max-width: none; padding: 0; }
+  .sec { padding: 10mm 0; }
+  .hero { min-height: 255mm; padding: 18mm 10mm; margin: 0; border-radius: 6mm; break-after: page; }
+  .hero .wrap { padding: 0; }
+  .hero-kiss { width: 130%; right: -42%; top: 50%; transform: translateY(-46%); }
+  .hero h1 { font-size: 64pt; }
+  .hero-motto { font-size: 18pt; }
+  h2 { font-size: 26pt; margin-bottom: 7mm; break-after: avoid; }
+  h3, h4 { break-after: avoid; }
+  .lead, .persona-intro, .veri p { font-size: 12.5pt; }
+  .split { grid-template-columns: 52mm 1fr; gap: 8mm; }
+  .split-sticky > h2 { position: static; }
+  .svet, .menime, .dzin, .banner { padding-left: 8mm; padding-right: 8mm; border-radius: 6mm; }
+  .svet-quote { font-size: 24pt; padding-top: 8mm; }
+  .svet-cols { margin-bottom: 10mm; }
+  .banner { padding-top: 12mm; padding-bottom: 12mm; margin-bottom: 4mm; break-inside: avoid; }
+  .banner p { font-size: 26pt; }
+  .vm-card, .panel, .persona, .charakter-col { padding: 8mm; }
+  .vm-statement { font-size: 18pt; }
+  .role-claim { font-size: 20pt; margin-bottom: 8mm; }
+  .role-grid { margin-bottom: 8mm; }
+  .zmeny td { font-size: 16pt; padding: 3.2mm 0; }
+  .pilir { padding: 7mm 5mm; }
+  .pilir-num { font-size: 40pt; margin-bottom: 4mm; }
+  .pilir h3 { font-size: 13pt; }
+  .pilir p { font-size: 9.5pt; }
+  .kody { grid-template-columns: repeat(4, 1fr); gap: 3mm; }
+  .kod { padding: 5mm 4mm; }
+  .kod-ikona { width: 12mm; height: 12mm; margin-bottom: 3mm; }
+  .kod-ikona svg { width: 6mm; height: 6mm; }
+  .kod-hodnota { font-size: 13pt; }
+  .dzin-img { max-width: 80mm; }
+  .persona h3 { font-size: 30pt; }
+  .persona-bloky { grid-template-columns: repeat(2, 1fr); gap: 3mm; }
+  .persona-blok { padding: 5mm; }
+  .persona-blok li, .situace-karta li { font-size: 9.5pt; }
+  .situace-karta { padding: 6mm; }
+  .situace-karta h3 { font-size: 13pt; }
+  .charakter-text p { font-size: 11pt; }
+  .charakter-text p:first-child { font-size: 18pt; }
+  .charakter-col li { font-size: 11pt; padding-top: 2mm; padding-bottom: 2mm; }
+  .charakter-col li::before { top: 3.4mm; width: 3mm; height: 3mm; }
+  .pata { padding: 5mm 0; border-radius: 6mm; break-inside: avoid; }
+  .pata img { width: 20mm; }
+  .vm-card, .pilir, .kod, .persona-blok, .mluvime, .situace-karta, .poznamka, .charakter-col, .panel, .zmeny tr, .svet-quote, li { break-inside: avoid; }
+  .tisk-nova-strana { break-before: page; }
+  a { text-decoration: none; }
+}
+</style>
+</head>
+<body>
+
+<nav class="nav" aria-label="Obsah">
+  <div class="wrap">
+    <a class="nav-logo" href="#top" aria-label="Růžový slon – na začátek"><img src="{{asset:ruzovy_slon_logo_rgb-03_symbol-in-frame-color.svg}}" alt="Růžový slon"></a>
+    <div class="nav-links">
+      <a href="#strategie">Strategie značky</a>
+      <a href="#vize">Vize</a>
+      <a href="#mise">Mise</a>
+      <a href="#severka">Severka</a>
+      <a href="#brand-essence">Brand Essence</a>
+      <a href="#v-co-veri">V co věří</a>
+      <a href="#role">Role značky</a>
+      <a href="#co-menime">Co měníme</a>
+      <a href="#pilire">Tři pilíře</a>
+      <a href="#brand-kody">Brand kódy</a>
+      <a href="#dzin">Džin</a>
+      <a href="#koho-provazime">Koho provázíme</a>
+      <a href="#kdy-prichazime">Kdy přicházíme</a>
+      <a href="#charakter-dzina">Charakter Džina</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <img class="hero-kiss" src="{{asset:pusinka-rozmazana-730.webp}}" alt="" aria-hidden="true">
+  <div class="wrap hero-grid">
+    <div>
+      <p class="hero-kicker">Brand Book 4.0</p>
+      <h1>Růžový slon</h1>
+      <p class="hero-motto">Objevujeme proto, abychom proměňovali přání ve skutečnost.</p>
+    </div>
+    <img class="hero-dzin" src="{{asset:dzin-v1.svg}}" alt="Džin" width="2909" height="2012">
+  </div>
+</header>
+
+<main>
+
+<section class="sec" id="strategie">
+  <div class="wrap split">
+    <h2>Strategie značky</h2>
+    <div>
+      <p class="lead">Růžový slon roste z e‑shopu s erotickými pomůckami ve značku, která pomáhá lidem žít moderní intimitu bezpečně, otevřeně a bez studu.</p>
+      <p>Už nejsme jen místo, kde si člověk koupí produkt. Jsme průvodce, který pomáhá zorientovat se ve vlastních přáních, překonat nejistotu, najít správnou cestu a zažít něco, co může změnit vztah k sobě, partnerovi i vlastní sexualitě.</p>
+      <p class="accent">Objevujeme nové možnosti, aby se i tajná přání mohla proměnit ve skutečnost.</p>
+    </div>
+  </div>
+</section>
+
+<section class="sec svet" id="svet">
+  <div class="wrap">
+    <h2>Růžový slon je svět…</h2>
+    <p class="lead">…který lidé poznají podle emocí, atmosféry, tónu komunikace, detailů i pocitu bezpečí, který značka vyvolává.</p>
+    <div class="svet-cols">
+      <p>Brand Book sjednocuje způsob, jak Růžový slon přemýšlí, mluví, vypadá, pomáhá, inspiruje i prodává.</p>
+      <p>Vznikl proto, aby značka působila všude stejně silně, důvěryhodně a rozpoznatelně — od kampaní a sociálních sítí přes prodejny a zaměstnance až po balíček, který zákazník otevře doma v ložnici.</p>
+    </div>
+    <blockquote class="svet-quote">
+      <span>Tady jsem v bezpečí.</span>
+      <span>Tady mi rozumí.</span>
+      <span>Tady se moje přání může stát skutečností.</span>
+      <span>A zůstane to mezi námi.</span>
+    </blockquote>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap vm">
+    <article class="vm-card vize" id="vize">
+      <h3>Vize</h3>
+      <p class="vm-statement">Lepší intimita. Lepší vztahy. Lepší život. Lepší svět.</p>
+    </article>
+    <article class="vm-card mise" id="mise">
+      <h3>Mise</h3>
+      <p class="vm-statement">Pomáháme lidem žít spokojenější intimní život.</p>
+      <p>Nabízíme ověřené produkty, odborné poradenství a bezpečné místo pro každého, kdo chce objevovat intimitu po svém.</p>
+    </article>
+  </div>
+</section>
+
+<section class="banner banner-tmava" id="severka">
+  <div class="wrap">
+    <h3>Severka</h3>
+    <p>Být největším průvodcem světem intimity a sexuality v Evropě.</p>
+  </div>
+</section>
+
+<section class="banner banner-ruzova" id="brand-essence">
+  <div class="wrap">
+    <h3>Brand Essence</h3>
+    <p>Proměňujeme přání ve skutečnost.</p>
+  </div>
+</section>
+
+<section class="sec tisk-nova-strana" id="v-co-veri">
+  <div class="wrap split split-sticky">
+    <h2>V co věří Růžový slon</h2>
+    <div class="veri">
+      <p>Věříme, že otevřenost, důvěra a respekt jsou základem spokojené intimity i vztahů.</p>
+      <p>Podnikáme férově – vůči zákazníkům, partnerům i našemu týmu. Neprodáváme nic, co bychom sami nevyzkoušeli nebo čemu nevěříme.</p>
+      <p>Důvěru si značka získává poctivostí, ne sliby. Proto raději doporučíme správné řešení, než abychom prodali za každou cenu.</p>
+      <p>Jsme přesvědčeni, že i z Havířova lze vybudovat značku, která inspiruje lidi v Česku i ve světě.</p>
+      <p>Každý den chceme být značkou, která lidem pomáhá cítit se dobře – bez studu, s důvěrou a po svém.</p>
+    </div>
+  </div>
+</section>
+
+<section class="sec tisk-nova-strana" id="role">
+  <div class="wrap">
+    <h2>Role značky</h2>
+    <p class="role-claim">Jsme značka, která nejen inspiruje, ale pomáhá udělat skutečný krok ke změně.</p>
+    <div class="role-grid">
+      <p>Růžový slon je průvodcem světem přání. Pomáhá lidem cítit se jistěji při objevování vlastní intimity, vztahů i nových zážitků.</p>
+      <p>Nasloucháme, vysvětlujeme a vytváříme pocit bezpečí. Pomáháme proměňovat otázky, nejistotu i fantazie ve skutečné zkušenosti.</p>
+      <p>Nevěříme na laciná kouzla. Naše magie stojí na empatii, zkušenostech a schopnosti ukázat cestu k tomu, co lidé skutečně hledají.</p>
+      <p>Nechceme jen opakovat to, co fungovalo včera. Neustále hledáme nové způsoby, jak lidem pomáhat prožívat blízkost, vztahy i sexualitu otevřeněji, svobodněji a naplno.</p>
+    </div>
+    <div class="panel panel-r10">
+      <h3>Co pro to děláme</h3>
+      <ul class="dots">
+        <li>Nabízíme pouze produkty, kterým sami věříme a které pečlivě ověřujeme.</li>
+        <li>Radíme otevřeně, s respektem a bez odsuzování.</li>
+        <li>Chráníme soukromí a diskrétnost každého zákazníka.</li>
+        <li>Vysvětlujeme, vzděláváme a pomáháme lidem dělat správná rozhodnutí.</li>
+        <li>Přinášíme inspiraci, která vede ke skutečné změně, ne jen k dalšímu nákupu.</li>
+        <li>Hledáme nové cesty, jak lidem pomáhat prožívat intimitu svobodněji a s větší důvěrou.</li>
+        <li>Budujeme značku, která stojí na empatii, zkušenostech a poctivosti.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="sec menime tisk-nova-strana" id="co-menime">
+  <div class="wrap">
+    <h2>Co měníme</h2>
+    <table class="zmeny">
+      <thead>
+        <tr><th scope="col">Před</th><td></td><th scope="col">Po</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="pred">stud</td><td class="sipka" aria-hidden="true">→</td><td class="po">uvolnění</td></tr>
+        <tr><td class="pred">nejistota</td><td class="sipka" aria-hidden="true">→</td><td class="po">důvěra</td></tr>
+        <tr><td class="pred">stereotyp</td><td class="sipka" aria-hidden="true">→</td><td class="po">objevování</td></tr>
+        <tr><td class="pred">odcizení</td><td class="sipka" aria-hidden="true">→</td><td class="po">znovunapojení</td></tr>
+        <tr><td class="pred">ticho</td><td class="sipka" aria-hidden="true">→</td><td class="po">otevřenější komunikace</td></tr>
+        <tr><td class="pred">náhodný výběr</td><td class="sipka" aria-hidden="true">→</td><td class="po">dobré rozhodnutí</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="sec tisk-nova-strana" id="pilire">
+  <div class="wrap">
+    <h2>Tři pilíře značky</h2>
+    <div class="pilire">
+      <article class="pilir pilir-1">
+        <span class="pilir-num" aria-hidden="true">01</span>
+        <h3>Jdeme dál než ostatní</h3>
+        <p>Nestačí nám opakovat to, co fungovalo včera.</p>
+        <p>Hledáme nové cesty, nové možnosti a nové odpovědi.</p>
+        <p>Máme odvahu otevírat témata, která ostatní přehlížejí, a posouvat sexualitu, vztahy i blízkost modernějším, otevřenějším a svobodnějším směrem.</p>
+        <p>Protože víme, že velké změny nevznikají tam, kde je všechno předem jasné.</p>
+        <p class="reakce">„Proč jsme to nezačali dělat dřív?!“</p>
+      </article>
+      <article class="pilir pilir-2">
+        <span class="pilir-num" aria-hidden="true">02</span>
+        <h3>Proměňujeme možnosti ve skutečnost</h3>
+        <p>Nestačí jen inspirovat.</p>
+        <p>Skutečná hodnota vzniká ve chvíli, kdy se něco opravdu změní.</p>
+        <p>Když člověk získá větší jistotu, otevřenost, blízkost nebo odvahu zažít něco nového.</p>
+        <p>Nehledáme jen hezké nápady, ale věci, které mají skutečný dopad.</p>
+        <p>Důležité je, co po nás zůstane — konkrétní změna, nový směr nebo výsledek, který překvapí svou silou i jednoduchostí.</p>
+        <p class="reakce">„Tohle jsme nečekali. WOW.“</p>
+      </article>
+      <article class="pilir pilir-3">
+        <span class="pilir-num" aria-hidden="true">03</span>
+        <h3>Propojujeme to, co ostatní nechávají oddělené</h3>
+        <p>Lidi, technologie, data, byznys i nápady. Vidíme souvislosti tam, kde ostatní vidí jen jednotlivé části.</p>
+        <p>Jsme průvodcem, oporou i partnerem na cestě. Pomáháme zorientovat se, vidět možnosti a dělat rozhodnutí s větší jistotou.</p>
+        <p>A když je potřeba, dokážeme najít řešení, které ještě před chvílí vypadalo nemožně. Nejen pečlivě vybíráme to nejlepší, co trh nabízí, ale tam, kde to nestačí, vytváříme i vlastní produkty vycházející ze zkušeností našich zákazníků i našeho týmu.</p>
+        <p>Tak trochu jako džin. Ne ten, který slepě plní přání. Ale ten, který stojí po boku svého člověka, radí mu, pomáhá mu… a ve chvíli, kdy je to opravdu potřeba, dokáže proměnit nemožné ve skutečnost.</p>
+        <p class="reakce">„Proč jsme to nezačali dělat dřív?!“</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="sec tisk-nova-strana" id="brand-kody">
+  <div class="wrap">
+    <h2>Brand kódy</h2>
+    <div class="kody">
+      <div class="kod">
+        <span class="kod-ikona"><img src="{{asset:dzin-v2-hlava-200.webp}}" alt="" width="200" height="200"></span>
+        <span class="kod-typ">Maskot</span><span class="kod-hodnota">Slon</span>
+      </div>
+      <div class="kod">
+        <span class="kod-ikona"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17c3.333 -3.333 5 -6 5 -8c0 -3 -1 -3 -2 -3s-2.032 1.085 -2 3c.034 2.048 1.658 4.877 2.5 6c1.5 2 2.5 2.5 3.5 1l2 -3c.333 2.667 1.333 4 3 4c.53 0 2.639 -2 3 -2c.517 0 1.517 .667 3 2"/></svg></span>
+        <span class="kod-typ">Název</span><span class="kod-hodnota">Růžový slon</span>
+      </div>
+      <div class="kod">
+        <span class="kod-ikona"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9 9 0 0 1 0 -18c4.97 0 9 3.582 9 8c0 1.06 -.474 2.078 -1.318 2.828c-.844 .75 -1.989 1.172 -3.182 1.172h-2.5a2 2 0 0 0 -1 3.75a1.3 1.3 0 0 1 -1 2.25"/><path d="M7.5 10.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M11.5 7.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M15.5 10.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></svg></span>
+        <span class="kod-typ">Barva</span><span class="kod-hodnota">Růžová</span>
+      </div>
+      <div class="kod">
+        <span class="kod-ikona"><svg class="pusinka" viewBox="0 0 1484 1000" aria-hidden="true"><path d="M1483.97 500L1069.81 123.455C888.757 -41.1515 595.212 -41.1515 414.133 123.455L0 500L414.164 876.545C595.212 1041.15 888.757 1041.15 1069.84 876.545L1484 500H1483.97Z" fill="#DC004E"/></svg></span>
+        <span class="kod-typ">Symbol</span><span class="kod-hodnota">Pusinka</span>
+      </div>
+      <div class="kod">
+        <span class="kod-ikona"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 12.9a5 5 0 1 0 -3.902 -3.9"/><path d="M15 12.9l-3.902 -3.899l-7.513 8.584a2 2 0 1 0 2.827 2.83l8.588 -7.515"/></svg></span>
+        <span class="kod-typ">Hlas</span><span class="kod-hodnota">Stránský</span>
+      </div>
+      <div class="kod">
+        <span class="kod-ikona"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.585 10.587a2 2 0 0 0 2.829 2.828"/><path d="M16.681 16.673a8.717 8.717 0 0 1 -4.681 1.327c-3.6 0 -6.6 -2 -9 -6c1.272 -2.12 2.712 -3.678 4.32 -4.674m2.86 -1.146a9.055 9.055 0 0 1 1.82 -.18c3.6 0 6.6 2 9 6c-.666 1.11 -1.379 2.067 -2.138 2.87"/><path d="M3 3l18 18"/></svg></span>
+        <span class="kod-typ">Přístup</span><span class="kod-hodnota">Diskrétnost</span>
+      </div>
+      <div class="kod">
+        <span class="kod-ikona"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16l13 -8l-13 -8"/></svg></span>
+        <span class="kod-typ">Formát</span><span class="kod-hodnota">Videa</span>
+      </div>
+      <div class="kod">
+        <span class="kod-ikona"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873l-6.158 -3.245"/></svg></span>
+        <span class="kod-typ">Důkaz</span><span class="kod-hodnota">Recenze</span>
+      </div>
+      <div class="kod">
+        <span class="kod-ikona"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3l6 0"/><path d="M10 9l4 0"/><path d="M10 3v6l-4 11a.7 .7 0 0 0 .5 1h11a.7 .7 0 0 0 .5 -1l-4 -11v-6"/></svg></span>
+        <span class="kod-typ">Metoda</span><span class="kod-hodnota">Testování</span>
+      </div>
+      <div class="kod">
+        <span class="kod-ikona"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 6v3"/><path d="M14 6v3"/><path d="M5 11a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2l0 -8"/><path d="M10 15a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M9 3h6v3h-6l0 -3"/></svg></span>
+        <span class="kod-typ">Detail</span><span class="kod-hodnota">Vůně</span>
+      </div>
+      <div class="kod">
+        <span class="kod-ikona"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/><path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0"/></svg></span>
+        <span class="kod-typ">Původ</span><span class="kod-hodnota">Havířov</span>
+      </div>
+      <div class="kod">
+        <span class="kod-ikona"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2l0 -6"/><path d="M11 16a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M8 11v-5a4 4 0 0 1 8 0"/></svg></span>
+        <span class="kod-typ">Poslání</span><span class="kod-hodnota">Detabuizace</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec dzin tisk-nova-strana" id="dzin">
+  <div class="wrap dzin-grid">
+    <div>
+      <h2>Džin – průvodce světem přání</h2>
+      <h3>Proč vznikl Džin</h3>
+      <p>Lidé nepřicházejí do Růžového slona proto, že hledají sexshop. Přicházejí proto, že chtějí vyřešit konkrétní životní situaci.</p>
+      <p>Někdo hledá originální dárek. Jiný chce oživit vztah, zažít něco nového nebo si jen není jistý, kde začít. Někdy hledají inspiraci, jindy radu nebo ujištění, že je jejich přání přirozené.</p>
+      <p>Právě v těchto okamžicích vzniká prostor pro Džina.</p>
+      <p>Není hlavním hrdinou příběhu. Je průvodcem, který pomáhá proměnit nejistotu v jistotu, otázky v odpovědi a přání ve skutečnou zkušenost.</p>
+    </div>
+    <img class="dzin-img" src="{{asset:dzin-v2.svg}}" alt="Džin" width="2909" height="2012">
+  </div>
+</section>
+
+<section class="sec tisk-nova-strana" id="koho-provazime">
+  <div class="wrap">
+    <h2>Koho provázíme</h2>
+
+    <article class="persona persona-evelina">
+      <h3>Evelína</h3>
+      <p class="persona-intro">Evelína chce žít vztahy, blízkost i sexualitu po svém, ale často řeší stud, nejistotu nebo pocit, že některé věci „nejsou pro ni“. Nechce vulgární sexshop ani tlak na výkon. Hledá bezpečný prostor, kde se může cítit přirozeně, pochopeně a bez odsouzení.</p>
+      <div class="persona-bloky">
+        <div class="persona-blok">
+          <h4>Co řeší</h4>
+          <ul><li>stereotyp</li><li>nejistotu</li><li>ztrátu jiskry</li><li>otevřenou komunikaci</li><li>vztah sama k sobě</li><li>chuť zkoušet něco nového bez trapnosti</li></ul>
+        </div>
+        <div class="persona-blok">
+          <h4>Čeho se bojí</h4>
+          <ul><li>že udělá špatný výběr</li><li>přílišné vulgarity</li><li>„porno atmosféry“</li><li>pocitu, že něco není normální</li><li>že bude působit trapně</li></ul>
+        </div>
+        <div class="persona-blok">
+          <h4>Co chce cítit</h4>
+          <ul><li>bezpečí</li><li>blízkost</li><li>sebevědomí</li><li>uvolnění</li><li>pochopení</li><li>vzrušení bez tlaku</li></ul>
+        </div>
+        <div class="persona-blok">
+          <h4>Co od nás potřebuje</h4>
+          <ul><li>diskrétnost</li><li>jistotu při výběru</li><li>lidský přístup</li><li>inspiraci bez nátlaku</li><li>pocit, že v tom není sama</li></ul>
+        </div>
+      </div>
+      <div class="mluvime">
+        <h4>Jak k ní mluvíme</h4>
+        <p>Klidně, lidsky a s respektem. Nikdy ji netlačíme ani nezesměšňujeme. Pomáháme jí cítit se jistěji při objevování vlastních přání.</p>
+      </div>
+    </article>
+
+    <article class="persona persona-max">
+      <h3>Max</h3>
+      <p class="persona-intro">Max přemýšlí racionálně, ale hledá intenzivnější zážitky, nové impulzy a kvalitní produkty, kterým může věřit. Má rád funkčnost, design i pocit, že investuje do něčeho, co má skutečný přínos.</p>
+      <div class="persona-bloky">
+        <div class="persona-blok">
+          <h4>Co řeší</h4>
+          <ul><li>stereotyp</li><li>intenzitu zážitků</li><li>kvalitu produktů</li><li>diskrétnost</li><li>efektivitu výběru</li><li>důvěru ve značku</li></ul>
+        </div>
+        <div class="persona-blok">
+          <h4>Čeho se bojí</h4>
+          <ul><li>laciných produktů</li><li>trapnosti</li><li>prázdných marketingových slibů</li><li>nekvalitního zpracování</li><li>pocitu, že naletěl reklamě</li></ul>
+        </div>
+        <div class="persona-blok">
+          <h4>Co chce cítit</h4>
+          <ul><li>jistotu</li><li>kontrolu</li><li>důvěru</li><li>překvapení</li><li>dobrý pocit z rozhodnutí</li></ul>
+        </div>
+        <div class="persona-blok">
+          <h4>Co od nás potřebuje</h4>
+          <ul><li>ověřené produkty</li><li>jasná doporučení</li><li>autentické zkušenosti</li><li>rychlost</li><li>diskrétnost</li><li>konkrétní benefity</li></ul>
+        </div>
+      </div>
+      <div class="mluvime">
+        <h4>Jak k němu mluvíme</h4>
+        <p>Sebevědomě, konkrétně a s respektem. Pomáháme mu rychle se zorientovat a vybrat řešení, kterému může věřit.</p>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section class="sec tisk-nova-strana" id="kdy-prichazime">
+  <div class="wrap">
+    <h2>Kdy přicházíme do života lidí</h2>
+    <p class="kdy-intro lead">Každý člověk žije jiným příběhem. Džin se objevuje ve chvíli, kdy lidé hledají. Hledají jistotu, inspiraci nebo odvahu udělat další krok.<br>Nejčastěji je provázíme ve chvílích, kdy potřebují pomoc s:</p>
+    <div class="situace">
+      <div class="situace-karta">
+        <h3>Dárky a příležitostmi</h3>
+        <ul><li>hledají originální dárek pro partnera nebo partnerku,</li><li>vybírají dárek k narozeninám, výročí, Vánocům nebo Valentýnu,</li><li>chtějí překvapit něčím nečekaným.</li></ul>
+      </div>
+      <div class="situace-karta">
+        <h3>Vztahy</h3>
+        <ul><li>chtějí oživit vztah a znovu zažít společnou blízkost,</li><li>řeší stereotyp nebo ztrátu jiskry,</li><li>chtějí si udělat více času jeden na druhého,</li><li>hledají způsob, jak otevřeněji mluvit o intimitě.</li></ul>
+      </div>
+      <div class="situace-karta">
+        <h3>Objevováním</h3>
+        <ul><li>vybírají svůj první produkt a nevědí, kde začít,</li><li>chtějí vyzkoušet něco nového,</li><li>objevují vlastní sexualitu nebo fantazie,</li><li>hledají inspiraci bez studu a předsudků.</li></ul>
+      </div>
+      <div class="situace-karta">
+        <h3>Péčí o sebe</h3>
+        <ul><li>chtějí udělat radost sami sobě,</li><li>hledají větší sebevědomí, uvolnění nebo nové prožitky,</li><li>chtějí lépe poznat své tělo a potřeby.</li></ul>
+      </div>
+      <div class="situace-karta">
+        <h3>Jistotou při výběru</h3>
+        <ul><li>hledají diskrétní radu nebo doporučení,</li><li>chtějí si být jistí, že vybírají správně,</li><li>hledají ověřené produkty, kterým mohou důvěřovat.</li></ul>
+      </div>
+    </div>
+    <div class="poznamka">
+      <h4>Poznámka</h4>
+      <p>Mnohé z těchto situací prožívají Evelína a Max společně. Pár pro nás není samostatnou personou, ale životní situací, ve které pomáháme oběma najít společnou cestu.</p>
+    </div>
+  </div>
+</section>
+
+<section class="sec tisk-nova-strana" id="charakter-dzina">
+  <div class="wrap">
+    <h2>Charakter Džina</h2>
+    <div class="charakter-text">
+      <p>Džin je zosobněním transformační síly Růžového slona.</p>
+      <p>Pomáhá lidem cítit se jistěji, bezpečněji a svobodněji při objevování vlastní intimity, vztahů i fantazií.</p>
+      <p>Je empatický, lidský, lehce tajemný a chytře hravý. Umí odlehčit situaci, ale nikdy neshazuje to, co je pro člověka důležité nebo citlivé.</p>
+      <p>Objevuje se jen tehdy, kdy má. Nepřebíjí sdělení ani nenarušuje pocit bezpečí, diskrétnosti a důvěry.</p>
+      <p>Nestaví na laciných kouzlech. Jeho síla stojí na zkušenostech, empatii, znalostech a schopnosti ukázat cestu k tomu, co lidé skutečně hledají.</p>
+      <p>Je průvodcem, který stojí po boku svého člověka, pomáhá mu zorientovat se a ve správnou chvíli dokáže proměnit nemožné ve skutečnost.</p>
+    </div>
+    <div class="charakter-cols">
+      <div class="charakter-col ano">
+        <h3>Jak Džin působí</h3>
+        <ul><li>empatický</li><li>lidský</li><li>sebevědomý</li><li>jemně magický</li><li>hravý</li><li>diskrétní</li><li>nevtíravý</li><li>s humorem, který nikdy nesklouzává k trapnosti</li></ul>
+      </div>
+      <div class="charakter-col ne">
+        <h3>Čím Džin nikdy není</h3>
+        <ul><li>infantilní</li><li>agresivní prodejce</li><li>vulgární</li><li>cringe kouzelník</li><li>vševědoucí guru</li><li>sexualizovaná postava</li></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="pata">
+  <div class="wrap"><img src="{{asset:ruzovy_slon_logo_rgb-03_symbol-in-frame-color.svg}}" alt="Růžový slon"></div>
+</footer>
+
+<script>
+(function () {
+  var links = document.querySelectorAll('.nav-links a');
+  if (!('IntersectionObserver' in window) || !links.length) return;
+  var byId = {};
+  links.forEach(function (a) { byId[a.getAttribute('href').slice(1)] = a; });
+  var current = null;
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (!e.isIntersecting) return;
+      var a = byId[e.target.id];
+      if (!a || a === current) return;
+      if (current) current.classList.remove('is-active');
+      a.classList.add('is-active');
+      current = a;
+      var box = a.parentNode;
+      box.scrollTo({ left: a.offsetLeft - 24, behavior: 'smooth' });
+    });
+  }, { rootMargin: '-45% 0px -50% 0px' });
+  Object.keys(byId).forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) io.observe(el);
+  });
+})();
+</script>
+</body>
+</html>
