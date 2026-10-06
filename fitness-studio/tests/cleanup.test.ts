@@ -40,9 +40,11 @@ describe("cleanup", () => {
     const admin = await makeUser(h.db);
     const p = await makeProduct(h.db, { kind: "pass", entries: 5 });
     await sellAtReception(h.db, { userId: u.id, productId: p.id }, NOW);
-    const n = await deleteOrders(h.db, { providers: ["stripe"], before: new Date(+NOW + 1000), actorId: admin.id });
+    // orders get the real "now" as createdAt, so cut off after it
+    const before = new Date(Date.now() + 60_000);
+    const n = await deleteOrders(h.db, { providers: ["stripe"], before, actorId: admin.id });
     expect(n).toBe(0);
-    const m = await deleteOrders(h.db, { providers: ["reception"], before: new Date(+NOW + 1000), actorId: admin.id });
+    const m = await deleteOrders(h.db, { providers: ["reception"], before, actorId: admin.id });
     expect(m).toBeGreaterThanOrEqual(1);
   });
 

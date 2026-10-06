@@ -372,6 +372,8 @@ export const bookings = pgTable(
     guestName: text("guest_name"),
     /** Kolik míst rezervace zabírá (1, s kamarádkou 2) */
     seats: integer("seats").notNull().default(1),
+    /** Místa, která si studio (admin) drží pro sebe – nejde o klienta, nechodí připomínky */
+    isHold: boolean("is_hold").notNull().default(false),
     orderId: uuid("order_id").references(() => orders.id),
     lateCancel: boolean("late_cancel").notNull().default(false),
     /** Doplatek člena placený na místě (haléře) */

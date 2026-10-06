@@ -23,6 +23,7 @@ export async function dueReminders(db: DB, now = new Date()) {
     .where(
       and(
         eq(bookings.status, "confirmed"),
+        eq(bookings.isHold, false),
         eq(users.remindersOptIn, true),
         isNull(bookings.reminderSentAt),
         eq(classSessions.status, "scheduled"),
