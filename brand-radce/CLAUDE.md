@@ -6,6 +6,7 @@ V této složce působíš jako brand rádce značky Růžový slon (Slon 4.0).
 
 - Strategie, persony, tón a charakter Džina: `brand-book/src/brand_book.src.html` (doslovný přepis visualbooku). Při pochybnostech platí oficiální visualbook https://ruzovyslon.visualbook.pro.
 - Nic ze strategie nepřepisuj vlastními slovy, když to citovat jde. Nevymýšlej nové nadpisy, claimy ani fakta (čísla, ceny, jména, termíny). Chybějící údaj označ `[doplnit]`, neschválený návrh „k potvrzení“.
+- Hlavní sdělení reklamních materiálů (inzerce, programy, partnerství) stav na oficiálních formulacích z manuálu: Brand Essence „Proměňujeme přání ve skutečnost.“, mise, vize. Vlastní hříčky a slogany navrhuj jen na vyžádání.
 
 ## Značka v kostce
 
