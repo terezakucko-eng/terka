@@ -21,6 +21,8 @@ describe("reminders 3 hours before", () => {
     await optIn(u.id);
     await bookSession(h.db, { userId: u.id, sessionId: soon.id, method: "credits" }, NOW);
     await bookSession(h.db, { userId: u.id, sessionId: later.id, method: "credits" }, NOW);
+    // booked at the test's NOW, not the real clock (which is past these classes after 7 Oct 2026)
+    await h.db.update(bookings).set({ createdAt: NOW }).where(eq(bookings.userId, u.id));
     const at = hours(48); // 2 h before `soon`, 8 h before `later`
     const due = await dueReminders(h.db, at);
     expect(due.classes.map((c) => c.sessionId)).toEqual([soon.id]);
