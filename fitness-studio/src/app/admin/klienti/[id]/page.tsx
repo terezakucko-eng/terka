@@ -306,7 +306,12 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
                 <Td><Link href={`/admin/rozvrh/${s.id}`} className="underline-offset-4 hover:underline">{ct.name}</Link></Td>
                 <Td className="whitespace-nowrap">{formatDateTime(s.startsAt)}</Td>
                 <Td>{b.method ? methodLabel[b.method] : "—"}</Td>
-                <Td>{bookingStatusLabel[b.status]}{b.lateCancel && " (pozdě)"}</Td>
+                <Td>
+                  {bookingStatusLabel[b.status]}{b.lateCancel && " (pozdě)"}
+                  {b.status === "cancelled" && b.cancelledAt && (
+                    <span className="block whitespace-nowrap text-xs text-les/50">{formatDateTime(b.cancelledAt)}</span>
+                  )}
+                </Td>
               </tr>
             ))}
           </Table>

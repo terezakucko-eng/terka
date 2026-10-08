@@ -19,7 +19,7 @@ import { getDb } from "@/db";
 import { bookings, users } from "@/db/schema";
 import { formatPrice } from "@/lib/money";
 import { requireStaff } from "@/lib/auth";
-import { formatDay, formatRange, toLocalInput } from "@/lib/dates";
+import { formatDateTime, formatDay, formatRange, toLocalInput } from "@/lib/dates";
 import { activeClassTypes, activeInstructors, sessionDetail } from "@/lib/queries";
 import { Avatar } from "@/components/avatar";
 import { upcomingCelebrations } from "@/lib/profile";
@@ -59,7 +59,10 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
   ]);
   const active = list.filter(({ b }) => !["cancelled", "waitlist"].includes(b.status));
   const waitlist = list.filter(({ b }) => b.status === "waitlist");
-  const cancelled = list.filter(({ b }) => b.status === "cancelled");
+  // latest cancellation first
+  const cancelled = list
+    .filter(({ b }) => b.status === "cancelled")
+    .sort((x, y) => (y.b.cancelledAt?.getTime() ?? 0) - (x.b.cancelledAt?.getTime() ?? 0));
   const isAdmin = staff.role === "admin";
   const myHold = active.find(({ b, u }) => b.isHold && u.id === staff.id)?.b;
   type Row = (typeof list)[number];
@@ -184,7 +187,18 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
             </>
           )}
           {cancelled.length > 0 && (
-            <p className="text-sm text-les/50">Zrušené rezervace: {cancelled.map(({ b, u }) => `${u.name}${b.lateCancel ? " (pozdní storno)" : ""}`).join(", ")}</p>
+            <div className="text-sm text-les/50">
+              <p>Zrušené rezervace:</p>
+              <ul className="mt-1 space-y-0.5">
+                {cancelled.map(({ b, u }) => (
+                  <li key={b.id}>
+                    {u.name}
+                    {b.cancelledAt && <> – zrušeno {formatDateTime(b.cancelledAt)}</>}
+                    {b.lateCancel && " (pozdní storno)"}
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </section>
 
