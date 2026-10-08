@@ -152,6 +152,18 @@ export async function occupancy(tx: Executor, sessionId: string) {
   return r.n;
 }
 
+/** Free spots on the given classes, by id – only upcoming, not cancelled ones are in the map. */
+export async function seatsLeft(tx: Executor, sessionIds: string[], now = new Date()) {
+  if (sessionIds.length === 0) return new Map<string, number>();
+  const rows = await tx
+    .select({ id: classSessions.id, capacity: classSessions.capacity, taken: seatsTaken })
+    .from(classSessions)
+    .leftJoin(bookings, and(eq(bookings.sessionId, classSessions.id), inArray(bookings.status, [...OCCUPYING])))
+    .where(and(inArray(classSessions.id, sessionIds), eq(classSessions.status, "scheduled"), gt(classSessions.startsAt, now)))
+    .groupBy(classSessions.id);
+  return new Map(rows.map((r) => [r.id, Math.max(0, r.capacity - r.taken)]));
+}
+
 async function activeBooking(tx: Executor, userId: string, sessionId: string) {
   const [b] = await tx
     .select()

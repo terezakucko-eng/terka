@@ -119,7 +119,11 @@ export const SECTIONS = {
         hint: "Na šířku 16 : 9 (např. 1600 × 900). Hotový plakát? Nech text prázdný – ukáže se jen obrázek (klik vede na odkaz prvního tlačítka) a pod ním tlačítka.",
       },
       buttonLabel: opt("Text tlačítka", "Chci to"),
-      buttonUrl: t("Kam tlačítko vede", "/cenik", "Stránka webu (/cenik, /rozvrh…) nebo celá adresa https://…"),
+      buttonUrl: t(
+        "Kam tlačítko vede",
+        "/cenik",
+        "Stránka webu (/cenik, /rozvrh…) nebo celá adresa https://…. Vede na konkrétní lekci (/rozvrh/…)? Pod tlačítkem se samo ukáže, kolik na ní zbývá volných míst.",
+      ),
       buttonLabel2: {
         label: "Druhé tlačítko – text (nepovinné)",
         type: "text",
