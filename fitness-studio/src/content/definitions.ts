@@ -443,13 +443,13 @@ Spotřebitel bere na vědomí, že dle § 1837 písm. j) občanského zákoníku
 - Jméno kamarádky, kterou přivedete na lekci (+1) – jen pro evidenci rezervace; jméno nám předáváte se souhlasem dotyčné osoby.
 
 ## Příjemci
-Poskytovatel hostingu a databáze, banka (platby převodem), služby pro odesílání e-mailů, SMS a WhatsApp zpráv. Údaje neprodáváme.
+Poskytovatel hostingu a databáze, banka (platby převodem), platební brána Stripe (platby kartou), Cloudflare (ochrana formulářů před roboty), služby pro odesílání e-mailů, SMS a WhatsApp zpráv. Údaje neprodáváme.
 
 ## Doba uložení
 Po dobu trvání účtu, účetní doklady po dobu stanovenou zákonem.
 
 ## Cookies
-Web používá pouze technicky nezbytnou cookie pro přihlášení. Analytické ani marketingové cookies nepoužíváme.
+Web používá jen technicky nezbytné a funkční cookies a úložiště prohlížeče, ke kterým není potřeba souhlas: cookie pro přihlášení ke klientskému účtu, zapamatování zavřené informační lišty, vyskakovacího okna a nabídky upozornění (aby se znovu nezobrazovaly) a ochranu registračního formuláře před roboty (Cloudflare Turnstile). Platba kartou probíhá na zabezpečené stránce Stripe, která používá vlastní nezbytné cookies. Videa se přehrávají v režimu bez sledování (YouTube nocookie, Vimeo „Do Not Track“). Analytické ani marketingové cookies nepoužíváme.
 
 ## Vaše práva
 Máte právo na přístup, opravu, výmaz, omezení zpracování, přenositelnost a vznesení námitky, a právo podat stížnost u ÚOOÚ. Žádosti posílejte na {{email}}.`,
