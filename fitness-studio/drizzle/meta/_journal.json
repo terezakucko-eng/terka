@@ -302,6 +302,13 @@
       "when": 1791468577939,
       "tag": "0042_popup_last_spots",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1791472284585,
+      "tag": "0043_privacy_cookies",
+      "breakpoints": true
     }
   ]
 }
