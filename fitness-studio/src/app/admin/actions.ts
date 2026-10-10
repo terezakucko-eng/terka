@@ -307,8 +307,17 @@ async function sessionValues(fd: FormData) {
       room: field.optional(fd, "room"),
       title: field.optional(fd, "title"),
       note: field.optional(fd, "note"),
+      bookingOpensAt: opensAtFrom(fd),
     },
   };
+}
+
+/** "Rezervace otevřít od" – empty = the usual booking window. */
+function opensAtFrom(fd: FormData) {
+  const local = field.str(fd, "bookingOpensAt");
+  if (!local) return null;
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(local)) throw new UserError("Neplatné datum otevření rezervací.");
+  return pragueLocalToDate(local);
 }
 
 export async function createSessionsAction(_: FormState, fd: FormData): Promise<FormState> {

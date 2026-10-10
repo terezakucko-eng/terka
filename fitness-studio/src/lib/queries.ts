@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, lt, ne } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lt, lte, max, ne } from "drizzle-orm";
 import type { DB } from "@/db";
 import {
   announcements,
@@ -12,6 +12,15 @@ import { OCCUPYING, seatsTaken } from "@/domain/booking";
 import { sessionName } from "./session-name";
 
 export type ScheduleItem = Awaited<ReturnType<typeof listSessions>>[number];
+
+/** Start of the latest class opened for booking early (brunch…) that lies beyond `from`; null when none. */
+export async function lastEarlyOpenStart(db: DB, from: Date, now = new Date()) {
+  const [r] = await db
+    .select({ last: max(classSessions.startsAt) })
+    .from(classSessions)
+    .where(and(eq(classSessions.status, "scheduled"), lte(classSessions.bookingOpensAt, now), gte(classSessions.startsAt, from)));
+  return r?.last ?? null;
+}
 
 /** Sessions in [from, to) with class, instructor, occupancy and my booking. */
 export async function listSessions(
