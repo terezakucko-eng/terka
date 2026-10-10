@@ -1,13 +1,14 @@
-/** "New on the board" dot in the menu: the newest post the visitor saw is remembered in their browser. */
+/** Red "new posts" badge in the menu: the newest post the visitor saw is remembered in their browser. */
 export const BOARD_SEEN_KEY = "octopush-board-seen";
 export const BOARD_SEEN_EVENT = "octopush-board-seen";
 const FRESH_DAYS = 14;
 
-/** Is there a post the visitor hasn't seen? Someone who never opened the board only gets the dot for a recent post. */
-export function boardHasNew(latest: string | null, seen: string | null, now = new Date()) {
-  const l = latest ? Date.parse(latest) : NaN;
-  if (Number.isNaN(l)) return false;
+/** How many posts the visitor hasn't seen. Someone who never opened the board only counts posts from the last two weeks. */
+export function boardUnread(times: string[], seen: string | null, now = new Date()) {
   const s = seen ? Date.parse(seen) : NaN;
-  if (!Number.isNaN(s)) return l > s;
-  return now.getTime() - l < FRESH_DAYS * 86_400_000;
+  const since = Number.isNaN(s) ? now.getTime() - FRESH_DAYS * 86_400_000 : s;
+  return times.filter((t) => Date.parse(t) > since).length;
 }
+
+/** "3", or "9+" when there are more. */
+export const badgeLabel = (n: number) => (n > 9 ? "9+" : String(n));

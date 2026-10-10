@@ -6,12 +6,12 @@ import { logoutAction } from "@/app/actions/auth";
 import { LogoLink } from "./brand";
 import { CloseMenuOnClick } from "./close-menu-on-click";
 import { buttonClass } from "./ui";
-import { BoardNewDot } from "./board-dot";
+import { BoardBadge } from "./board-dot";
 import { getDb } from "@/db";
-import { latestAnnouncementAt } from "@/lib/queries";
+import { boardPostTimes } from "@/lib/queries";
 
 export async function SiteHeader() {
-  const [user, c, boardLatest] = await Promise.all([getCurrentUser(), getContent(), getDb().then(latestAnnouncementAt)]);
+  const [user, c, boardTimes] = await Promise.all([getCurrentUser(), getContent(), getDb().then((db) => boardPostTimes(db))]);
   const nav = [
     { href: "/rozvrh", label: c("nav.schedule") },
     { href: "/lekce", label: c("nav.classes") },
@@ -33,7 +33,7 @@ export async function SiteHeader() {
           {nav.map((n) => (
             <Link key={n.href} href={n.href} className="eyebrow relative whitespace-nowrap text-papir/75 transition hover:text-zlato-light">
               {n.label}
-              {n.href === "/nastenka" && <BoardNewDot latest={boardLatest} className="absolute -right-2 -top-1.5" />}
+              {n.href === "/nastenka" && <BoardBadge times={boardTimes} className="absolute -right-4 -top-3" />}
             </Link>
           ))}
         </nav>
@@ -47,7 +47,7 @@ export async function SiteHeader() {
           {/* mobile menu without client JS */}
           <details className="group relative xl:hidden">
             <summary className="relative flex size-10 cursor-pointer list-none items-center justify-center rounded-full border border-zlato/30 [&::-webkit-details-marker]:hidden">
-              <BoardNewDot latest={boardLatest} className="absolute right-0.5 top-0.5" />
+              <BoardBadge times={boardTimes} className="absolute -right-1.5 -top-1.5" />
               <Menu className="size-5 group-open:hidden" />
               <X className="hidden size-5 group-open:block" />
               <span className="sr-only">Menu</span>
@@ -60,7 +60,7 @@ export async function SiteHeader() {
                     <li key={n.href}>
                       <Link href={n.href} className="eyebrow flex items-center justify-center gap-2 py-3.5 text-papir/90 hover:text-zlato-light">
                         {n.label}
-                        {n.href === "/nastenka" && <BoardNewDot latest={boardLatest} />}
+                        {n.href === "/nastenka" && <BoardBadge times={boardTimes} />}
                       </Link>
                     </li>
                   ))}
