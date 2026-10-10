@@ -9,8 +9,9 @@ describe("'new posts' badge on the board", () => {
     expect(boardUnread(times, "2026-10-01T10:00:00.000Z", now)).toBe(2);
     expect(boardUnread(times, "2026-10-10T19:00:00.000Z", now)).toBe(0);
   });
-  it("first visit: only posts from the last two weeks count", () => {
-    expect(boardUnread(times, null, now)).toBe(2);
+  it("first visit: just 1, and only for a post from the last two weeks", () => {
+    expect(boardUnread(times, null, now)).toBe(1);
+    expect(boardUnread(["2026-09-01T10:00:00.000Z"], null, now)).toBe(0);
   });
   it("no posts, no badge; big numbers shown as 9+", () => {
     expect(boardUnread([], null, now)).toBe(0);
