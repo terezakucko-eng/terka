@@ -351,6 +351,13 @@
       "when": 1791642275531,
       "tag": "0049_brunch_popup_promo",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1791642512938,
+      "tag": "0050_brunch_popup_text",
+      "breakpoints": true
     }
   ]
 }
