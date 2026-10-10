@@ -344,6 +344,13 @@
       "when": 1791641821107,
       "tag": "0048_brunch_booking_open",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1791642275531,
+      "tag": "0049_brunch_popup_promo",
+      "breakpoints": true
     }
   ]
 }
