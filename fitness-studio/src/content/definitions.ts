@@ -132,6 +132,13 @@ export const SECTIONS = {
         hint: "Stačí jedno tlačítko? Nech druhé tlačítko prázdné (text i odkaz) – ukáže se jen první.",
       },
       buttonUrl2: opt("Druhé tlačítko – kam vede", ""),
+      repeatDay: {
+        label: "Ukázat znovu každý (den v týdnu)",
+        type: "text",
+        default: "",
+        optional: true,
+        hint: "Např. „středa“ – ten den okno vyskočí znovu i těm, kdo ho už zavřeli (jednou za den). Prázdné = každému jen jednou.",
+      },
       showSpots: {
         label: "Ukázat volná místa pod tlačítkem",
         type: "text",

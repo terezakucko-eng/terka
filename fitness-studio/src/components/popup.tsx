@@ -4,6 +4,7 @@ import { getDb } from "@/db";
 import { seatsLeft } from "@/domain/booking";
 import { dateKey } from "@/lib/dates";
 import { pluralCs } from "@/lib/money";
+import { weekdayIndex } from "@/lib/popup-seen";
 import { nbsp } from "@/lib/typography";
 import { ContentImage } from "./content-image";
 import { PopupShell } from "./popup-shell";
@@ -65,7 +66,11 @@ export async function Popup() {
     </div>
   );
   return (
-    <PopupShell id={`${title}|${text}|${image}|${until}|${buttons.map((b) => b.label).join("|")}`} wide={imageOnly}>
+    <PopupShell
+      id={`${title}|${text}|${image}|${until}|${buttons.map((b) => b.label).join("|")}`}
+      wide={imageOnly}
+      repeatDay={weekdayIndex(c("popup.repeatDay"))}
+    >
       {image &&
         (url && buttons.length < 2 ? (
           // the picture is usually the poster itself – a tap on it does what the button does
