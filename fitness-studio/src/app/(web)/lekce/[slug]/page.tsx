@@ -117,7 +117,7 @@ export default async function LessonPage({ params }: PageProps<"/lekce/[slug]">)
             <p className="mt-6 text-sm text-les/60">
               {t.level} · {t.durationMin} min · {credits(t.creditCost)}
               {t.dropInPrice !== null && ` · jednorázově ${formatPrice(t.dropInPrice)}`}
-              {t.firstVisitPrice !== null && ` · první lekce ${formatPrice(t.firstVisitPrice)}`}
+              {t.firstVisitPrice !== null && ` · první lekce${t.firstVisitNewOnly ? " pro nováčky" : ""} ${formatPrice(t.firstVisitPrice)}`}
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <ButtonLink href={`/rozvrh?lekce=${t.slug}`} variant="gold">Termíny v rozvrhu</ButtonLink>

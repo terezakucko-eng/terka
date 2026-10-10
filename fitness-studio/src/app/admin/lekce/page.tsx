@@ -49,6 +49,9 @@ function ClassTypeForm({ t }: { t?: ClassType }) {
           </Field>
           <Field label="Cena první lekce (Kč)" hint="Pro klienta, který na téhle lekci ještě nebyl">
             <Input name="firstVisitPrice" inputMode="decimal" defaultValue={kc(t?.firstVisitPrice)} />
+            <label className="mt-2 flex items-center gap-2 text-xs text-les/70">
+              <input type="checkbox" name="firstVisitNewOnly" defaultChecked={t?.firstVisitNewOnly ?? false} /> jen pro nováčky (ještě nebyli na žádné lekci)
+            </label>
           </Field>
           <Field label="Jednorázově pro dva (Kč)" hint="Klient + kamarádka. Prázdné = 2× jednorázová cena">
             <Input name="duoPrice" inputMode="decimal" defaultValue={kc(t?.duoPrice)} />

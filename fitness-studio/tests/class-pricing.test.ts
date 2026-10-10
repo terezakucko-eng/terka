@@ -74,3 +74,18 @@ describe("brunch: pass holders pay a surcharge on top of the entry", () => {
     expect((await h.db.select().from(bookings).where(eq(bookings.id, cb.id)))[0].surcharge).toBe(0);
   });
 });
+
+describe("intro price for newcomers only (brunch)", () => {
+  it("is offered to someone with no class yet, not to a regular who just hasn't been to this class", async () => {
+    const brunch = await makeSession(h.db, { dropInPrice: 39000, capacity: 8 });
+    await setRules(brunch.classTypeId, { firstVisitPrice: 20000, firstVisitNewOnly: true });
+
+    const newbie = await makeUser(h.db);
+    expect((await bookingOptions(h.db, newbie.id, brunch)).find((o) => o.method === "drop_in")?.label).toMatch(/^První lekce 200\s*Kč$/);
+
+    const regular = await makeUser(h.db, 5);
+    const zumba = await makeSession(h.db);
+    await bookSession(h.db, { userId: regular.id, sessionId: zumba.id, method: "credits" }, NOW);
+    expect((await bookingOptions(h.db, regular.id, brunch)).find((o) => o.method === "drop_in")?.label).toMatch(/^Jednorázový vstup 390\s*Kč$/);
+  });
+});

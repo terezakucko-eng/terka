@@ -103,6 +103,12 @@ export const activeProducts = (db: DB) =>
 export const sellableProducts = (db: DB) =>
   db.select().from(products).where(eq(products.isActive, true)).orderBy(asc(products.sortOrder), asc(products.price));
 
+/** When the newest published board post went up (for the "new" dot in the menu). */
+export async function latestAnnouncementAt(db: DB) {
+  const [r] = await db.select({ at: max(announcements.createdAt) }).from(announcements).where(eq(announcements.isPublished, true));
+  return r?.at ? new Date(r.at).toISOString() : null;
+}
+
 export const publishedAnnouncements = (db: DB, limit = 3) =>
   db
     .select()

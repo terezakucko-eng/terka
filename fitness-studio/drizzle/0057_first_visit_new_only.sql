@@ -1,0 +1,1 @@
+ALTER TABLE "class_types" ADD COLUMN "first_visit_new_only" boolean DEFAULT false NOT NULL;

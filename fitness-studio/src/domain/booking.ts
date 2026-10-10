@@ -239,12 +239,13 @@ async function classRules(tx: Executor, s: ClassSession) {
       noFreeEntry: classTypes.noFreeEntry,
       noPass: classTypes.noPass,
       firstVisitPrice: classTypes.firstVisitPrice,
+      firstVisitNewOnly: classTypes.firstVisitNewOnly,
       passEntries: classTypes.passEntries,
       duoPrice: classTypes.duoPrice,
     })
     .from(classTypes)
     .where(eq(classTypes.id, s.classTypeId));
-  return ct ?? { memberSurcharge: null, memberSurchargeFrom: null, passSurcharge: null, noFreeEntry: false, noPass: false, firstVisitPrice: null, passEntries: 1, duoPrice: null };
+  return ct ?? { memberSurcharge: null, memberSurchargeFrom: null, passSurcharge: null, noFreeEntry: false, noPass: false, firstVisitPrice: null, firstVisitNewOnly: false, passEntries: 1, duoPrice: null };
 }
 type ClassRules = Awaited<ReturnType<typeof classRules>>;
 
@@ -280,7 +281,7 @@ async function duoDropInPriceFor(tx: Executor, userId: string, s: ClassSession, 
   return rules.duoPrice ?? single.price + s.dropInPrice;
 }
 
-/** Drop-in price for this client – the intro price if they've never had this class. */
+/** Drop-in price for this client – the intro price if they've never had this class (or, newcomers only, any class). */
 async function dropInPriceFor(tx: Executor, userId: string, s: ClassSession, rules: ClassRules) {
   if (rules.firstVisitPrice !== null) {
     const [before] = await tx
@@ -290,7 +291,7 @@ async function dropInPriceFor(tx: Executor, userId: string, s: ClassSession, rul
       .where(
         and(
           eq(bookings.userId, userId),
-          eq(classSessions.classTypeId, s.classTypeId),
+          rules.firstVisitNewOnly ? undefined : eq(classSessions.classTypeId, s.classTypeId),
           inArray(bookings.status, ["confirmed", "attended", "no_show", "pending_payment"]),
         ),
       )
