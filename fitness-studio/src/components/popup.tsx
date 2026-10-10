@@ -4,6 +4,7 @@ import { getDb } from "@/db";
 import { seatsLeft } from "@/domain/booking";
 import { dateKey } from "@/lib/dates";
 import { pluralCs } from "@/lib/money";
+import { weekdayIndex } from "@/lib/popup-seen";
 import { nbsp } from "@/lib/typography";
 import { ContentImage } from "./content-image";
 import { PopupShell } from "./popup-shell";
@@ -30,9 +31,10 @@ export async function Popup() {
     { label: c("popup.buttonLabel").trim(), url },
     { label: c("popup.buttonLabel2").trim(), url: c("popup.buttonUrl2").trim() },
   ].filter((b) => b.label && b.url);
-  // a button leading to a class shows how many spots are left – live, so "last spots" is always true
+  // a button leading to a class can show how many spots are left – live, so "last spots" is always true
+  const showSpots = /^(ano|a|yes|1)$/i.test(c("popup.showSpots").trim());
   const sessionOf = (href: string) => href.match(SESSION_URL)?.[1];
-  const ids = buttons.map((b) => sessionOf(b.url)).filter((id): id is string => !!id);
+  const ids = showSpots ? buttons.map((b) => sessionOf(b.url)).filter((id): id is string => !!id) : [];
   const none = new Map<string, number>();
   // the pop-up is on every page – a hiccup here must not take the site down
   const left = ids.length > 0 ? await seatsLeft(await getDb(), ids).catch(() => none) : none;
@@ -64,7 +66,11 @@ export async function Popup() {
     </div>
   );
   return (
-    <PopupShell id={`${title}|${text}|${image}|${until}|${buttons.map((b) => b.label).join("|")}`} wide={imageOnly}>
+    <PopupShell
+      id={`${title}|${text}|${image}|${until}|${buttons.map((b) => b.label).join("|")}`}
+      wide={imageOnly}
+      repeatDay={weekdayIndex(c("popup.repeatDay"))}
+    >
       {image &&
         (url && buttons.length < 2 ? (
           // the picture is usually the poster itself – a tap on it does what the button does

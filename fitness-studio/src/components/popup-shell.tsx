@@ -3,11 +3,25 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
+import { popupDue, seenValue } from "@/lib/popup-seen";
 
 const KEY = "octopush-popup-seen";
 
-/** Shows the pop-up once per visitor (per content version) a moment after the page loads. */
-export function PopupShell({ id, wide, children }: { id: string; wide?: boolean; children: ReactNode }) {
+/**
+ * Shows the pop-up once per visitor (per content version) a moment after the page loads –
+ * and again on `repeatDay` (JS weekday) to those who closed it on an earlier day.
+ */
+export function PopupShell({
+  id,
+  wide,
+  repeatDay = null,
+  children,
+}: {
+  id: string;
+  wide?: boolean;
+  repeatDay?: number | null;
+  children: ReactNode;
+}) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const box = useRef<HTMLDivElement>(null);
@@ -15,19 +29,19 @@ export function PopupShell({ id, wide, children }: { id: string; wide?: boolean;
   useEffect(() => {
     // not on login/registration and payment pages – don't get in the way there
     if (/^\/(prihlaseni|registrace|platba)/.test(pathname)) return;
-    let seen = false;
+    let due = true;
     try {
-      seen = localStorage.getItem(KEY) === id;
+      due = popupDue(localStorage.getItem(KEY), id, repeatDay);
     } catch {}
-    if (seen) return;
+    if (!due) return;
     const timer = setTimeout(() => setOpen(true), 2500);
     return () => clearTimeout(timer);
-  }, [id, pathname]);
+  }, [id, pathname, repeatDay]);
 
   const close = () => {
     setOpen(false);
     try {
-      localStorage.setItem(KEY, id);
+      localStorage.setItem(KEY, seenValue(id));
     } catch {}
   };
 
