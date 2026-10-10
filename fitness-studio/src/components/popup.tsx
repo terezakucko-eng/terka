@@ -30,9 +30,10 @@ export async function Popup() {
     { label: c("popup.buttonLabel").trim(), url },
     { label: c("popup.buttonLabel2").trim(), url: c("popup.buttonUrl2").trim() },
   ].filter((b) => b.label && b.url);
-  // a button leading to a class shows how many spots are left – live, so "last spots" is always true
+  // a button leading to a class can show how many spots are left – live, so "last spots" is always true
+  const showSpots = /^(ano|a|yes|1)$/i.test(c("popup.showSpots").trim());
   const sessionOf = (href: string) => href.match(SESSION_URL)?.[1];
-  const ids = buttons.map((b) => sessionOf(b.url)).filter((id): id is string => !!id);
+  const ids = showSpots ? buttons.map((b) => sessionOf(b.url)).filter((id): id is string => !!id) : [];
   const none = new Map<string, number>();
   // the pop-up is on every page – a hiccup here must not take the site down
   const left = ids.length > 0 ? await seatsLeft(await getDb(), ids).catch(() => none) : none;

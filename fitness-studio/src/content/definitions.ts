@@ -122,7 +122,7 @@ export const SECTIONS = {
       buttonUrl: t(
         "Kam tlačítko vede",
         "/cenik",
-        "Stránka webu (/cenik, /rozvrh…) nebo celá adresa https://…. Vede na konkrétní lekci (/rozvrh/…)? Pod tlačítkem se samo ukáže, kolik na ní zbývá volných míst.",
+        "Stránka webu (/cenik, /rozvrh…) nebo celá adresa https://…. Vede na konkrétní lekci (/rozvrh/…)? Pod tlačítkem můžeš ukázat počet volných míst (pole níže).",
       ),
       buttonLabel2: {
         label: "Druhé tlačítko – text (nepovinné)",
@@ -132,6 +132,13 @@ export const SECTIONS = {
         hint: "Stačí jedno tlačítko? Nech druhé tlačítko prázdné (text i odkaz) – ukáže se jen první.",
       },
       buttonUrl2: opt("Druhé tlačítko – kam vede", ""),
+      showSpots: {
+        label: "Ukázat volná místa pod tlačítkem",
+        type: "text",
+        default: "",
+        optional: true,
+        hint: "Napiš „ano“ a u tlačítka, které vede na lekci (/rozvrh/…), se ukáže, kolik zbývá volných míst. Prázdné = neukazovat.",
+      },
       until: {
         label: "Zobrazovat do (včetně)",
         type: "text",
