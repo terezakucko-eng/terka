@@ -11,7 +11,7 @@ import { HealthCheckbox } from "@/components/health-checkbox";
 import { cardPayments } from "@/lib/payments";
 import { VideoEmbed } from "@/components/video-embed";
 import { Badge, ButtonLink, Card, Container, Eyebrow, cx } from "@/components/ui";
-import { sessionForUser, stateMessage } from "@/domain/booking";
+import { memberSurchargeFor, sessionForUser, stateMessage } from "@/domain/booking";
 import { getCurrentUser } from "@/lib/auth";
 import { formatDay, formatOpens, formatRange } from "@/lib/dates";
 
@@ -55,6 +55,7 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
   const view = (await sessionForUser(db, id, user?.id ?? null, undefined, plus1 === "1" ? 2 : 1))!;
   const { s, ct } = detail;
   const left = Math.max(0, s.capacity - view.occupied);
+  const surcharge = s.isFree ? 0 : memberSurchargeFor(ct, s);
 
   return (
     <section className="bg-forest text-papir">
@@ -72,12 +73,20 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
             </ul>
             {!s.isFree && ct.noPass && (
               <p className="mt-6 rounded-xl border border-zlato/40 bg-zlato/10 p-4 text-zlato-light">
-                Permanentka na tuhle lekci neplatí – zaplatíš kreditem nebo jednorázově.
+                {surcharge > 0 ? (
+                  <>
+                    Permanentka na tuhle lekci neplatí. Členové mají lekci v ceně členství a doplácí jen{" "}
+                    <strong>{formatPrice(surcharge)}</strong>, ostatní zaplatí kreditem nebo jednorázově.
+                  </>
+                ) : (
+                  "Permanentka na tuhle lekci neplatí – zaplatíš kreditem nebo jednorázově."
+                )}
               </p>
             )}
-            {!s.isFree && !ct.noPass && ct.passEntries > 1 && (
+            {!s.isFree && !ct.noPass && (ct.passEntries > 1 || surcharge > 0) && (
               <p className="mt-6 rounded-xl border border-zlato/40 bg-zlato/10 p-4 text-zlato-light">
-                Z permanentky se na tuhle lekci strhnou {ct.passEntries} vstupy.
+                {ct.passEntries > 1 && `Z permanentky se na tuhle lekci strhnou ${ct.passEntries} vstupy. `}
+                {surcharge > 0 && <>Členové doplácí <strong>{formatPrice(surcharge)}</strong>.</>}
               </p>
             )}
             {s.note && <p className="mt-6 rounded-xl border border-zlato/40 bg-zlato/10 p-4 text-zlato-light">{nbsp(s.note)}</p>}
