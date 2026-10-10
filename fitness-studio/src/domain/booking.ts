@@ -229,12 +229,13 @@ async function weeklyUsage(tx: Executor, entitlementId: string, s: ClassSession)
 }
 
 /** Why an entitlement can't pay for this session, or null if it can. */
-/** Per-class-type pricing rules (member surcharge, first visit, free entry). */
+/** Per-class-type pricing rules (member / pass surcharge, first visit, free entry). */
 async function classRules(tx: Executor, s: ClassSession) {
   const [ct] = await tx
     .select({
       memberSurcharge: classTypes.memberSurcharge,
       memberSurchargeFrom: classTypes.memberSurchargeFrom,
+      passSurcharge: classTypes.passSurcharge,
       noFreeEntry: classTypes.noFreeEntry,
       noPass: classTypes.noPass,
       firstVisitPrice: classTypes.firstVisitPrice,
@@ -243,7 +244,7 @@ async function classRules(tx: Executor, s: ClassSession) {
     })
     .from(classTypes)
     .where(eq(classTypes.id, s.classTypeId));
-  return ct ?? { memberSurcharge: null, memberSurchargeFrom: null, noFreeEntry: false, noPass: false, firstVisitPrice: null, passEntries: 1, duoPrice: null };
+  return ct ?? { memberSurcharge: null, memberSurchargeFrom: null, passSurcharge: null, noFreeEntry: false, noPass: false, firstVisitPrice: null, passEntries: 1, duoPrice: null };
 }
 type ClassRules = Awaited<ReturnType<typeof classRules>>;
 
@@ -252,6 +253,16 @@ export function memberSurchargeFor(rules: ClassRules, s: Pick<ClassSession, "sta
   if (!rules.memberSurcharge) return 0;
   if (rules.memberSurchargeFrom && dateKey(s.startsAt) < rules.memberSurchargeFrom) return 0;
   return rules.memberSurcharge;
+}
+
+/** Surcharge for booking with a pass – per seat, on top of the entries (0 = none). */
+export const passSurchargeFor = (rules: Pick<ClassRules, "passSurcharge">, seats = 1) => (rules.passSurcharge ?? 0) * seats;
+
+/** What a booking paid with this method costs on top (members' and pass holders' surcharge). */
+function surchargeFor(method: Method, rules: ClassRules, s: Pick<ClassSession, "startsAt">, seats: number) {
+  if (method === "membership") return memberSurchargeFor(rules, s);
+  if (method === "pass") return passSurchargeFor(rules, seats);
+  return 0;
 }
 
 /** Entries a booking takes from this entitlement: passes may cost more (Reformer = 2), a friend doubles it (free entries too). */
@@ -364,7 +375,6 @@ export async function bookingOptions(
     .orderBy(asc(entitlements.validUntil));
 
   const rules = await classRules(tx, s);
-  const surcharge = memberSurchargeFor(rules, s);
   const rank: Record<ClassKind, number> = { membership: 0, pass: 1, free: 2 };
   // entries tied to another class (e.g. a free Reformer entry) aren't offered here at all
   const classEnts = ents.flatMap((e) =>
@@ -379,11 +389,12 @@ export async function bookingOptions(
         ? "neomezeně"
         : `zbývá ${e.entriesTotal - e.entriesUsed} z ${e.entriesTotal}` +
           (need > 1 ? ` · strhnou se ${need} vstupy` : "");
+    const extra = surchargeFor(methodForKind[e.kind], rules, s, seats);
     opts.push({
       method: methodForKind[e.kind],
       entitlementId: e.id,
       label: e.name,
-      detail: e.kind === "membership" && surcharge ? `${left} · doplatek ${formatPrice(surcharge)} (kartou nebo převodem)` : left,
+      detail: extra ? `${left} · doplatek ${formatPrice(extra)} (kartou nebo převodem)` : left,
       ...(problem ? { disabled: problem } : {}),
     });
   }
@@ -494,7 +505,7 @@ async function charge(
       entriesCharged,
       entitlementId: entId,
       method,
-      surcharge: method === "membership" ? memberSurchargeFor(await classRules(tx, s), s) : 0,
+      surcharge: surchargeFor(method, await classRules(tx, s), s, booking.seats),
     })
     .where(eq(bookings.id, booking.id));
 }

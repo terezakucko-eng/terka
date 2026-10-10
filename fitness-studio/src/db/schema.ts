@@ -76,7 +76,7 @@ export const orderKind = pgEnum("order_kind", [
   "product",
   "drop_in",
   "renewal",
-  "surcharge", // doplatek člena za lekci (bookingId)
+  "surcharge", // doplatek za lekci – členství / permanentka (bookingId)
   "massage", // platba masáže kartou (massageBookingId)
   "membership_fee", // měsíční členský příspěvek (period)
 ]);
@@ -207,6 +207,8 @@ export const classTypes = pgTable("class_types", {
   memberSurcharge: integer("member_surcharge"),
   /** Od kterého dne se doplatek účtuje ("YYYY-MM-DD"); null = hned */
   memberSurchargeFrom: text("member_surcharge_from"),
+  /** Doplatek k permanentce za místo (haléře) – strhne se vstup a doplácí se; null = bez doplatku */
+  passSurcharge: integer("pass_surcharge"),
   /** Úvodní vstup zdarma na tuto lekci nejde použít */
   noFreeEntry: boolean("no_free_entry").notNull().default(false),
   /** Cena první lekce tohoto typu pro klienta, který na ní ještě nebyl (haléře) */

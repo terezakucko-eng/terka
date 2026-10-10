@@ -36,11 +36,13 @@ export default async function PricingPage() {
   ]);
 
   const hasPass = list.some((p) => p.kind === "pass");
-  const multi = types.filter((t) => t.passEntries > 1 && !t.noPass);
+  const multi = types.filter((t) => !t.noPass && (t.passEntries > 1 || !!t.passSurcharge));
+  const passCost = (t: (typeof types)[number]) =>
+    entriesLabel(t.passEntries) + (t.passSurcharge ? ` + doplatek ${formatPrice(t.passSurcharge)}` : "");
   const noPass = types.filter((t) => t.noPass);
   const passNotes = [
     ...(multi.length
-      ? ["Běžná lekce = 1 vstup", ...multi.map((t) => `${t.name} = ${entriesLabel(t.passEntries)}`)]
+      ? ["Běžná lekce = 1 vstup", ...multi.map((t) => `${t.name} = ${passCost(t)}`)]
       : ["1 lekce = 1 vstup"]),
   ];
   const passExclusions = noPass.length ? [`Neplatí na: ${noPass.map((t) => t.name).join(", ")}`] : [];
@@ -128,7 +130,7 @@ export default async function PricingPage() {
                     ? hasPass && <span className="block text-xs">permanentka neplatí</span>
                     : (hasPass || t.passEntries > 1) && (
                         <span className="block text-xs">
-                          permanentka: {entriesLabel(t.passEntries)}
+                          permanentka: {passCost(t)}
                         </span>
                       )}
                   {t.firstVisitPrice !== null && (
