@@ -31,9 +31,9 @@ export async function SiteHeader() {
         <LogoLink />
         <nav className="mx-auto hidden items-center gap-5 xl:flex 2xl:gap-7" aria-label="Hlavní menu">
           {nav.map((n) => (
-            <Link key={n.href} href={n.href} className="eyebrow relative whitespace-nowrap text-papir/75 transition hover:text-zlato-light">
+            <Link key={n.href} href={n.href} className="eyebrow inline-flex items-center gap-1.5 whitespace-nowrap text-papir/75 transition hover:text-zlato-light">
               {n.label}
-              {n.href === "/nastenka" && <BoardBadge times={boardTimes} className="absolute -right-4 -top-3" />}
+              {n.href === "/nastenka" && <BoardBadge times={boardTimes} />}
             </Link>
           ))}
         </nav>
