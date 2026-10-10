@@ -183,7 +183,7 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
       <div className="mt-8 grid gap-6 xl:grid-cols-3">
         <Card>
           <h2 className="font-semibold">Prodej na recepci</h2>
-          <p className="mt-1 text-xs text-les/60">Hotově nebo kartou na terminálu – připíše se okamžitě.</p>
+          <p className="mt-1 text-xs text-les/60">Kartou na terminálu – připíše se okamžitě. Hotovost nepřijímáme.</p>
           <ActionForm action={sellProductAction} className="mt-4 space-y-3">
             <input type="hidden" name="userId" value={u.id} />
             <Select name="productId" required defaultValue="">

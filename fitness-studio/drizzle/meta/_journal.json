@@ -309,6 +309,13 @@
       "when": 1791472284585,
       "tag": "0043_privacy_cookies",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1791636390374,
+      "tag": "0044_cashless",
+      "breakpoints": true
     }
   ]
 }

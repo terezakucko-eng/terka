@@ -363,7 +363,7 @@ Napiš sem, jak studio vzniklo a co pro tebe pohyb znamená.
       info2Title: t("Info 2 – nadpis", "Pořadník"),
       info2Text: ta("Info 2 – text", "Plná lekce? Zapiš se, a když se místo uvolní, automaticky tě přihlásíme a strhneme vstup."),
       info3Title: t("Info 3 – nadpis", "Na recepci"),
-      info3Text: ta("Info 3 – text", "Permanentky, členství i kredit koupíš také hotově nebo kartou přímo ve studiu."),
+      info3Text: ta("Info 3 – text", "Permanentky, členství i kredit koupíš také kartou přímo ve studiu. Hotovost nepřijímáme."),
     },
   },
   auth: {
@@ -406,7 +406,7 @@ Napiš sem, jak studio vzniklo a co pro tebe pohyb znamená.
 - Členství v účtu klienta spravuje studio – o změnu požádej na recepci.
 
 ## 5. Platby
-Online platby zpracovává Stripe Payments Europe, Ltd. Ceny jsou uvedeny v Kč včetně DPH (je-li provozovatel plátcem).
+Platby přijímáme pouze bezhotovostně – kartou (na recepci i online), převodem nebo QR platbou. Hotovost nepřijímáme. Online platby zpracovává Stripe Payments Europe, Ltd. Ceny jsou uvedeny v Kč včetně DPH (je-li provozovatel plátcem).
 
 ## 6. Odstoupení od smlouvy
 Spotřebitel bere na vědomí, že dle § 1837 písm. j) občanského zákoníku nelze odstoupit od smlouvy o využití volného času, je-li plněno v určeném termínu. U permanentek a kreditu lze odstoupit do 14 dnů od nákupu, pokud nebyly čerpány.
