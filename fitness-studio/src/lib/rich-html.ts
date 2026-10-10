@@ -70,6 +70,22 @@ const OPTIONS: sanitizeHtml.IOptions = {
 };
 
 /** Any stored rich text (HTML or legacy markdown) → safe HTML. */
+/** Plain text of stored HTML (push notification body etc.), shortened to `max` characters. */
+export function htmlToText(html: string, max = 140) {
+  const text = html
+    .replace(/<\/(p|li|h2|h3|blockquote)>|<br\s*\/?>/gi, " ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+}
+
 export function toSafeHtml(text: string): string {
   if (!text.trim()) return "";
   return sanitizeHtml(isHtml(text) ? text : legacyToHtml(text), OPTIONS)

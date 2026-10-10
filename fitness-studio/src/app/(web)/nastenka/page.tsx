@@ -14,6 +14,7 @@ import { nbsp } from "@/lib/typography";
 import { RichText } from "@/components/rich-text";
 import { Avatar } from "@/components/avatar";
 import { displayName } from "@/lib/profile";
+import { MarkBoardSeen } from "@/components/board-dot";
 
 export const metadata: Metadata = {
   title: "Nástěnka",
@@ -48,6 +49,7 @@ export default async function BoardPage() {
 
   return (
     <>
+      <MarkBoardSeen latest={posts.length ? new Date(Math.max(...posts.map((p) => +p.createdAt))).toISOString() : null} />
       <PageHeader eyebrow={c("board.eyebrow")} title={c("board.title")}>
         {c("board.intro")}
       </PageHeader>

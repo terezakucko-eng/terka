@@ -1,6 +1,6 @@
 "use server";
 
-import { toSafeHtml } from "@/lib/rich-html";
+import { htmlToText, toSafeHtml } from "@/lib/rich-html";
 import { and, eq, gte, inArray, isNull, lt } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -14,6 +14,7 @@ import {
   instructors,
   orders,
   products,
+  pushSubscriptions,
   users,
 } from "@/db/schema";
 import {
@@ -46,6 +47,8 @@ import { normalizePhone } from "@/lib/phone";
 import { defaultSettings, saveSettings, type Settings } from "@/lib/settings";
 import { cleanBirthDate, cleanNameDay } from "@/lib/profile";
 import { videoEmbedUrl } from "@/lib/video";
+import { pushQuietly } from "@/lib/push";
+import { site } from "@/config/site";
 
 const done = (msg?: string) => {
   revalidatePath("/", "layout");
@@ -101,6 +104,7 @@ export async function saveClassTypeAction(_: FormState, fd: FormData): Promise<F
       memberSurchargeFrom: isDateKey(field.str(fd, "memberSurchargeFrom")) ? field.str(fd, "memberSurchargeFrom") : null,
       passSurcharge: field.money(fd, "passSurcharge") || null,
       firstVisitPrice: field.money(fd, "firstVisitPrice"),
+      firstVisitNewOnly: field.bool(fd, "firstVisitNewOnly"),
       duoPrice: field.money(fd, "duoPrice"),
       noFreeEntry: field.bool(fd, "noFreeEntry"),
       noPass: field.bool(fd, "noPass"),
@@ -254,10 +258,19 @@ export async function saveAnnouncementAction(_: FormState, fd: FormData): Promis
       isPinned: field.bool(fd, "isPinned"),
       isPublished: field.bool(fd, "isPublished"),
     };
-    const id = field.str(fd, "id");
+    let id = field.str(fd, "id");
     if (id) await db.update(announcements).set(values).where(eq(announcements.id, id));
-    else await db.insert(announcements).values(values);
-    return done("Aktualita uložena.");
+    else id = (await db.insert(announcements).values(values).returning({ id: announcements.id }))[0].id;
+    if (!values.isPublished || !field.bool(fd, "notify")) return done("Aktualita uložena.");
+    // push to everyone who turned notifications on, opening the post on the board
+    const ids = [...new Set((await db.select({ userId: pushSubscriptions.userId }).from(pushSubscriptions)).map((r) => r.userId))];
+    if (!ids.length) return done("Aktualita uložena. Upozornění si zatím nikdo nezapnul.");
+    const sent = await pushQuietly(db, ids, {
+      title: values.title.slice(0, 80),
+      body: htmlToText(values.body) || "Novinka na nástěnce",
+      url: `${site.url}/nastenka#${id}`,
+    });
+    return done(sent ? `Aktualita uložena a upozornění odešlo (příjemců: ${ids.length}).` : "Aktualita uložena, upozornění se ale nepodařilo odeslat.");
   });
 }
 

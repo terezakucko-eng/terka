@@ -213,6 +213,8 @@ export const classTypes = pgTable("class_types", {
   noFreeEntry: boolean("no_free_entry").notNull().default(false),
   /** Cena první lekce tohoto typu pro klienta, který na ní ještě nebyl (haléře) */
   firstVisitPrice: integer("first_visit_price"),
+  /** Cena první lekce jen pro nováčky – kdo u nás ještě nebyl na žádné lekci */
+  firstVisitNewOnly: boolean("first_visit_new_only").notNull().default(false),
   /** Kolik vstupů se strhne z permanentky (např. Reformer = 2) */
   passEntries: integer("pass_entries").notNull().default(1),
   /** Permanentka na tuto lekci neplatí (např. individuální trénink) */

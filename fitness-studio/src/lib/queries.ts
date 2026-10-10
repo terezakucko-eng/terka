@@ -103,6 +103,17 @@ export const activeProducts = (db: DB) =>
 export const sellableProducts = (db: DB) =>
   db.select().from(products).where(eq(products.isActive, true)).orderBy(asc(products.sortOrder), asc(products.price));
 
+/** When the newest published board posts went up (for the "new posts" badge in the menu). */
+export async function boardPostTimes(db: DB, limit = 20) {
+  const rows = await db
+    .select({ at: announcements.createdAt })
+    .from(announcements)
+    .where(eq(announcements.isPublished, true))
+    .orderBy(desc(announcements.createdAt))
+    .limit(limit);
+  return rows.map((r) => new Date(r.at).toISOString());
+}
+
 export const publishedAnnouncements = (db: DB, limit = 3) =>
   db
     .select()
