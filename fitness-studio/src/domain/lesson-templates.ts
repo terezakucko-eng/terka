@@ -196,7 +196,7 @@ export const LESSON_TEMPLATES: LessonTemplate[] = [
     keywords: "fitness brunch Ostrava, cvičení a snídaně, zdravá snídaně, matcha, brunch Ostrava, víkendové cvičení, cvičení s kamarádkou, akce pro ženy",
     durationMin: 120,
     capacity: 8,
-    note: "Doporučení: jednorázově 390 Kč, pro dva 690 Kč, členové doplatek 150 Kč (jen suroviny), permanentka 1 vstup + doplatek 170 Kč, úvodní vstup zdarma neplatí.",
+    note: "Doporučení: jednorázově 390 Kč, pro dva 690 Kč, členové doplatek 150 Kč (jen suroviny), permanentka 1 vstup + doplatek 150 Kč, úvodní vstup zdarma neplatí.",
   },
   {
     name: "Tabata",
