@@ -3,7 +3,7 @@ import { cardPayments } from "@/lib/payments";
 import { formatPrice } from "@/lib/money";
 import { ActionForm, SubmitButton } from "./forms";
 
-/** Unpaid member surcharge: pay by card online or get the transfer details. */
+/** Unpaid surcharge (membership / pass): pay by card online or get the transfer details. */
 export function SurchargePay({ bookingId, amount, compact }: { bookingId: string; amount: number; compact?: boolean }) {
   const card = cardPayments();
   return (

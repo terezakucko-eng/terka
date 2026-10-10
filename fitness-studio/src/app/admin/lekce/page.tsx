@@ -44,6 +44,9 @@ function ClassTypeForm({ t }: { t?: ClassType }) {
           <Field label="Doplatek platí od" hint="Prázdné = hned">
             <Input name="memberSurchargeFrom" type="date" defaultValue={t?.memberSurchargeFrom ?? ""} />
           </Field>
+          <Field label="Doplatek k permanentce (Kč / místo)" hint="Strhnou se vstupy a klient doplatí tuhle částku. Prázdné = bez doplatku">
+            <Input name="passSurcharge" inputMode="decimal" defaultValue={kc(t?.passSurcharge)} />
+          </Field>
           <Field label="Cena první lekce (Kč)" hint="Pro klienta, který na téhle lekci ještě nebyl">
             <Input name="firstVisitPrice" inputMode="decimal" defaultValue={kc(t?.firstVisitPrice)} />
           </Field>

@@ -1,0 +1,1 @@
+ALTER TABLE "class_types" ADD COLUMN "pass_surcharge" integer;

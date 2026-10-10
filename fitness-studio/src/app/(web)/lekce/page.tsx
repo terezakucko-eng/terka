@@ -53,7 +53,8 @@ export default async function ClassesPage() {
                 {t.firstVisitPrice !== null && ` · první lekce ${formatPrice(t.firstVisitPrice)}`}
                 {t.noPass
                   ? hasPass && " · permanentka neplatí"
-                  : (hasPass || t.passEntries > 1) && ` · permanentka: ${entriesLabel(t.passEntries)}`}
+                  : (hasPass || t.passEntries > 1) &&
+                    ` · permanentka: ${entriesLabel(t.passEntries)}${t.passSurcharge ? ` + doplatek ${formatPrice(t.passSurcharge)}` : ""}`}
                 {t.noFreeEntry && " · úvodní vstup zdarma na tuto lekci neplatí"}
               </p>
               {t.memberSurcharge !== null && t.memberSurcharge > 0 && (

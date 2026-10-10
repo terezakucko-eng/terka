@@ -49,3 +49,28 @@ describe("reformer pricing rules", () => {
     expect(opts2.find((o) => o.method === "drop_in")?.label).toMatch(/^Jednorázový vstup 220\s*Kč$/);
   });
 });
+
+describe("brunch: pass holders pay a surcharge on top of the entry", () => {
+  it("takes the entries and adds the surcharge per seat; members keep their own surcharge", async () => {
+    const s = await makeSession(h.db, { capacity: 8 });
+    await setRules(s.classTypeId, { passSurcharge: 17000, memberSurcharge: 15000 });
+    const u = await makeUser(h.db);
+    const pass = await grantEntitlement(h.db, { userId: u.id, kind: "pass", name: "Permanentka 10", entries: 10, validityDays: 60 }, NOW);
+
+    expect((await bookingOptions(h.db, u.id, s)).find((o) => o.method === "pass")?.detail).toMatch(/zbývá 10 z 10 · doplatek 170\s*Kč/);
+    expect((await bookingOptions(h.db, u.id, s, 2)).find((o) => o.method === "pass")?.detail).toMatch(/doplatek 340\s*Kč/);
+    const { booking } = await bookSession(h.db, { userId: u.id, sessionId: s.id, method: "pass", entitlementId: pass.id, guestName: "Petra" }, NOW);
+    const [b] = await h.db.select().from(bookings).where(eq(bookings.id, booking.id));
+    expect([b.seats, b.entriesCharged, b.surcharge]).toEqual([2, 2, 34000]);
+
+    const m = await makeUser(h.db);
+    const membership = await grantEntitlement(h.db, { userId: m.id, kind: "membership", name: "Členství", entries: null, validityDays: 30 }, NOW);
+    const { booking: mb } = await bookSession(h.db, { userId: m.id, sessionId: s.id, method: "membership", entitlementId: membership.id }, NOW);
+    expect((await h.db.select().from(bookings).where(eq(bookings.id, mb.id)))[0].surcharge).toBe(15000);
+
+    // credits pay the full price – nothing on top
+    const c = await makeUser(h.db, 1000);
+    const { booking: cb } = await bookSession(h.db, { userId: c.id, sessionId: s.id, method: "credits" }, NOW);
+    expect((await h.db.select().from(bookings).where(eq(bookings.id, cb.id)))[0].surcharge).toBe(0);
+  });
+});

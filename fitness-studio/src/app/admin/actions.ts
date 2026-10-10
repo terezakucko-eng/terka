@@ -99,6 +99,7 @@ export async function saveClassTypeAction(_: FormState, fd: FormData): Promise<F
       level: field.str(fd, "level") || "Pro všechny",
       memberSurcharge: field.money(fd, "memberSurcharge") || null,
       memberSurchargeFrom: isDateKey(field.str(fd, "memberSurchargeFrom")) ? field.str(fd, "memberSurchargeFrom") : null,
+      passSurcharge: field.money(fd, "passSurcharge") || null,
       firstVisitPrice: field.money(fd, "firstVisitPrice"),
       duoPrice: field.money(fd, "duoPrice"),
       noFreeEntry: field.bool(fd, "noFreeEntry"),

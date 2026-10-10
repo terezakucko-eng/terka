@@ -304,7 +304,7 @@ async function openOrder(tx: Executor, where: ReturnType<typeof and>) {
   return o ?? null;
 }
 
-/** Member surcharge (Reformer, Individuál) paid online – by card or bank transfer. */
+/** Member / pass surcharge (Reformer, brunch…) paid online – by card or bank transfer. */
 export async function createSurchargeOrder(db: Executor, input: { userId: string; bookingId: string }) {
   const [row] = await db
     .select({ b: bookings, s: classSessions, typeName: sessionNameSql })

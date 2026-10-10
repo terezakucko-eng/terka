@@ -11,13 +11,13 @@ import { HealthCheckbox } from "@/components/health-checkbox";
 import { cardPayments } from "@/lib/payments";
 import { VideoEmbed } from "@/components/video-embed";
 import { Badge, ButtonLink, Card, Container, Eyebrow, cx } from "@/components/ui";
-import { memberSurchargeFor, sessionForUser, stateMessage } from "@/domain/booking";
+import { memberSurchargeFor, passSurchargeFor, sessionForUser, stateMessage } from "@/domain/booking";
 import { getCurrentUser } from "@/lib/auth";
 import { formatDay, formatOpens, formatRange } from "@/lib/dates";
 
 /** "5. 10." already ends the sentence, "5. 10. v 18:00" needs its full stop */
 const endSentence = (s: string) => (s.endsWith(".") ? s : `${s}.`);
-import { credits, formatPrice } from "@/lib/money";
+import { credits, entriesLabel, formatPrice } from "@/lib/money";
 import { sessionDetail } from "@/lib/queries";
 import { getContent } from "@/content";
 import { nbsp } from "@/lib/typography";
@@ -56,6 +56,7 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
   const { s, ct } = detail;
   const left = Math.max(0, s.capacity - view.occupied);
   const surcharge = s.isFree ? 0 : memberSurchargeFor(ct, s);
+  const passSurcharge = s.isFree || ct.noPass ? 0 : passSurchargeFor(ct);
 
   return (
     <section className="bg-forest text-papir">
@@ -83,10 +84,21 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
                 )}
               </p>
             )}
-            {!s.isFree && !ct.noPass && (ct.passEntries > 1 || surcharge > 0) && (
+            {!s.isFree && !ct.noPass && (ct.passEntries > 1 || surcharge > 0 || passSurcharge > 0) && (
               <p className="mt-6 rounded-xl border border-zlato/40 bg-zlato/10 p-4 text-zlato-light">
-                {ct.passEntries > 1 && `Z permanentky se na tuhle lekci strhnou ${ct.passEntries} vstupy. `}
-                {surcharge > 0 && <>Členové doplácí <strong>{formatPrice(surcharge)}</strong>.</>}
+                {surcharge > 0 && (
+                  <>
+                    Členové mají lekci v ceně členství a doplácí jen <strong>{formatPrice(surcharge)}</strong>.{" "}
+                  </>
+                )}
+                {passSurcharge > 0 ? (
+                  <>
+                    S permanentkou se {ct.passEntries > 1 && ct.passEntries < 5 ? "strhnou" : "strhne"} {entriesLabel(ct.passEntries)} a doplácí se{" "}
+                    <strong>{formatPrice(passSurcharge)}</strong>.
+                  </>
+                ) : (
+                  ct.passEntries > 1 && `Z permanentky se na tuhle lekci strhnou ${ct.passEntries} vstupy.`
+                )}
               </p>
             )}
             {s.note && <p className="mt-6 rounded-xl border border-zlato/40 bg-zlato/10 p-4 text-zlato-light">{nbsp(s.note)}</p>}

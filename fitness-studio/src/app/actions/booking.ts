@@ -113,7 +113,7 @@ export async function buyProductAction(_: FormState, fd: FormData): Promise<Form
   return res;
 }
 
-/** Member surcharge (Reformer, Individuál) – pay by card online or by bank transfer. */
+/** Member / pass surcharge (Reformer, brunch…) – pay by card online or by bank transfer. */
 export async function paySurchargeAction(_: FormState, fd: FormData): Promise<FormState> {
   const user = await requireUser("/ucet");
   let url: string | null = null;
