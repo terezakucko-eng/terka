@@ -247,6 +247,8 @@ export const classSessions = pgTable(
     /** Vlastní název termínu (např. „Dýňový brunch“); null = název lekce */
     title: text("title"),
     note: text("note"),
+    /** Rezervace otevřít už od (akce, brunch…); null = podle běžného rezervačního okna */
+    bookingOpensAt: timestamp("booking_opens_at", { withTimezone: true }),
     status: sessionStatus("status").notNull().default("scheduled"),
     seriesId: uuid("series_id"),
     createdAt: createdAt(),

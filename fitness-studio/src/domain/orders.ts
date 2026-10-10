@@ -356,7 +356,7 @@ export async function createMassageOrder(db: Executor, input: { userId: string; 
   return order;
 }
 
-/** Reception sale – cash or card terminal, delivered immediately. */
+/** Reception sale – already paid (e.g. by transfer), delivered immediately. */
 export async function sellAtReception(
   db: DB,
   input: { userId: string; productId: string },

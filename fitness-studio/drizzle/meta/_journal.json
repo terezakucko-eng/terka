@@ -309,6 +309,55 @@
       "when": 1791472284585,
       "tag": "0043_privacy_cookies",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1791636390374,
+      "tag": "0044_cashless",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1791637501718,
+      "tag": "0045_payment_online_only",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1791641424824,
+      "tag": "0046_brunch_barre",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1791641799475,
+      "tag": "0047_session_booking_opens",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1791641821107,
+      "tag": "0048_brunch_booking_open",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1791642275531,
+      "tag": "0049_brunch_popup_promo",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1791642512938,
+      "tag": "0050_brunch_popup_text",
+      "breakpoints": true
     }
   ]
 }

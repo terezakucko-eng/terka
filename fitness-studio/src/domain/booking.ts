@@ -60,8 +60,11 @@ export function windowOf(cfg: Settings, member: boolean): BookingWindow {
   return { kind: "days", n: member ? Math.max(cfg.memberBookingWindowDays, cfg.bookingWindowDays) : cfg.bookingWindowDays };
 }
 
-/** When booking opens for a class under the given window. */
-export function bookingOpensAt(s: Pick<ClassSession, "startsAt">, w: BookingWindow) {
+type OpensInput = Pick<ClassSession, "startsAt"> & { bookingOpensAt?: Date | null };
+
+/** When booking opens for a class under the given window (a class can set its own date, e.g. a brunch). */
+export function bookingOpensAt(s: OpensInput, w: BookingWindow) {
+  if (s.bookingOpensAt) return s.bookingOpensAt;
   if (w.kind === "days") return new Date(s.startsAt.getTime() - w.n * DAY);
   return pragueLocalToDate(`${addDays(mondayOf(dateKey(s.startsAt)), -7 * w.n)}T00:00`);
 }
@@ -70,7 +73,7 @@ export function bookingOpensAt(s: Pick<ClassSession, "startsAt">, w: BookingWind
  * For a class this viewer can't book yet: when it opens for them, and whether
  * members can already book it (→ "Pro členy už teď · ostatní od 5. 10.").
  */
-export function opensFor(s: Pick<ClassSession, "startsAt">, mine: BookingWindow, cfg: Settings, now: Date) {
+export function opensFor(s: OpensInput, mine: BookingWindow, cfg: Settings, now: Date) {
   const at = bookingOpensAt(s, mine);
   if (at <= now) return null;
   return { at, membersNow: bookingOpensAt(s, windowOf(cfg, true)) <= now };
@@ -994,7 +997,8 @@ export async function sessionForUser(
     cfg,
     /** not_open: when this viewer can book; members' earlier start when they have a longer window */
     opensAt: bookingOpensAt(s, window),
-    memberOpensAt: sameWindow(windowOf(cfg, true), windowOf(cfg, false)) ? null : bookingOpensAt(s, windowOf(cfg, true)),
+    memberOpensAt:
+      s.bookingOpensAt || sameWindow(windowOf(cfg, true), windowOf(cfg, false)) ? null : bookingOpensAt(s, windowOf(cfg, true)),
     isMemberWindow: !sameWindow(windowOf(cfg, true), windowOf(cfg, false)) && sameWindow(window, windowOf(cfg, true)),
   };
 }

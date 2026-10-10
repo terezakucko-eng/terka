@@ -1,4 +1,5 @@
 import type { ClassSession, ClassType, Instructor } from "@/db/schema";
+import { toLocalInput } from "@/lib/dates";
 import { Field, Input, Select, Textarea } from "./ui";
 
 const kc = (h: number | null | undefined) => (h === null || h === undefined ? "" : String(h / 100));
@@ -45,6 +46,11 @@ export function SessionFields({
         <input type="checkbox" name="isFree" defaultChecked={s?.isFree} className="size-4 accent-[#674329]" />
         Lekce zdarma pro všechny
       </label>
+      <div className="sm:col-span-2">
+        <Field label="Rezervace otevřít od" hint="Prázdné = jako obvykle podle rezervačního okna. Vyplň, když chceš akci (brunch…) otevřít dřív.">
+          <Input name="bookingOpensAt" type="datetime-local" defaultValue={s?.bookingOpensAt ? toLocalInput(s.bookingOpensAt) : ""} />
+        </Field>
+      </div>
       <div className="sm:col-span-2">
         <Field label="Vlastní název termínu" hint="Prázdné = název lekce. Např. „Dýňový brunch“.">
           <Input name="title" defaultValue={s?.title ?? ""} />
