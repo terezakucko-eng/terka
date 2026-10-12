@@ -1,8 +1,9 @@
 import { randomInt } from "node:crypto";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import type { Executor } from "@/db";
 import { insuranceConfirmations, orders, products, type Order, type User } from "@/db/schema";
 import { dateKey } from "@/lib/dates";
+import { UserError } from "@/lib/errors";
 
 /**
  * Potvrzení pro zdravotní pojišťovnu: zaplacené pohybové aktivity klienta
@@ -65,8 +66,12 @@ async function newCode(db: Executor) {
  * The year's confirmation with its verification code. Downloading it again
  * with nothing changed reuses the earlier code (and issue date); a new payment
  * or a changed name gives a new one. Null when nothing was paid that year.
+ * Without the birth date (the insurance company identifies people by it)
+ * there is no confirmation.
  */
 export async function issueConfirmation(db: Executor, user: Pick<User, "id" | "name" | "birthDate">, year: number) {
+  const birthDate = user.birthDate;
+  if (!birthDate) throw new UserError("Bez data narození potvrzení vystavit nejde.");
   const { items, total } = await insurancePayments(db, user.id, year);
   if (!items.length) return null;
   const c = insuranceConfirmations;
@@ -80,7 +85,7 @@ export async function issueConfirmation(db: Executor, user: Pick<User, "id" | "n
         eq(c.total, total),
         eq(c.payments, items.length),
         eq(c.name, user.name),
-        user.birthDate ? eq(c.birthDate, user.birthDate) : isNull(c.birthDate),
+        eq(c.birthDate, birthDate),
       ),
     )
     .orderBy(desc(c.createdAt))
@@ -90,10 +95,10 @@ export async function issueConfirmation(db: Executor, user: Pick<User, "id" | "n
     (
       await db
         .insert(c)
-        .values({ code: await newCode(db), userId: user.id, year, name: user.name, birthDate: user.birthDate, total, payments: items.length })
+        .values({ code: await newCode(db), userId: user.id, year, name: user.name, birthDate, total, payments: items.length })
         .returning()
     )[0];
-  return { confirmation, items, total };
+  return { confirmation, items, total, birthDate };
 }
 
 /**
@@ -122,3 +127,14 @@ export async function hasConfirmation(db: Executor, userId: string) {
     .limit(1);
   return !!row;
 }
+
+/**
+ * What the client can no longer change in the profile: the name once a
+ * confirmation exists, the birth date only once it is also filled in – an
+ * empty one (e.g. the studio downloaded the confirmation first) can still be
+ * added, after that the studio changes it.
+ */
+export const profileLocks = (confirmed: boolean, birthDate: string | null) => ({
+  name: confirmed,
+  birthDate: confirmed && !!birthDate,
+});

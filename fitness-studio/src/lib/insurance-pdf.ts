@@ -10,7 +10,7 @@ import { formatPrice } from "@/lib/money";
 /** Everything printed on the insurance confirmation (A4 PDF). */
 export type ConfirmationDoc = {
   provider: { company: string; ico: string; address: string; city: string; email: string; phone: string; web: string };
-  client: { name: string; birthDate: string | null };
+  client: { name: string; birthDate: string };
   year: number;
   items: { date: Date; description: string; amount: number }[];
   total: number;
@@ -138,12 +138,7 @@ export async function confirmationPdf(doc: ConfirmationDoc) {
 
   section("Klient");
   pair("Jméno a příjmení", doc.client.name);
-  if (doc.client.birthDate) pair("Datum narození", czDate(doc.client.birthDate));
-  else {
-    text("Datum narození", M, 10, { color: MUTED });
-    page.drawLine({ start: { x: KX, y: y - 2 }, end: { x: KX + 150, y: y - 2 }, thickness: 0.8, color: INK });
-    y -= 15;
-  }
+  pair("Datum narození", czDate(doc.client.birthDate));
 
   section("Aktivita");
   pair("Druh aktivity", "pohybové aktivity – skupinové cvičení pod vedením lektora");
