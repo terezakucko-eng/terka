@@ -1,6 +1,7 @@
+import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { orders } from "@/db/schema";
-import { findConfirmation, formatCode, insurancePayments, insuranceYears, issueConfirmation } from "@/domain/insurance";
+import { findConfirmation, formatCode, hasConfirmation, insurancePayments, insuranceYears, issueConfirmation } from "@/domain/insurance";
 import { recordPastFees } from "@/domain/membership-fees";
 import { NOW, makeProduct, makeUser, testDb } from "./helpers";
 
@@ -70,5 +71,20 @@ describe("confirmation codes", () => {
     expect((await findConfirmation(h.db, typed))?.id).toBe(b.confirmation.id);
     expect(await findConfirmation(h.db, "AAAA-AAAA")).toBeNull();
     expect(await findConfirmation(h.db, "x")).toBeNull();
+  });
+});
+
+describe("anti-fraud", () => {
+  it("locks the profile after a confirmation and flags later refunds", async () => {
+    const u = await makeUser(h.db);
+    await recordPastFees(h.db, { userId: u.id, from: "2026-03", to: "2026-04", amountKc: 1000 }, NOW);
+    expect(await hasConfirmation(h.db, u.id)).toBe(false);
+    const issued = (await issueConfirmation(h.db, { ...u, birthDate: "1985-01-02" }, 2026))!;
+    expect(await hasConfirmation(h.db, u.id)).toBe(true);
+    expect((await findConfirmation(h.db, issued.confirmation.code))?.paidNow).toBe(200000);
+    await h.db.update(orders).set({ status: "refunded" }).where(eq(orders.id, issued.items[0].id));
+    const after = (await findConfirmation(h.db, issued.confirmation.code))!;
+    expect(after.total).toBe(200000);
+    expect(after.paidNow).toBe(100000);
   });
 });

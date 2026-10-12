@@ -53,6 +53,11 @@ export default async function VerifyPage({ searchParams }: PageProps<"/overeni">
               <dt className="text-les/60">Vystaveno</dt>
               <dd className="font-semibold">{formatDate(row.createdAt)}</dd>
             </dl>
+            {row.paidNow < row.total && (
+              <p className="mt-4 rounded-xl bg-[#e5372f]/10 p-3 text-sm font-semibold text-[#b3261e]">
+                Pozor: část plateb byla po vystavení vrácena. Za rok {row.year} je teď uhrazeno {formatPrice(row.paidNow)}.
+              </p>
+            )}
             <p className="mt-4 text-xs text-les/60">Údaje musí souhlasit s předloženým dokladem.</p>
           </Card>
         ) : (

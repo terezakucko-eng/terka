@@ -96,10 +96,29 @@ export async function issueConfirmation(db: Executor, user: Pick<User, "id" | "n
   return { confirmation, items, total };
 }
 
-/** The issued confirmation behind a code, for the public check on /overeni. */
+/**
+ * The issued confirmation behind a code, for the public check on /overeni.
+ * `paidNow` is what the client has paid for that year today – lower than the
+ * confirmed total means a payment was refunded after the confirmation.
+ */
 export async function findConfirmation(db: Executor, input: string) {
   const code = normalizeCode(input);
   if (code.length !== 8) return null;
   const [row] = await db.select().from(insuranceConfirmations).where(eq(insuranceConfirmations.code, code));
-  return row ?? null;
+  if (!row) return null;
+  return { ...row, paidNow: (await insurancePayments(db, row.userId, row.year)).total };
+}
+
+/**
+ * Once a confirmation exists, the name and birth date on it can't be changed
+ * by the client any more (only by the studio) – nobody can issue one for
+ * somebody else.
+ */
+export async function hasConfirmation(db: Executor, userId: string) {
+  const [row] = await db
+    .select({ id: insuranceConfirmations.id })
+    .from(insuranceConfirmations)
+    .where(eq(insuranceConfirmations.userId, userId))
+    .limit(1);
+  return !!row;
 }
