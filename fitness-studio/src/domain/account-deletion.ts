@@ -7,6 +7,7 @@ import {
   campaignMessages,
   classSessions,
   entitlements,
+  insuranceConfirmations,
   massageBookings,
   orders,
   passwordResets,
@@ -111,6 +112,7 @@ export async function deleteOwnAccount(db: DB, userId: string, now = new Date())
     await tx.delete(announcementReactions).where(eq(announcementReactions.userId, userId));
     await tx.delete(campaignMessages).where(eq(campaignMessages.userId, userId));
     await tx.delete(reviews).where(eq(reviews.userId, userId));
+    await tx.delete(insuranceConfirmations).where(eq(insuranceConfirmations.userId, userId));
     await tx
       .update(entitlements)
       .set({ status: "cancelled" })

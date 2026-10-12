@@ -33,6 +33,7 @@ import { deleteOwnAccount } from "@/domain/account-deletion";
 import { notifyPromoted } from "@/lib/notify";
 import { getContent } from "@/content";
 import { sendMail } from "@/lib/mail";
+import { hasConfirmation } from "@/domain/insurance";
 
 /** Only allow local redirects after login. */
 function safeNext(v: string) {
@@ -159,9 +160,12 @@ export async function resetPasswordAction(_: FormState, fd: FormData): Promise<F
 export async function updateProfileAction(_: FormState, fd: FormData): Promise<FormState> {
   const user = await requireUser();
   const res = await attempt(async () => {
-    const name = field.str(fd, "name");
+    const db = await getDb();
+    // after an insurance confirmation, name and birth date are changed by the studio only
+    const locked = await hasConfirmation(db, user.id);
+    const name = locked ? user.name : field.str(fd, "name");
     if (name.length < 2) throw new UserError("Vyplň jméno.");
-    await (await getDb())
+    await db
       .update(users)
       .set({
         name,
@@ -170,7 +174,7 @@ export async function updateProfileAction(_: FormState, fd: FormData): Promise<F
         smsConsent: field.bool(fd, "sms"),
         whatsappConsent: field.bool(fd, "whatsapp"),
         nickname: field.str(fd, "nickname").slice(0, 30) || null,
-        birthDate: cleanBirthDate(field.str(fd, "birthDate")),
+        birthDate: locked ? user.birthDate : cleanBirthDate(field.str(fd, "birthDate")),
         nameDay: cleanNameDay(field.int(fd, "nameDayDay"), field.int(fd, "nameDayMonth")),
         remindersOptIn: field.bool(fd, "reminders"),
         bookingEmails: field.bool(fd, "bookingEmails"),

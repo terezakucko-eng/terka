@@ -15,6 +15,10 @@ import {
   adminCancelBookingAction,
 } from "@/app/admin/actions";
 import { adminCancelMassageAction } from "@/app/admin/massage-actions";
+import { recordPastFeesAction } from "@/app/admin/fee-actions";
+import { insuranceYears } from "@/domain/insurance";
+import { currentPeriod, shiftPeriod } from "@/domain/membership-fees";
+import { getSettings } from "@/lib/settings";
 import { AdminTitle, Stat, Table, Td } from "@/components/admin";
 import { Avatar } from "@/components/avatar";
 import { MONTHS, formatDayMonth } from "@/lib/profile";
@@ -49,7 +53,7 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
     sellableProducts(db),
     activeClassTypes(db),
   ]);
-  const [[{ n: pushDevices }], sunPasses, sunUses, massages] = await Promise.all([
+  const [[{ n: pushDevices }], sunPasses, sunUses, massages, insuranceYrs, cfg] = await Promise.all([
     db.select({ n: count() }).from(pushSubscriptions).where(eq(pushSubscriptions.userId, u.id)),
     solariumPasses(db, u.id),
     recentSolariumUses(db, u.id, 5),
@@ -58,12 +62,17 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
       .from(massageBookings)
       .where(and(eq(massageBookings.userId, u.id), eq(massageBookings.status, "confirmed"), gt(massageBookings.endsAt, new Date())))
       .orderBy(asc(massageBookings.startsAt)),
+    insuranceYears(db, u.id),
+    getSettings(db),
   ]);
   const sunLeft = sunPasses.reduce((s, p) => s + p.left, 0);
   const now = new Date();
   const attended = past.filter(({ b }) => b.status === "attended").length;
   const strikes = await memberStrikes(db, u.id, now);
   const paused = u.bookingPausedUntil && u.bookingPausedUntil > now ? u.bookingPausedUntil : null;
+  const ownFee = ents.find((e) => e.kind === "membership" && e.monthlyFee)?.monthlyFee;
+  const feeKc = ownFee ? ownFee / 100 : cfg.membershipMonthlyFee || undefined;
+  const thisMonth = currentPeriod(now);
 
   return (
     <>
@@ -240,6 +249,35 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
             </Field>
             <Field label="Název" hint="Prázdné = podle typu a lekce, např. „Vstup zdarma – Reformer“"><Input name="name" placeholder="např. Dárek k narozeninám" /></Field>
             <SubmitButton className="w-full">Přidělit</SubmitButton>
+          </ActionForm>
+        </Card>
+        <Card>
+          <h2 className="font-semibold">Potvrzení pro pojišťovnu</h2>
+          <p className="mt-1 text-xs text-les/60">
+            Zaplacené členství, permanentky, kredit a vstupy za rok. Klient si ho stáhne sám v účtu (až má vyplněné datum narození).
+            {!u.birthDate && " Datum narození chybí – v PDF bude prázdná linka."}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {insuranceYrs.length ? (
+              insuranceYrs.map((y) => (
+                <a key={y} href={`/api/potvrzeni?rok=${y}&klient=${u.id}`} className="rounded-full border border-linka px-4 py-2 text-xs font-semibold hover:border-les">
+                  Stáhnout {y} (PDF)
+                </a>
+              ))
+            ) : (
+              <span className="text-sm text-les/60">Zatím žádné zaplacené platby.</span>
+            )}
+          </div>
+          <ActionForm action={recordPastFeesAction} resetOnSuccess={false} className="mt-5 space-y-3 border-t border-linka pt-4">
+            <input type="hidden" name="userId" value={u.id} />
+            <p className="text-sm font-semibold">Zapsat starší platby za členství</p>
+            <p className="text-xs text-les/60">Měsíce zaplacené mimo web (před jeho spuštěním, hotově). Zapíšou se jako zaplacené; měsíce s platbou nebo výzvou se přeskočí.</p>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Od měsíce"><Input name="from" type="month" required defaultValue={`${thisMonth.slice(0, 4)}-01`} max={thisMonth} /></Field>
+              <Field label="Do měsíce"><Input name="to" type="month" required defaultValue={shiftPeriod(thisMonth, -1)} max={thisMonth} /></Field>
+            </div>
+            <Field label="Částka za měsíc (Kč)"><Input name="amount" type="number" min={1} required defaultValue={feeKc} /></Field>
+            <SubmitButton variant="outline" className="w-full">Zapsat jako zaplacené</SubmitButton>
           </ActionForm>
         </Card>
       </div>

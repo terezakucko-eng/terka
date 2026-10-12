@@ -414,6 +414,13 @@
       "when": 1791661382154,
       "tag": "0058_brunch_intro_newcomers",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1791810526588,
+      "tag": "0059_insurance_confirmations",
+      "breakpoints": true
     }
   ]
 }

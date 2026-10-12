@@ -10,6 +10,8 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/story/\\[id\\]": ["./assets/fonts/**/*", "./public/brand/*.svg"],
     "/api/karta": ["./assets/fonts/**/*", "./public/brand/*.svg"],
+    // insurance confirmation PDF
+    "/api/potvrzeni": ["./assets/fonts/**/*", "./public/brand/*.svg"],
   },
   // browser-side hardening: HTTPS only, no framing (clickjacking), no MIME sniffing
   async headers() {

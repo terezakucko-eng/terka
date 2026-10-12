@@ -1,9 +1,11 @@
 import { changePasswordAction, deleteAccountAction, updateAvatarAction, updateProfileAction } from "@/app/actions/auth";
 import { deletionCheck } from "@/domain/account-deletion";
+import { hasConfirmation } from "@/domain/insurance";
 import { credits } from "@/lib/money";
 import { Avatar } from "@/components/avatar";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { ImageInput } from "@/components/image-input";
+import Link from "next/link";
 import { Card, Field, Input, Select } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
 import { getDb } from "@/db";
@@ -13,10 +15,11 @@ import { InstallButton } from "@/components/install-button";
 import { MONTHS, OCTO_AVATARS, parseAvatar } from "@/lib/profile";
 import { PasswordInput } from "@/components/password-input";
 
-export default async function ProfilePage() {
+export default async function ProfilePage({ searchParams }: PageProps<"/ucet/profil">) {
+  const { pojistovna } = await searchParams;
   const user = await requireUser("/ucet/profil");
   const db = await getDb();
-  const [{ publicKey }, deletion] = await Promise.all([vapidKeys(db), deletionCheck(db, user.id)]);
+  const [{ publicKey }, deletion, locked] = await Promise.all([vapidKeys(db), deletionCheck(db, user.id), hasConfirmation(db, user.id)]);
   const current = parseAvatar(user.avatar);
   const [nameDayMonth, nameDayDay] = user.nameDay?.split("-").map(Number) ?? [];
   const pickClass =
@@ -24,6 +27,18 @@ export default async function ProfilePage() {
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
+      {pojistovna && (
+        <Card className="border-zlato/60 bg-zlato/10 lg:col-span-2">
+          <p className="font-semibold">Potvrzení pro zdravotní pojišťovnu</p>
+          <p className="mt-1 text-sm text-les/70">
+            {user.birthDate ? (
+              <>Datum narození máš vyplněné. Potvrzení si stáhneš v <Link href="/ucet#pojistovna" className="underline underline-offset-4">Můj účet</Link>.</>
+            ) : (
+              "Pojišťovna potřebuje tvé datum narození. Doplň ho níže v osobních údajích (Narozeniny) a ulož – pak si potvrzení stáhneš v Můj účet."
+            )}
+          </p>
+        </Card>
+      )}
       <Card className="lg:col-span-2">
         <h2 className="text-xl font-semibold">Profilovka</h2>
         <ActionForm action={updateAvatarAction} resetOnSuccess={false} className="mt-5 flex flex-col gap-6 sm:flex-row sm:items-start">
@@ -64,18 +79,23 @@ export default async function ProfilePage() {
           </div>
         </ActionForm>
       </Card>
-      <Card>
+      <Card id="osobni-udaje">
         <h2 className="text-xl font-semibold">Osobní údaje</h2>
         <ActionForm action={updateProfileAction} resetOnSuccess={false} className="mt-5 space-y-4">
           <Field label="E-mail" hint="E-mail změní recepce."><Input value={user.email} disabled /></Field>
-          <Field label="Jméno a příjmení"><Input name="name" defaultValue={user.name} required /></Field>
+          <Field label="Jméno a příjmení" hint={locked ? "Je na potvrzení pro pojišťovnu – změní ho recepce." : undefined}>
+            <Input name="name" defaultValue={user.name} required disabled={locked} />
+          </Field>
           <Field label="Přezdívka" hint="Nepovinné. Uvidí ji ostatní na nástěnce místo tvého jména.">
             <Input name="nickname" maxLength={30} defaultValue={user.nickname ?? ""} />
           </Field>
           <Field label="Telefon"><Input name="phone" type="tel" defaultValue={user.phone ?? ""} /></Field>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Narozeniny" hint="Nepovinné – ať ti můžeme popřát.">
-              <Input name="birthDate" type="date" max={new Date().toISOString().slice(0, 10)} defaultValue={user.birthDate ?? ""} />
+            <Field
+              label="Narozeniny"
+              hint={locked ? "Je na potvrzení pro pojišťovnu – změní ho recepce." : "Nepovinné – ať ti můžeme popřát. Potřebné na potvrzení pro pojišťovnu."}
+            >
+              <Input name="birthDate" type="date" max={new Date().toISOString().slice(0, 10)} defaultValue={user.birthDate ?? ""} disabled={locked} />
             </Field>
             <Field label="Svátek" hint="Nepovinné.">
               <div className="flex gap-2">

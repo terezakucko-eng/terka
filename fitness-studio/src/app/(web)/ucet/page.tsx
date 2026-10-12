@@ -13,6 +13,7 @@ import { formatDate, formatDay, formatRange, formatTime } from "@/lib/dates";
 import { credits, formatPrice } from "@/lib/money";
 import { SurchargePay } from "@/components/surcharge-pay";
 import { openFees } from "@/domain/membership-fees";
+import { insuranceYears } from "@/domain/insurance";
 import { payOrderAction } from "@/app/actions/booking";
 import { cardPayments } from "@/lib/payments";
 import { WelcomeTour } from "@/components/welcome-tour";
@@ -27,7 +28,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
   const user = await requireUser("/ucet");
   const db = await getDb();
   const fees = await openFees(db, user.id);
-  const [upcoming, ents, massages, unpaid, visits, review, content] = await Promise.all([
+  const [upcoming, ents, massages, unpaid, visits, review, content, insuranceYrs] = await Promise.all([
     userBookings(db, user.id, "upcoming"),
     userEntitlements(db, user.id, true),
     db
@@ -53,6 +54,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
       .then(([r]) => r.n),
     myReview(db, user.id),
     getContent(),
+    insuranceYears(db, user.id),
   ]);
   // regulars who haven't written a review yet get a gentle nudge
   const google = content.googleReviewUrl;
@@ -199,6 +201,35 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
               </a>
             )}
             <ButtonLink href="/recenze" variant="outline" className="px-5 py-2.5">Napsat recenzi sem</ButtonLink>
+          </span>
+        </section>
+      )}
+
+      {insuranceYrs.length > 0 && (
+        <section id="pojistovna" className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-linka/60 bg-krem/40 p-5">
+          <p className="max-w-2xl">
+            <span className="block font-semibold">Potvrzení pro zdravotní pojišťovnu</span>
+            <span className="text-sm text-les/70">
+              Pojišťovny přispívají na pohyb. Stáhni si potvrzení o zaplaceném členství a lekcích – platí elektronicky bez razítka, pojišťovna si
+              ho ověří kódem. Když bude chtít razítko a podpis, vytiskni si ho a přines do studia.
+            </span>
+          </p>
+          <span className="flex flex-wrap gap-2">
+            {user.birthDate ? (
+              insuranceYrs.map((y) => (
+                <a
+                  key={y}
+                  href={`/api/potvrzeni?rok=${y}`}
+                  className="rounded-full bg-les px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-papir"
+                >
+                  Stáhnout {y} (PDF)
+                </a>
+              ))
+            ) : (
+              <ButtonLink href="/ucet/profil?pojistovna=1#osobni-udaje" variant="outline" className="px-5 py-2.5">
+                Doplnit datum narození
+              </ButtonLink>
+            )}
           </span>
         </section>
       )}
