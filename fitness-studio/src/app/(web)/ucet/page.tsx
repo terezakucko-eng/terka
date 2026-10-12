@@ -210,8 +210,9 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
           <p className="max-w-2xl">
             <span className="block font-semibold">Potvrzení pro zdravotní pojišťovnu</span>
             <span className="text-sm text-les/70">
-              Pojišťovny přispívají na pohyb. Stáhni si potvrzení o zaplaceném členství a lekcích – platí elektronicky bez razítka, pojišťovna si
-              ho ověří kódem. Když bude chtít razítko a podpis, vytiskni si ho a přines do studia.
+              Pojišťovny přispívají na pohyb. Stáhni si potvrzení o zaplaceném cvičení – členství, permanentkách, kreditu i jednotlivých
+              lekcích. Platí elektronicky bez razítka, pojišťovna si ho ověří kódem. Když bude chtít razítko a podpis, vytiskni si ho a přines
+              do studia.
             </span>
           </p>
           <span className="flex flex-wrap gap-2">
