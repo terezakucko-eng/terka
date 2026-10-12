@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { orders } from "@/db/schema";
-import { findConfirmation, formatCode, hasConfirmation, insurancePayments, insuranceYears, issueConfirmation } from "@/domain/insurance";
+import { findConfirmation, formatCode, hasConfirmation, insurancePayments, insuranceYears, issueConfirmation, profileLocks } from "@/domain/insurance";
 import { recordPastFees } from "@/domain/membership-fees";
 import { NOW, makeProduct, makeUser, testDb } from "./helpers";
 
@@ -57,15 +57,18 @@ describe("insurance confirmation", () => {
 describe("confirmation codes", () => {
   it("reuses the code while nothing changes and verifies typed codes", async () => {
     const u = await makeUser(h.db);
-    expect(await issueConfirmation(h.db, { ...u, birthDate: null }, 2026)).toBeNull();
+    const born = { ...u, birthDate: "1990-03-12" };
+    expect(await issueConfirmation(h.db, born, 2026)).toBeNull();
     await recordPastFees(h.db, { userId: u.id, from: "2026-01", to: "2026-02", amountKc: 1000 }, NOW);
-    const a = (await issueConfirmation(h.db, { ...u, birthDate: null }, 2026))!;
+    await expect(issueConfirmation(h.db, { ...u, birthDate: null }, 2026)).rejects.toThrow("Bez data narození");
+    expect(await hasConfirmation(h.db, u.id)).toBe(false);
+    const a = (await issueConfirmation(h.db, born, 2026))!;
     expect(a.total).toBe(200000);
     expect(a.confirmation.code).toMatch(/^[A-Z2-9]{8}$/);
-    expect((await issueConfirmation(h.db, { ...u, birthDate: null }, 2026))!.confirmation.code).toBe(a.confirmation.code);
-    const b = (await issueConfirmation(h.db, { ...u, birthDate: "1990-03-12" }, 2026))!;
+    expect((await issueConfirmation(h.db, born, 2026))!.confirmation.code).toBe(a.confirmation.code);
+    const b = (await issueConfirmation(h.db, { ...u, birthDate: "1990-03-13" }, 2026))!;
     expect(b.confirmation.code).not.toBe(a.confirmation.code);
-    expect(b.confirmation.birthDate).toBe("1990-03-12");
+    expect(b.confirmation.birthDate).toBe("1990-03-13");
 
     const typed = ` ${formatCode(b.confirmation.code).toLowerCase()} `;
     expect((await findConfirmation(h.db, typed))?.id).toBe(b.confirmation.id);
@@ -86,5 +89,14 @@ describe("anti-fraud", () => {
     const after = (await findConfirmation(h.db, issued.confirmation.code))!;
     expect(after.total).toBe(200000);
     expect(after.paidNow).toBe(100000);
+  });
+});
+
+describe("profile locks", () => {
+  it("keeps an empty birth date fillable after the studio issued a confirmation", () => {
+    expect(profileLocks(false, null)).toEqual({ name: false, birthDate: false });
+    expect(profileLocks(false, "1990-03-12")).toEqual({ name: false, birthDate: false });
+    expect(profileLocks(true, null)).toEqual({ name: true, birthDate: false });
+    expect(profileLocks(true, "1990-03-12")).toEqual({ name: true, birthDate: true });
   });
 });

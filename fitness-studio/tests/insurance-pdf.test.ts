@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { confirmationPdf } from "@/lib/insurance-pdf";
 
 const months = ["leden", "únor", "březen", "duben", "květen", "červen", "červenec", "srpen", "září"];
-const doc = (n: number, birthDate: string | null) => ({
+const doc = (n: number, birthDate = "1990-03-12") => ({
   provider: { company: "MOVE IN ZONE s.r.o.", ico: "06593674", address: "Pospolitá 699/16, 700 30 Ostrava", city: "Ostrava", email: "ahoj@octopush.fit", phone: "+420 724 443 766", web: "https://www.octopush.fit" },
   client: { name: "Martina Paulík", birthDate },
   year: 2026,
@@ -25,12 +25,12 @@ describe("insurance confirmation PDF", () => {
     const one = await confirmationPdf(doc(9, "1990-03-12"));
     if (process.env.PDF_OUT) {
       await writeFile(`${process.env.PDF_OUT}/a.pdf`, one);
-      await writeFile(`${process.env.PDF_OUT}/b.pdf`, await confirmationPdf(doc(14, null)));
-      await writeFile(`${process.env.PDF_OUT}/c.pdf`, await confirmationPdf(doc(60, null)));
+      await writeFile(`${process.env.PDF_OUT}/b.pdf`, await confirmationPdf(doc(14)));
+      await writeFile(`${process.env.PDF_OUT}/c.pdf`, await confirmationPdf(doc(60)));
     }
     expect(Buffer.from(one.slice(0, 5)).toString()).toBe("%PDF-");
     expect(await pages(one)).toBe(1);
-    expect(await pages(await confirmationPdf(doc(14, null)))).toBe(1);
-    expect(await pages(await confirmationPdf(doc(60, null)))).toBeGreaterThan(1);
+    expect(await pages(await confirmationPdf(doc(14)))).toBe(1);
+    expect(await pages(await confirmationPdf(doc(60)))).toBeGreaterThan(1);
   });
 });

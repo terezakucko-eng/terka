@@ -40,6 +40,10 @@ export async function GET(req: Request) {
     // the insurance company needs it – ask for it first
     redirect("/ucet/profil?pojistovna=1#osobni-udaje");
   }
+  if (!user.birthDate)
+    return new Response("Klient nemá vyplněné datum narození – bez něj potvrzení vystavit nejde. Doplní si ho v profilu na webu.", {
+      status: 409,
+    });
 
   const issued = await issueConfirmation(db, user, year);
   if (!issued) return new Response(`Za rok ${year} tu nejsou žádné zaplacené lekce ani členství.`, { status: 404 });
@@ -55,7 +59,7 @@ export async function GET(req: Request) {
       phone: c.raw("site.phone"),
       web: site.url,
     },
-    client: { name: user.name, birthDate: user.birthDate },
+    client: { name: user.name, birthDate: issued.birthDate },
     year,
     items: issued.items,
     total: issued.total,

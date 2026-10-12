@@ -254,11 +254,12 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
         <Card>
           <h2 className="font-semibold">Potvrzení pro pojišťovnu</h2>
           <p className="mt-1 text-xs text-les/60">
-            Zaplacené členství, permanentky, kredit a vstupy za rok. Klient si ho stáhne sám v účtu (až má vyplněné datum narození).
-            {!u.birthDate && " Datum narození chybí – v PDF bude prázdná linka."}
+            Zaplacené členství, permanentky, kredit a vstupy za rok. Klient si ho stáhne sám v účtu, jakmile má v profilu datum narození.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            {insuranceYrs.length ? (
+            {!u.birthDate ? (
+              <span className="text-sm text-les/60">Bez data narození potvrzení vystavit nejde – klient si ho doplní v profilu.</span>
+            ) : insuranceYrs.length ? (
               insuranceYrs.map((y) => (
                 <a key={y} href={`/api/potvrzeni?rok=${y}&klient=${u.id}`} className="rounded-full border border-linka px-4 py-2 text-xs font-semibold hover:border-les">
                   Stáhnout {y} (PDF)
