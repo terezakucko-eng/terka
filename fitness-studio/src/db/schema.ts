@@ -325,6 +325,30 @@ export const orders = pgTable(
   ],
 );
 
+/**
+ * Vydaná potvrzení pro zdravotní pojišťovnu. Kód z dokladu ověří kdokoli na
+ * /overeni – doklad tak platí i bez razítka a podpisu.
+ */
+export const insuranceConfirmations = pgTable(
+  "insurance_confirmations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** "7KQ4M2PX" – na dokladu jako 7KQ4-M2PX */
+    code: text("code").notNull().unique(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    year: integer("year").notNull(),
+    name: text("name").notNull(),
+    birthDate: text("birth_date"),
+    /** Celkem uhrazeno v haléřích */
+    total: integer("total").notNull(),
+    payments: integer("payments").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("insurance_confirmations_user_idx").on(t.userId, t.year)],
+);
+
 export const entitlements = pgTable(
   "entitlements",
   {
@@ -701,6 +725,7 @@ export type ClassSession = typeof classSessions.$inferSelect;
 export type Instructor = typeof instructors.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type Order = typeof orders.$inferSelect;
+export type InsuranceConfirmation = typeof insuranceConfirmations.$inferSelect;
 export type Entitlement = typeof entitlements.$inferSelect;
 export type Booking = typeof bookings.$inferSelect;
 export type Announcement = typeof announcements.$inferSelect;

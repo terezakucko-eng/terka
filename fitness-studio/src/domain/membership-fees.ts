@@ -163,3 +163,51 @@ export async function openFees(db: Executor, userId: string) {
     .orderBy(orders.period);
 }
 
+
+/**
+ * Records membership fees paid before the web (cash, transfers outside the
+ * system) as paid orders, one per month, so the payment history and the
+ * insurance confirmation are complete. Months that already have a fee are
+ * skipped. Returns the number of months recorded.
+ */
+export async function recordPastFees(
+  db: Executor,
+  input: { userId: string; from: string; to: string; amountKc: number },
+  now = new Date(),
+) {
+  if (!isPeriod(input.from) || !isPeriod(input.to) || input.from > input.to) throw new UserError("Zkontroluj měsíce od–do.");
+  if (input.to > currentPeriod(now)) throw new UserError("Zapsat jde jen měsíce, které už začaly.");
+  const amount = Math.round(input.amountKc * 100);
+  if (!(amount > 0)) throw new UserError("Zadej částku za měsíc.");
+  const periods: string[] = [];
+  for (let p = input.from; p <= input.to; p = shiftPeriod(p, 1)) periods.push(p);
+  if (periods.length > 24) throw new UserError("Najednou jde zapsat nejvýš 24 měsíců.");
+  const existing = await db
+    .select({ period: orders.period })
+    .from(orders)
+    .where(
+      and(
+        eq(orders.userId, input.userId),
+        eq(orders.kind, "membership_fee"),
+        inArray(orders.period, periods),
+        inArray(orders.status, ["pending", "paid"]),
+      ),
+    );
+  const has = new Set(existing.map((o) => o.period));
+  const todo = periods.filter((p) => !has.has(p));
+  if (todo.length) {
+    await db.insert(orders).values(
+      todo.map((p) => ({
+        userId: input.userId,
+        kind: "membership_fee" as const,
+        period: p,
+        description: `Členský příspěvek – ${periodLabel(p)}`,
+        amount,
+        status: "paid" as const,
+        provider: "manual",
+        paidAt: pragueLocalToDate(`${p}-01T12:00`),
+      })),
+    );
+  }
+  return { recorded: todo.length, skipped: periods.length - todo.length };
+}
