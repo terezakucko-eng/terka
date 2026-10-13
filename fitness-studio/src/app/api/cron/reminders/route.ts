@@ -5,7 +5,7 @@ import { formatDay, formatTime } from "@/lib/dates";
 import { sendEmail } from "@/lib/email-templates";
 import { greetName } from "@/lib/vocative";
 import { pushQuietly } from "@/lib/push";
-import { sendGreetings, sendWinbacks } from "@/lib/notify";
+import { sendGreetings, sendReferralThanks, sendWinbacks } from "@/lib/notify";
 import { pragueHour } from "@/lib/dates";
 
 export const maxDuration = 60;
@@ -59,5 +59,6 @@ export async function GET(req: Request) {
   const hour = pragueHour(now);
   const greetings = hour >= 9 && hour < 21 ? await sendGreetings(db, now) : null;
   const winbacks = hour >= 10 && hour < 18 ? await sendWinbacks(db, now) : 0;
-  return Response.json({ classes: done.classes.length, massages: done.massages.length, greetings, winbacks });
+  const referralThanks = hour >= 8 && hour < 21 ? await sendReferralThanks(db, now) : 0;
+  return Response.json({ classes: done.classes.length, massages: done.massages.length, greetings, winbacks, referralThanks });
 }

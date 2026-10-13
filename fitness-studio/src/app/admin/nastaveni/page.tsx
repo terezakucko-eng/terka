@@ -32,6 +32,8 @@ const fields: { key: keyof Settings; label: string; hint: string; section?: stri
   { key: "birthdayGreetings", label: "Přání k narozeninám a svátku", hint: "1 = posílat (e-mail a upozornění v mobilu dopoledne v den oslavy), 0 = vypnuto.", section: "Přání a dárky" },
   { key: "birthdayGiftEntries", label: "Dárek k narozeninám – lekcí zdarma", hint: "0 = jen přání." },
   { key: "birthdayGiftValidityDays", label: "Platnost dárku k narozeninám (dní)", hint: "" },
+  { key: "referralGiftEntries", label: "Pozvi kamarádku – lekcí zdarma za pozvání", hint: "Dostane ten, kdo pozval, po prvním nákupu kamarádky. 0 = vypnuto (sekce v účtu se skryje)." },
+  { key: "referralGiftValidityDays", label: "Platnost lekce za pozvání (dní)", hint: "" },
   { key: "winbackDays", label: "„Chybíš nám“ po kolika dnech bez lekce", hint: "Jen klientům se souhlasem s novinkami, kteří nic nemají rezervováno – jednou za každou pauzu. 0 = vypnuto." },
 ];
 

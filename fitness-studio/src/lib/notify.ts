@@ -14,6 +14,8 @@ import { pushQuietly } from "./push";
 import { sendMail } from "./mail";
 import { WISH_KINDS } from "@/domain/wishes";
 import { dueGreetings, dueWinbacks, greetBirthday, markNameDay, markWinback } from "@/domain/greetings";
+import { markAnnounced, unannouncedRewards } from "@/domain/referrals";
+import { displayName } from "./profile";
 import { getSettings } from "./settings";
 import { unsubscribeUrl } from "./links";
 
@@ -192,6 +194,33 @@ export async function sendWinbacks(db: DB, now = new Date()) {
   for (const u of await dueWinbacks(db, cfg.winbackDays, now)) {
     await markWinback(db, u.id, now);
     await sendEmail(u.email, "winback", { osloveni: greetName(u.name), odkaz: `${site.url}/rozvrh`, odhlasit: unsubscribeUrl(u.token) });
+    sent++;
+  }
+  return sent;
+}
+
+/** Thanks the client whose invited friend paid for the first time (the gift is already on the account). */
+export async function sendReferralThanks(db: DB, now = new Date()) {
+  const due = await unannouncedRewards(db);
+  if (!due.length) return 0;
+  const people = await db
+    .select({ id: users.id, email: users.email, name: users.name, nickname: users.nickname })
+    .from(users)
+    .where(inArray(users.id, [...new Set(due.flatMap(({ r }) => [r.referrerId, r.friendId]))]));
+  const byId = new Map(people.map((p) => [p.id, p]));
+  let sent = 0;
+  for (const { r, until } of due) {
+    await markAnnounced(db, r.id, now);
+    const who = byId.get(r.referrerId);
+    const friend = byId.get(r.friendId);
+    if (!who || !until) continue;
+    await sendEmail(who.email, "referralReward", {
+      osloveni: greetName(who.name),
+      kamaradka: friend ? displayName(friend) : "Tvoje kamarádka",
+      platnost: formatDate(until),
+      odkaz: `${site.url}/rozvrh`,
+    });
+    await pushQuietly(db, [who.id], { title: "Díky za pozvání! 💛", body: "Na účtu máš lekci zdarma.", url: `${site.url}/ucet` });
     sent++;
   }
   return sent;

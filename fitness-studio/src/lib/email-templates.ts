@@ -238,6 +238,18 @@ export const EMAILS = {
       odhlasit: { label: "odkaz na odhlášení novinek", sample: `${site.url}/o/…` },
     },
   },
+  referralReward: {
+    title: "Odměna za pozvání kamarádky",
+    when: "Když kamarádka pozvaná přes osobní odkaz poprvé něco zaplatí (do čtvrt hodiny).",
+    subject: "Díky za pozvání, {{osloveni}}! 💛",
+    body: "Ahoj {{osloveni}},\n\n{{kamaradka}} u nás má za sebou první nákup – díky za pozvání! 💛\nJako poděkování máš na účtu lekci zdarma, platí do {{platnost}}. Vyber si ji v rozvrhu: {{odkaz}}\n\nTvoje OCTOPUSH 🐙",
+    vars: {
+      osloveni,
+      kamaradka: { label: "jméno pozvané kamarádky", sample: "Jana" },
+      platnost: { label: "do kdy platí lekce zdarma", sample: "12. 12. 2026" },
+      odkaz: { label: "odkaz na rozvrh", sample: `${site.url}/rozvrh` },
+    },
+  },
   signature: {
     title: "Podpis pod každým e-mailem",
     when: "Připojí se na konec všech automatických e-mailů (hromadné zprávy mají vlastní patičku).",

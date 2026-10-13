@@ -11,12 +11,15 @@ import { PasswordInput } from "@/components/password-input";
 import { HONEYPOT, STAMP, formStamp } from "@/lib/bot-guard";
 import { turnstileSiteKey } from "@/lib/turnstile";
 import { TurnstileWidget } from "@/components/turnstile";
+import { referrerByCode } from "@/domain/referrals";
 
 export const metadata: Metadata = { title: "Registrace" };
 
 export default async function RegisterPage({ searchParams }: PageProps<"/registrace">) {
-  const { next } = await searchParams;
-  const [cfg, c] = await Promise.all([getSettings(await getDb()), getContent()]);
+  const { next, pozvanka } = await searchParams;
+  const db = await getDb();
+  const code = typeof pozvanka === "string" ? pozvanka : "";
+  const [cfg, c, referrer] = await Promise.all([getSettings(db), getContent(), code ? referrerByCode(db, code) : null]);
   const turnstileKey = turnstileSiteKey();
   return (
     <>
@@ -25,8 +28,14 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registr
       {cfg.welcomeFreeEntries > 0 && (
         <p className="mt-3 text-les/70">{c("auth.registerText")}</p>
       )}
+      {referrer && (
+        <p className="mt-4 rounded-2xl bg-zlato/15 p-4 text-sm">
+          💛 Zve tě <strong>{referrer.name}</strong>. Vítej – {cfg.welcomeFreeEntries > 0 ? "první lekci máš u nás zdarma." : "těšíme se na tebe."}
+        </p>
+      )}
       <ActionForm action={registerAction} className="mt-8 space-y-4">
         <input type="hidden" name="next" value={typeof next === "string" ? next : ""} />
+        {referrer && <input type="hidden" name="pozvanka" value={code} />}
         <input type="hidden" name={STAMP} value={formStamp()} />
         {/* bots fill every field; people never see this one */}
         <div aria-hidden className="absolute -left-[9999px] h-0 w-0 overflow-hidden">

@@ -23,7 +23,10 @@ import { vocative } from "@/lib/vocative";
 import { myReview } from "@/domain/reviews";
 import { getContent } from "@/content";
 import { feedLinks } from "@/lib/ics";
-import { CopyButton } from "@/components/copy-button";
+import { CopyButton, ShareButton } from "@/components/copy-button";
+import { myReferrals } from "@/domain/referrals";
+import { getSettings } from "@/lib/settings";
+import { site } from "@/config/site";
 import { resetCalendarAction } from "@/app/actions/calendar";
 
 export default async function AccountPage({ searchParams }: PageProps<"/ucet">) {
@@ -59,6 +62,8 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
     getContent(),
     insuranceYears(db, user.id),
   ]);
+  const [cfg, invited] = await Promise.all([getSettings(db), myReferrals(db, user.id)]);
+  const invite = `${site.url}/pozvanka/${user.referralCode}`;
   // regulars who haven't written a review yet get a gentle nudge
   const google = content.googleReviewUrl;
   const askReview = user.role === "client" && visits >= 3 && !review;
@@ -191,6 +196,32 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
           ))}
         </div>
       </section>
+
+      {cfg.referralGiftEntries > 0 && user.role === "client" && (
+        <section id="pozvi" className="rounded-2xl border border-zlato/50 bg-zlato/10 p-5">
+          <p className="font-semibold">👯 Pozvi kamarádku</p>
+          <p className="mt-1 max-w-2xl text-sm text-les/70">
+            Pošli kamarádce svůj odkaz.{cfg.welcomeFreeEntries > 0 && " Ona má první lekci zdarma"}
+            {cfg.welcomeFreeEntries > 0 ? ", a jakmile" : " Jakmile"} si u nás poprvé něco zaplatí, dostaneš{" "}
+            {cfg.referralGiftEntries === 1 ? "lekci" : `${cfg.referralGiftEntries} lekce`} zdarma i ty (platí {cfg.referralGiftValidityDays} dní).
+          </p>
+          <p className="mt-3 break-all text-sm font-semibold text-zeme">{invite}</p>
+          <span className="mt-3 flex flex-wrap gap-2">
+            <ShareButton url={invite} text="Pojď si se mnou zacvičit do OCTOPUSH – první lekce je zdarma 🐙" className="px-5 py-2.5" />
+            <CopyButton text={invite} className="px-5 py-2.5" />
+          </span>
+          {invited.length > 0 && (
+            <ul className="mt-4 space-y-1 text-sm">
+              {invited.map((f) => (
+                <li key={f.id}>
+                  {f.rewarded ? "✅" : "⏳"} <strong>{f.name}</strong> –{" "}
+                  {f.rewarded ? "už u nás cvičí, lekce zdarma je na tvém účtu" : "má u nás účet, odměnu dostaneš po prvním nákupu"}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
       <section id="kalendar" className="rounded-2xl border border-linka/60 bg-krem/40 p-5">
         <p className="font-semibold">📅 Lekce v kalendáři v mobilu</p>

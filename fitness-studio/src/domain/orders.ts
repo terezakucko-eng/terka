@@ -17,6 +17,7 @@ import { UserError } from "@/lib/errors";
 import { formatDay, formatTime } from "@/lib/dates";
 import { occupancy } from "./booking";
 import { changeCredits, extendCreditValidity } from "./wallet";
+import { rewardReferral } from "./referrals";
 
 const DAY = 86_400_000;
 
@@ -140,6 +141,8 @@ export async function fulfillOrder(
       await tx.update(bookings).set({ surchargePaidAt: now }).where(eq(bookings.id, paid.bookingId));
     if (paid.kind === "massage" && paid.massageBookingId)
       await tx.update(massageBookings).set({ paidAt: now }).where(eq(massageBookings.id, paid.massageBookingId));
+    // an invited friend's first payment thanks the one who invited her
+    if (paid.amount > 0) await rewardReferral(tx, paid.userId, now);
     return { order: paid, alreadyPaid: false };
   });
 }

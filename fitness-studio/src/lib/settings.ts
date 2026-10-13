@@ -42,6 +42,9 @@ export const defaultSettings = {
   birthdayGiftValidityDays: 30,
   /** E-mail „Chybíš nám“ po X dnech bez lekce (0 = vypnuto) */
   winbackDays: 28,
+  /** Pozvi kamarádku: lekcí zdarma pro tu, která pozvala, po prvním nákupu kamarádky (0 = vypnuto) */
+  referralGiftEntries: 1,
+  referralGiftValidityDays: 60,
 };
 
 export type Settings = typeof defaultSettings;

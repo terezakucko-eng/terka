@@ -34,6 +34,7 @@ import { notifyPromoted } from "@/lib/notify";
 import { getContent } from "@/content";
 import { sendMail } from "@/lib/mail";
 import { birthDateLocked, hasConfirmation } from "@/domain/insurance";
+import { linkReferral } from "@/domain/referrals";
 
 /** Only allow local redirects after login. */
 function safeNext(v: string) {
@@ -100,6 +101,7 @@ export async function registerAction(_: FormState, fd: FormData): Promise<FormSt
       smsConsent: field.bool(fd, "sms"),
       whatsappConsent: field.bool(fd, "whatsapp"),
     });
+    await linkReferral(db, user.id, field.str(fd, "pozvanka"));
     await startSession(user.id);
     await sendEmail(user.email, "welcome", { osloveni: greetName(user.name), odkaz: `${site.url}/rozvrh`, karta: `${site.url}/ucet/karta` });
     target = safeNext(field.str(fd, "next")) ?? "/ucet?vitej=1";

@@ -147,6 +147,11 @@ export const users = pgTable("users", {
     .notNull()
     .unique()
     .default(sql`replace(gen_random_uuid()::text, '-', '')`),
+  /** kód osobní pozvánky pro kamarádky (octopush.fit/pozvanka/…) */
+  referralCode: text("referral_code")
+    .notNull()
+    .unique()
+    .default(sql`substr(replace(gen_random_uuid()::text, '-', ''), 1, 10)`),
   /** převzato ze starého systému – účet čeká na nastavení hesla */
   importedAt: timestamp("imported_at", { withTimezone: true }),
   adminNote: text("admin_note"),
@@ -451,6 +456,29 @@ export const creditTransactions = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("credit_tx_user_idx").on(t.userId)],
+);
+
+/** Pozvi kamarádku: kdo koho pozval a kdy za to dostal odměnu. */
+export const referrals = pgTable(
+  "referrals",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    referrerId: uuid("referrer_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** pozvaná kamarádka – každá jen jednou */
+    friendId: uuid("friend_id")
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** kamarádka poprvé zaplatila → odměna připsána */
+    rewardedAt: timestamp("rewarded_at", { withTimezone: true }),
+    rewardEntitlementId: uuid("reward_entitlement_id").references(() => entitlements.id, { onDelete: "set null" }),
+    /** pozvávající dostala poděkování */
+    notifiedAt: timestamp("notified_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("referrals_referrer_idx").on(t.referrerId)],
 );
 
 export const announcements = pgTable("announcements", {
