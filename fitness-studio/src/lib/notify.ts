@@ -1,7 +1,7 @@
 import { eq, inArray } from "drizzle-orm";
 import { sessionName } from "./session-name";
 import type { DB } from "@/db";
-import { classSessions, classTypes, users, type Booking, type Order } from "@/db/schema";
+import { classSessions, classTypes, users, type Booking, type Order, type Wish } from "@/db/schema";
 import { site } from "@/config/site";
 import type { StrikeOutcome } from "@/domain/strikes";
 import { periodLabel } from "@/domain/membership-fees";
@@ -11,6 +11,8 @@ import { formatDate, formatDay, formatTime } from "./dates";
 import { sendEmail } from "./email-templates";
 import { greetName } from "@/lib/vocative";
 import { pushQuietly } from "./push";
+import { sendMail } from "./mail";
+import { WISH_KINDS } from "@/domain/wishes";
 
 async function describe(db: DB, sessionId: string) {
   const [row] = await db
@@ -114,4 +116,35 @@ export async function notifySessionCancelled(db: DB, sessionId: string, userIds:
     await sendEmail(u.email, "sessionCancelled", { osloveni: greetName(u.name), lekce: what, odkaz: `${site.url}/rozvrh` });
   }
   await pushQuietly(db, userIds, { title: "Lekce je zrušená", body: what, url: `${site.url}/rozvrh` });
+}
+
+/** A new message in the Schránka přání a nápadů: push to the admins, e-mail to the studio. */
+export async function notifyNewWish(db: DB, w: Wish) {
+  const k = WISH_KINDS[w.kind];
+  const admins = await db.select({ id: users.id }).from(users).where(eq(users.role, "admin"));
+  const url = `${site.url}/admin/schranka`;
+  await pushQuietly(db, admins.map((a) => a.id), { title: `💌 ${k.label}`, body: w.body.slice(0, 140), url });
+  const c = await getContent();
+  await sendMail({
+    to: c.raw("site.email"),
+    subject: `💌 Schránka přání a nápadů: ${k.label}`,
+    text: [
+      `${k.emoji} ${k.label} – ${w.anonymous ? "anonymně" : (w.signature ?? "")}`,
+      "",
+      w.body,
+      "",
+      w.allowPublic ? "Klient souhlasí, že vzkaz může být na webu (zveřejníš ho v adminu)." : "Jen pro studio – klient si nepřeje zveřejnění.",
+      "",
+      `Odpovědět: ${url}`,
+    ].join("\n"),
+  });
+}
+
+/** The studio replied – e-mail and push to the client (also for anonymous messages; only the studio doesn't see who). */
+export async function notifyWishReply(db: DB, w: Wish) {
+  const [u] = await db.select().from(users).where(eq(users.id, w.userId));
+  if (!u || u.deletedAt || !w.reply) return;
+  const odkaz = `${site.url}/ucet/schranka`;
+  await sendEmail(u.email, "wishReply", { osloveni: greetName(u.name), vzkaz: w.body, odpoved: w.reply, odkaz });
+  await pushQuietly(db, [u.id], { title: "💌 Odpověď na tvůj vzkaz", body: w.reply.slice(0, 140), url: odkaz });
 }

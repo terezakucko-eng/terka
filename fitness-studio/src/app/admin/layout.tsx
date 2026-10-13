@@ -9,6 +9,7 @@ import {
   Mail,
   FileText,
   Images,
+  Inbox,
   Megaphone,
   Star,
   MessageSquare,
@@ -22,6 +23,8 @@ import {
 import { logoutAction } from "@/app/actions/auth";
 import { Symbol } from "@/components/brand";
 import { requireStaff } from "@/lib/auth";
+import { getDb } from "@/db";
+import { newWishCount } from "@/domain/wishes";
 
 export const metadata: Metadata = { title: "Administrace", robots: { index: false } };
 
@@ -40,6 +43,7 @@ const items = [
   { href: "/admin/lekce", label: "Typy lekcí", icon: Sparkles, admin: true },
   { href: "/admin/lektori", label: "Lektoři", icon: UserRound, admin: true },
   { href: "/admin/aktuality", label: "Aktuality", icon: Megaphone, admin: true },
+  { href: "/admin/schranka", label: "Schránka", icon: Inbox, admin: true },
   { href: "/admin/recenze", label: "Recenze", icon: Star, admin: true },
   { href: "/admin/import", label: "Import klientů", icon: Upload, admin: true },
   { href: "/admin/nastaveni", label: "Nastavení", icon: Cog, admin: true },
@@ -48,6 +52,7 @@ const items = [
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const user = await requireStaff();
   const nav = items.filter((i) => !i.admin || user.role === "admin");
+  const newWishes = user.role === "admin" ? await newWishCount(await getDb()) : 0;
   return (
     <div className="flex min-h-screen flex-col bg-papir lg:flex-row">
       <aside className="bg-les text-papir lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-60 lg:shrink-0 lg:flex-col">
@@ -66,6 +71,9 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
               className="flex shrink-0 items-center gap-3 rounded-lg px-3 py-2 text-sm text-papir/75 transition hover:bg-mech hover:text-papir"
             >
               <i.icon className="size-4 text-zlato" /> {i.label}
+              {i.href === "/admin/schranka" && newWishes > 0 && (
+                <span className="ml-auto rounded-full bg-[#e5372f] px-1.5 text-[11px] font-bold leading-[18px] text-white">{newWishes}</span>
+              )}
             </Link>
           ))}
         </nav>

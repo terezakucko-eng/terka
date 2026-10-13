@@ -661,6 +661,37 @@ export const settings = pgTable("settings", {
   value: jsonb("value").notNull(),
 });
 
+export const wishKind = pgEnum("wish_kind", ["idea", "wish", "praise", "concern"]);
+export const wishStatus = pgEnum("wish_status", ["new", "read", "resolved"]);
+
+/**
+ * Schránka přání a nápadů – vzkazy klientů studiu. Klient sám rozhodne, jestli
+ * smí být vzkaz (po schválení studiem) i veřejně na webu a jestli ho podepíše.
+ */
+export const wishes = pgTable(
+  "wishes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: wishKind("kind").notNull(),
+    body: text("body").notNull(),
+    /** Klient svolil, že vzkaz může být na webu (zveřejní ho až studio). */
+    allowPublic: boolean("allow_public").notNull().default(false),
+    /** Studio neuvidí, kdo vzkaz napsal. */
+    anonymous: boolean("anonymous").notNull().default(false),
+    /** Podpis na webu – přezdívka nebo křestní jméno v době odeslání; null = anonymně. */
+    signature: text("signature"),
+    status: wishStatus("status").notNull().default("new"),
+    published: boolean("published").notNull().default(false),
+    reply: text("reply"),
+    repliedAt: timestamp("replied_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("wishes_user_idx").on(t.userId), index("wishes_status_idx").on(t.status)],
+);
+
 /** Recenze – od klientů z webu (čekají na schválení) nebo vložené adminem (Google, starý web). */
 export const reviews = pgTable(
   "reviews",
@@ -720,6 +751,7 @@ export const backups = pgTable("backups", {
 
 export type User = typeof users.$inferSelect;
 export type Review = typeof reviews.$inferSelect;
+export type Wish = typeof wishes.$inferSelect;
 export type ClassType = typeof classTypes.$inferSelect;
 export type ClassSession = typeof classSessions.$inferSelect;
 export type Instructor = typeof instructors.$inferSelect;

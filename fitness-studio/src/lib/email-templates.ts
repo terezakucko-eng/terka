@@ -194,6 +194,18 @@ export const EMAILS = {
       odkaz: { label: "odkaz na platbu", sample: `${site.url}/platba/prevod?order=…` },
     },
   },
+  wishReply: {
+    title: "Odpověď ze Schránky přání a nápadů",
+    when: "Když v Administrace → Schránka odpovíš na vzkaz klienta.",
+    subject: "Odpověď na tvůj vzkaz 💌",
+    body: "Ahoj {{osloveni}},\n\nděkujeme za tvůj vzkaz ve Schránce přání a nápadů:\n„{{vzkaz}}“\n\nNaše odpověď:\n{{odpoved}}\n\nVšechny své vzkazy najdeš tady: {{odkaz}}",
+    vars: {
+      osloveni,
+      vzkaz: { label: "vzkaz klienta", sample: "Bylo by super mít lekci i v sobotu ráno." },
+      odpoved: { label: "odpověď studia", sample: "Díky za tip! Od listopadu zkusíme sobotní ranní lekci." },
+      odkaz: { label: "odkaz na schránku v účtu", sample: `${site.url}/ucet/schranka` },
+    },
+  },
   signature: {
     title: "Podpis pod každým e-mailem",
     when: "Připojí se na konec všech automatických e-mailů (hromadné zprávy mají vlastní patičku).",
