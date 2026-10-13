@@ -456,6 +456,13 @@
       "when": 1791931239455,
       "tag": "0064_referrals",
       "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1791932109596,
+      "tag": "0065_vouchers",
+      "breakpoints": true
     }
   ]
 }

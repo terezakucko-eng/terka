@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, isNotNull, lt } from "drizzle-orm";
+import { and, eq, gte, inArray, isNotNull, isNull, lt } from "drizzle-orm";
 import type { DB, Executor } from "@/db";
 import {
   bookings,
@@ -8,6 +8,7 @@ import {
   massageBookings,
   orders,
   users,
+  vouchers,
 } from "@/db/schema";
 import { UserError } from "@/lib/errors";
 import { changeCredits } from "./wallet";
@@ -41,6 +42,8 @@ async function removeOrder(tx: Executor, orderId: string, actorId: string) {
   }
 
   await tx.update(bookings).set({ orderId: null }).where(eq(bookings.orderId, o.id));
+  // a gift voucher from a deleted order is no longer valid (unless already redeemed)
+  await tx.update(vouchers).set({ cancelledAt: new Date() }).where(and(eq(vouchers.orderId, o.id), isNull(vouchers.redeemedAt)));
   await tx.delete(orders).where(eq(orders.id, o.id));
   return true;
 }

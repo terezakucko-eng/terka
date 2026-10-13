@@ -11,6 +11,9 @@ import { KEEP_AUTO, listBackups } from "@/domain/backup";
 import { formatDateTime } from "@/lib/dates";
 import { paymentProvider } from "@/lib/payments";
 import { getSettings, type Settings } from "@/lib/settings";
+import { and, eq } from "drizzle-orm";
+import { products } from "@/db/schema";
+import { formatPrice } from "@/lib/money";
 
 const fields: { key: keyof Settings; label: string; hint: string; section?: string }[] = [
   { key: "cancellationHours", label: "Storno zdarma (hodin před lekcí)", hint: "Později vstup propadá." },
@@ -34,13 +37,24 @@ const fields: { key: keyof Settings; label: string; hint: string; section?: stri
   { key: "birthdayGiftValidityDays", label: "Platnost dárku k narozeninám (dní)", hint: "" },
   { key: "referralGiftEntries", label: "Pozvi kamarádku – lekcí zdarma za pozvání", hint: "Dostane ten, kdo pozval, po prvním nákupu kamarádky. 0 = vypnuto (sekce v účtu se skryje)." },
   { key: "referralGiftValidityDays", label: "Platnost lekce za pozvání (dní)", hint: "" },
+  { key: "voucherValidityDays", label: "Dárkové poukazy – platnost (dní)", hint: "Od zaplacení. 365 = rok. Stejně dlouho pak platí i kredit z poukazu na částku." },
+  { key: "voucherCreditsPer100Kc", label: "Poukaz na částku – kreditů za 100 Kč", hint: "100 = 1 kredit za 1 Kč. Kolik kreditů dostane obdarovaný." },
   { key: "winbackDays", label: "„Chybíš nám“ po kolika dnech bez lekce", hint: "Jen klientům se souhlasem s novinkami, kteří nic nemají rezervováno – jednou za každou pauzu. 0 = vypnuto." },
 ];
 
 export default async function AdminSettings() {
   await requireAdmin();
   const db = await getDb();
-  const [cfg, backupList] = await Promise.all([getSettings(db), listBackups(db)]);
+  const [cfg, backupList, packs] = await Promise.all([
+    getSettings(db),
+    listBackups(db),
+    db.select().from(products).where(and(eq(products.kind, "credit_pack"), eq(products.isActive, true))),
+  ]);
+  // what the price list gives for 100 Kč – a guide for the voucher rate
+  const packRates = packs
+    .filter((p) => p.credits && p.price)
+    .map((p) => `${p.name}: ${formatPrice(p.price)} → ${p.credits} kr. (${Math.round(((p.credits! * 10000) / p.price) * 10) / 10} za 100 Kč)`)
+    .join(" · ");
   const provider = paymentProvider();
   return (
     <>
@@ -51,7 +65,7 @@ export default async function AdminSettings() {
           {fields.map((f) => (
             <Fragment key={f.key}>
               {f.section && <h3 className="mt-4 border-t border-linka/60 pt-5 font-semibold sm:col-span-2">{f.section}</h3>}
-              <Field label={f.label} hint={f.hint || undefined}>
+              <Field label={f.label} hint={(f.key === "voucherCreditsPer100Kc" && packRates ? `${f.hint} Ceník: ${packRates}` : f.hint) || undefined}>
                 <Input name={f.key} type="number" min={0} defaultValue={cfg[f.key]} required />
               </Field>
             </Fragment>

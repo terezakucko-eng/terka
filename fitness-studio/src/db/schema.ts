@@ -79,6 +79,12 @@ export const orderKind = pgEnum("order_kind", [
   "surcharge", // doplatek za lekci – členství / permanentka (bookingId)
   "massage", // platba masáže kartou (massageBookingId)
   "membership_fee", // měsíční členský příspěvek (period)
+  "voucher", // dárkový poukaz (vouchers.orderId)
+]);
+
+export const voucherKind = pgEnum("voucher_kind", [
+  "product", // položka z ceníku (permanentka, kredit, masáže…)
+  "amount", // na částku – po uplatnění kredit
 ]);
 
 export const creditReason = pgEnum("credit_reason", [
@@ -458,6 +464,40 @@ export const creditTransactions = pgTable(
   (t) => [index("credit_tx_user_idx").on(t.userId)],
 );
 
+/** Dárkové poukazy – koupené na webu nebo vydané na recepci, uplatní se kódem. */
+export const vouchers = pgTable(
+  "vouchers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** "7KQ4M2PX" – na poukazu jako 7KQ4-M2PX */
+    code: text("code").notNull().unique(),
+    kind: voucherKind("kind").notNull(),
+    /** kind = product: co obdarovaný dostane */
+    productId: uuid("product_id").references(() => products.id),
+    /** Snapshot názvu („Permanentka 10 vstupů“, „Poukaz na 1 000 Kč“) */
+    title: text("title").notNull(),
+    /** Zaplacená cena / hodnota poukazu v haléřích */
+    amount: integer("amount").notNull(),
+    /** kind = amount: kolik kreditů se připíše */
+    credits: integer("credits"),
+    /** „Pro koho“ a věnování – vytiskne se na poukaz */
+    recipientName: text("recipient_name"),
+    message: text("message"),
+    buyerId: uuid("buyer_id").references(() => users.id, { onDelete: "set null" }),
+    orderId: uuid("order_id").references(() => orders.id, { onDelete: "set null" }),
+    /** Zaplaceno → poukaz platí */
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+    validUntil: timestamp("valid_until", { withTimezone: true }),
+    redeemedAt: timestamp("redeemed_at", { withTimezone: true }),
+    redeemedBy: uuid("redeemed_by").references(() => users.id, { onDelete: "set null" }),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    /** Kupující dostal e-mail, že je poukaz připravený */
+    notifiedAt: timestamp("notified_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("vouchers_buyer_idx").on(t.buyerId), index("vouchers_order_idx").on(t.orderId)],
+);
+
 /** Pozvi kamarádku: kdo koho pozval a kdy za to dostal odměnu. */
 export const referrals = pgTable(
   "referrals",
@@ -754,7 +794,7 @@ export const authAttempts = pgTable(
   "auth_attempts",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    kind: text("kind", { enum: ["login", "reset", "register"] }).notNull(),
+    kind: text("kind", { enum: ["login", "reset", "register", "voucher"] }).notNull(),
     key: text("key").notNull(),
     createdAt: createdAt(),
   },
@@ -800,6 +840,7 @@ export type InsuranceConfirmation = typeof insuranceConfirmations.$inferSelect;
 export type Entitlement = typeof entitlements.$inferSelect;
 export type Booking = typeof bookings.$inferSelect;
 export type Announcement = typeof announcements.$inferSelect;
+export type Voucher = typeof vouchers.$inferSelect;
 export type Campaign = typeof campaigns.$inferSelect;
 export type MassageService = typeof massageServices.$inferSelect;
 export type MassageBooking = typeof massageBookings.$inferSelect;

@@ -11,13 +11,14 @@ import {
   orders,
   products,
   type Order,
-  type Product,
 } from "@/db/schema";
 import { UserError } from "@/lib/errors";
 import { formatDay, formatTime } from "@/lib/dates";
 import { occupancy } from "./booking";
-import { changeCredits, extendCreditValidity } from "./wallet";
+import { changeCredits } from "./wallet";
 import { rewardReferral } from "./referrals";
+import { grantProduct } from "./grant";
+import { activateVoucher } from "./vouchers";
 
 const DAY = 86_400_000;
 
@@ -49,47 +50,6 @@ export async function createProductOrder(
     })
     .returning();
   return { order, product: p };
-}
-
-/** Creates whatever the purchased product grants. */
-async function grantProduct(
-  tx: Executor,
-  order: Order,
-  p: Product,
-  now: Date,
-  periodEnd?: Date,
-) {
-  switch (p.kind) {
-    case "credit_pack":
-      await changeCredits(tx, {
-        userId: order.userId,
-        delta: p.credits ?? 0,
-        reason: "purchase",
-        orderId: order.id,
-        note: p.name,
-      });
-      if (p.validityDays) await extendCreditValidity(tx, order.userId, p.validityDays, now);
-      return;
-    case "pass":
-    case "membership":
-    case "solarium":
-    case "massage_pass":
-      await tx.insert(entitlements).values({
-        userId: order.userId,
-        kind: p.kind,
-        productId: p.id,
-        orderId: order.id,
-        name: p.name,
-        entriesTotal: p.entries,
-        weeklyLimit: p.kind === "membership" ? p.weeklyLimit : null,
-        massageServiceId: p.kind === "massage_pass" ? p.massageServiceId : null,
-        validFrom: now,
-        validUntil:
-          periodEnd ?? new Date(now.getTime() + (p.validityDays ?? 30) * DAY),
-        subscriptionId: order.subscriptionId,
-      });
-      return;
-  }
 }
 
 /**
@@ -133,8 +93,9 @@ export async function fulfillOrder(
         .select()
         .from(products)
         .where(eq(products.id, paid.productId));
-      await grantProduct(tx, paid, p, now, input.periodEnd ?? undefined);
+      await grantProduct(tx, { userId: paid.userId, orderId: paid.id, subscriptionId: paid.subscriptionId }, p, now, input.periodEnd ?? undefined);
     }
+    if (paid.kind === "voucher") await activateVoucher(tx, paid.id, now);
 
     if (paid.kind === "drop_in") await confirmDropIn(tx, paid, now);
     if (paid.kind === "surcharge" && paid.bookingId)

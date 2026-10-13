@@ -15,6 +15,7 @@ import { sendMail } from "./mail";
 import { WISH_KINDS } from "@/domain/wishes";
 import { dueGreetings, dueWinbacks, greetBirthday, markNameDay, markWinback } from "@/domain/greetings";
 import { markAnnounced, unannouncedRewards } from "@/domain/referrals";
+import { formatVoucherCode, markVoucherNotified, unnotifiedVouchers } from "@/domain/vouchers";
 import { displayName } from "./profile";
 import { getSettings } from "./settings";
 import { unsubscribeUrl } from "./links";
@@ -221,6 +222,24 @@ export async function sendReferralThanks(db: DB, now = new Date()) {
       odkaz: `${site.url}/rozvrh`,
     });
     await pushQuietly(db, [who.id], { title: "Díky za pozvání! 💛", body: "Na účtu máš lekci zdarma.", url: `${site.url}/ucet` });
+    sent++;
+  }
+  return sent;
+}
+
+/** Tells the buyer their gift voucher is paid and ready to download. */
+export async function sendVoucherReady(db: DB, now = new Date()) {
+  let sent = 0;
+  for (const { v, email, name } of await unnotifiedVouchers(db)) {
+    await markVoucherNotified(db, v.id, now);
+    await sendEmail(email, "voucherReady", {
+      osloveni: greetName(name),
+      poukaz: v.title,
+      odkaz: `${site.url}/api/poukaz/${v.id}`,
+      kod: formatVoucherCode(v.code),
+      platnost: v.validUntil ? formatDate(v.validUntil) : "",
+      uplatneni: `${site.url}/poukaz`,
+    });
     sent++;
   }
   return sent;

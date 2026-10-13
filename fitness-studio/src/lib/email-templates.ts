@@ -250,6 +250,20 @@ export const EMAILS = {
       odkaz: { label: "odkaz na rozvrh", sample: `${site.url}/rozvrh` },
     },
   },
+  voucherReady: {
+    title: "Dárkový poukaz zaplacen",
+    when: "Když je dárkový poukaz koupený na webu zaplacený (do čtvrt hodiny).",
+    subject: "Tvůj dárkový poukaz je připravený 🎁",
+    body: "Ahoj {{osloveni}},\n\ndíky za nákup! Dárkový poukaz „{{poukaz}}“ je zaplacený a připravený k darování.\nStáhni si ho (PDF k vytištění nebo poslání): {{odkaz}}\n\nKód poukazu: {{kod}} · platí do {{platnost}}\nObdarovaná osoba ho uplatní na {{uplatneni}}\n\nTvoje OCTOPUSH 🐙",
+    vars: {
+      osloveni,
+      poukaz: { label: "co poukaz obsahuje", sample: "Permanentka 10 vstupů" },
+      odkaz: { label: "odkaz na stažení poukazu (PDF)", sample: `${site.url}/api/poukaz/…` },
+      kod: { label: "kód poukazu", sample: "7KQ4-M2PX" },
+      platnost: { label: "do kdy poukaz platí", sample: "13. 10. 2027" },
+      uplatneni: { label: "odkaz na uplatnění", sample: `${site.url}/poukaz` },
+    },
+  },
   signature: {
     title: "Podpis pod každým e-mailem",
     when: "Připojí se na konec všech automatických e-mailů (hromadné zprávy mají vlastní patičku).",

@@ -5,7 +5,7 @@ import { cancelMassageAction } from "@/app/actions/massages";
 import { bookings, massageBookings, orders } from "@/db/schema";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { entitlementKindLabel } from "@/components/labels";
-import { Badge, ButtonLink, Card, Empty, Eyebrow } from "@/components/ui";
+import { Badge, ButtonLink, Card, Empty, Eyebrow, Input } from "@/components/ui";
 import { getDb } from "@/db";
 import { userBookings, userEntitlements } from "@/lib/account";
 import { requireUser } from "@/lib/auth";
@@ -25,6 +25,8 @@ import { getContent } from "@/content";
 import { feedLinks } from "@/lib/ics";
 import { CopyButton, ShareButton } from "@/components/copy-button";
 import { myReferrals } from "@/domain/referrals";
+import { VOUCHER_STATUS, boughtVouchers, formatVoucherCode, voucherStatus } from "@/domain/vouchers";
+import { redeemVoucherAction } from "@/app/actions/vouchers";
 import { getSettings } from "@/lib/settings";
 import { site } from "@/config/site";
 import { resetCalendarAction } from "@/app/actions/calendar";
@@ -62,7 +64,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
     getContent(),
     insuranceYears(db, user.id),
   ]);
-  const [cfg, invited] = await Promise.all([getSettings(db), myReferrals(db, user.id)]);
+  const [cfg, invited, gifts] = await Promise.all([getSettings(db), myReferrals(db, user.id), boughtVouchers(db, user.id)]);
   const invite = `${site.url}/pozvanka/${user.referralCode}`;
   // regulars who haven't written a review yet get a gentle nudge
   const google = content.googleReviewUrl;
@@ -222,6 +224,44 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
           )}
         </section>
       )}
+
+      <section id="poukazy" className="rounded-2xl border border-linka/60 bg-krem/40 p-5">
+        <p className="font-semibold">🎁 Dárkové poukazy</p>
+        <ActionForm action={redeemVoucherAction} className="mt-3 flex flex-wrap items-end gap-2">
+          <label className="flex-1">
+            <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-les/70">Máš poukaz? Zadej kód</span>
+            <Input name="code" placeholder="např. 7KQ4-M2PX" required autoCapitalize="characters" autoComplete="off" className="min-w-48" />
+          </label>
+          <SubmitButton variant="dark" className="px-5 py-3">Uplatnit</SubmitButton>
+        </ActionForm>
+        {gifts.length > 0 && (
+          <ul className="mt-4 divide-y divide-linka/60 text-sm">
+            {gifts.map((v) => {
+              const st = voucherStatus(v);
+              return (
+                <li key={v.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                  <span>
+                    <strong>{v.title}</strong>
+                    {v.recipientName && <span className="font-normal"> · pro: {v.recipientName}</span>}
+                    <span className="block text-xs text-les/60">
+                      {formatVoucherCode(v.code)} · {VOUCHER_STATUS[st]}
+                      {st === "active" && v.validUntil && `, platí do ${formatDate(v.validUntil)}`}
+                    </span>
+                  </span>
+                  {st !== "pending" && (
+                    <a href={`/api/poukaz/${v.id}`} className="rounded-full border border-les/30 px-4 py-2 text-xs font-semibold uppercase tracking-wider">
+                      Stáhnout PDF
+                    </a>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <p className="mt-3 text-sm text-les/70">
+          Chceš někoho obdarovat? <Link href="/poukazy" className="font-semibold text-zeme underline">Koupit dárkový poukaz</Link>
+        </p>
+      </section>
 
       <section id="kalendar" className="rounded-2xl border border-linka/60 bg-krem/40 p-5">
         <p className="font-semibold">📅 Lekce v kalendáři v mobilu</p>

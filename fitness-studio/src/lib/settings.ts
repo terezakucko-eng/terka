@@ -45,6 +45,10 @@ export const defaultSettings = {
   /** Pozvi kamarádku: lekcí zdarma pro tu, která pozvala, po prvním nákupu kamarádky (0 = vypnuto) */
   referralGiftEntries: 1,
   referralGiftValidityDays: 60,
+  /** Dárkové poukazy: platnost od zaplacení (dní) */
+  voucherValidityDays: 365,
+  /** Poukaz na částku: kolik kreditů za každých 100 Kč */
+  voucherCreditsPer100Kc: 100,
 };
 
 export type Settings = typeof defaultSettings;

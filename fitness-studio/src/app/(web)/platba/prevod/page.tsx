@@ -73,6 +73,8 @@ export default async function TransferPage({ searchParams }: PageProps<"/platba/
             ? "Jakmile platba dorazí na účet, místo na lekci je tvoje. Pošli ji prosím co nejdřív."
             : o.kind === "membership_fee"
               ? "Jakmile platba dorazí, příspěvek označíme jako zaplacený – obvykle do 1–2 pracovních dnů."
+              : o.kind === "voucher"
+              ? "Jakmile platba dorazí, poukaz ti pošleme e-mailem a najdeš ho ke stažení v Můj účet – obvykle do 1–2 pracovních dnů."
               : o.kind === "surcharge"
               ? "Jakmile platba dorazí, doplatek u rezervace označíme jako zaplacený – obvykle do 1–2 pracovních dnů."
               : "Jakmile platba dorazí, připíšeme ti nákup na účet – obvykle do 1–2 pracovních dnů. Údaje k platbě najdeš i ve svém účtu."}

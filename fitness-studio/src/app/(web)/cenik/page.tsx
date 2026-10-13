@@ -151,6 +151,14 @@ export default async function PricingPage() {
           </div>
         </section>
 
+        <section className="flex flex-col items-start justify-between gap-5 rounded-2xl border border-zlato/50 bg-zlato/10 p-8 md:flex-row md:items-center">
+          <div>
+            <p className="text-2xl font-semibold">🎁 Hledáš dárek?</p>
+            <p className="mt-1 text-les/70">Daruj pohyb – dárkový poukaz na permanentku, kredit, masáž nebo libovolnou částku. PDF k vytištění hned po zaplacení.</p>
+          </div>
+          <ButtonLink href="/poukazy" variant="gold">Dárkové poukazy</ButtonLink>
+        </section>
+
         <section className="grid gap-6 rounded-2xl bg-krem/50 p-8 text-sm text-les/80 md:grid-cols-3">
           {[1, 2, 3].map((n) => (
             <div key={n}>
