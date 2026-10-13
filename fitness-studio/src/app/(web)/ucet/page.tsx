@@ -199,91 +199,6 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
         </div>
       </section>
 
-      {cfg.referralGiftEntries > 0 && user.role === "client" && (
-        <section id="pozvi" className="rounded-2xl border border-zlato/50 bg-zlato/10 p-5">
-          <p className="font-semibold">👯 Pozvi kamarádku</p>
-          <p className="mt-1 max-w-2xl text-sm text-les/70">
-            Pošli kamarádce svůj odkaz.{cfg.welcomeFreeEntries > 0 && " Ona má první lekci zdarma"}
-            {cfg.welcomeFreeEntries > 0 ? ", a jakmile" : " Jakmile"} si u nás poprvé něco zaplatí, dostaneš{" "}
-            {cfg.referralGiftEntries === 1 ? "lekci" : `${cfg.referralGiftEntries} lekce`} zdarma i ty (platí {cfg.referralGiftValidityDays} dní).
-          </p>
-          <p className="mt-3 break-all text-sm font-semibold text-zeme">{invite}</p>
-          <span className="mt-3 flex flex-wrap gap-2">
-            <ShareButton url={invite} text="Pojď si se mnou zacvičit do OCTOPUSH – první lekce je zdarma 🐙" className="px-5 py-2.5" />
-            <CopyButton text={invite} className="px-5 py-2.5" />
-          </span>
-          {invited.length > 0 && (
-            <ul className="mt-4 space-y-1 text-sm">
-              {invited.map((f) => (
-                <li key={f.id}>
-                  {f.rewarded ? "✅" : "⏳"} <strong>{f.name}</strong> –{" "}
-                  {f.rewarded ? "už u nás cvičí, lekce zdarma je na tvém účtu" : "má u nás účet, odměnu dostaneš po prvním nákupu"}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
-
-      <section id="poukazy" className="rounded-2xl border border-linka/60 bg-krem/40 p-5">
-        <p className="font-semibold">🎁 Dárkové poukazy</p>
-        <ActionForm action={redeemVoucherAction} className="mt-3 flex flex-wrap items-end gap-2">
-          <label className="flex-1">
-            <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-les/70">Máš poukaz? Zadej kód</span>
-            <Input name="code" placeholder="např. 7KQ4-M2PX" required autoCapitalize="characters" autoComplete="off" className="min-w-48" />
-          </label>
-          <SubmitButton variant="dark" className="px-5 py-3">Uplatnit</SubmitButton>
-        </ActionForm>
-        {gifts.length > 0 && (
-          <ul className="mt-4 divide-y divide-linka/60 text-sm">
-            {gifts.map((v) => {
-              const st = voucherStatus(v);
-              return (
-                <li key={v.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                  <span>
-                    <strong>{v.title}</strong>
-                    {v.recipientName && <span className="font-normal"> · pro: {v.recipientName}</span>}
-                    <span className="block text-xs text-les/60">
-                      {formatVoucherCode(v.code)} · {VOUCHER_STATUS[st]}
-                      {st === "active" && v.validUntil && `, platí do ${formatDate(v.validUntil)}`}
-                    </span>
-                  </span>
-                  {st !== "pending" && (
-                    <a href={`/api/poukaz/${v.id}`} className="rounded-full border border-les/30 px-4 py-2 text-xs font-semibold uppercase tracking-wider">
-                      Stáhnout PDF
-                    </a>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-        <p className="mt-3 text-sm text-les/70">
-          Chceš někoho obdarovat? <Link href="/poukazy" className="font-semibold text-zeme underline">Koupit dárkový poukaz</Link>
-        </p>
-      </section>
-
-      <section id="kalendar" className="rounded-2xl border border-linka/60 bg-krem/40 p-5">
-        <p className="font-semibold">📅 Lekce v kalendáři v mobilu</p>
-        <p className="mt-1 max-w-2xl text-sm text-les/70">
-          Přidej si svoje lekce a masáže do kalendáře. Nové rezervace se v něm objeví samy a zrušené zmizí – iPhone kalendář obnovuje zhruba
-          každou hodinu, Google kalendář párkrát denně. U Google kalendáře otevři odkaz raději na počítači, v mobilu se pak ukáže sám.
-        </p>
-        <span className="mt-4 flex flex-wrap gap-2">
-          <a href={cal.webcal} className="rounded-full bg-les px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-papir">iPhone a Mac</a>
-          <a href={cal.google} target="_blank" rel="noopener" className="rounded-full border border-les/30 px-5 py-2.5 text-xs font-semibold uppercase tracking-wider">Google kalendář ↗</a>
-          <a href={cal.outlook} target="_blank" rel="noopener" className="rounded-full border border-les/30 px-5 py-2.5 text-xs font-semibold uppercase tracking-wider">Outlook ↗</a>
-          <CopyButton text={cal.https} className="px-5 py-2.5" />
-        </span>
-        <details className="mt-3 text-xs text-les/60">
-          <summary className="cursor-pointer">Poslala jsi odkaz omylem někomu dalšímu?</summary>
-          <p className="mt-2">Odkaz je jen tvůj – kdo ho má, uvidí tvoje rezervace. Můžeš si vytvořit nový, starý pak přestane fungovat.</p>
-          <ActionForm action={resetCalendarAction} confirm="Vytvořit nový odkaz? Kalendář si pak přidej znovu." className="mt-2">
-            <SubmitButton variant="ghost" className="px-3 py-2 text-[0.65rem]">Vytvořit nový odkaz</SubmitButton>
-          </ActionForm>
-        </details>
-      </section>
-
       {askReview && (
         <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-linka/60 bg-krem/40 p-5">
           <p>
@@ -366,6 +281,91 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
           </div>
         </section>
       )}
+
+      <section id="kalendar" className="rounded-2xl border border-linka/60 bg-krem/40 p-5">
+        <p className="font-semibold">📅 Lekce v kalendáři v mobilu</p>
+        <p className="mt-1 max-w-2xl text-sm text-les/70">
+          Přidej si svoje lekce a masáže do kalendáře. Nové rezervace se v něm objeví samy a zrušené zmizí – iPhone kalendář obnovuje zhruba
+          každou hodinu, Google kalendář párkrát denně. U Google kalendáře otevři odkaz raději na počítači, v mobilu se pak ukáže sám.
+        </p>
+        <span className="mt-4 flex flex-wrap gap-2">
+          <a href={cal.webcal} className="rounded-full bg-les px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-papir">iPhone a Mac</a>
+          <a href={cal.google} target="_blank" rel="noopener" className="rounded-full border border-les/30 px-5 py-2.5 text-xs font-semibold uppercase tracking-wider">Google kalendář ↗</a>
+          <a href={cal.outlook} target="_blank" rel="noopener" className="rounded-full border border-les/30 px-5 py-2.5 text-xs font-semibold uppercase tracking-wider">Outlook ↗</a>
+          <CopyButton text={cal.https} className="px-5 py-2.5" />
+        </span>
+        <details className="mt-3 text-xs text-les/60">
+          <summary className="cursor-pointer">Poslala jsi odkaz omylem někomu dalšímu?</summary>
+          <p className="mt-2">Odkaz je jen tvůj – kdo ho má, uvidí tvoje rezervace. Můžeš si vytvořit nový, starý pak přestane fungovat.</p>
+          <ActionForm action={resetCalendarAction} confirm="Vytvořit nový odkaz? Kalendář si pak přidej znovu." className="mt-2">
+            <SubmitButton variant="ghost" className="px-3 py-2 text-[0.65rem]">Vytvořit nový odkaz</SubmitButton>
+          </ActionForm>
+        </details>
+      </section>
+
+      {cfg.referralGiftEntries > 0 && user.role === "client" && (
+        <section id="pozvi" className="rounded-2xl border border-zlato/50 bg-zlato/10 p-5">
+          <p className="font-semibold">👯 Pozvi kamarádku</p>
+          <p className="mt-1 max-w-2xl text-sm text-les/70">
+            Pošli kamarádce svůj odkaz.{cfg.welcomeFreeEntries > 0 && " Ona má první lekci zdarma"}
+            {cfg.welcomeFreeEntries > 0 ? ", a jakmile" : " Jakmile"} si u nás poprvé něco zaplatí, dostaneš{" "}
+            {cfg.referralGiftEntries === 1 ? "lekci" : `${cfg.referralGiftEntries} lekce`} zdarma i ty (platí {cfg.referralGiftValidityDays} dní).
+          </p>
+          <p className="mt-3 break-all text-sm font-semibold text-zeme">{invite}</p>
+          <span className="mt-3 flex flex-wrap gap-2">
+            <ShareButton url={invite} text="Pojď si se mnou zacvičit do OCTOPUSH – první lekce je zdarma 🐙" className="px-5 py-2.5" />
+            <CopyButton text={invite} className="px-5 py-2.5" />
+          </span>
+          {invited.length > 0 && (
+            <ul className="mt-4 space-y-1 text-sm">
+              {invited.map((f) => (
+                <li key={f.id}>
+                  {f.rewarded ? "✅" : "⏳"} <strong>{f.name}</strong> –{" "}
+                  {f.rewarded ? "už u nás cvičí, lekce zdarma je na tvém účtu" : "má u nás účet, odměnu dostaneš po prvním nákupu"}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
+      <section id="poukazy" className="rounded-2xl border border-linka/60 bg-krem/40 p-5">
+        <p className="font-semibold">🎁 Dárkové poukazy</p>
+        <ActionForm action={redeemVoucherAction} className="mt-3 flex flex-wrap items-end gap-2">
+          <label className="flex-1">
+            <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-les/70">Máš poukaz? Zadej kód</span>
+            <Input name="code" placeholder="např. 7KQ4-M2PX" required autoCapitalize="characters" autoComplete="off" className="min-w-48" />
+          </label>
+          <SubmitButton variant="dark" className="px-5 py-3">Uplatnit</SubmitButton>
+        </ActionForm>
+        {gifts.length > 0 && (
+          <ul className="mt-4 divide-y divide-linka/60 text-sm">
+            {gifts.map((v) => {
+              const st = voucherStatus(v);
+              return (
+                <li key={v.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                  <span>
+                    <strong>{v.title}</strong>
+                    {v.recipientName && <span className="font-normal"> · pro: {v.recipientName}</span>}
+                    <span className="block text-xs text-les/60">
+                      {formatVoucherCode(v.code)} · {VOUCHER_STATUS[st]}
+                      {st === "active" && v.validUntil && `, platí do ${formatDate(v.validUntil)}`}
+                    </span>
+                  </span>
+                  {st !== "pending" && (
+                    <a href={`/api/poukaz/${v.id}`} className="rounded-full border border-les/30 px-4 py-2 text-xs font-semibold uppercase tracking-wider">
+                      Stáhnout PDF
+                    </a>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <p className="mt-3 text-sm text-les/70">
+          Chceš někoho obdarovat? <Link href="/poukazy" className="font-semibold text-zeme underline">Koupit dárkový poukaz</Link>
+        </p>
+      </section>
     </div>
   );
 }

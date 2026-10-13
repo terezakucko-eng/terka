@@ -82,7 +82,8 @@ describe("„Chybíš nám“", () => {
     const noConsent = await makeUser(h.db);
     const recent = await makeUser(h.db);
     const longGone = await makeUser(h.db);
-    for (const u of [away, booked, recent, longGone]) await h.db.update(users).set({ marketingConsent: true }).where(eq(users.id, u.id));
+    const unmarked = await makeUser(h.db); // attendance not marked – a past booking still counts
+    for (const u of [away, booked, recent, longGone, unmarked]) await h.db.update(users).set({ marketingConsent: true }).where(eq(users.id, u.id));
     const past = await makeSession(h.db, { startsAt: hours(-30 * DAY) });
     const lastWeek = await makeSession(h.db, { startsAt: hours(-7 * DAY) });
     const ancient = await makeSession(h.db, { startsAt: hours(-200 * DAY) });
@@ -95,11 +96,12 @@ describe("„Chybíš nám“", () => {
       { userId: recent.id, sessionId: past.id, status: "attended" },
       { userId: recent.id, sessionId: lastWeek.id, status: "attended" },
       { userId: longGone.id, sessionId: ancient.id, status: "attended" },
+      { userId: unmarked.id, sessionId: past.id, status: "confirmed" },
     ]);
 
-    expect((await dueWinbacks(h.db, 28, NOW)).map((r) => r.id)).toEqual([away.id]);
-    expect(await sendWinbacks(h.db, NOW)).toBe(1);
-    expect(sent[0]).toMatchObject({ to: away.email, id: "winback" });
+    expect((await dueWinbacks(h.db, 28, NOW)).map((r) => r.id).sort()).toEqual([away.id, unmarked.id].sort());
+    expect(await sendWinbacks(h.db, NOW)).toBe(2);
+    expect(sent.find((m) => m.to === away.email)).toMatchObject({ id: "winback" });
     expect(sent[0].vars.odhlasit).toMatch(/\/o\/[0-9a-f]+$/);
     expect(await sendWinbacks(h.db, hours(DAY))).toBe(0);
 

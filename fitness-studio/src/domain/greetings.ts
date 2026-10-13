@@ -99,8 +99,9 @@ export async function dueWinbacks(db: Executor, days: number, now = new Date(), 
   const rows = await db
     .select({ id: users.id, email: users.email, name: users.name, token: users.unsubscribeToken, lastVisit: last })
     .from(users)
-    .innerJoin(bookings, and(eq(bookings.userId, users.id), eq(bookings.status, "attended")))
-    .innerJoin(classSessions, eq(bookings.sessionId, classSessions.id))
+    // a visit = a past lesson they were booked on (attendance isn't always marked)
+    .innerJoin(bookings, and(eq(bookings.userId, users.id), inArray(bookings.status, ["attended", "confirmed"]), eq(bookings.isHold, false)))
+    .innerJoin(classSessions, and(eq(bookings.sessionId, classSessions.id), eq(classSessions.status, "scheduled"), lt(classSessions.startsAt, now)))
     .where(
       and(
         clients,
