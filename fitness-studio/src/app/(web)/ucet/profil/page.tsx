@@ -1,6 +1,6 @@
 import { changePasswordAction, deleteAccountAction, updateAvatarAction, updateProfileAction } from "@/app/actions/auth";
 import { deletionCheck } from "@/domain/account-deletion";
-import { hasConfirmation, profileLocks } from "@/domain/insurance";
+import { birthDateLocked, hasConfirmation } from "@/domain/insurance";
 import { credits } from "@/lib/money";
 import { Avatar } from "@/components/avatar";
 import { ActionForm, SubmitButton } from "@/components/forms";
@@ -20,7 +20,7 @@ export default async function ProfilePage({ searchParams }: PageProps<"/ucet/pro
   const user = await requireUser("/ucet/profil");
   const db = await getDb();
   const [{ publicKey }, deletion, confirmed] = await Promise.all([vapidKeys(db), deletionCheck(db, user.id), hasConfirmation(db, user.id)]);
-  const locked = profileLocks(confirmed, user.birthDate);
+  const locked = birthDateLocked(confirmed, user.birthDate);
   const current = parseAvatar(user.avatar);
   const [nameDayMonth, nameDayDay] = user.nameDay?.split("-").map(Number) ?? [];
   const pickClass =
@@ -84,8 +84,8 @@ export default async function ProfilePage({ searchParams }: PageProps<"/ucet/pro
         <h2 className="text-xl font-semibold">Osobní údaje</h2>
         <ActionForm action={updateProfileAction} resetOnSuccess={false} className="mt-5 space-y-4">
           <Field label="E-mail" hint="E-mail změní recepce."><Input value={user.email} disabled /></Field>
-          <Field label="Jméno a příjmení" hint={locked.name ? "Je na potvrzení pro pojišťovnu – změní ho recepce." : undefined}>
-            <Input name="name" defaultValue={user.name} required disabled={locked.name} />
+          <Field label="Jméno a příjmení" hint="Je i na potvrzení pro pojišťovnu – změní ho recepce (třeba po svatbě nebo při překlepu).">
+            <Input value={user.name} disabled />
           </Field>
           <Field label="Přezdívka" hint="Nepovinné. Uvidí ji ostatní na nástěnce místo tvého jména.">
             <Input name="nickname" maxLength={30} defaultValue={user.nickname ?? ""} />
@@ -95,14 +95,14 @@ export default async function ProfilePage({ searchParams }: PageProps<"/ucet/pro
             <Field
               label="Narozeniny"
               hint={
-                locked.birthDate
+                locked
                   ? "Je na potvrzení pro pojišťovnu – změní ho recepce."
                   : confirmed
                     ? "Potřebné na potvrzení pro pojišťovnu. Po uložení ho změní už jen recepce."
                     : "Nepovinné – ať ti můžeme popřát. Potřebné na potvrzení pro pojišťovnu."
               }
             >
-              <Input name="birthDate" type="date" max={new Date().toISOString().slice(0, 10)} defaultValue={user.birthDate ?? ""} disabled={locked.birthDate} />
+              <Input name="birthDate" type="date" max={new Date().toISOString().slice(0, 10)} defaultValue={user.birthDate ?? ""} disabled={locked} />
             </Field>
             <Field label="Svátek" hint="Nepovinné.">
               <div className="flex gap-2">

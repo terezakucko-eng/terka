@@ -32,7 +32,7 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registr
         <div aria-hidden className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
           <label>Web <input name={HONEYPOT} tabIndex={-1} autoComplete="off" defaultValue="" /></label>
         </div>
-        <Field label="Jméno a příjmení"><Input name="name" autoComplete="name" required /></Field>
+        <Field label="Jméno a příjmení" hint="Celé jméno – bude i na potvrzení pro pojišťovnu. Později ho změní jen recepce."><Input name="name" autoComplete="name" required /></Field>
         <Field label="E-mail"><Input name="email" type="email" autoComplete="email" required /></Field>
         <Field label="Telefon" hint="Nepovinné – pro rychlé info o změnách lekcí."><Input name="phone" type="tel" autoComplete="tel" /></Field>
         <Field label="Heslo" hint="Alespoň 8 znaků."><PasswordInput name="password" autoComplete="new-password" minLength={8} required /></Field>

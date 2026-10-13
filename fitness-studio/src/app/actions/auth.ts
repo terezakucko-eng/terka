@@ -33,7 +33,7 @@ import { deleteOwnAccount } from "@/domain/account-deletion";
 import { notifyPromoted } from "@/lib/notify";
 import { getContent } from "@/content";
 import { sendMail } from "@/lib/mail";
-import { hasConfirmation, profileLocks } from "@/domain/insurance";
+import { birthDateLocked, hasConfirmation } from "@/domain/insurance";
 
 /** Only allow local redirects after login. */
 function safeNext(v: string) {
@@ -161,20 +161,18 @@ export async function updateProfileAction(_: FormState, fd: FormData): Promise<F
   const user = await requireUser();
   const res = await attempt(async () => {
     const db = await getDb();
-    // after an insurance confirmation, name and birth date are changed by the studio only
-    const locked = profileLocks(await hasConfirmation(db, user.id), user.birthDate);
-    const name = locked.name ? user.name : field.str(fd, "name");
-    if (name.length < 2) throw new UserError("Vyplň jméno.");
+    // the name is changed by the studio only (it is on the insurance confirmation),
+    // the birth date too once a confirmation was issued with it
+    const locked = birthDateLocked(await hasConfirmation(db, user.id), user.birthDate);
     await db
       .update(users)
       .set({
-        name,
         phone: normalizePhone(field.str(fd, "phone")) ?? field.optional(fd, "phone"),
         marketingConsent: field.bool(fd, "marketing"),
         smsConsent: field.bool(fd, "sms"),
         whatsappConsent: field.bool(fd, "whatsapp"),
         nickname: field.str(fd, "nickname").slice(0, 30) || null,
-        birthDate: locked.birthDate ? user.birthDate : cleanBirthDate(field.str(fd, "birthDate")),
+        birthDate: locked ? user.birthDate : cleanBirthDate(field.str(fd, "birthDate")),
         nameDay: cleanNameDay(field.int(fd, "nameDayDay"), field.int(fd, "nameDayMonth")),
         remindersOptIn: field.bool(fd, "reminders"),
         bookingEmails: field.bool(fd, "bookingEmails"),
