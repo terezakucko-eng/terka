@@ -46,6 +46,11 @@ export default async function AdminDashboard() {
           <Stat label="Obsazenost 7 dní" value={capacity ? `${Math.round((booked / capacity) * 100)} %` : "—"} sub={`${booked} / ${capacity} míst`} />
         </div>
       )}
+      {user.role === "admin" && (
+        <p className="mt-3 text-right text-sm">
+          <Link href="/admin/statistiky" className="eyebrow text-zeme underline underline-offset-4">Statistiky po měsících →</Link>
+        </p>
+      )}
       <section className="mt-10">
         <div className="flex items-end justify-between">
           <h2 className="text-xl font-semibold">Dnešní lekce</h2>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   BadgeCheck,
+  BarChart3,
   CalendarDays,
   Cog,
   Flower2,
@@ -31,6 +32,7 @@ export const metadata: Metadata = { title: "Administrace", robots: { index: fals
 
 const items = [
   { href: "/admin", label: "Přehled", icon: LayoutDashboard, admin: false },
+  { href: "/admin/statistiky", label: "Statistiky", icon: BarChart3, admin: true },
   { href: "/admin/rozvrh", label: "Rozvrh", icon: CalendarDays, admin: false },
   { href: "/admin/masaze", label: "Masáže", icon: Flower2, admin: false },
   { href: "/admin/klienti", label: "Klienti", icon: Users, admin: true },
