@@ -421,6 +421,13 @@
       "when": 1791810526588,
       "tag": "0059_insurance_confirmations",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1791921000036,
+      "tag": "0060_wishes",
+      "breakpoints": true
     }
   ]
 }
