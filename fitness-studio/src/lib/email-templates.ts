@@ -207,6 +207,37 @@ export const EMAILS = {
       odkaz: { label: "odkaz na schránku v účtu", sample: `${site.url}/ucet/schranka` },
     },
   },
+  birthday: {
+    title: "Přání k narozeninám",
+    when: "V den narozenin dopoledne – klientům s vyplněným datem narození (Nastavení → Přání a dárky).",
+    subject: "Všechno nejlepší, {{osloveni}}! 🎂",
+    body: "Ahoj {{osloveni}},\n\nvšechno nejlepší k narozeninám! 🎂 Ať tě tělo nese, hlava je v klidu a radost z pohybu tě neopouští.\n\n{{darek}}\n\nTvoje OCTOPUSH 🐙",
+    vars: {
+      osloveni,
+      darek: {
+        label: "řádek o dárku (lekce zdarma), jinak prázdné",
+        sample: `Na účtu máš od nás dárek – lekci zdarma, platí do 12. 11. 2026. Vyber si ji v rozvrhu: ${site.url}/rozvrh`,
+      },
+    },
+  },
+  nameDay: {
+    title: "Přání k svátku",
+    when: "V den svátku dopoledne – klientům s vyplněným svátkem (když nemají zrovna narozeniny).",
+    subject: "Krásný svátek, {{osloveni}}! 🌷",
+    body: "Ahoj {{osloveni}},\n\npřejeme ti krásný svátek! 🌷 Ať je dnešek plný radosti – a třeba i pohybu.\n\nTvoje OCTOPUSH 🐙",
+    vars: { osloveni },
+  },
+  winback: {
+    title: "Chybíš nám",
+    when: "Dopoledne, když klient nebyl na lekci (Nastavení → Přání a dárky) a nic nemá rezervováno. Jen se souhlasem s novinkami, jednou za pauzu.",
+    subject: "{{osloveni}}, chybíš nám 🐙",
+    body: "Ahoj {{osloveni}},\n\nod tvé poslední lekce u nás uběhlo pár týdnů a trochu se nám po tobě stýská. 🐙\nMrkni do rozvrhu, třeba tě něco naláká: {{odkaz}}\n\nTěšíme se na tebe!\n\nE-maily o novinkách si můžeš kdykoli odhlásit: {{odhlasit}}",
+    vars: {
+      osloveni,
+      odkaz: { label: "odkaz na rozvrh", sample: `${site.url}/rozvrh` },
+      odhlasit: { label: "odkaz na odhlášení novinek", sample: `${site.url}/o/…` },
+    },
+  },
   signature: {
     title: "Podpis pod každým e-mailem",
     when: "Připojí se na konec všech automatických e-mailů (hromadné zprávy mají vlastní patičku).",

@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { resetOrdersAction, saveSettingsAction } from "@/app/admin/actions";
 import { dateKey } from "@/lib/dates";
 import { AdminTitle } from "@/components/admin";
@@ -11,7 +12,7 @@ import { formatDateTime } from "@/lib/dates";
 import { paymentProvider } from "@/lib/payments";
 import { getSettings, type Settings } from "@/lib/settings";
 
-const fields: { key: keyof Settings; label: string; hint: string }[] = [
+const fields: { key: keyof Settings; label: string; hint: string; section?: string }[] = [
   { key: "cancellationHours", label: "Storno zdarma (hodin před lekcí)", hint: "Později vstup propadá." },
   { key: "bookingWindowWeeks", label: "Rezervace – kolik dalších týdnů (klienti)", hint: "1 = tento týden + příští. Nový týden se otevírá v pondělí o půlnoci. 0 = řídit se dny níže." },
   { key: "memberBookingWindowWeeks", label: "Rezervace – kolik dalších týdnů (členové)", hint: "2 = tento týden + další dva. Klienti s aktivním členstvím." },
@@ -28,6 +29,10 @@ const fields: { key: keyof Settings; label: string; hint: string }[] = [
   { key: "memberPauseDays", label: "Členové – délka pauzy v přihlašování (dní)", hint: "" },
   { key: "membershipMonthlyFee", label: "Členský příspěvek měsíčně (Kč)", hint: "Individuální částku nastavíš u člena. 0 = automatické výzvy vypnuté." },
   { key: "membershipFeeNoticeDay", label: "Výzva k platbě za další měsíc – den v měsíci", hint: "20 = výzva za listopad odejde 20. října. 1–28." },
+  { key: "birthdayGreetings", label: "Přání k narozeninám a svátku", hint: "1 = posílat (e-mail a upozornění v mobilu dopoledne v den oslavy), 0 = vypnuto.", section: "Přání a dárky" },
+  { key: "birthdayGiftEntries", label: "Dárek k narozeninám – lekcí zdarma", hint: "0 = jen přání." },
+  { key: "birthdayGiftValidityDays", label: "Platnost dárku k narozeninám (dní)", hint: "" },
+  { key: "winbackDays", label: "„Chybíš nám“ po kolika dnech bez lekce", hint: "Jen klientům se souhlasem s novinkami, kteří nic nemají rezervováno – jednou za každou pauzu. 0 = vypnuto." },
 ];
 
 export default async function AdminSettings() {
@@ -39,12 +44,15 @@ export default async function AdminSettings() {
     <>
       <AdminTitle title="Nastavení" />
       <Card className="max-w-3xl">
-        <h2 className="font-semibold">Pravidla rezervací</h2>
+        <h2 className="font-semibold">Pravidla rezervací a automatické zprávy</h2>
         <ActionForm action={saveSettingsAction} className="mt-5 grid gap-4 sm:grid-cols-2">
           {fields.map((f) => (
-            <Field key={f.key} label={f.label} hint={f.hint || undefined}>
-              <Input name={f.key} type="number" min={0} defaultValue={cfg[f.key]} required />
-            </Field>
+            <Fragment key={f.key}>
+              {f.section && <h3 className="mt-4 border-t border-linka/60 pt-5 font-semibold sm:col-span-2">{f.section}</h3>}
+              <Field label={f.label} hint={f.hint || undefined}>
+                <Input name={f.key} type="number" min={0} defaultValue={cfg[f.key]} required />
+              </Field>
+            </Fragment>
           ))}
           <div className="sm:col-span-2"><SubmitButton>Uložit</SubmitButton></div>
         </ActionForm>

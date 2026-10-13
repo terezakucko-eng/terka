@@ -158,6 +158,12 @@ export const users = pgTable("users", {
   birthDate: text("birth_date"),
   /** Svátek "MM-DD" */
   nameDay: text("name_day"),
+  /** Rok, kdy klient dostal přání (a dárek) k narozeninám – posílá se jednou ročně */
+  birthdayGreetedYear: integer("birthday_greeted_year"),
+  /** Rok, kdy klient dostal přání k svátku */
+  nameDayGreetedYear: integer("name_day_greeted_year"),
+  /** Kdy odešel e-mail „Chybíš nám“ – další až po dalším návratu a nové pauze */
+  winbackSentAt: timestamp("winback_sent_at", { withTimezone: true }),
   /** Kdy klient potvrdil, že mu zdravotní stav cvičení dovoluje */
   healthConfirmedAt: timestamp("health_confirmed_at", { withTimezone: true }),
   /** Pauza v přihlašování za opakované pozdní odhlášení/nepříchod (členství) */

@@ -27,6 +27,9 @@ function pragueParts(d: Date) {
   };
 }
 
+/** Hour of the day (0–23) in Prague. */
+export const pragueHour = (d: Date) => pragueParts(d).h;
+
 /** Prague offset from UTC (ms) at the given instant. */
 function offsetAt(d: Date) {
   const p = pragueParts(d);

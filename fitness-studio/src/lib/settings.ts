@@ -35,6 +35,13 @@ export const defaultSettings = {
   membershipMonthlyFee: 0,
   /** Kterého dne v měsíci odejdou výzvy k platbě za následující měsíc */
   membershipFeeNoticeDay: 20,
+  /** Přání k narozeninám a svátku (1 = posílat, 0 = vypnuto) */
+  birthdayGreetings: 1,
+  /** Dárek k narozeninám – vstupy zdarma (0 = jen přání) */
+  birthdayGiftEntries: 1,
+  birthdayGiftValidityDays: 30,
+  /** E-mail „Chybíš nám“ po X dnech bez lekce (0 = vypnuto) */
+  winbackDays: 28,
 };
 
 export type Settings = typeof defaultSettings;

@@ -63,6 +63,7 @@ export default async function AdminDashboard() {
       {celebrations.length > 0 && (
         <section className="mt-10">
           <h2 className="text-xl font-semibold">Kdo slaví (7 dní)</h2>
+          <p className="mt-1 text-sm text-les/60">Přání jim web posílá sám v den oslavy dopoledne (Nastavení → Přání a dárky).</p>
           <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {celebrations.map(({ user: c, kind, date, age }) => {
               const content = (

@@ -13,6 +13,9 @@ import { greetName } from "@/lib/vocative";
 import { pushQuietly } from "./push";
 import { sendMail } from "./mail";
 import { WISH_KINDS } from "@/domain/wishes";
+import { dueGreetings, dueWinbacks, greetBirthday, markNameDay, markWinback } from "@/domain/greetings";
+import { getSettings } from "./settings";
+import { unsubscribeUrl } from "./links";
 
 async function describe(db: DB, sessionId: string) {
   const [row] = await db
@@ -148,4 +151,48 @@ export async function notifyWishReply(db: DB, w: Wish) {
   const odkaz = `${site.url}/ucet/schranka`;
   await sendEmail(u.email, "wishReply", { osloveni: greetName(u.name), vzkaz: w.body, odpoved: w.reply, odkaz });
   await pushQuietly(db, [u.id], { title: "💌 Odpověď na tvůj vzkaz", body: w.reply.slice(0, 140), url: odkaz });
+}
+
+/** Birthday (with the gift) and name-day greetings – e-mail and push, once a year each. */
+export async function sendGreetings(db: DB, now = new Date()) {
+  const cfg = await getSettings(db);
+  if (!cfg.birthdayGreetings) return { birthdays: 0, nameDays: 0 };
+  const { year, birthdays, nameDays } = await dueGreetings(db, now);
+  let sentBirthdays = 0;
+  let sentNameDays = 0;
+  for (const u of birthdays) {
+    const gift = await greetBirthday(db, u.id, year, cfg, now);
+    if (gift === false) continue;
+    await sendEmail(u.email, "birthday", {
+      osloveni: greetName(u.name),
+      darek: gift ? `Na účtu máš od nás dárek – lekci zdarma, platí do ${formatDate(gift)}. Vyber si ji v rozvrhu: ${site.url}/rozvrh` : "",
+    });
+    await pushQuietly(db, [u.id], {
+      title: "Všechno nejlepší! 🎂",
+      body: gift ? "Na účtu tě čeká dárek – lekce zdarma." : "Přejeme ti krásné narozeniny.",
+      url: `${site.url}/ucet`,
+    });
+    sentBirthdays++;
+  }
+  const celebrating = new Set(birthdays.map((u) => u.id));
+  for (const u of nameDays) {
+    // on a birthday the birthday wishes are enough
+    if (!(await markNameDay(db, u.id, year)) || celebrating.has(u.id)) continue;
+    await sendEmail(u.email, "nameDay", { osloveni: greetName(u.name) });
+    await pushQuietly(db, [u.id], { title: "Krásný svátek! 🌷", body: "Přejeme ti krásný den.", url: `${site.url}/rozvrh` });
+    sentNameDays++;
+  }
+  return { birthdays: sentBirthdays, nameDays: sentNameDays };
+}
+
+/** „Chybíš nám“ to clients who haven't been to a lesson for a while (news consent only). */
+export async function sendWinbacks(db: DB, now = new Date()) {
+  const cfg = await getSettings(db);
+  let sent = 0;
+  for (const u of await dueWinbacks(db, cfg.winbackDays, now)) {
+    await markWinback(db, u.id, now);
+    await sendEmail(u.email, "winback", { osloveni: greetName(u.name), odkaz: `${site.url}/rozvrh`, odhlasit: unsubscribeUrl(u.token) });
+    sent++;
+  }
+  return sent;
 }
