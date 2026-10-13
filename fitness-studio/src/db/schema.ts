@@ -142,6 +142,11 @@ export const users = pgTable("users", {
     .notNull()
     .unique()
     .default(sql`replace(gen_random_uuid()::text, '-', '')`),
+  /** tajná adresa osobního kalendáře (odběr rezervací v mobilu) */
+  calendarToken: text("calendar_token")
+    .notNull()
+    .unique()
+    .default(sql`replace(gen_random_uuid()::text, '-', '')`),
   /** převzato ze starého systému – účet čeká na nastavení hesla */
   importedAt: timestamp("imported_at", { withTimezone: true }),
   adminNote: text("admin_note"),

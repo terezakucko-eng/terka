@@ -82,6 +82,7 @@ export async function notifyBooked(db: DB, b: Pick<Booking, "userId" | "sessionI
     lekce: await describe(db, b.sessionId),
     kamaradka: b.guestName ? `Rezervovali jsme i místo pro kamarádku: ${b.guestName}.` : "",
     odkaz: link(b.sessionId),
+    kalendar: `${site.url}/api/kalendar/lekce/${b.sessionId}`,
   });
 }
 

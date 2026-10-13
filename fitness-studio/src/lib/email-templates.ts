@@ -58,12 +58,13 @@ export const EMAILS = {
     title: "Rezervace lekce potvrzena",
     when: "Po rezervaci lekce (u platby převodem hned, u karty po zaplacení).",
     subject: "Rezervace potvrzena: {{lekce}}",
-    body: "Ahoj {{osloveni}},\n\nmáš místo na lekci {{lekce}}.\n{{kamaradka}}\nDetail a případné storno: {{odkaz}}\n\nTěšíme se!",
+    body: "Ahoj {{osloveni}},\n\nmáš místo na lekci {{lekce}}.\n{{kamaradka}}\nDetail a případné storno: {{odkaz}}\nPřidat do kalendáře: {{kalendar}}\n\nTěšíme se!",
     vars: {
       osloveni,
       lekce,
       kamaradka: { label: "řádek o kamarádce (+1), jinak prázdné", sample: "Rezervovali jsme i místo pro kamarádku: Jana." },
       odkaz: { label: "odkaz na lekci", sample: `${site.url}/rozvrh/…` },
+      kalendar: { label: "odkaz na přidání lekce do kalendáře (.ics)", sample: `${site.url}/api/kalendar/lekce/…` },
     },
   },
   cancelled: {

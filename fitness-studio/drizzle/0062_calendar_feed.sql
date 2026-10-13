@@ -1,0 +1,2 @@
+ALTER TABLE "users" ADD COLUMN "calendar_token" text DEFAULT replace(gen_random_uuid()::text, '-', '') NOT NULL;--> statement-breakpoint
+ALTER TABLE "users" ADD CONSTRAINT "users_calendar_token_unique" UNIQUE("calendar_token");

@@ -22,6 +22,9 @@ import { splitName } from "@/lib/client-list";
 import { vocative } from "@/lib/vocative";
 import { myReview } from "@/domain/reviews";
 import { getContent } from "@/content";
+import { feedLinks } from "@/lib/ics";
+import { CopyButton } from "@/components/copy-button";
+import { resetCalendarAction } from "@/app/actions/calendar";
 
 export default async function AccountPage({ searchParams }: PageProps<"/ucet">) {
   const { vitej } = await searchParams;
@@ -59,6 +62,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
   // regulars who haven't written a review yet get a gentle nudge
   const google = content.googleReviewUrl;
   const askReview = user.role === "client" && visits >= 3 && !review;
+  const cal = feedLinks(user.calendarToken);
 
   return (
     <div className="space-y-12">
@@ -186,6 +190,27 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
             </Card>
           ))}
         </div>
+      </section>
+
+      <section id="kalendar" className="rounded-2xl border border-linka/60 bg-krem/40 p-5">
+        <p className="font-semibold">📅 Lekce v kalendáři v mobilu</p>
+        <p className="mt-1 max-w-2xl text-sm text-les/70">
+          Přidej si svoje lekce a masáže do kalendáře. Nové rezervace se v něm objeví samy a zrušené zmizí – iPhone kalendář obnovuje zhruba
+          každou hodinu, Google kalendář párkrát denně. U Google kalendáře otevři odkaz raději na počítači, v mobilu se pak ukáže sám.
+        </p>
+        <span className="mt-4 flex flex-wrap gap-2">
+          <a href={cal.webcal} className="rounded-full bg-les px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-papir">iPhone a Mac</a>
+          <a href={cal.google} target="_blank" rel="noopener" className="rounded-full border border-les/30 px-5 py-2.5 text-xs font-semibold uppercase tracking-wider">Google kalendář ↗</a>
+          <a href={cal.outlook} target="_blank" rel="noopener" className="rounded-full border border-les/30 px-5 py-2.5 text-xs font-semibold uppercase tracking-wider">Outlook ↗</a>
+          <CopyButton text={cal.https} className="px-5 py-2.5" />
+        </span>
+        <details className="mt-3 text-xs text-les/60">
+          <summary className="cursor-pointer">Poslala jsi odkaz omylem někomu dalšímu?</summary>
+          <p className="mt-2">Odkaz je jen tvůj – kdo ho má, uvidí tvoje rezervace. Můžeš si vytvořit nový, starý pak přestane fungovat.</p>
+          <ActionForm action={resetCalendarAction} confirm="Vytvořit nový odkaz? Kalendář si pak přidej znovu." className="mt-2">
+            <SubmitButton variant="ghost" className="px-3 py-2 text-[0.65rem]">Vytvořit nový odkaz</SubmitButton>
+          </ActionForm>
+        </details>
       </section>
 
       {askReview && (
