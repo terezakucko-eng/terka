@@ -428,6 +428,13 @@
       "when": 1791921000036,
       "tag": "0060_wishes",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1791926062297,
+      "tag": "0061_schranka_board_post",
+      "breakpoints": true
     }
   ]
 }
