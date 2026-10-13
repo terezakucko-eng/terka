@@ -129,12 +129,9 @@ export async function hasConfirmation(db: Executor, userId: string) {
 }
 
 /**
- * What the client can no longer change in the profile: the name once a
- * confirmation exists, the birth date only once it is also filled in – an
- * empty one (e.g. the studio downloaded the confirmation first) can still be
- * added, after that the studio changes it.
+ * Whether the client can no longer change the birth date in the profile: once
+ * a confirmation exists and the date is filled in – an empty one (e.g. the
+ * studio downloaded the confirmation first) can still be added, after that the
+ * studio changes it. The name is the studio's to change from registration on.
  */
-export const profileLocks = (confirmed: boolean, birthDate: string | null) => ({
-  name: confirmed,
-  birthDate: confirmed && !!birthDate,
-});
+export const birthDateLocked = (confirmed: boolean, birthDate: string | null) => confirmed && !!birthDate;

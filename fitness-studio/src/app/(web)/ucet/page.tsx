@@ -212,7 +212,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
             <span className="text-sm text-les/70">
               Pojišťovny přispívají na pohyb. Stáhni si potvrzení o zaplaceném cvičení – členství, permanentkách, kreditu i jednotlivých
               lekcích. Platí elektronicky bez razítka, pojišťovna si ho ověří kódem. Když bude chtít razítko a podpis, vytiskni si ho a přines
-              do studia.
+              do studia. Platby z doby před spuštěním webu v něm nejsou – když je potřebuješ, ozvi se nám.
             </span>
           </p>
           <span className="flex flex-wrap gap-2">

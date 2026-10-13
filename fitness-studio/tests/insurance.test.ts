@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { orders } from "@/db/schema";
-import { findConfirmation, formatCode, hasConfirmation, insurancePayments, insuranceYears, issueConfirmation, profileLocks } from "@/domain/insurance";
+import { birthDateLocked, findConfirmation, formatCode, hasConfirmation, insurancePayments, insuranceYears, issueConfirmation } from "@/domain/insurance";
 import { recordPastFees } from "@/domain/membership-fees";
 import { NOW, makeProduct, makeUser, testDb } from "./helpers";
 
@@ -92,11 +92,11 @@ describe("anti-fraud", () => {
   });
 });
 
-describe("profile locks", () => {
+describe("birth date lock", () => {
   it("keeps an empty birth date fillable after the studio issued a confirmation", () => {
-    expect(profileLocks(false, null)).toEqual({ name: false, birthDate: false });
-    expect(profileLocks(false, "1990-03-12")).toEqual({ name: false, birthDate: false });
-    expect(profileLocks(true, null)).toEqual({ name: true, birthDate: false });
-    expect(profileLocks(true, "1990-03-12")).toEqual({ name: true, birthDate: true });
+    expect(birthDateLocked(false, null)).toBe(false);
+    expect(birthDateLocked(false, "1990-03-12")).toBe(false);
+    expect(birthDateLocked(true, null)).toBe(false);
+    expect(birthDateLocked(true, "1990-03-12")).toBe(true);
   });
 });
