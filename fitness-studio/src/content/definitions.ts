@@ -403,6 +403,7 @@ Napiš sem, jak studio vzniklo a co pro tebe pohyb znamená.
 - Rezervace probíhá online přes klientský účet: {{rezervace_okno}} (s aktivním členstvím {{rezervace_okno_clenove}}).
 - Lekci lze zaplatit kreditem, permanentkou, členstvím, vstupem zdarma nebo jednorázově převodem.
 - Neuhrazená rezervace jednorázového vstupu se uvolní po {{platba_minut}} minutách.
+- U některých lekcí (např. Reformer) držíme místo pro klienty bez členství; členové ho mohou obsadit až v čase uvedeném u lekce (zpravidla týden předem).
 
 ## 3. Storno podmínky
 - Rezervaci lze bezplatně zrušit nejpozději {{storno_hodin}} hodin před začátkem lekce; vstup nebo kredit se vrací na účet.

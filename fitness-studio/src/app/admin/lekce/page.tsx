@@ -50,6 +50,12 @@ function ClassTypeForm({ t }: { t?: ClassType }) {
           <Field label="Nový doplatek platí od" hint="Např. 1. 1. 2027. Prázdné = žádná změna">
             <Input name="memberSurchargeNextFrom" type="date" defaultValue={t?.memberSurchargeNextFrom ?? ""} />
           </Field>
+          <Field label="Míst pro klienty bez členství" hint="Např. 1 na Reformeru – členové je nezaberou, dokud se neuvolní. 0 = nic se nedrží">
+            <Input name="nonMemberSeats" type="number" min={0} defaultValue={t?.nonMemberSeats ?? 0} />
+          </Field>
+          <Field label="…uvolnit hodin před lekcí" hint="168 = týden předem. Pak místo dostane první z pořadníku, nebo kdokoli">
+            <Input name="nonMemberReleaseHours" type="number" min={0} defaultValue={t?.nonMemberReleaseHours ?? 168} />
+          </Field>
           <Field label="Poznámka k ceně" hint="Např. „Zaváděcí cena pro rok 2026“ – u lekce a v ceníku">
             <Input name="priceNote" defaultValue={t?.priceNote ?? ""} />
           </Field>

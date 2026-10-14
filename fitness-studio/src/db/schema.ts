@@ -232,6 +232,10 @@ export const classTypes = pgTable("class_types", {
   /** Další výše doplatku pro členy (haléře) – platí od `memberSurchargeNextFrom` (nový ceník, např. 2027) */
   memberSurchargeNext: integer("member_surcharge_next"),
   memberSurchargeNextFrom: text("member_surcharge_next_from"),
+  /** Místa držená pro klienty bez členství (např. 1 na Reformeru) – členové je obsadit nemůžou… */
+  nonMemberSeats: integer("non_member_seats").notNull().default(0),
+  /** …do tolika hodin před lekcí (168 = týden), pak je může vzít kdokoli */
+  nonMemberReleaseHours: integer("non_member_release_hours").notNull().default(168),
   /** Poznámka k ceně, např. „Zaváděcí cena pro rok 2026“ – ukazuje se u lekcí před `priceNoteUntil` ("YYYY-MM-DD") */
   priceNote: text("price_note").notNull().default(""),
   priceNoteUntil: text("price_note_until"),

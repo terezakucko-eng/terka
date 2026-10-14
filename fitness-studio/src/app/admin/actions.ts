@@ -105,6 +105,8 @@ export async function saveClassTypeAction(_: FormState, fd: FormData): Promise<F
       // a new price from a date (next year's price list); empty date = no change planned
       memberSurchargeNext: isDateKey(field.str(fd, "memberSurchargeNextFrom")) ? (field.money(fd, "memberSurchargeNext") ?? 0) : null,
       memberSurchargeNextFrom: isDateKey(field.str(fd, "memberSurchargeNextFrom")) ? field.str(fd, "memberSurchargeNextFrom") : null,
+      nonMemberSeats: Math.max(0, field.int(fd, "nonMemberSeats") ?? 0),
+      nonMemberReleaseHours: Math.max(0, field.int(fd, "nonMemberReleaseHours") ?? 168),
       priceNote: field.str(fd, "priceNote").slice(0, 120),
       priceNoteUntil: isDateKey(field.str(fd, "priceNoteUntil")) ? field.str(fd, "priceNoteUntil") : null,
       passSurcharge: field.money(fd, "passSurcharge") || null,

@@ -12,7 +12,7 @@ import {
   type ClassSession,
   type Entitlement,
 } from "@/db/schema";
-import { addDays, dateKey, mondayOf, pragueLocalToDate, weekRange } from "@/lib/dates";
+import { addDays, dateKey, formatDateTime, mondayOf, pragueLocalToDate, weekRange } from "@/lib/dates";
 import { UserError } from "@/lib/errors";
 import { credits as creditsLabel, formatPrice } from "@/lib/money";
 import { getSettings, type Settings } from "@/lib/settings";
@@ -196,6 +196,59 @@ export async function viewerWindows(tx: Executor, cfg: Settings, userId: string 
         : base,
   };
 }
+
+/* ------------------------------------------- places kept for non-members */
+
+/** Who of these clients has a membership valid at that moment. */
+async function membersAt(tx: Executor, userIds: string[], at: Date) {
+  if (!userIds.length) return new Set<string>();
+  const rows = await tx
+    .select({ userId: entitlements.userId })
+    .from(entitlements)
+    .where(
+      and(
+        inArray(entitlements.userId, userIds),
+        eq(entitlements.kind, "membership"),
+        eq(entitlements.status, "active"),
+        lte(entitlements.validFrom, at),
+        gt(entitlements.validUntil, at),
+      ),
+    );
+  return new Set(rows.map((r) => r.userId));
+}
+
+/**
+ * Places a class keeps for clients without a membership (e.g. one Reformer
+ * place) until its release time (a week before by default): how many are
+ * still held – not yet taken by a non-member – and when they're released.
+ * Members see the class as full while a place is held for others.
+ */
+export async function nonMemberHold(tx: Executor, s: Pick<ClassSession, "id" | "classTypeId" | "startsAt">, now: Date) {
+  const [ct] = await tx
+    .select({ seats: classTypes.nonMemberSeats, hours: classTypes.nonMemberReleaseHours })
+    .from(classTypes)
+    .where(eq(classTypes.id, s.classTypeId));
+  if (!ct || ct.seats <= 0) return { held: 0, releaseAt: null };
+  const releaseAt = new Date(s.startsAt.getTime() - Math.max(0, ct.hours) * HOUR);
+  if (releaseAt <= now) return { held: 0, releaseAt: null };
+  const taken = await tx
+    .select({ userId: bookings.userId, seats: bookings.seats })
+    .from(bookings)
+    .where(and(eq(bookings.sessionId, s.id), inArray(bookings.status, [...OCCUPYING]), eq(bookings.isHold, false)));
+  const members = await membersAt(tx, taken.map((b) => b.userId), s.startsAt);
+  const byOthers = taken.filter((b) => !members.has(b.userId)).reduce((n, b) => n + b.seats, 0);
+  return { held: Math.max(0, ct.seats - byOthers), releaseAt };
+}
+
+/** How many places this client can book into: a member doesn't get the ones held for non-members. */
+async function capacityFor(tx: Executor, s: ClassSession, userId: string | null, now: Date) {
+  const hold = await nonMemberHold(tx, s, now);
+  const member = !!userId && hold.held > 0 && (await membersAt(tx, [userId], s.startsAt)).has(userId);
+  return { capacity: member ? s.capacity - hold.held : s.capacity, held: member ? hold.held : 0, releaseAt: hold.releaseAt };
+}
+
+const heldMessage = (held: number, releaseAt: Date) =>
+  `${held === 1 ? "Poslední místo je" : "Poslední místa jsou"} do ${formatDateTime(releaseAt)} pro klienty bez členství. Zapiš se do pořadníku – když ${held === 1 ? "ho" : "je"} nikdo nezabere, dostaneš ho jako první.`;
 
 export function isLateCancel(s: ClassSession, cfg: Settings, now: Date) {
   return now.getTime() > s.startsAt.getTime() - cfg.cancellationHours * HOUR;
@@ -789,16 +842,19 @@ export async function bookSession(db: DB, input: BookInput, now = new Date()) {
 
     const window = (await viewerWindows(tx, cfg, input.userId, now)).forSession(s);
     const occupied = await occupancy(tx, s.id);
-    const state = sessionState(s, occupied, cfg, now, window);
+    const cap = await capacityFor(tx, s, input.userId, now);
+    const state = sessionState({ ...s, capacity: cap.capacity }, occupied, cfg, now, window);
     if (state === "full")
-      throw new UserError("Lekce je plná – můžeš se zapsat do pořadníku.");
+      throw new UserError(
+        cap.held && cap.releaseAt && occupied < s.capacity ? heldMessage(cap.held, cap.releaseAt) : "Lekce je plná – můžeš se zapsat do pořadníku.",
+      );
     if (state !== "bookable") throw new UserError(stateMessage[state]);
     if (input.method === "admin") throw new UserError("Nepovolená platba.");
     const guestName = input.guestName?.trim().slice(0, 80) || null;
     const seats = guestName ? 2 : 1;
     if (guestName && !guestAllowed(s))
       throw new UserError("Na individuální lekci kamarádku vzít nejde.");
-    if (occupied + seats > s.capacity)
+    if (occupied + seats > cap.capacity)
       throw new UserError("Pro dva už tu není místo – zbývá jen jedno.");
     if (s.isFree !== (input.method === "free_class"))
       throw new UserError("Zvol prosím jiný způsob platby.");
@@ -881,7 +937,8 @@ export async function joinWaitlist(
     const s = await lockSession(tx, input.sessionId);
     await expireStalePending(tx, now, s.id);
     const window = (await viewerWindows(tx, cfg, input.userId, now)).forSession(s);
-    const state = sessionState(s, await occupancy(tx, s.id), cfg, now, window);
+    const cap = await capacityFor(tx, s, input.userId, now);
+    const state = sessionState({ ...s, capacity: cap.capacity }, await occupancy(tx, s.id), cfg, now, window);
     if (state === "bookable")
       throw new UserError("Na lekci je volné místo – rezervuj rovnou.");
     if (state !== "full") throw new UserError(stateMessage[state]);
@@ -907,22 +964,7 @@ export async function waitlistQueue(tx: Executor, s: ClassSession) {
     .where(and(eq(bookings.sessionId, s.id), eq(bookings.status, "waitlist")))
     .orderBy(asc(bookings.createdAt));
   if (!waiting.length) return waiting;
-  const members = new Set(
-    (
-      await tx
-        .select({ userId: entitlements.userId })
-        .from(entitlements)
-        .where(
-          and(
-            inArray(entitlements.userId, waiting.map((w) => w.userId)),
-            eq(entitlements.kind, "membership"),
-            eq(entitlements.status, "active"),
-            lte(entitlements.validFrom, s.startsAt),
-            gt(entitlements.validUntil, s.startsAt),
-          ),
-        )
-    ).map((r) => r.userId),
-  );
+  const members = await membersAt(tx, waiting.map((w) => w.userId), s.startsAt);
   // a membership with this class included (Členství Reformer) goes first – the priority perk
   const tier = new Set(await includedMemberships(tx, [...members], s));
   const rank = (userId: string) => (tier.has(userId) ? 2 : members.has(userId) ? 1 : 0);
@@ -940,6 +982,9 @@ async function promoteWaitlist(tx: Executor, s: ClassSession, now: Date) {
   let free = s.capacity - (await occupancy(tx, s.id));
   for (const w of waiting) {
     if (free <= 0) break;
+    // a place held for non-members waits for one of them (or for its release)
+    const { held } = await nonMemberHold(tx, s, now);
+    if (held > 0 && free <= held && (await membersAt(tx, [w.userId], s.startsAt)).has(w.userId)) continue;
     const opt = autoOption(await bookingOptions(tx, w.userId, s));
     if (!opt) continue;
     await tx
@@ -951,6 +996,29 @@ async function promoteWaitlist(tx: Executor, s: ClassSession, now: Date) {
     free--;
   }
   return promoted;
+}
+
+/** Moves the waitlist up now (e.g. when places held for non-members are released). */
+export async function fillFromWaitlist(db: DB, sessionId: string, now = new Date()) {
+  return db.transaction(async (tx) => promoteWaitlist(tx, await lockSession(tx, sessionId), now));
+}
+
+/** Upcoming classes whose places for non-members are already released and that still have a waitlist. */
+export async function releasedHoldsWithWaitlist(db: Executor, now = new Date()) {
+  const rows = await db
+    .select({ id: classSessions.id, startsAt: classSessions.startsAt, hours: classTypes.nonMemberReleaseHours })
+    .from(classSessions)
+    .innerJoin(classTypes, eq(classSessions.classTypeId, classTypes.id))
+    .where(
+      and(
+        eq(classSessions.status, "scheduled"),
+        gt(classSessions.startsAt, now),
+        lt(classSessions.startsAt, new Date(now.getTime() + 60 * DAY)),
+        gt(classTypes.nonMemberSeats, 0),
+        sql`exists (select 1 from ${bookings} b where b.session_id = ${classSessions.id} and b.status = 'waitlist')`,
+      ),
+    );
+  return rows.filter((r) => r.startsAt.getTime() - r.hours * HOUR <= now.getTime()).map((r) => r.id);
 }
 
 export async function cancelBooking(
@@ -1186,9 +1254,10 @@ export async function sessionForUser(
   if (!s) return null;
   const occupied = await occupancy(db, s.id);
   const window = (await viewerWindows(db, cfg, userId, now)).forSession(s);
-  const state = sessionState(s, occupied, cfg, now, window);
+  const cap = await capacityFor(db, s, userId, now);
+  const state = sessionState({ ...s, capacity: cap.capacity }, occupied, cfg, now, window);
   // +1 only for group classes with two spots left
-  const canBringFriend = guestAllowed(s) && s.capacity - occupied >= 2;
+  const canBringFriend = guestAllowed(s) && cap.capacity - occupied >= 2;
   const withFriend = seats > 1 && canBringFriend;
 
   let myBooking: Booking | undefined;
@@ -1213,6 +1282,8 @@ export async function sessionForUser(
     waitlistPosition,
     options,
     lateCancel: isLateCancel(s, cfg, now),
+    /** a member sees it full while the last place is kept for non-members – until then */
+    heldForOthersUntil: cap.held > 0 && occupied < s.capacity ? cap.releaseAt : null,
     cfg,
     /** not_open: when this viewer can book; members' earlier start when they have a longer window */
     opensAt: bookingOpensAt(s, window),

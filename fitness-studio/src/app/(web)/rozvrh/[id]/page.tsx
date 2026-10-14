@@ -12,7 +12,7 @@ import { VideoEmbed } from "@/components/video-embed";
 import { Badge, ButtonLink, Card, Container, Eyebrow, cx } from "@/components/ui";
 import { memberSurchargeFor, membershipIncluding, passSurchargeFor, sessionForUser, stateMessage } from "@/domain/booking";
 import { getCurrentUser } from "@/lib/auth";
-import { dateKey, formatDay, formatOpens, formatRange } from "@/lib/dates";
+import { dateKey, formatDateTime, formatDay, formatOpens, formatRange } from "@/lib/dates";
 import { priceNoteOn } from "@/lib/price-list";
 
 /** "5. 10." already ends the sentence, "5. 10. v 18:00" needs its full stop */
@@ -224,7 +224,13 @@ function BookingPanel({
   if (view.state === "full") {
     return (
       <div>
-        <h2 className="text-2xl font-semibold">Lekce je plná</h2>
+        <h2 className="text-2xl font-semibold">{view.heldForOthersUntil ? "Pro členy je teď plno" : "Lekce je plná"}</h2>
+        {view.heldForOthersUntil && (
+          <p className="mt-3 rounded-xl bg-krem/60 p-3 text-sm text-les/80">
+            Jedno místo držíme do {formatDateTime(view.heldForOthersUntil)} pro klienty bez členství, ať si lekci můžou vyzkoušet i nováčci.
+            Když ho do té doby nikdo nezabere, dostane ho první z pořadníku.
+          </p>
+        )}
         {b?.status === "waitlist" ? (
           <ActionForm action={cancelBookingAction} className="mt-4">
             <input type="hidden" name="bookingId" value={b.id} />

@@ -17,6 +17,7 @@ import { dueGreetings, dueWinbacks, greetBirthday, markNameDay, markWinback } fr
 import { markAnnounced, unannouncedRewards } from "@/domain/referrals";
 import { formatVoucherCode, markVoucherNotified, unnotifiedVouchers } from "@/domain/vouchers";
 import { displayName } from "./profile";
+import { fillFromWaitlist, releasedHoldsWithWaitlist } from "@/domain/booking";
 import { getSettings } from "./settings";
 import { unsubscribeUrl } from "./links";
 
@@ -101,6 +102,25 @@ export async function notifyCancelled(db: DB, b: Pick<Booking, "userId" | "sessi
     lekce: await describe(db, b.sessionId),
     vraceni: refunded ? "Vstup/kredit ti vracíme na účet." : "Storno proběhlo po lhůtě, vstup propadá.",
   });
+}
+
+/**
+ * Places held for non-members (e.g. one Reformer place) are released a week
+ * before the class – whoever waits on the waitlist gets them now and an
+ * e-mail. Run by the 15-minute cron.
+ */
+export async function fillReleasedPlaces(db: DB, now = new Date()) {
+  let n = 0;
+  for (const id of await releasedHoldsWithWaitlist(db, now)) {
+    try {
+      const promoted = await fillFromWaitlist(db, id, now);
+      await notifyPromoted(db, promoted);
+      n += promoted.length;
+    } catch {
+      // the next run tries again
+    }
+  }
+  return n;
 }
 
 export async function notifyPromoted(db: DB, promoted: Pick<Booking, "userId" | "sessionId">[]) {
