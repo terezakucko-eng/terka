@@ -283,6 +283,9 @@ export const SECTIONS = {
       intro: ta("Úvodní text", "Zkušenosti klientů OCTOPUSH. Chodíš k nám? Budeme rádi za pár slov."),
       homeTitle: t("Nadpis na úvodní stránce", "Co o nás říkají"),
       googleUrl: { label: "Odkaz na hodnocení na Googlu (prázdné = profil OCTOPUSH)", type: "url", default: "https://g.page/r/CUvZHNMtZbNBEAE/review", optional: true },
+      googleSummary: opt("Souhrn z Googlu (odkaz vede na mapu z Kontaktů)", "4,9 z 5 na Googlu (25 recenzí)"),
+      facebookSummary: opt("Souhrn z Facebooku", "98 % doporučení na Facebooku (29 recenzí)"),
+      facebookUrl: { label: "Odkaz na recenze na Facebooku", type: "url", default: "https://www.facebook.com/octopush.fit/reviews", optional: true },
     },
   },
   board: {

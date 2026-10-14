@@ -1,4 +1,4 @@
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, ne, sql } from "drizzle-orm";
 import type { Executor } from "@/db";
 import { reviews, type Review } from "@/db/schema";
 import { UserError } from "@/lib/errors";
@@ -30,7 +30,7 @@ export async function saveClientReview(db: Executor, userId: string, input: { ra
   return r;
 }
 
-/** Admin: adds a review from Google / the old website, or edits any review. */
+/** Admin: adds a review from Google / Facebook / the old website, or edits any review. */
 export async function saveAdminReview(
   db: Executor,
   input: { id?: string; rating: number; body: string; authorName: string; source?: Review["source"]; createdAt?: Date | null },
@@ -60,11 +60,12 @@ export const approvedReviews = (db: Executor, limit?: number) => {
   return limit ? q.limit(limit) : q;
 };
 
+/** Star average and count – Facebook recommendations have no stars and stay out of it. */
 export async function reviewStats(db: Executor) {
   const [r] = await db
     .select({ count: sql<number>`count(*)::int`, avg: sql<number | null>`avg(${reviews.rating})::float` })
     .from(reviews)
-    .where(eq(reviews.status, "approved"));
+    .where(and(eq(reviews.status, "approved"), ne(reviews.source, "facebook")));
   return { count: r.count, average: r.avg ? Math.round(r.avg * 10) / 10 : null };
 }
 

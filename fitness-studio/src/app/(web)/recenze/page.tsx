@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { saveReviewAction } from "@/app/actions/reviews";
 import { ActionForm, SubmitButton } from "@/components/forms";
-import { StarInput, Stars } from "@/components/stars";
+import { ReviewRating, StarInput, Stars } from "@/components/stars";
 import { ButtonLink, Card, Container, Empty, Field, Input, PageHeader, Textarea } from "@/components/ui";
 import { getContent } from "@/content";
 import { getDb } from "@/db";
@@ -10,6 +10,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { splitName } from "@/lib/client-list";
 import { formatDate } from "@/lib/dates";
 import { nbsp } from "@/lib/typography";
+import { ExternalRating } from "@/components/external-rating";
 
 export const metadata: Metadata = {
   title: "Recenze",
@@ -23,6 +24,8 @@ export default async function ReviewsPage() {
   const mine = user ? await myReview(db, user.id) : null;
   const { first, last } = splitName(user?.name ?? "");
   const google = c.googleReviewUrl;
+  const googleSummary = c("reviews.googleSummary");
+  const facebook = c("reviews.facebookSummary");
 
   return (
     <>
@@ -31,18 +34,27 @@ export default async function ReviewsPage() {
       </PageHeader>
       <Container className="grid max-w-5xl gap-10 py-12 lg:grid-cols-[1fr_22rem]">
         <section className="space-y-5">
-          {stats.count > 0 && (
-            <p className="flex items-center gap-3 text-sm text-les/70">
-              <Stars rating={stats.average ?? 0} /> <strong className="text-les">{stats.average?.toLocaleString("cs")}</strong> z 5 · {reviewsLabel(stats.count)}
-            </p>
+          {(stats.count > 0 || googleSummary || facebook) && (
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-les/70">
+              {/* the official Google figure beats our own average of the reviews copied here */}
+              {googleSummary ? (
+                <ExternalRating kind="google" text={googleSummary} href={c("site.mapUrl")} />
+              ) : stats.count > 0 && (
+                <p className="flex items-center gap-3">
+                  <Stars rating={stats.average ?? 0} /> <strong className="text-les">{stats.average?.toLocaleString("cs")}</strong> z 5 · {reviewsLabel(stats.count)}
+                </p>
+              )}
+              {facebook && <ExternalRating kind="facebook" text={facebook} href={c("reviews.facebookUrl")} />}
+            </div>
           )}
           {list.length === 0 && <Empty>Zatím tu žádné recenze nejsou. Buď první!</Empty>}
           {list.map((r) => (
             <Card key={r.id} className="p-6">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <Stars rating={r.rating} />
+                <ReviewRating review={r} />
                 <span className="text-xs text-les/50">
-                  {formatDate(r.createdAt)}
+                  {/* Facebook doesn't tell us when – the date would only be when it was copied here */}
+                  {r.source === "facebook" ? "Facebook" : formatDate(r.createdAt)}
                   {r.source === "google" && " · Google"}
                 </span>
               </div>

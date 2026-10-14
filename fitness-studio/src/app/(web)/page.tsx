@@ -19,7 +19,8 @@ import { nbsp } from "@/lib/typography";
 import { approvedReviews, reviewStats, reviewsLabel } from "@/domain/reviews";
 import { opensFor, viewerWindows } from "@/domain/booking";
 import { getSettings } from "@/lib/settings";
-import { Stars } from "@/components/stars";
+import { ReviewRating, Stars } from "@/components/stars";
+import { ExternalRating } from "@/components/external-rating";
 
 export const metadata: Metadata = { alternates: { canonical: "/" } };
 
@@ -172,20 +173,26 @@ export default async function Home() {
             <Eyebrow className="text-zeme">{c("reviews.eyebrow")}</Eyebrow>
             <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
               <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">{c("reviews.homeTitle")}</h2>
-              {stats.count > 1 && (
-                <p className="flex items-center gap-2 text-sm text-les/70">
-                  <Stars rating={stats.average ?? 0} /> {stats.average?.toLocaleString("cs")} z 5 · {reviewsLabel(stats.count)}
-                </p>
-              )}
+              <div className="flex flex-col items-start gap-1 text-sm text-les/70 sm:items-end">
+                {c("reviews.googleSummary") ? (
+                  <ExternalRating kind="google" text={c("reviews.googleSummary")} href={c("site.mapUrl")} />
+                ) : stats.count > 1 && (
+                  <p className="flex items-center gap-2">
+                    <Stars rating={stats.average ?? 0} /> {stats.average?.toLocaleString("cs")} z 5 · {reviewsLabel(stats.count)}
+                  </p>
+                )}
+                {c("reviews.facebookSummary") && <ExternalRating kind="facebook" text={c("reviews.facebookSummary")} href={c("reviews.facebookUrl")} />}
+              </div>
             </div>
             <div className="mt-10 grid gap-6 md:grid-cols-3">
               {topReviews.map((r) => (
                 <figure key={r.id} className="flex flex-col rounded-2xl bg-papir p-6 shadow-sm">
-                  <Stars rating={r.rating} />
+                  <ReviewRating review={r} />
                   <blockquote className="mt-4 line-clamp-[8] flex-1 whitespace-pre-line text-les/85">{nbsp(r.body)}</blockquote>
                   <figcaption className="mt-4 text-sm font-semibold">
                     {r.authorName}
                     {r.source === "google" && <span className="ml-2 text-xs font-normal text-les/50">· Google</span>}
+                    {r.source === "facebook" && <span className="ml-2 text-xs font-normal text-les/50">· Facebook</span>}
                   </figcaption>
                 </figure>
               ))}
