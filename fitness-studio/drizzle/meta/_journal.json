@@ -533,6 +533,13 @@
       "when": 1791980297902,
       "tag": "0075_reformer_presale",
       "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1792003516929,
+      "tag": "0076_class_cancellation_hours",
+      "breakpoints": true
     }
   ]
 }

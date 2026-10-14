@@ -236,6 +236,8 @@ export const classTypes = pgTable("class_types", {
   nonMemberSeats: integer("non_member_seats").notNull().default(0),
   /** …do tolika hodin před lekcí (168 = týden), pak je může vzít kdokoli */
   nonMemberReleaseHours: integer("non_member_release_hours").notNull().default(168),
+  /** Storno zdarma do tolika hodin před lekcí (Reformer, brunch = 24); null = podle Nastavení */
+  cancellationHours: integer("cancellation_hours"),
   /** Poznámka k ceně, např. „Zaváděcí cena pro rok 2026“ – ukazuje se u lekcí před `priceNoteUntil` ("YYYY-MM-DD") */
   priceNote: text("price_note").notNull().default(""),
   priceNoteUntil: text("price_note_until"),

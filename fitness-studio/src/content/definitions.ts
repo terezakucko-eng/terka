@@ -2,7 +2,7 @@
  * Every editable text and image on the website, with its default.
  * Admin → Obsah webu edits these; a key missing in the DB shows the default.
  *
- * Placeholders usable in any text: {{storno_hodin}}, {{prohresky}}, {{prohresky_dni}}, {{pauza_dni}}, {{rezervace_dni}}, {{rezervace_dni_clenove}}, {{rezervace_okno}}, {{rezervace_okno_clenove}},
+ * Placeholders usable in any text: {{storno_hodin}}, {{storno_vyjimky}} (lessons with their own window, e.g. " (u lekcí Reformer fusion a Fitness brunch 24 h)"), {{prohresky}}, {{prohresky_dni}}, {{pauza_dni}}, {{rezervace_dni}}, {{rezervace_dni_clenove}}, {{rezervace_okno}}, {{rezervace_okno_clenove}},
  * {{platba_minut}}, {{vstupy_zdarma}}, {{platnost_zdarma}}, {{firma}}, {{ico}},
  * {{adresa}}, {{email}}, {{telefon}}.
  */
@@ -244,7 +244,7 @@ export const SECTIONS = {
       s3Title: t("Krok 3 – nadpis", "Plať, jak ti to sedí"),
       s3Text: ta(
         "Krok 3 – text",
-        "Kredit, permanentka, členství nebo jednorázový vstup převodem. Storno zdarma do {{storno_hodin}} h před lekcí.",
+        "Kredit, permanentka, členství nebo jednorázový vstup převodem. Storno zdarma do {{storno_hodin}} h před lekcí{{storno_vyjimky}}.",
       ),
       ctaPricing: t("Tlačítko ceník", "Ceník"),
       ctaClasses: t("Tlačítko lekce", "Typy lekcí"),
@@ -372,7 +372,7 @@ Napiš sem, jak studio vzniklo a co pro tebe pohyb znamená.
       info1Title: t("Info 1 – nadpis", "Storno"),
       info1Text: ta(
         "Info 1 – text",
-        "Zdarma nejpozději {{storno_hodin}} h před začátkem lekce – vstup/kredit se vrátí na účet. Později vstup propadá.",
+        "Zdarma nejpozději {{storno_hodin}} h před začátkem lekce{{storno_vyjimky}} – vstup/kredit se vrátí na účet. Později vstup propadá.",
       ),
       info2Title: t("Info 2 – nadpis", "Pořadník"),
       info2Text: ta("Info 2 – text", "Plná lekce? Zapiš se, a když se místo uvolní, automaticky tě přihlásíme a strhneme vstup."),
@@ -406,7 +406,7 @@ Napiš sem, jak studio vzniklo a co pro tebe pohyb znamená.
 - U některých lekcí (např. Reformer) držíme místo pro klienty bez členství; členové ho mohou obsadit až v čase uvedeném u lekce (zpravidla týden předem).
 
 ## 3. Storno podmínky
-- Rezervaci lze bezplatně zrušit nejpozději {{storno_hodin}} hodin před začátkem lekce; vstup nebo kredit se vrací na účet.
+- Rezervaci lze bezplatně zrušit nejpozději {{storno_hodin}} hodin před začátkem lekce{{storno_vyjimky}}; vstup nebo kredit se vrací na účet.
 - Při pozdějším zrušení nebo neúčasti vstup propadá.
 - Členství nemá omezený počet lekcí, proto se pozdní zrušení a neúčast u členů počítají jako prohřešek. Po {{prohresky}} prohřešcích za {{prohresky_dni}} dní se přihlašování na nové lekce pozastaví na {{pauza_dni}} dní; na již rezervované lekce lze chodit. Před pauzou přijde upozornění e-mailem.
 - Zruší-li lekci studio, vstup se vrací vždy. Jednorázový vstup zaplacený kartou je vrácen ve formě kreditu.
@@ -419,7 +419,7 @@ Napiš sem, jak studio vzniklo a co pro tebe pohyb znamená.
 - Závazek na 12 měsíců klient potvrzuje při nákupu členství (zaškrtnutím souhlasu na webu nebo podpisem na recepci).
 - Členství se závazkem nelze během 12 měsíců jednostranně zrušit. Předčasné ukončení je možné jen po dohodě se studiem.
 - Členství bez závazku se platí měsíčně ve výši uvedené v ceníku. Klient ho může kdykoli ukončit v Můj účet (nebo na recepci) ke konci posledního zaplaceného měsíce; zaplacené měsíce se nevracejí.
-- Členství s lekcemi v ceně (např. Členství Reformer) zahrnuje uvedený počet lekcí daného typu za kalendářní měsíc bez doplatku a přednostní rezervaci těchto lekcí. Nevyčerpané lekce se do dalšího měsíce nepřevádějí; lekce zrušená později než {{storno_hodin}} hodin předem se počítá jako vyčerpaná. Počet těchto členství může být omezený.
+- Členství s lekcemi v ceně (např. Členství Reformer) zahrnuje uvedený počet lekcí daného typu za kalendářní měsíc bez doplatku a přednostní rezervaci těchto lekcí. Nevyčerpané lekce se do dalšího měsíce nepřevádějí; lekce zrušená po lhůtě pro storno zdarma se počítá jako vyčerpaná. Počet těchto členství může být omezený.
 - Na členství s lekcemi v ceně lze přejít v Můj účet od následujícího nezaplaceného měsíce, nejdříve ode dne, kdy je v prodeji. Doba závazku se tím nemění.
 - Ceny lekcí a doplatků se řídí ceníkem platným v den lekce – i u členství a permanentek koupených dříve. Zaváděcí ceny platí do data uvedeného v ceníku.
 - Produkty z ceníku na další rok mohou být v předprodeji: koupit je lze dříve, platit začínají až dnem uvedeným v ceníku (např. 1. 1.). U členství je platbou při nákupu uhrazen první měsíc.

@@ -250,8 +250,30 @@ async function capacityFor(tx: Executor, s: ClassSession, userId: string | null,
 const heldMessage = (held: number, releaseAt: Date) =>
   `${held === 1 ? "Poslední místo je" : "Poslední místa jsou"} do ${formatDateTime(releaseAt)} pro klienty bez členství. Zapiš se do pořadníku – když ${held === 1 ? "ho" : "je"} nikdo nezabere, dostaneš ho jako první.`;
 
-export function isLateCancel(s: ClassSession, cfg: Settings, now: Date) {
-  return now.getTime() > s.startsAt.getTime() - cfg.cancellationHours * HOUR;
+/** Free cancellation up to this many hours before the class – the lesson's own (Reformer, brunch) or the studio default. */
+export async function cancellationHoursFor(tx: Executor, s: Pick<ClassSession, "classTypeId">, cfg: Settings) {
+  const [ct] = await tx
+    .select({ hours: classTypes.cancellationHours })
+    .from(classTypes)
+    .where(eq(classTypes.id, s.classTypeId));
+  return ct?.hours ?? cfg.cancellationHours;
+}
+
+/** " (u lekcí Reformer fusion a Fitness brunch 24 h)" – lessons cancellable on their own terms, for texts; "" when none. */
+export function stornoExceptions(types: { name: string; cancellationHours: number | null }[], hours: number) {
+  const byHours = new Map<number, string[]>();
+  for (const t of types)
+    if (t.cancellationHours !== null && t.cancellationHours !== hours)
+      byHours.set(t.cancellationHours, [...(byHours.get(t.cancellationHours) ?? []), t.name]);
+  const and = new Intl.ListFormat("cs", { type: "conjunction" });
+  const parts = [...byHours]
+    .sort(([a], [b]) => b - a)
+    .map(([h, names]) => `${names.length > 1 ? "u lekcí" : "u lekce"} ${and.format(names)} ${h} h`);
+  return parts.length ? ` (${parts.join(", ")})` : "";
+}
+
+export function isLateCancel(s: ClassSession, hours: number, now: Date) {
+  return now.getTime() > s.startsAt.getTime() - hours * HOUR;
 }
 
 async function lockSession(tx: Executor, id: string) {
@@ -1048,7 +1070,7 @@ export async function cancelBooking(
     if (!input.isAdmin && (b.status === "attended" || b.status === "no_show"))
       throw new UserError("Rezervaci už nelze zrušit.");
 
-    const late = isLateCancel(s, cfg, now);
+    const late = isLateCancel(s, await cancellationHoursFor(tx, s, cfg), now);
     let refunded = false;
 
     if (b.status === "pending_payment" && b.orderId) {
@@ -1253,6 +1275,7 @@ export async function sessionForUser(
     .where(eq(classSessions.id, sessionId));
   if (!s) return null;
   const occupied = await occupancy(db, s.id);
+  const cancellationHours = await cancellationHoursFor(db, s, cfg);
   const window = (await viewerWindows(db, cfg, userId, now)).forSession(s);
   const cap = await capacityFor(db, s, userId, now);
   const state = sessionState({ ...s, capacity: cap.capacity }, occupied, cfg, now, window);
@@ -1281,7 +1304,8 @@ export async function sessionForUser(
     myBooking,
     waitlistPosition,
     options,
-    lateCancel: isLateCancel(s, cfg, now),
+    lateCancel: isLateCancel(s, cancellationHours, now),
+    cancellationHours,
     /** a member sees it full while the last place is kept for non-members – until then */
     heldForOthersUntil: cap.held > 0 && occupied < s.capacity ? cap.releaseAt : null,
     cfg,

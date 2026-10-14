@@ -94,6 +94,7 @@ export async function saveClassTypeAction(_: FormState, fd: FormData): Promise<F
   return attempt(async () => {
     const db = await getDb();
     const name = required(field.str(fd, "name"), "Vyplň název.");
+    const cancelHours = field.int(fd, "cancellationHours");
     const values = {
       name,
       slug: field.str(fd, "slug") || slugify(name),
@@ -112,6 +113,8 @@ export async function saveClassTypeAction(_: FormState, fd: FormData): Promise<F
       memberSurchargeNextFrom: isDateKey(field.str(fd, "memberSurchargeNextFrom")) ? field.str(fd, "memberSurchargeNextFrom") : null,
       nonMemberSeats: Math.max(0, field.int(fd, "nonMemberSeats") ?? 0),
       nonMemberReleaseHours: Math.max(0, field.int(fd, "nonMemberReleaseHours") ?? 168),
+      // empty = the default from Nastavení
+      cancellationHours: cancelHours === null ? null : Math.max(0, cancelHours),
       priceNote: field.str(fd, "priceNote").slice(0, 120),
       priceNoteUntil: isDateKey(field.str(fd, "priceNoteUntil")) ? field.str(fd, "priceNoteUntil") : null,
       passSurcharge: field.money(fd, "passSurcharge") || null,
