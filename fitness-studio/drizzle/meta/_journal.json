@@ -498,6 +498,13 @@
       "when": 1791974138240,
       "tag": "0070_non_member_seat",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1791975914571,
+      "tag": "0071_launch_price_list_2027",
+      "breakpoints": true
     }
   ]
 }
