@@ -67,6 +67,7 @@ Detail v `targito-rozuctovani.md`. Shrnutí: faktura 84 952 Kč/měs. (dodatek, 
   - Power BI: https://app.powerbi.com/groups/me/apps/44b71cd3-f671-4188-a650-ad58ff34bd8a/reports/55d1c0d4-98d7-4af0-a7d9-df94ea364fb9 (Marketing / Google Analytics; stránka „Custom date“ s filtrem data – obraty prodejen a divizí)
 - **Lenka Stará** – FP 2027: `1-1Fd6hvhgqUKF_Z_5ax4GOFOqz6HPdr44yO0muAL9Y0` (tržby za služby 2027 9,33 mil. = celofiremní číslo). PNO pro scénář B = 10 % (od Lenky), aktuální PNO ~13 %.
 - **Radek Hudák** – Google Ads „Performance Avengers“: `1rHMCXFygdJFRbG0Zoxw4mz9RUB_-h5__J-BcQk28eMg` (MTD modely 8/2026, 9/2026, 10/2026; cílí na MKT profit 1).
+- **Honza Bezecný** – Sales FP 2027 příprava (CZ e-shop, bottom-up SKU × BO tier): `1mjL5yyib9N9Ke8o-BWkkWoWMqmj1Efr8eiDjTLxivr4` (v1.0 14. 9. 2026). Báze 2026 225,6 mil., FC 2027 239,8 mil. (+6,3 %), cíl top-down +15 % = 259,4 mil. (mezera 19,6 mil.). Růsty: CZ 6 %, SK 15 %, KS 40 %, HU 4 %, zahraničí 0 %. GM1 2027 65 %. **Úkol pro MKT (pozn. 3): dopočítat ztrátu tržeb z nefunkčních PPC** – rychlý odhad duben+květen 2026 ≈ 2,9 mil. Kč (duben ~1,5, květen ~1,4; Google Ads duben 185 tis. místo ~1,5 mil.).
 - Kategorie produktů: `1vE34FTfGP_4m5IDpDGWBynz0QR7i0RMHejmBMoyWNY8`.
 - Czech On-line Expo 2027 (3.–4. 2. 2027, PVA Letňany): ceník stánků `1V_QiuJsiawlBI7Uy7CjlnZHHwe2uaON2ODvcCZBmjwA`, kontakt Martin Matuška (martin@czechonlineexpo.cz).
 
