@@ -34,7 +34,7 @@ export function Columns({ data, format, height = 180 }: { data: Column[]; format
     <ChartTooltip>
       <Frame top={top} format={format} height={height}>
         {data.map((d, i) => (
-          <Slot key={d.label} label={d.label}>
+          <Slot key={i} label={d.label}>
             {(i === maxIdx || i === data.length - 1) && d.value > 0 && <Cap>{format(d.value)}</Cap>}
             <Bar value={d.value} top={top} color={SERIES.primary} tip={d.tip} rounded />
           </Slot>

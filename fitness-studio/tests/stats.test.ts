@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { bookings, orders } from "@/db/schema";
-import { studioStats } from "@/domain/stats";
+import { dailyStats, studioStats } from "@/domain/stats";
 import { NOW, hours, makeProduct, makeSession, makeUser, testDb } from "./helpers";
 
 let h: Awaited<ReturnType<typeof testDb>>;
@@ -61,5 +61,33 @@ describe("studio statistics", () => {
     expect(s.months.find((m) => m.period === "2026-09")!.newcomers).toBeGreaterThanOrEqual(1);
     const oct = s.months.find((m) => m.period === "2026-10")!;
     expect(oct.returning).toBeGreaterThanOrEqual(1);
+  });
+
+  it("breaks a month down by day: revenue, lessons, visits, newcomers and registrations", async () => {
+    const u = await makeUser(h.db);
+    const a = await makeSession(h.db, { startsAt: new Date("2026-07-06T15:00:00Z"), capacity: 4 }); // Mon 6 Jul 17:00 Prague
+    const b = await makeSession(h.db, { startsAt: new Date("2026-07-06T17:00:00Z"), capacity: 2 });
+    const c = await makeSession(h.db, { startsAt: new Date("2026-07-20T15:00:00Z"), capacity: 2 });
+    await h.db.insert(bookings).values([
+      { userId: u.id, sessionId: a.id, status: "attended" },
+      { userId: u.id, sessionId: b.id, status: "no_show" },
+      { userId: u.id, sessionId: c.id, status: "attended" },
+    ]);
+    await h.db.insert(orders).values([
+      { userId: u.id, status: "paid", provider: "transfer", kind: "drop_in", description: "D", amount: 25000, paidAt: new Date("2026-07-06T08:00:00Z") },
+      { userId: u.id, status: "paid", provider: "transfer", kind: "voucher", description: "V", amount: 100000, paidAt: new Date("2026-07-06T09:00:00Z") },
+      { userId: u.id, status: "pending", provider: "transfer", kind: "drop_in", description: "P", amount: 25000 },
+    ]);
+    const s = await dailyStats(h.db, "2026-07", NOW);
+    expect(s.days).toHaveLength(31);
+    const d6 = s.days.find((d) => d.day === "2026-07-06")!;
+    expect(d6).toMatchObject({ revenue: 125000, payments: 2, visits: 1, clients: 1, newcomers: 1 });
+    expect(d6.groups).toEqual([{ group: "Jednorázové vstupy", amount: 25000 }, { group: "Poukazy", amount: 100000 }]);
+    expect(d6.lessons.map((l) => `${l.booked}/${l.capacity}`)).toEqual(["1/4", "1/2"]);
+    expect(d6.occupancy).toBeCloseTo(2 / 6);
+    expect(s.days.find((d) => d.day === "2026-07-20")).toMatchObject({ visits: 1, newcomers: 0, revenue: 0 });
+    expect(s.totals).toMatchObject({ revenue: 125000, payments: 2, visits: 2, lessons: 3, clients: 1, newcomers: 1 });
+    // this month only up to today, a future month has no days
+    expect((await dailyStats(h.db, "2026-10", NOW)).days.map((d) => d.day)).toEqual(["2026-10-01", "2026-10-02", "2026-10-03", "2026-10-04", "2026-10-05"]);
   });
 });

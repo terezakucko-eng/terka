@@ -1,7 +1,7 @@
 import { and, eq, gte, inArray, lt, min } from "drizzle-orm";
 import type { Executor } from "@/db";
 import { bookings, classSessions, classTypes, orders, products, users } from "@/db/schema";
-import { dateKey, pragueHour, pragueLocalToDate, weekdayOf } from "@/lib/dates";
+import { addDays, dateKey, pragueHour, pragueLocalToDate, weekdayOf } from "@/lib/dates";
 import { currentPeriod, shiftPeriod } from "./membership-fees";
 
 /**
@@ -26,6 +26,26 @@ function revenueGroup(kind: string, productKind: string | null): RevenueGroup {
 /** Seats that count as booked (for occupancy) and as a visit (someone came or was expected). */
 const BOOKED = ["confirmed", "attended", "no_show"] as const;
 const VISIT = new Set(["confirmed", "attended"]);
+
+/** Each client's very first visit ever ("YYYY-MM-DD"), for the clients of these bookings. */
+async function firstVisits(db: Executor, rows: { userId: string; status: string; isHold: boolean }[]) {
+  const userIds = [...new Set(rows.filter((b) => !b.isHold && VISIT.has(b.status)).map((b) => b.userId))];
+  if (!userIds.length) return new Map<string, string>();
+  const found = await db
+    .select({ userId: bookings.userId, first: min(classSessions.startsAt) })
+    .from(bookings)
+    .innerJoin(classSessions, eq(bookings.sessionId, classSessions.id))
+    .where(
+      and(
+        inArray(bookings.userId, userIds),
+        inArray(bookings.status, ["confirmed", "attended"]),
+        eq(bookings.isHold, false),
+        eq(classSessions.status, "scheduled"),
+      ),
+    )
+    .groupBy(bookings.userId);
+  return new Map(found.flatMap((r) => (r.first ? [[r.userId, dateKey(r.first)] as const] : [])));
+}
 
 export async function studioStats(db: Executor, months: number, now = new Date()) {
   const last = currentPeriod(now);
@@ -56,23 +76,8 @@ export async function studioStats(db: Executor, months: number, now = new Date()
         .where(and(inArray(bookings.sessionId, sessionIds), inArray(bookings.status, [...BOOKED])))
     : [];
   // each client's very first visit ever – „new“ in the month it happened
-  const userIds = [...new Set(bookingRows.filter((b) => !b.isHold && VISIT.has(b.status)).map((b) => b.userId))];
-  const firstVisits = userIds.length
-    ? await db
-        .select({ userId: bookings.userId, first: min(classSessions.startsAt) })
-        .from(bookings)
-        .innerJoin(classSessions, eq(bookings.sessionId, classSessions.id))
-        .where(
-          and(
-            inArray(bookings.userId, userIds),
-            inArray(bookings.status, ["confirmed", "attended"]),
-            eq(bookings.isHold, false),
-            eq(classSessions.status, "scheduled"),
-          ),
-        )
-        .groupBy(bookings.userId)
-    : [];
-  const firstMonth = new Map(firstVisits.map((r) => [r.userId, r.first ? dateKey(r.first).slice(0, 7) : null]));
+  const first = await firstVisits(db, bookingRows);
+  const firstMonth = new Map([...first].map(([id, day]) => [id, day.slice(0, 7)]));
 
   const byMonth = new Map(
     periods.map((p) => [p, { period: p, revenue: 0, groups: {} as Partial<Record<RevenueGroup, number>>, visits: 0, active: new Set<string>(), newcomers: new Set<string>() }]),
@@ -150,3 +155,117 @@ export async function studioStats(db: Executor, months: number, now = new Date()
 }
 
 export type StudioStats = Awaited<ReturnType<typeof studioStats>>;
+
+/**
+ * One month day by day (Admin → Statistiky → a month): revenue and its
+ * groups, the lessons with their occupancy, visits, clients and newcomers,
+ * new registrations. Days up to today.
+ */
+export async function dailyStats(db: Executor, period: string, now = new Date()) {
+  const from = pragueLocalToDate(`${period}-01T00:00`);
+  const to = pragueLocalToDate(`${shiftPeriod(period, 1)}-01T00:00`);
+  const until = to < now ? to : now;
+  const [sessionRows, orderRows, newClients] = await Promise.all([
+    db
+      .select({ id: classSessions.id, startsAt: classSessions.startsAt, capacity: classSessions.capacity, type: classTypes.name })
+      .from(classSessions)
+      .innerJoin(classTypes, eq(classSessions.classTypeId, classTypes.id))
+      .where(and(eq(classSessions.status, "scheduled"), gte(classSessions.startsAt, from), lt(classSessions.startsAt, until)))
+      .orderBy(classSessions.startsAt),
+    db
+      .select({ amount: orders.amount, kind: orders.kind, paidAt: orders.paidAt, productKind: products.kind })
+      .from(orders)
+      .leftJoin(products, eq(orders.productId, products.id))
+      .where(and(eq(orders.status, "paid"), gte(orders.paidAt, from), lt(orders.paidAt, to))),
+    db
+      .select({ createdAt: users.createdAt })
+      .from(users)
+      .where(and(eq(users.role, "client"), gte(users.createdAt, from), lt(users.createdAt, to))),
+  ]);
+  const sessionIds = sessionRows.map((s) => s.id);
+  const bookingRows = sessionIds.length
+    ? await db
+        .select({ sessionId: bookings.sessionId, userId: bookings.userId, status: bookings.status, seats: bookings.seats, isHold: bookings.isHold })
+        .from(bookings)
+        .where(and(inArray(bookings.sessionId, sessionIds), inArray(bookings.status, [...BOOKED])))
+    : [];
+  const first = await firstVisits(db, bookingRows);
+
+  const last = dateKey(new Date(until.getTime() - 1));
+  const days = new Map<
+    string,
+    {
+      day: string;
+      revenue: number;
+      payments: number;
+      groups: Partial<Record<RevenueGroup, number>>;
+      lessons: { time: Date; type: string; capacity: number; booked: number; visits: number }[];
+      active: Set<string>;
+      newcomers: Set<string>;
+      registrations: number;
+    }
+  >();
+  for (let d = `${period}-01`; d <= last; d = addDays(d, 1))
+    days.set(d, { day: d, revenue: 0, payments: 0, groups: {}, lessons: [], active: new Set(), newcomers: new Set(), registrations: 0 });
+
+  for (const o of orderRows) {
+    const d = days.get(dateKey(o.paidAt!));
+    if (!d) continue;
+    const g = revenueGroup(o.kind, o.productKind);
+    d.revenue += o.amount;
+    d.payments++;
+    d.groups[g] = (d.groups[g] ?? 0) + o.amount;
+  }
+  for (const u of newClients) {
+    const d = days.get(dateKey(u.createdAt));
+    if (d) d.registrations++;
+  }
+  const lessons = new Map(sessionRows.map((s) => [s.id, { time: s.startsAt, type: s.type, capacity: s.capacity, booked: 0, visits: 0 }]));
+  for (const s of sessionRows) days.get(dateKey(s.startsAt))?.lessons.push(lessons.get(s.id)!);
+  for (const b of bookingRows) {
+    const l = lessons.get(b.sessionId)!;
+    l.booked += b.seats;
+    if (!VISIT.has(b.status)) continue;
+    l.visits += b.seats;
+    if (b.isHold) continue;
+    const d = days.get(dateKey(l.time))!;
+    d.active.add(b.userId);
+    if (first.get(b.userId) === d.day) d.newcomers.add(b.userId);
+  }
+
+  const out = [...days.values()].map((d) => {
+    const seats = d.lessons.reduce((n, l) => n + l.capacity, 0);
+    const booked = d.lessons.reduce((n, l) => n + Math.min(l.booked, l.capacity), 0);
+    return {
+      day: d.day,
+      revenue: d.revenue,
+      payments: d.payments,
+      groups: REVENUE_GROUPS.flatMap((g) => (d.groups[g] ? [{ group: g, amount: d.groups[g]! }] : [])),
+      lessons: d.lessons.map((l) => ({ ...l, occupancy: l.capacity ? Math.min(l.booked, l.capacity) / l.capacity : 0 })),
+      visits: d.lessons.reduce((n, l) => n + l.visits, 0),
+      occupancy: seats ? booked / seats : null,
+      clients: d.active.size,
+      newcomers: d.newcomers.size,
+      registrations: d.registrations,
+    };
+  });
+  const seats = out.flatMap((d) => d.lessons).reduce((n, l) => n + l.capacity, 0);
+  const booked = out.flatMap((d) => d.lessons).reduce((n, l) => n + Math.min(l.booked, l.capacity), 0);
+  const active = new Set(bookingRows.filter((b) => !b.isHold && VISIT.has(b.status)).map((b) => b.userId));
+  return {
+    period,
+    days: out,
+    totals: {
+      revenue: out.reduce((n, d) => n + d.revenue, 0),
+      payments: out.reduce((n, d) => n + d.payments, 0),
+      visits: out.reduce((n, d) => n + d.visits, 0),
+      lessons: sessionRows.length,
+      occupancy: seats ? booked / seats : null,
+      clients: active.size,
+      newcomers: out.reduce((n, d) => n + d.newcomers, 0),
+      registrations: newClients.length,
+    },
+  };
+}
+
+export type DailyStats = Awaited<ReturnType<typeof dailyStats>>;
