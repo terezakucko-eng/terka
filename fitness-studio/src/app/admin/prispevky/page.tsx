@@ -17,6 +17,7 @@ const statusBadge = {
   pending: <Badge tone="gold">Čeká na platbu</Badge>,
   none: <Badge tone="red">Bez výzvy</Badge>,
   auto: <Badge>Kartou automaticky</Badge>,
+  purchase: <Badge tone="green">Zaplaceno při koupi</Badge>,
 };
 
 export default async function FeesPage({ searchParams }: PageProps<"/admin/prispevky">) {
@@ -82,7 +83,7 @@ export default async function FeesPage({ searchParams }: PageProps<"/admin/prisp
             <Td className="whitespace-nowrap tabular-nums">{r.amount !== null ? formatPrice(r.amount) : "výchozí"}</Td>
             <Td>{statusBadge[r.status]}{r.order && r.status === "pending" && <span className="ml-2 text-xs text-les/50">VS {r.order.number}</span>}</Td>
             <Td className="whitespace-nowrap text-xs">
-              {r.status === "paid" && r.order?.paidAt && <>{formatDate(r.order.paidAt)} · {r.order.provider === "stripe" ? "kartou" : r.order.provider === "transfer" ? "převodem" : "ručně"}</>}
+              {(r.status === "paid" || r.status === "purchase") && r.order?.paidAt && <>{formatDate(r.order.paidAt)} · {r.order.provider === "stripe" ? "kartou" : r.order.provider === "transfer" ? "převodem" : "ručně"}</>}
             </Td>
             <Td className="text-right">
               <div className="flex flex-wrap justify-end gap-3">

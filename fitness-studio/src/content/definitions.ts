@@ -422,6 +422,7 @@ Napiš sem, jak studio vzniklo a co pro tebe pohyb znamená.
 - Členství s lekcemi v ceně (např. Členství Reformer) zahrnuje uvedený počet lekcí daného typu za kalendářní měsíc bez doplatku a přednostní rezervaci těchto lekcí. Nevyčerpané lekce se do dalšího měsíce nepřevádějí; lekce zrušená později než {{storno_hodin}} hodin předem se počítá jako vyčerpaná. Počet těchto členství může být omezený.
 - Na členství s lekcemi v ceně lze přejít v Můj účet od následujícího nezaplaceného měsíce, nejdříve ode dne, kdy je v prodeji. Doba závazku se tím nemění.
 - Ceny lekcí a doplatků se řídí ceníkem platným v den lekce – i u členství a permanentek koupených dříve. Zaváděcí ceny platí do data uvedeného v ceníku.
+- Produkty z ceníku na další rok mohou být v předprodeji: koupit je lze dříve, platit začínají až dnem uvedeným v ceníku (např. 1. 1.). U členství je platbou při nákupu uhrazen první měsíc.
 - Členství v účtu klienta spravuje studio – o změnu požádej na recepci.
 
 ## 5. Platby

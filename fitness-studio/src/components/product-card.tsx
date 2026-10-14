@@ -67,6 +67,7 @@ export function ProductCard({
   includedClass,
   priorityWeeks = 0,
   saleNote,
+  startsOn,
   placesLeft = null,
 }: {
   p: Product;
@@ -84,6 +85,8 @@ export function ProductCard({
   priorityWeeks?: number;
   /** Not sold yet (next year's price list): "V prodeji od 1. 1. 2027" instead of the buy buttons */
   saleNote?: string;
+  /** In presale: bought now, it starts on this day ("1. 1. 2027") */
+  startsOn?: string;
   /** Limited membership: places left (null = no limit) */
   placesLeft?: number | null;
 }) {
@@ -145,6 +148,7 @@ export function ProductCard({
                       </p>
                     ) : loggedIn ? (
                       <ActionForm action={buyProductAction} className="mt-6 space-y-2">
+                        {startsOn && <PresaleNote p={p} startsOn={startsOn} />}
                         <input type="hidden" name="productId" value={p.id} />
                         {p.kind === "membership" && (
                           <label className={cx("mb-3 flex gap-3 text-xs", p.highlight ? "text-papir/80" : "text-les/70")}>
@@ -157,7 +161,7 @@ export function ProductCard({
                         )}
                         {card && (
                           <SubmitButton name="pay" value="card" variant={p.highlight ? "gold" : "dark"} className="w-full" pendingText="Moment…">
-                            {p.kind === "membership" && p.recurring ? "Platit kartou měsíčně" : "Koupit – kartou"}
+                            {p.kind === "membership" && p.recurring && !startsOn ? "Platit kartou měsíčně" : "Koupit – kartou"}
                           </SubmitButton>
                         )}
                         {/* on the dark (highlighted) card the plain outline would vanish – the light one stays visible */}
@@ -166,10 +170,23 @@ export function ProductCard({
                         </SubmitButton>
                       </ActionForm>
                     ) : (
-                      <ButtonLink href={`/prihlaseni?next=${encodeURIComponent(next)}`} variant={p.highlight ? "gold" : "outline"} className="mt-6 w-full">
-                        Přihlásit a koupit
-                      </ButtonLink>
+                      <div className="mt-6 space-y-2">
+                        {startsOn && <PresaleNote p={p} startsOn={startsOn} />}
+                        <ButtonLink href={`/prihlaseni?next=${encodeURIComponent(next)}`} variant={p.highlight ? "gold" : "outline"} className="w-full">
+                          Přihlásit a koupit
+                        </ButtonLink>
+                      </div>
                     )}
                   </article>
+  );
+}
+
+/** "Platí od 1. 1. 2027" above the buy buttons of a product in presale. */
+function PresaleNote({ p, startsOn }: { p: Product; startsOn: string }) {
+  return (
+    <p className={cx("mb-3 rounded-xl px-4 py-3 text-center text-sm", p.highlight ? "bg-papir/10" : "bg-krem/60")}>
+      <span className="font-semibold">Platí od {startsOn}</span> – koupit můžeš už teď.
+      {p.kind === "membership" && <span className="mt-1 block text-xs">Platbou při koupi máš zaplacený první měsíc členství.</span>}
+    </p>
   );
 }

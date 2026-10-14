@@ -243,6 +243,7 @@ export async function saveProductAction(_: FormState, fd: FormData): Promise<For
       maxActive: kind === "membership" ? field.int(fd, "maxActive") : null,
       saleFrom: startOfDay(field.str(fd, "saleFrom")),
       saleUntil: startOfDay(field.str(fd, "saleUntil")),
+      presaleFrom: startOfDay(field.str(fd, "presaleFrom")),
       recurring: kind === "membership" && field.bool(fd, "recurring"),
       highlight: field.bool(fd, "highlight"),
       linkOnly: field.bool(fd, "linkOnly"),

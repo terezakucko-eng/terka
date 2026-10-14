@@ -323,6 +323,8 @@ export const products = pgTable("products", {
   /** Prodává se od / do (ceník na další rok); null = bez omezení */
   saleFrom: timestamp("sale_from", { withTimezone: true }),
   saleUntil: timestamp("sale_until", { withTimezone: true }),
+  /** Předprodej: koupit jde už od tohoto dne, platit začne až od „Prodává se od“; null = bez předprodeje */
+  presaleFrom: timestamp("presale_from", { withTimezone: true }),
   /** membership: nejvýš tolik platných členství najednou (omezený počet členství); null = bez limitu */
   maxActive: integer("max_active"),
   /** massage_pass: na kterou masáž; null = na kteroukoli */

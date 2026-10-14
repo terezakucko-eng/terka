@@ -9,7 +9,7 @@ import { activeClassTypes, priceListProducts } from "@/lib/queries";
 import Link from "next/link";
 import { membershipPlacesTaken } from "@/domain/membership-fees";
 import { dateKey } from "@/lib/dates";
-import { dayLabel, onSale, priceListStart, priceListYears, priceNoteOn, productsForYear, saleStartsLater, surchargeSteps, yearStart } from "@/lib/price-list";
+import { dayLabel, inPresale, onSale, priceListStart, priceListYears, priceNoteOn, productsForYear, saleStartsLater, surchargeSteps, yearStart } from "@/lib/price-list";
 import { getSettings } from "@/lib/settings";
 import { getContent, type Content } from "@/content";
 import { nbsp } from "@/lib/typography";
@@ -162,6 +162,7 @@ export default async function PricingPage({ searchParams }: PageProps<"/cenik">)
                     priorityWeeks={cfg.includedPriorityWeeks}
                     placesLeft={placesLeft(p)}
                     saleNote={!onSale(p, now) && saleStartsLater(p, now) ? `V prodeji od ${dayLabel(dateKey(p.saleFrom!))}` : undefined}
+                    startsOn={inPresale(p, now) ? dayLabel(dateKey(p.saleFrom!)) : undefined}
                   />
                 ))}
               </div>

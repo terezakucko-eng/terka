@@ -2,11 +2,11 @@ import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { bookings, classTypes, entitlements, products, type Product } from "@/db/schema";
 import { bookSession, cancelBooking, joinWaitlist, priorityWindow, viewerWindows, windowOf } from "@/domain/booking";
-import { membershipUpgrades, switchMembership, switchPeriod } from "@/domain/membership-fees";
+import { createMonthlyFees, feeOverview, membershipUpgrades, switchMembership, switchPeriod } from "@/domain/membership-fees";
 import { createProductOrder, fulfillOrder } from "@/domain/orders";
 import { grantEntitlement } from "@/domain/users";
 import { pragueLocalToDate } from "@/lib/dates";
-import { onSale, priceListYears, productsForYear, surchargeOn, surchargeSteps, yearStart } from "@/lib/price-list";
+import { inPresale, onSale, priceListYears, productsForYear, saleStartsLater, surchargeOn, surchargeSteps, yearStart } from "@/lib/price-list";
 import { getSettings } from "@/lib/settings";
 import { NOW, makeProduct, makeSession, makeUser, testDb } from "./helpers";
 
@@ -51,6 +51,34 @@ describe("price lists by year", () => {
     await expect(createProductOrder(h.db, { userId: u.id, productId: next.id }, NOW)).rejects.toThrow("v prodeji od 1. 1. 2027");
     await expect(createProductOrder(h.db, { userId: u.id, productId: old.id }, NOW)).rejects.toThrow("už není v prodeji");
     await expect(createProductOrder(h.db, { userId: u.id, productId: next.id }, JAN)).resolves.toBeTruthy();
+  });
+});
+
+describe("presale", () => {
+  it("Členství 2027 is bought now and starts on 1 January – the purchase pays January", async () => {
+    const y2027 = await makeProduct(h.db, { kind: "membership", name: "Členství 2027", price: 140000, validityDays: 365, saleFrom: JAN, presaleFrom: NOW, recurring: true });
+    expect([inPresale(y2027, NOW), onSale(y2027, NOW), saleStartsLater(y2027, NOW)]).toEqual([true, true, false]);
+    expect(onSale({ ...y2027, presaleFrom: null }, NOW)).toBe(false);
+    // still in the 2027 tab only
+    expect(productsForYear([y2027], 2026, NOW)).toEqual([]);
+
+    const u = await makeUser(h.db);
+    const { order } = await createProductOrder(h.db, { userId: u.id, productId: y2027.id, commitmentAccepted: true }, NOW);
+    await fulfillOrder(h.db, { orderId: order.id, provider: "transfer" }, NOW);
+    const [e] = await h.db.select().from(entitlements).where(eq(entitlements.userId, u.id));
+    expect(e.validFrom).toEqual(JAN);
+    expect(e.validUntil).toEqual(new Date(JAN.getTime() + 365 * 86_400_000));
+    // not a member before January: no classes this year, no switching yet
+    const soon = await makeSession(h.db, { startsAt: pragueLocalToDate("2026-10-07T17:00") });
+    await expect(bookSession(h.db, { userId: u.id, sessionId: soon.id, method: "membership", entitlementId: e.id }, NOW)).rejects.toThrow(/Platí až od 1\.\s1\.\s2027/);
+    expect(await membershipUpgrades(h.db, [e], NOW)).toEqual(new Map());
+
+    // no fee for December, none for January (paid by the purchase), February as usual
+    expect((await createMonthlyFees(h.db, { period: "2026-12", amountKc: 1400, userIds: [u.id] })).length).toBe(0);
+    expect((await createMonthlyFees(h.db, { period: "2027-01", amountKc: 1400, userIds: [u.id] })).length).toBe(0);
+    const jan = (await feeOverview(h.db, "2027-01")).rows.find((r) => r.userId === u.id);
+    expect(jan).toMatchObject({ status: "purchase", amount: 140000 });
+    expect((await createMonthlyFees(h.db, { period: "2027-02", amountKc: 1400, userIds: [u.id] })).map((o) => o.amount)).toEqual([140000]);
   });
 });
 

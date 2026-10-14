@@ -73,7 +73,8 @@ export async function startCheckout(
 export const MIN_CARD_AMOUNT = 1500;
 
 async function stripeCheckout(db: DB, order: Order, user: User, product?: Product | null) {
-  const recurring = product?.kind === "membership" && product.recurring;
+  // bought in presale it starts later – a one-off payment for the first month, then monthly fees
+  const recurring = product?.kind === "membership" && product.recurring && !(product.saleFrom && product.saleFrom > new Date());
   const returnUrl = `${site.url}/platba/vysledek?order=${order.id}`;
   const lineItem: Stripe.Checkout.SessionCreateParams.LineItem = {
     quantity: 1,

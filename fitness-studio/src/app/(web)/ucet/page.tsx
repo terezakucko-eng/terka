@@ -178,8 +178,8 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
                       {flexible.has(e.id)
                         ? e.renewalCancelled
                           ? ` · ukončené, platí do ${formatDate(new Date(e.validUntil.getTime() - 1))}`
-                          : " · bez závazku"
-                        : ` · platí do ${formatDate(e.validUntil)}`}
+                          : ` · bez závazku${e.validFrom > new Date() ? `, platí od ${formatDate(e.validFrom)}` : ""}`
+                        : ` · platí ${e.validFrom > new Date() ? `od ${formatDate(e.validFrom)} ` : ""}do ${formatDate(e.validUntil)}`}
                       {e.kind === "membership" && !flexible.has(e.id) && " · členství spravuje studio"}
                     </p>
                     {included.has(e.id) && (() => {

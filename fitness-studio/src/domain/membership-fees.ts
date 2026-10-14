@@ -46,14 +46,26 @@ export async function membersInMonth(db: Executor, period: string) {
       ),
     )
     .orderBy(desc(entitlements.validUntil));
-  const byUser = new Map<string, { userId: string; name: string; email: string; monthlyFee: number | null; auto: boolean }>();
+  const byUser = new Map<
+    string,
+    { userId: string; name: string; email: string; monthlyFee: number | null; auto: boolean; purchaseOrderId: string | null }
+  >();
   for (const r of rows) {
     const prev = byUser.get(r.e.userId);
     if (prev) {
       prev.auto ||= !!r.e.subscriptionId;
       continue;
     }
-    byUser.set(r.e.userId, { userId: r.e.userId, name: r.name, email: r.email, monthlyFee: r.e.monthlyFee, auto: !!r.e.subscriptionId });
+    // bought this month (or in presale to start this month): the purchase is this month's payment
+    const bought = !!r.e.orderId && !r.e.subscriptionId && r.e.validFrom >= start && r.e.validFrom < end;
+    byUser.set(r.e.userId, {
+      userId: r.e.userId,
+      name: r.name,
+      email: r.email,
+      monthlyFee: r.e.monthlyFee,
+      auto: !!r.e.subscriptionId,
+      purchaseOrderId: bought ? r.e.orderId : null,
+    });
   }
   return [...byUser.values()];
 }
@@ -85,7 +97,7 @@ export async function createMonthlyFees(
   if (!isPeriod(input.period)) throw new UserError("Neplatný měsíc.");
   const discount = Math.min(100, Math.max(0, input.discountPct ?? 0));
   const members = (await membersInMonth(db, input.period)).filter(
-    (m) => !m.auto && (!input.userIds || input.userIds.includes(m.userId)),
+    (m) => !m.auto && !m.purchaseOrderId && (!input.userIds || input.userIds.includes(m.userId)),
   );
   if (!members.length) return [];
   const existing = await feeOrders(db, input.period, members.map((m) => m.userId));
@@ -117,7 +129,8 @@ export type FeeRow = {
   userId: string;
   name: string;
   email: string;
-  status: "paid" | "pending" | "none" | "auto";
+  /** purchase: the month is paid by buying the membership */
+  status: "paid" | "pending" | "none" | "auto" | "purchase";
   amount: number | null;
   order: Order | null;
 };
@@ -133,16 +146,21 @@ export async function feeOverview(db: Executor, period: string) {
     : [];
   const people = [
     ...members,
-    ...extraUsers.map((u) => ({ userId: u.id, name: u.name, email: u.email, monthlyFee: null, auto: false })),
+    ...extraUsers.map((u) => ({ userId: u.id, name: u.name, email: u.email, monthlyFee: null, auto: false, purchaseOrderId: null })),
   ];
+  const purchaseIds = people.flatMap((m) => (m.purchaseOrderId ? [m.purchaseOrderId] : []));
+  const purchases = purchaseIds.length ? await db.select().from(orders).where(inArray(orders.id, purchaseIds)) : [];
   const rows: FeeRow[] = people.map((m) => {
     const mine = list.filter((o) => o.userId === m.userId && o.status !== "cancelled");
+    const purchase = purchases.find((o) => o.id === m.purchaseOrderId);
+    if (!mine.length && purchase)
+      return { userId: m.userId, name: m.name, email: m.email, status: "purchase", amount: purchase.amount, order: purchase };
     const order = mine.find((o) => o.status === "paid") ?? mine.find((o) => o.status === "pending") ?? mine[0] ?? null;
     const status: FeeRow["status"] =
       order?.status === "paid" ? "paid" : order?.status === "pending" ? "pending" : m.auto ? "auto" : order ? "pending" : "none";
     return { userId: m.userId, name: m.name, email: m.email, status, amount: order?.amount ?? m.monthlyFee, order };
   });
-  const paid = rows.filter((r) => r.status === "paid");
+  const paid = rows.filter((r) => r.status === "paid" || r.status === "purchase");
   return {
     rows,
     totals: {
@@ -296,7 +314,15 @@ export async function membershipFull(db: Executor, p: Pick<Product, "id" | "maxA
  */
 export async function membershipUpgrades(db: Executor, ents: Entitlement[], now = new Date()) {
   const mine = ents.filter(
-    (e) => e.kind === "membership" && e.status === "active" && e.validUntil > now && !e.subscriptionId && !e.renewalCancelled && e.includedPerMonth === 0,
+    // not one bought in presale that hasn't started yet
+    (e) =>
+      e.kind === "membership" &&
+      e.status === "active" &&
+      e.validFrom <= now &&
+      e.validUntil > now &&
+      !e.subscriptionId &&
+      !e.renewalCancelled &&
+      e.includedPerMonth === 0,
   );
   const out = new Map<string, Product>();
   if (!mine.length) return out;
