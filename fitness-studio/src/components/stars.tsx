@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Star } from "lucide-react";
+import { Star, ThumbsUp } from "lucide-react";
 import { cx } from "./ui";
 
 /** Read-only star row. */
@@ -11,6 +11,16 @@ export function Stars({ rating, className }: { rating: number; className?: strin
       {[1, 2, 3, 4, 5].map((i) => (
         <Star key={i} className={cx("size-4", i <= Math.round(rating) ? "fill-current" : "opacity-30")} aria-hidden />
       ))}
+    </span>
+  );
+}
+
+/** Stars, or "Doporučuje" for a Facebook recommendation – Facebook has no stars, only yes/no. */
+export function ReviewRating({ review }: { review: { rating: number; source: string } }) {
+  if (review.source !== "facebook") return <Stars rating={review.rating} />;
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-zlato">
+      <ThumbsUp className="size-4 fill-current" aria-hidden /> Doporučuje
     </span>
   );
 }

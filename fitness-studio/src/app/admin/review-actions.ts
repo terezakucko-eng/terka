@@ -24,7 +24,7 @@ export async function saveReviewAdminAction(_: FormState, fd: FormData): Promise
       rating: field.int(fd, "rating") ?? 0,
       body: field.str(fd, "body"),
       authorName: field.str(fd, "authorName"),
-      source: source === "google" ? "google" : "manual",
+      source: source === "google" || source === "facebook" ? source : "manual",
       createdAt: /^\d{4}-\d{2}-\d{2}$/.test(date) ? pragueLocalToDate(`${date}T12:00`) : null,
     });
     refresh();

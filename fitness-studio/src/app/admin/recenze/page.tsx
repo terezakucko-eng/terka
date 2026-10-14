@@ -2,7 +2,7 @@ import { desc, sql } from "drizzle-orm";
 import { reviewStatusAction, saveReviewAdminAction } from "@/app/admin/review-actions";
 import { AdminTitle, Panel } from "@/components/admin";
 import { ActionForm, SubmitButton } from "@/components/forms";
-import { StarInput, Stars } from "@/components/stars";
+import { ReviewRating, StarInput } from "@/components/stars";
 import { Badge, Field, Input, Select, Textarea } from "@/components/ui";
 import { getDb } from "@/db";
 import { reviews, type Review } from "@/db/schema";
@@ -12,7 +12,7 @@ import { dateKey, formatDate } from "@/lib/dates";
 
 const statusLabel = { pending: "Čeká na schválení", approved: "Na webu", hidden: "Skryto" } as const;
 const statusTone = { pending: "gold", approved: "green", hidden: "red" } as const;
-const sourceLabel = { web: "z webu", google: "z Googlu", manual: "vložená ručně" } as const;
+const sourceLabel = { web: "z webu", google: "z Googlu", facebook: "z Facebooku", manual: "vložená ručně" } as const;
 
 function ReviewForm({ r }: { r?: Review }) {
   return (
@@ -33,6 +33,7 @@ function ReviewForm({ r }: { r?: Review }) {
           <Select name="source">
             <option value="manual">Starý web / jinde</option>
             <option value="google">Google</option>
+            <option value="facebook">Facebook (bez hvězdiček – „Doporučuje“)</option>
           </Select>
         </Field>
       )}
@@ -54,15 +55,15 @@ export default async function AdminReviews() {
       <AdminTitle title="Recenze" />
       <p className="-mt-4 mb-6 max-w-2xl text-sm text-les/60">
         Klienti píšou recenze na stránce Recenze – na web jdou až po schválení. Zvýrazněné se ukazují na úvodní stránce jako první.
-        Recenze z Googlu nebo starého webu můžeš vložit ručně – zkopíruj text, jméno a hvězdičky a vyber „Google“, u recenze pak
-        bude štítek Google. Odkaz, kterým zveš klienty k hodnocení na Googlu, se nastavuje v Obsah webu → Recenze.
+        Recenze z Googlu, Facebooku nebo starého webu můžeš vložit ručně – zkopíruj text, jméno a hvězdičky a vyber, odkud je.
+        U Facebooku se místo hvězdiček ukáže „Doporučuje“ a do průměru hvězdiček se nepočítá. Odkaz, kterým zveš klienty k hodnocení na Googlu, se nastavuje v Obsah webu → Recenze.
       </p>
       <div className="space-y-3">
         <Panel title="+ Vložit recenzi"><ReviewForm /></Panel>
         {list.map((r) => (
           <div key={r.id} className="rounded-2xl border border-linka/60 bg-white/60 p-5">
             <div className="flex flex-wrap items-center gap-3 text-sm">
-              <Stars rating={r.rating} />
+              <ReviewRating review={r} />
               <strong>{r.authorName}</strong>
               <span className="text-les/50">{formatDate(r.createdAt)} · {sourceLabel[r.source]}</span>
               <Badge tone={statusTone[r.status]}>{statusLabel[r.status]}</Badge>

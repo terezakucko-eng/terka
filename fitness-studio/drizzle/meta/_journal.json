@@ -540,6 +540,13 @@
       "when": 1792003516929,
       "tag": "0076_class_cancellation_hours",
       "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1792009520516,
+      "tag": "0077_facebook_reviews",
+      "breakpoints": true
     }
   ]
 }

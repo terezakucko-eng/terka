@@ -813,7 +813,7 @@ export const reviews = pgTable(
     rating: integer("rating").notNull(),
     body: text("body").notNull(),
     status: text("status", { enum: ["pending", "approved", "hidden"] }).notNull().default("pending"),
-    source: text("source", { enum: ["web", "google", "manual"] }).notNull().default("web"),
+    source: text("source", { enum: ["web", "google", "facebook", "manual"] }).notNull().default("web"),
     isFeatured: boolean("is_featured").notNull().default(false),
     createdAt: createdAt(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

@@ -42,4 +42,10 @@ describe("reviews", () => {
     expect(list[0].authorName).toBe("Petra K.");
     expect(list.find((r) => r.authorName === "Eva")?.source).toBe("manual");
   });
+
+  it("Facebook recommendations show up but stay out of the star average", async () => {
+    await saveAdminReview(h.db, { rating: 5, body: "Skvělí a sympatičtí instruktoři.", authorName: "Lucie Z.", source: "facebook" });
+    expect(await reviewStats(h.db)).toEqual({ count: 2, average: 4.5 });
+    expect((await approvedReviews(h.db)).some((r) => r.source === "facebook")).toBe(true);
+  });
 });
