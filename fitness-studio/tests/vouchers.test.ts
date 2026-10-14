@@ -69,7 +69,7 @@ describe("gift vouchers", () => {
     const friend = await makeUser(h.db);
     await expect(v.createVoucherOrder(h.db, buyer.id, { amountKc: 50 }, NOW)).rejects.toThrow("mezi");
     const { order, voucher } = await v.createVoucherOrder(h.db, buyer.id, { amountKc: 1000 }, NOW);
-    expect(voucher).toMatchObject({ kind: "amount", amount: 100000, credits: 1000 });
+    expect(voucher).toMatchObject({ kind: "amount", amount: 100000, credits: 1100 });
     expect(voucher.title).toMatch(/^Poukaz na 1\s000\sKč$/);
     await fulfillOrder(h.db, { orderId: order.id, provider: "reception" }, NOW);
 
@@ -77,9 +77,9 @@ describe("gift vouchers", () => {
     await expect(v.redeemVoucher(h.db, voucher.code, friend.id, late)).rejects.toThrow("vypršela");
     await v.redeemVoucher(h.db, voucher.code, friend.id, hours(DAY));
     const [u] = await h.db.select().from(users).where(eq(users.id, friend.id));
-    expect(u.creditBalance).toBe(1000);
+    expect(u.creditBalance).toBe(1100);
     expect(u.creditExpiresAt!.getTime()).toBe(hours(DAY).getTime() + 365 * 86_400_000);
-    expect(v.voucherContents(voucher)).toContain("1000 kreditů");
+    expect(v.voucherContents(voucher)).toContain("1100 kreditů");
   });
 
   it("lists, notifies the buyer once and cancels with a deleted order", async () => {

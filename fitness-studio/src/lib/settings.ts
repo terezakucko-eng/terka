@@ -47,8 +47,8 @@ export const defaultSettings = {
   referralGiftValidityDays: 60,
   /** Dárkové poukazy: platnost od zaplacení (dní) */
   voucherValidityDays: 365,
-  /** Poukaz na částku: kolik kreditů za každých 100 Kč */
-  voucherCreditsPer100Kc: 100,
+  /** Poukaz na částku: kolik kreditů za každých 100 Kč (110 = jako dobití kreditu 1 000 Kč → 1 100 kreditů) */
+  voucherCreditsPer100Kc: 110,
 };
 
 export type Settings = typeof defaultSettings;
