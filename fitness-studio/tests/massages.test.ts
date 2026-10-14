@@ -10,7 +10,7 @@ import {
 } from "@/domain/massages";
 import { grantEntitlement } from "@/domain/users";
 import { pragueLocalToDate } from "@/lib/dates";
-import { czIban, spdPayload } from "@/lib/qr-payment";
+import { bankMessage, czIban, spdPayload } from "@/lib/qr-payment";
 import { NOW, makeUser, testDb } from "./helpers";
 
 let h: Awaited<ReturnType<typeof testDb>>;
@@ -130,5 +130,10 @@ describe("QR payment", () => {
     expect(spdPayload({ iban: "CZ6508000000192000145399", amountHalere: 90000, vs: 10001, message: "Masáž" })).toBe(
       "SPD*1.0*ACC:CZ6508000000192000145399*AM:900.00*CC:CZK*X-VS:10001*MSG:Masaz",
     );
+    // banks refuse the long dash and other special characters in the message
+    expect(spdPayload({ iban: "CZ6508000000192000145399", amountHalere: 140000, vs: 1059, message: "Členský příspěvek – listopad 2026" })).toMatch(
+      /\*MSG:Clensky prispevek - listopad 2026$/,
+    );
+    expect(bankMessage("Dárkový poukaz – „Permanentka 10“ * 2×")).toBe("Darkovy poukaz - Permanentka 10 2");
   });
 });

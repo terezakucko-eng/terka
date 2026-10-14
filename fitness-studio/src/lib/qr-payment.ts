@@ -22,13 +22,25 @@ function mod97(digits: string) {
   return r;
 }
 
+/**
+ * The payment message as banks take it: no diacritics, dashes as "-", and only
+ * letters, digits and plain punctuation – a bank app refuses e.g. „–“ and the
+ * client would have to fix it by hand.
+ */
+export function bankMessage(text: string) {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\u2010-\u2015\u2212]/g, "-")
+    .replace(/[^A-Za-z0-9 .,:/+()?-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 60);
+}
+
 /** Czech "QR Platba" (Short Payment Descriptor) text. */
 export function spdPayload(opts: { iban: string; amountHalere: number; vs: number | string; message?: string }) {
-  const msg = (opts.message ?? "")
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[*]/g, " ")
-    .slice(0, 60);
+  const msg = bankMessage(opts.message ?? "");
   return [
     "SPD*1.0",
     `ACC:${opts.iban}`,
