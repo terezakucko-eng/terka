@@ -334,7 +334,8 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
                         <label className="flex items-center gap-1 text-les/60">
                           měsíčně
                           <Input name="monthlyFee" type="number" min={0} defaultValue={e.monthlyFee !== null ? e.monthlyFee / 100 : ""} placeholder="výchozí" className="w-24 px-2 py-1" aria-label="Měsíční příspěvek (Kč)" />
-                          Kč
+                          Kč do
+                          <Input name="monthlyFeeUntil" type="month" defaultValue={e.monthlyFeeUntil ?? ""} className="w-36 px-2 py-1" aria-label="Vlastní příspěvek platí do měsíce (prázdné = bez konce)" title="Prázdné = bez konce. Po tomto měsíci platí výchozí příspěvek z Nastavení." />
                         </label>
                       )}
                       <button className="font-semibold text-zeme underline">Uložit</button>

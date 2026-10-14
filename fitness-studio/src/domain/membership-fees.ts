@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, gte, inArray, isNull, lt, or } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, isNull, lt, lte, or } from "drizzle-orm";
 import type { DB, Executor } from "@/db";
 import { entitlements, orders, products, users, type Entitlement, type Order, type Product } from "@/db/schema";
 import { dateKey, pragueLocalToDate } from "@/lib/dates";
@@ -62,7 +62,8 @@ export async function membersInMonth(db: Executor, period: string) {
       userId: r.e.userId,
       name: r.name,
       email: r.email,
-      monthlyFee: r.e.monthlyFee,
+      // a special price for a few months: then the default one
+      monthlyFee: r.e.monthlyFeeUntil && period > r.e.monthlyFeeUntil ? null : r.e.monthlyFee,
       auto: !!r.e.subscriptionId,
       purchaseOrderId: bought ? r.e.orderId : null,
     });
@@ -179,7 +180,15 @@ export async function feeOverview(db: Executor, period: string) {
  * coming months at the old amount follow it; discounted ones stay as they
  * are. Returns the periods changed, in order.
  */
-export async function followMonthlyFee(db: Executor, userId: string, before: number, after: number, now = new Date()) {
+export async function followMonthlyFee(
+  db: Executor,
+  userId: string,
+  before: number,
+  after: number,
+  now = new Date(),
+  /** the new fee applies only through this month ("YYYY-MM") */
+  until: string | null = null,
+) {
   if (after <= 0 || before === after) return [];
   const rows = await db
     .update(orders)
@@ -190,6 +199,7 @@ export async function followMonthlyFee(db: Executor, userId: string, before: num
         eq(orders.kind, "membership_fee"),
         eq(orders.status, "pending"),
         gt(orders.period, currentPeriod(now)),
+        until ? lte(orders.period, until) : undefined,
         eq(orders.amount, before),
       ),
     )
@@ -420,6 +430,7 @@ export async function switchMembership(db: DB, userId: string, entitlementId: st
         productId: offer.id,
         name: offer.name,
         monthlyFee: offer.price,
+        monthlyFeeUntil: null,
         includedClassTypeId: offer.includedClassTypeId,
         includedPerMonth: offer.includedPerMonth,
         includedFrom: period,

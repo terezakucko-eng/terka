@@ -46,7 +46,7 @@ import { storeImage, uploadedFile } from "@/lib/media";
 import { formatPrice } from "@/lib/money";
 import { normalizePhone } from "@/lib/phone";
 import { defaultSettings, getSettings, saveSettings, type Settings } from "@/lib/settings";
-import { followMonthlyFee, periodLabel } from "@/domain/membership-fees";
+import { followMonthlyFee, isPeriod, periodLabel } from "@/domain/membership-fees";
 import { cleanBirthDate, cleanNameDay } from "@/lib/profile";
 import { videoEmbedUrl } from "@/lib/video";
 import { pushQuietly } from "@/lib/push";
@@ -695,21 +695,25 @@ export async function updateEntitlementAction(_: FormState, fd: FormData): Promi
       entriesTotal = n;
     }
     let monthlyFee = e.monthlyFee;
+    let monthlyFeeUntil = e.monthlyFeeUntil;
     if (e.kind === "membership") {
       const fee = field.str(fd, "monthlyFee").replace(/\s/g, "");
       if (fee && !/^\d+$/.test(fee)) throw new UserError("Měsíční příspěvek zadej v celých korunách.");
       monthlyFee = fee ? Number(fee) * 100 : null;
+      const feeUntil = field.str(fd, "monthlyFeeUntil");
+      if (feeUntil && !isPeriod(feeUntil)) throw new UserError("Měsíc, do kdy platí příspěvek, zadej jako rok a měsíc.");
+      monthlyFeeUntil = monthlyFee !== null && feeUntil ? feeUntil : null;
     }
     await db
       .update(entitlements)
-      .set({ validFrom: from, validUntil: until, entriesTotal, monthlyFee })
+      .set({ validFrom: from, validUntil: until, entriesTotal, monthlyFee, monthlyFeeUntil })
       .where(eq(entitlements.id, e.id));
     // a new monthly fee: unpaid requests for the coming months follow it
     let note = "";
     if (e.kind === "membership" && monthlyFee !== e.monthlyFee) {
       const base = (await getSettings(db)).membershipMonthlyFee * 100;
       const after = monthlyFee ?? base;
-      const followed = await followMonthlyFee(db, e.userId, e.monthlyFee ?? base, after);
+      const followed = await followMonthlyFee(db, e.userId, e.monthlyFee ?? base, after, undefined, monthlyFeeUntil);
       if (followed.length) note = ` Nezaplacené výzvy (${followed.map(periodLabel).join(", ")}) jsou teď na ${formatPrice(after)}.`;
     }
     return done(`Uloženo – platí ${formatDate(from)} – ${formatDate(until)}.${note}`);

@@ -82,6 +82,24 @@ describe("presale", () => {
   });
 });
 
+describe("Členství Reformer in presale", () => {
+  it("a client without membership buys it now – it starts in January; first come, first served", async () => {
+    const s = await makeSession(h.db);
+    const tier = await makeProduct(h.db, { kind: "membership", price: 250000, validityDays: 365, includedClassTypeId: s.classTypeId, includedPerMonth: 8, maxActive: 1, saleFrom: JAN, presaleFrom: NOW, sortOrder: -300 });
+    const member = await makeUser(h.db);
+    await grantEntitlement(h.db, { userId: member.id, kind: "membership", name: "Členství 2026", entries: null, validityDays: 365 }, NOW);
+    await expect(createProductOrder(h.db, { userId: member.id, productId: tier.id, commitmentAccepted: true }, NOW)).rejects.toThrow("přejdeš v Můj účet");
+
+    const u = await makeUser(h.db);
+    const { order } = await createProductOrder(h.db, { userId: u.id, productId: tier.id, commitmentAccepted: true }, NOW);
+    await fulfillOrder(h.db, { orderId: order.id, provider: "transfer" }, NOW);
+    const [e] = await h.db.select().from(entitlements).where(eq(entitlements.userId, u.id));
+    expect(e).toMatchObject({ validFrom: JAN, monthlyFee: 250000, includedPerMonth: 8 });
+    await expect(createProductOrder(h.db, { userId: (await makeUser(h.db)).id, productId: tier.id, commitmentAccepted: true }, NOW)).rejects.toThrow("obsazená");
+    await h.db.update(products).set({ isActive: false }).where(eq(products.id, tier.id));
+  });
+});
+
 describe("Členství Reformer 2027", () => {
   it("has a limited number of places – buying and switching stop when they're taken", async () => {
     const s = await makeSession(h.db);
@@ -161,5 +179,13 @@ describe("a member's own monthly fee", () => {
     expect(await followMonthlyFee(h.db, u.id, 140000, 100000, NOW)).toEqual(["2026-11", "2026-12"]);
     const amounts = await h.db.select({ id: orders.id, amount: orders.amount }).from(orders).where(eq(orders.userId, u.id));
     expect([oct, nov, dec, jan].map((o) => amounts.find((a) => a.id === o.id)!.amount)).toEqual([140000, 100000, 100000, 70000]);
+  });
+
+  it("a special price for a few months: the default one after its last month", async () => {
+    const u = await makeUser(h.db);
+    const e = await grantEntitlement(h.db, { userId: u.id, kind: "membership", name: "Členství", entries: null, validityDays: 365 }, NOW);
+    await h.db.update(entitlements).set({ monthlyFee: 100000, monthlyFeeUntil: "2026-12" }).where(eq(entitlements.id, e.id));
+    const fee = async (period: string) => (await createMonthlyFees(h.db, { period, amountKc: 1400, userIds: [u.id] }))[0]?.amount;
+    expect([await fee("2026-11"), await fee("2026-12"), await fee("2027-01")]).toEqual([100000, 100000, 140000]);
   });
 });
