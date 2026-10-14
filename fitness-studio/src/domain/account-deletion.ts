@@ -123,6 +123,8 @@ export async function deleteOwnAccount(db: DB, userId: string, now = new Date())
       .update(users)
       .set({
         email: `smazany-${u.id}@octopush.invalid`,
+        // the old calendar address stops showing the bookings
+        calendarToken: sql`replace(gen_random_uuid()::text, '-', '')`,
         name: "Smazaný účet",
         phone: null,
         // no bcrypt hash matches this – the account can't be signed into

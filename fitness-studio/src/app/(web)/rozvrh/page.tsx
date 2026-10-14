@@ -16,7 +16,7 @@ import {
 import { activeClassTypes, lastEarlyOpenStart, listSessions } from "@/lib/queries";
 import { getContent } from "@/content";
 import { getSettings } from "@/lib/settings";
-import { opensFor, bookingWindowFor, windowEnd, windowOf } from "@/domain/booking";
+import { opensFor, viewerWindows, windowEnd, windowOf } from "@/domain/booking";
 
 export const metadata: Metadata = {
   title: "Rozvrh a rezervace",
@@ -38,8 +38,11 @@ export default async function SchedulePage({ searchParams }: PageProps<"/rozvrh"
   const [types, cfg] = await Promise.all([activeClassTypes(db), getSettings(db)]);
   const filter = types.find((t) => t.slug === lekce);
   const now = new Date();
-  // Classes are visible only as far ahead as anyone (members) can book them.
-  const horizon = windowEnd(windowOf(cfg, true), now);
+  const windows = await viewerWindows(db, cfg, user?.id ?? null, now);
+  // Classes are visible only as far ahead as anyone (members) can book them –
+  // a membership with a class included (Členství Reformer) sees that class a week further.
+  const memberHorizon = windowEnd(windowOf(cfg, true), now);
+  const horizon = new Date(Math.max(+memberHorizon, +windowEnd(windows.widest, now)));
   // …except a class opened early (brunch, event) – it shows up and its week can be browsed
   const early = await lastEarlyOpenStart(db, horizon, now);
   const lastDay = dateKey(new Date(Math.max(horizon.getTime() - 1, early?.getTime() ?? 0)));
@@ -54,12 +57,13 @@ export default async function SchedulePage({ searchParams }: PageProps<"/rozvrh"
   ).filter(
     (s) =>
       +s.startsAt + s.durationMin * 60_000 > +now &&
-      (s.startsAt < horizon || (s.bookingOpensAt !== null && s.bookingOpensAt <= now)),
+      (s.startsAt < memberHorizon ||
+        s.startsAt < windowEnd(windows.forSession(s), now) ||
+        (s.bookingOpensAt !== null && s.bookingOpensAt <= now)),
   );
 
   // beyond this viewer's window (non-members see what members can already book) → "Rezervace od …"
-  const myWindow = await bookingWindowFor(db, cfg, user?.id ?? null, now);
-  const opens = (s: (typeof sessions)[number]) => opensFor(s, myWindow, cfg, now);
+  const opens = (s: (typeof sessions)[number]) => opensFor(s, windows.forSession(s), cfg, now);
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
   const byDay = new Map(days.map((d) => [d, sessions.filter((s) => dateKey(s.startsAt) === d)]));

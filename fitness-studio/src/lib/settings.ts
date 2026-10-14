@@ -35,6 +35,22 @@ export const defaultSettings = {
   membershipMonthlyFee: 0,
   /** Kterého dne v měsíci odejdou výzvy k platbě za následující měsíc */
   membershipFeeNoticeDay: 20,
+  /** Přání k narozeninám a svátku (1 = posílat, 0 = vypnuto) */
+  birthdayGreetings: 1,
+  /** Dárek k narozeninám – vstupy zdarma (0 = jen přání) */
+  birthdayGiftEntries: 1,
+  birthdayGiftValidityDays: 30,
+  /** E-mail „Chybíš nám“ po X dnech bez lekce (0 = vypnuto) */
+  winbackDays: 28,
+  /** Pozvi kamarádku: lekcí zdarma pro tu, která pozvala, po prvním nákupu kamarádky (0 = vypnuto) */
+  referralGiftEntries: 1,
+  referralGiftValidityDays: 60,
+  /** Dárkové poukazy: platnost od zaplacení (dní) */
+  voucherValidityDays: 365,
+  /** Poukaz na částku: kolik kreditů za každých 100 Kč (110 = jako dobití kreditu 1 000 Kč → 1 100 kreditů) */
+  voucherCreditsPer100Kc: 110,
+  /** Členství s lekcemi v ceně (Členství Reformer): na tyto lekce rezervuje o X týdnů dřív než ostatní členové */
+  includedPriorityWeeks: 1,
 };
 
 export type Settings = typeof defaultSettings;

@@ -6,12 +6,13 @@ import { ActionForm, SubmitButton } from "@/components/forms";
 import { productKindLabel } from "@/components/labels";
 import { Badge, Field, Input, Select, Textarea } from "@/components/ui";
 import { getDb } from "@/db";
-import { massageServices, products, type MassageService, type Product } from "@/db/schema";
+import { classTypes, massageServices, products, type MassageService, type Product } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
 import { formatPrice } from "@/lib/money";
+import { dateKey, formatDate } from "@/lib/dates";
 import { site } from "@/config/site";
 
-function ProductForm({ p, services }: { p?: Product; services: MassageService[] }) {
+function ProductForm({ p, services, types }: { p?: Product; services: MassageService[]; types: { id: string; name: string }[] }) {
   return (
     <ActionForm action={saveProductAction} className="space-y-4">
       {p && <input type="hidden" name="id" value={p.id} />}
@@ -32,6 +33,19 @@ function ProductForm({ p, services }: { p?: Product; services: MassageService[] 
         <Field label="Vstupů / minut" hint="Permanentka: vstupy · Masáže: počet masáží · Solárium: minuty · Členství: prázdné = neomezeně"><Input name="entries" type="number" min={1} defaultValue={p?.entries ?? ""} /></Field>
         <Field label="Platnost (dny)" hint="U kreditu: od posledního dobití · prázdné = nepropadá"><Input name="validityDays" type="number" min={1} defaultValue={p ? (p.validityDays ?? "") : 30} /></Field>
         <Field label="Limit / týden" hint="Jen u členství"><Input name="weeklyLimit" type="number" min={1} defaultValue={p?.weeklyLimit ?? ""} /></Field>
+        <Field label="Závazek (měsíců)" hint="Jen u členství · 0 = bez závazku (zruší si ho v účtu ke konci měsíce)"><Input name="commitmentMonths" type="number" min={0} defaultValue={p?.commitmentMonths ?? 12} /></Field>
+        <Field label="Lekce v ceně" hint="Jen u členství · bez doplatku (např. Reformer)">
+          <Select name="includedClassTypeId" defaultValue={p?.includedClassTypeId ?? ""}>
+            <option value="">Žádné</option>
+            {types.map((t) => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="…kolik měsíčně" hint="Za kalendářní měsíc, nevyčerpané se nepřevádí"><Input name="includedPerMonth" type="number" min={0} defaultValue={p?.includedPerMonth ?? 0} /></Field>
+        <Field label="Omezený počet" hint="Jen u členství · nejvýš tolik platných členství najednou · prázdné = bez limitu"><Input name="maxActive" type="number" min={1} defaultValue={p?.maxActive ?? ""} /></Field>
+        <Field label="V prodeji od" hint="Ceník na další rok (např. 1. 1. 2027) · prázdné = hned"><Input name="saleFrom" type="date" defaultValue={p?.saleFrom ? dateKey(p.saleFrom) : ""} /></Field>
+        <Field label="V prodeji do" hint="Den, kdy se prodej ukončí (např. 1. 1. 2027) · prázdné = bez konce"><Input name="saleUntil" type="date" defaultValue={p?.saleUntil ? dateKey(p.saleUntil) : ""} /></Field>
         <Field label="Na masáž" hint="Jen u permanentky na masáže">
           <Select name="massageServiceId" defaultValue={p?.massageServiceId ?? ""}>
             <option value="">Kterákoli masáž</option>
@@ -62,20 +76,21 @@ function ProductForm({ p, services }: { p?: Product; services: MassageService[] 
 export default async function AdminPricing() {
   await requireAdmin();
   const db = await getDb();
-  const [list, services] = await Promise.all([
+  const [list, services, types] = await Promise.all([
     db.select().from(products).where(isNull(products.archivedAt)).orderBy(asc(products.sortOrder)),
     db.select().from(massageServices).where(isNull(massageServices.archivedAt)).orderBy(asc(massageServices.sortOrder)),
+    db.select({ id: classTypes.id, name: classTypes.name }).from(classTypes).orderBy(asc(classTypes.sortOrder), asc(classTypes.name)),
   ]);
   return (
     <>
       <AdminTitle title="Ceník – kredit, permanentky, členství" />
       <p className="-mt-4 mb-6 max-w-2xl text-sm text-les/60">Ceny jednorázových vstupů se nastavují u typů lekcí (a lze je přepsat u konkrétního termínu). Vstupy zdarma přidělíš v detailu klienta, úvodní vstup zdarma v Nastavení.</p>
       <div className="space-y-3">
-        <Panel title="+ Nový produkt"><ProductForm services={services} /></Panel>
+        <Panel title="+ Nový produkt"><ProductForm services={services} types={types} /></Panel>
         {list.map((p) => (
-          <Panel key={p.id} title={`${p.name} · ${formatPrice(p.price)} · ${productKindLabel[p.kind]}${p.isActive ? (p.linkOnly ? " · jen přes odkaz" : "") : " · skryto"}`}>
+          <Panel key={p.id} title={`${p.name} · ${formatPrice(p.price)} · ${productKindLabel[p.kind]}${p.isActive ? (p.linkOnly ? " · jen přes odkaz" : "") : " · skryto"}${p.saleFrom ? ` · v prodeji od ${formatDate(p.saleFrom)}` : ""}${p.saleUntil ? ` · do ${formatDate(p.saleUntil)}` : ""}`}>
             {!p.isActive && <Badge tone="red">Není v nabídce</Badge>}
-            <ProductForm p={p} services={services} />
+            <ProductForm p={p} services={services} types={types} />
             <ActionForm
               action={deleteProductAction}
               confirm={`Opravdu smazat „${p.name}“ z ceníku? Kdo ho už koupil, má ho dál platný.`}

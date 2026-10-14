@@ -17,7 +17,7 @@ import {
 import { adminCancelMassageAction } from "@/app/admin/massage-actions";
 import { recordPastFeesAction } from "@/app/admin/fee-actions";
 import { insuranceYears } from "@/domain/insurance";
-import { currentPeriod, shiftPeriod } from "@/domain/membership-fees";
+import { currentPeriod, periodStartLabel, shiftPeriod } from "@/domain/membership-fees";
 import { getSettings } from "@/lib/settings";
 import { AdminTitle, Stat, Table, Td } from "@/components/admin";
 import { Avatar } from "@/components/avatar";
@@ -36,6 +36,7 @@ import { normalizePhone } from "@/lib/phone";
 import { recentSolariumUses, solariumPasses } from "@/domain/solarium";
 import { greetName } from "@/lib/vocative";
 import { memberStrikes } from "@/domain/strikes";
+import { referralInfo } from "@/domain/referrals";
 
 export default async function ClientDetail({ params }: PageProps<"/admin/klienti/[id]">) {
   await requireAdmin();
@@ -53,7 +54,7 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
     sellableProducts(db),
     activeClassTypes(db),
   ]);
-  const [[{ n: pushDevices }], sunPasses, sunUses, massages, insuranceYrs, cfg] = await Promise.all([
+  const [[{ n: pushDevices }], sunPasses, sunUses, massages, insuranceYrs, cfg, refs] = await Promise.all([
     db.select({ n: count() }).from(pushSubscriptions).where(eq(pushSubscriptions.userId, u.id)),
     solariumPasses(db, u.id),
     recentSolariumUses(db, u.id, 5),
@@ -64,6 +65,7 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
       .orderBy(asc(massageBookings.startsAt)),
     insuranceYears(db, u.id),
     getSettings(db),
+    referralInfo(db, u.id),
   ]);
   const sunLeft = sunPasses.reduce((s, p) => s + p.left, 0);
   const now = new Date();
@@ -83,6 +85,23 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
           {u.nickname && <p>Přezdívka: <strong>{u.nickname}</strong></p>}
           {u.birthDate && <p>Narozeniny: <strong>{formatDate(new Date(`${u.birthDate}T12:00:00Z`))}</strong></p>}
           {u.nameDay && <p>Svátek: <strong>{formatDayMonth(u.nameDay)}</strong></p>}
+          {refs.invitedBy && (
+            <p>
+              💛 Na pozvání od: <Link href={`/admin/klienti/${refs.invitedBy.id}`} className="font-semibold underline">{refs.invitedBy.name}</Link>
+            </p>
+          )}
+          {refs.invited.length > 0 && (
+            <p>
+              👯 Pozval/a:{" "}
+              {refs.invited.map((f, i) => (
+                <span key={f.id}>
+                  {i > 0 && ", "}
+                  <Link href={`/admin/klienti/${f.id}`} className="underline">{f.name}</Link> {f.rewardedAt ? "✅" : "⏳"}
+                </span>
+              ))}
+              <span className="text-les/50"> (✅ = kamarádka zaplatila, lekce zdarma připsána)</span>
+            </p>
+          )}
           <p>{u.healthConfirmedAt ? `Zdravotní způsobilost potvrzena ${formatDate(u.healthConfirmedAt)}` : "Zdravotní způsobilost zatím nepotvrzena (potvrdí při další rezervaci)"}</p>
           <p>
             Mobil: {pushDevices ? `push upozornění zapnutá (${pushDevices} zař.)` : "push upozornění vypnutá"}
@@ -297,7 +316,12 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
                     <ActionForm action={updateEntitlementAction} className="flex flex-wrap items-center gap-2 text-xs">
                       <input type="hidden" name="id" value={e.id} />
                       {e.entriesTotal === null ? (
-                        <span className="mr-2">neomezeně{e.weeklyLimit ? ` · ${e.weeklyLimit}×/týden` : ""}</span>
+                        <span className="mr-2">
+                          neomezeně{e.weeklyLimit ? ` · ${e.weeklyLimit}×/týden` : ""}
+                          {e.includedPerMonth > 0 &&
+                            ` · ${e.includedPerMonth}× ${lessonTypes.find((t) => t.id === e.includedClassTypeId)?.name ?? "lekce"} měsíčně v ceně` +
+                              (e.includedFrom && e.includedFrom > dateKey(now).slice(0, 7) ? ` od ${periodStartLabel(e.includedFrom)}` : "")}
+                        </span>
                       ) : (
                         <label className="flex items-center gap-1">
                           {e.entriesUsed}/<Input name="entries" type="number" min={e.entriesUsed} defaultValue={e.entriesTotal} className="w-16 px-2 py-1" aria-label="Vstupů celkem" />

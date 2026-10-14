@@ -46,6 +46,11 @@ export default async function AdminDashboard() {
           <Stat label="Obsazenost 7 dní" value={capacity ? `${Math.round((booked / capacity) * 100)} %` : "—"} sub={`${booked} / ${capacity} míst`} />
         </div>
       )}
+      {user.role === "admin" && (
+        <p className="mt-3 text-right text-sm">
+          <Link href="/admin/statistiky" className="eyebrow text-zeme underline underline-offset-4">Statistiky po měsících →</Link>
+        </p>
+      )}
       <section className="mt-10">
         <div className="flex items-end justify-between">
           <h2 className="text-xl font-semibold">Dnešní lekce</h2>
@@ -63,6 +68,7 @@ export default async function AdminDashboard() {
       {celebrations.length > 0 && (
         <section className="mt-10">
           <h2 className="text-xl font-semibold">Kdo slaví (7 dní)</h2>
+          <p className="mt-1 text-sm text-les/60">Přání jim web posílá sám v den oslavy dopoledne (Nastavení → Přání a dárky).</p>
           <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {celebrations.map(({ user: c, kind, date, age }) => {
               const content = (

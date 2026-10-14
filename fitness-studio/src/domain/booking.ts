@@ -1,4 +1,4 @@
-import { and, asc, count, eq, gte, inArray, lt, lte, ne, gt, sql } from "drizzle-orm";
+import { and, asc, count, eq, gte, inArray, isNull, lt, lte, ne, gt, or, sql } from "drizzle-orm";
 import type { DB, Executor } from "@/db";
 import {
   bookings,
@@ -6,16 +6,19 @@ import {
   classTypes,
   entitlements,
   orders,
+  products,
   users,
   type Booking,
   type ClassSession,
   type Entitlement,
 } from "@/db/schema";
-import { addDays, dateKey, mondayOf, pragueLocalToDate, weekRange } from "@/lib/dates";
+import { addDays, dateKey, formatDateTime, mondayOf, pragueLocalToDate, weekRange } from "@/lib/dates";
 import { UserError } from "@/lib/errors";
 import { credits as creditsLabel, formatPrice } from "@/lib/money";
 import { getSettings, type Settings } from "@/lib/settings";
 import { changeCredits, creditExpired } from "./wallet";
+import { periodLabel, shiftPeriod } from "./membership-fees";
+import { surchargeOn } from "@/lib/price-list";
 
 /** Statuses that take up a spot in the class. */
 export const OCCUPYING = [
@@ -125,6 +128,128 @@ export async function bookingWindowFor(tx: Executor, cfg: Settings, userId: stri
   return m ? member : regular;
 }
 
+/** Members' window plus the priority weeks of a membership with lessons included (Členství Reformer). */
+export function priorityWindow(cfg: Settings): BookingWindow {
+  const m = windowOf(cfg, true);
+  const extra = Math.max(0, cfg.includedPriorityWeeks);
+  return m.kind === "weeks" ? { kind: "weeks", n: m.n + extra } : { kind: "days", n: m.n + 7 * extra };
+}
+
+type SessionKey = Pick<ClassSession, "classTypeId" | "startsAt">;
+
+/** Memberships with this class included that apply to the session (valid then, from their starting month). */
+async function includedMemberships(tx: Executor, userIds: string[], s: SessionKey) {
+  if (!userIds.length) return [];
+  const month = dateKey(s.startsAt).slice(0, 7);
+  const rows = await tx
+    .select({ userId: entitlements.userId, from: entitlements.includedFrom })
+    .from(entitlements)
+    .where(
+      and(
+        inArray(entitlements.userId, userIds),
+        eq(entitlements.kind, "membership"),
+        eq(entitlements.status, "active"),
+        eq(entitlements.includedClassTypeId, s.classTypeId),
+        gt(entitlements.includedPerMonth, 0),
+        lte(entitlements.validFrom, s.startsAt),
+        gt(entitlements.validUntil, s.startsAt),
+      ),
+    );
+  return rows.filter((r) => !r.from || r.from <= month).map((r) => r.userId);
+}
+
+/**
+ * The viewer's booking window for each class: their usual one, and for a
+ * class included in their membership (e.g. Reformer in Členství Reformer)
+ * the priority window – they can book it a week before other members.
+ */
+export async function viewerWindows(tx: Executor, cfg: Settings, userId: string | null, now: Date) {
+  const base = await bookingWindowFor(tx, cfg, userId, now);
+  const none = { base, widest: base, forSession: ((): BookingWindow => base) as (s: SessionKey) => BookingWindow };
+  if (!userId || cfg.includedPriorityWeeks <= 0) return none;
+  const tiers = await tx
+    .select({ classTypeId: entitlements.includedClassTypeId, from: entitlements.includedFrom, validFrom: entitlements.validFrom, validUntil: entitlements.validUntil })
+    .from(entitlements)
+    .where(
+      and(
+        eq(entitlements.userId, userId),
+        eq(entitlements.kind, "membership"),
+        eq(entitlements.status, "active"),
+        gt(entitlements.includedPerMonth, 0),
+        gt(entitlements.validUntil, now),
+      ),
+    );
+  if (!tiers.length) return none;
+  const prio = priorityWindow(cfg);
+  return {
+    base,
+    widest: prio,
+    forSession: (s: SessionKey) =>
+      tiers.some(
+        (t) =>
+          t.classTypeId === s.classTypeId &&
+          t.validFrom <= s.startsAt &&
+          t.validUntil > s.startsAt &&
+          (!t.from || t.from <= dateKey(s.startsAt).slice(0, 7)),
+      )
+        ? prio
+        : base,
+  };
+}
+
+/* ------------------------------------------- places kept for non-members */
+
+/** Who of these clients has a membership valid at that moment. */
+async function membersAt(tx: Executor, userIds: string[], at: Date) {
+  if (!userIds.length) return new Set<string>();
+  const rows = await tx
+    .select({ userId: entitlements.userId })
+    .from(entitlements)
+    .where(
+      and(
+        inArray(entitlements.userId, userIds),
+        eq(entitlements.kind, "membership"),
+        eq(entitlements.status, "active"),
+        lte(entitlements.validFrom, at),
+        gt(entitlements.validUntil, at),
+      ),
+    );
+  return new Set(rows.map((r) => r.userId));
+}
+
+/**
+ * Places a class keeps for clients without a membership (e.g. one Reformer
+ * place) until its release time (a week before by default): how many are
+ * still held – not yet taken by a non-member – and when they're released.
+ * Members see the class as full while a place is held for others.
+ */
+export async function nonMemberHold(tx: Executor, s: Pick<ClassSession, "id" | "classTypeId" | "startsAt">, now: Date) {
+  const [ct] = await tx
+    .select({ seats: classTypes.nonMemberSeats, hours: classTypes.nonMemberReleaseHours })
+    .from(classTypes)
+    .where(eq(classTypes.id, s.classTypeId));
+  if (!ct || ct.seats <= 0) return { held: 0, releaseAt: null };
+  const releaseAt = new Date(s.startsAt.getTime() - Math.max(0, ct.hours) * HOUR);
+  if (releaseAt <= now) return { held: 0, releaseAt: null };
+  const taken = await tx
+    .select({ userId: bookings.userId, seats: bookings.seats })
+    .from(bookings)
+    .where(and(eq(bookings.sessionId, s.id), inArray(bookings.status, [...OCCUPYING]), eq(bookings.isHold, false)));
+  const members = await membersAt(tx, taken.map((b) => b.userId), s.startsAt);
+  const byOthers = taken.filter((b) => !members.has(b.userId)).reduce((n, b) => n + b.seats, 0);
+  return { held: Math.max(0, ct.seats - byOthers), releaseAt };
+}
+
+/** How many places this client can book into: a member doesn't get the ones held for non-members. */
+async function capacityFor(tx: Executor, s: ClassSession, userId: string | null, now: Date) {
+  const hold = await nonMemberHold(tx, s, now);
+  const member = !!userId && hold.held > 0 && (await membersAt(tx, [userId], s.startsAt)).has(userId);
+  return { capacity: member ? s.capacity - hold.held : s.capacity, held: member ? hold.held : 0, releaseAt: hold.releaseAt };
+}
+
+const heldMessage = (held: number, releaseAt: Date) =>
+  `${held === 1 ? "Poslední místo je" : "Poslední místa jsou"} do ${formatDateTime(releaseAt)} pro klienty bez členství. Zapiš se do pořadníku – když ${held === 1 ? "ho" : "je"} nikdo nezabere, dostaneš ho jako první.`;
+
 export function isLateCancel(s: ClassSession, cfg: Settings, now: Date) {
   return now.getTime() > s.startsAt.getTime() - cfg.cancellationHours * HOUR;
 }
@@ -230,11 +355,13 @@ async function weeklyUsage(tx: Executor, entitlementId: string, s: ClassSession)
 
 /** Why an entitlement can't pay for this session, or null if it can. */
 /** Per-class-type pricing rules (member / pass surcharge, first visit, free entry). */
-async function classRules(tx: Executor, s: ClassSession) {
+async function classRules(tx: Executor, s: Pick<ClassSession, "classTypeId">) {
   const [ct] = await tx
     .select({
       memberSurcharge: classTypes.memberSurcharge,
       memberSurchargeFrom: classTypes.memberSurchargeFrom,
+      memberSurchargeNext: classTypes.memberSurchargeNext,
+      memberSurchargeNextFrom: classTypes.memberSurchargeNextFrom,
       passSurcharge: classTypes.passSurcharge,
       noFreeEntry: classTypes.noFreeEntry,
       noPass: classTypes.noPass,
@@ -245,15 +372,94 @@ async function classRules(tx: Executor, s: ClassSession) {
     })
     .from(classTypes)
     .where(eq(classTypes.id, s.classTypeId));
-  return ct ?? { memberSurcharge: null, memberSurchargeFrom: null, passSurcharge: null, noFreeEntry: false, noPass: false, firstVisitPrice: null, firstVisitNewOnly: false, passEntries: 1, duoPrice: null };
+  return ct ?? { memberSurcharge: null, memberSurchargeFrom: null, memberSurchargeNext: null, memberSurchargeNextFrom: null, passSurcharge: null, noFreeEntry: false, noPass: false, firstVisitPrice: null, firstVisitNewOnly: false, passEntries: 1, duoPrice: null };
 }
 type ClassRules = Awaited<ReturnType<typeof classRules>>;
 
-/** Member surcharge that applies to this session (0 = none). */
-export function memberSurchargeFor(rules: ClassRules, s: Pick<ClassSession, "startsAt">) {
-  if (!rules.memberSurcharge) return 0;
-  if (rules.memberSurchargeFrom && dateKey(s.startsAt) < rules.memberSurchargeFrom) return 0;
-  return rules.memberSurcharge;
+/** Member surcharge that applies to this session (0 = none) – by the price list of its day. */
+export function memberSurchargeFor(rules: Parameters<typeof surchargeOn>[0], s: Pick<ClassSession, "startsAt">) {
+  return surchargeOn(rules, dateKey(s.startsAt));
+}
+
+type Included = Pick<Entitlement, "id" | "includedClassTypeId" | "includedPerMonth" | "includedFrom">;
+
+/**
+ * Lessons included in a membership (e.g. 4× Reformer a month with no member
+ * surcharge): how many are left in the session's month, or null when the
+ * membership includes none of this class then. Bookings within the allowance
+ * are the ones without a surcharge; a late cancellation uses one up too.
+ */
+export async function includedLeft(tx: Executor, e: Included, s: Pick<ClassSession, "startsAt" | "classTypeId">, rules: ClassRules, exceptBookingId?: string) {
+  if (!e.includedClassTypeId || e.includedPerMonth <= 0 || e.includedClassTypeId !== s.classTypeId) return null;
+  const month = dateKey(s.startsAt).slice(0, 7);
+  if (e.includedFrom && month < e.includedFrom) return null;
+  // only lessons that would otherwise cost a surcharge count
+  const from = [`${month}-01`, rules.memberSurchargeFrom ?? ""].sort().at(-1)!;
+  const [r] = await tx
+    .select({ n: count() })
+    .from(bookings)
+    .innerJoin(classSessions, eq(bookings.sessionId, classSessions.id))
+    .where(
+      and(
+        eq(bookings.entitlementId, e.id),
+        eq(classSessions.classTypeId, s.classTypeId),
+        gte(classSessions.startsAt, pragueLocalToDate(`${from}T00:00`)),
+        lt(classSessions.startsAt, pragueLocalToDate(`${shiftPeriod(month, 1)}-01T00:00`)),
+        eq(bookings.surcharge, 0),
+        or(inArray(bookings.status, [...OCCUPYING]), and(eq(bookings.status, "cancelled"), eq(bookings.lateCancel, true))),
+        exceptBookingId ? ne(bookings.id, exceptBookingId) : undefined,
+      ),
+    );
+  return Math.max(0, e.includedPerMonth - r.n);
+}
+
+/**
+ * Lessons included in these memberships for Můj účet: class name, how many a
+ * month, from which month (a switch takes effect later) and how many are
+ * left this month (null while no surcharge applies, so nothing is counted).
+ */
+export async function includedSummary(tx: Executor, ents: Entitlement[], now = new Date()) {
+  const out = new Map<string, { className: string; perMonth: number; from: string | null; left: number | null }>();
+  const month = dateKey(now).slice(0, 7);
+  for (const e of ents) {
+    if (e.kind !== "membership" || !e.includedClassTypeId || e.includedPerMonth <= 0) continue;
+    const [ct] = await tx.select({ name: classTypes.name }).from(classTypes).where(eq(classTypes.id, e.includedClassTypeId));
+    if (!ct) continue;
+    const later = !!e.includedFrom && e.includedFrom > month;
+    const at = { startsAt: now, classTypeId: e.includedClassTypeId };
+    const rules = await classRules(tx, at);
+    const left = later || !memberSurchargeFor(rules, at) ? null : await includedLeft(tx, e, at, rules);
+    out.set(e.id, { className: ct.name, perMonth: e.includedPerMonth, from: later ? e.includedFrom : null, left });
+  }
+  return out;
+}
+
+/** The membership on offer that includes this class (e.g. Členství Reformer for Reformer) – sold on that day – for the class page. */
+export async function membershipIncluding(tx: Executor, classTypeId: string, at = new Date()) {
+  const [p] = await tx
+    .select({ name: products.name, perMonth: products.includedPerMonth })
+    .from(products)
+    .where(
+      and(
+        eq(products.kind, "membership"),
+        eq(products.isActive, true),
+        eq(products.linkOnly, false),
+        isNull(products.archivedAt),
+        eq(products.includedClassTypeId, classTypeId),
+        gt(products.includedPerMonth, 0),
+        or(isNull(products.saleFrom), lte(products.saleFrom, at)),
+        or(isNull(products.saleUntil), gt(products.saleUntil, at)),
+      ),
+    )
+    .orderBy(sql`${products.commitmentMonths} = 0`, asc(products.sortOrder))
+    .limit(1);
+  return p ?? null;
+}
+
+/** "na listopad zbývají 3" */
+function includedNote(left: number, s: Pick<ClassSession, "startsAt">) {
+  const month = periodLabel(dateKey(s.startsAt).slice(0, 7)).split(" ")[0];
+  return left === 1 ? `na ${month} zbývá 1` : left < 5 ? `na ${month} zbývají ${left}` : `na ${month} zbývá ${left}`;
 }
 
 /** Surcharge for booking with a pass – per seat, on top of the entries (0 = none). */
@@ -390,12 +596,20 @@ export async function bookingOptions(
         ? "neomezeně"
         : `zbývá ${e.entriesTotal - e.entriesUsed} z ${e.entriesTotal}` +
           (need > 1 ? ` · strhnou se ${need} vstupy` : "");
-    const extra = surchargeFor(methodForKind[e.kind], rules, s, seats);
+    let extra = surchargeFor(methodForKind[e.kind], rules, s, seats);
+    let included = "";
+    if (e.kind === "membership" && extra > 0) {
+      const n = await includedLeft(tx, e, s, rules);
+      if (n) {
+        extra = 0;
+        included = ` · v ceně členství, ${includedNote(n, s)}`;
+      } else if (n === 0) included = ", lekce v ceně na tento měsíc jsou vyčerpané";
+    }
     opts.push({
       method: methodForKind[e.kind],
       entitlementId: e.id,
       label: e.name,
-      detail: extra ? `${left} · doplatek ${formatPrice(extra)} (kartou nebo převodem)` : left,
+      detail: extra ? `${left} · doplatek ${formatPrice(extra)} (kartou nebo převodem)${included}` : left + included,
       ...(problem ? { disabled: problem } : {}),
     });
   }
@@ -456,6 +670,7 @@ async function charge(
   let creditsCharged = 0;
   let entriesCharged = 0;
   let entId: string | null = null;
+  let ent: Entitlement | null = null;
 
   switch (method) {
     case "free_class":
@@ -491,6 +706,7 @@ async function charge(
           .where(eq(entitlements.id, e.id));
       }
       entId = e.id;
+      ent = e;
       break;
     }
     case "admin":
@@ -499,6 +715,10 @@ async function charge(
       throw new Error("drop_in is charged through an order");
   }
 
+  const rules = await classRules(tx, s);
+  let surcharge = surchargeFor(method, rules, s, booking.seats);
+  // lessons included in the membership (e.g. 4× Reformer a month) need no surcharge
+  if (surcharge > 0 && method === "membership" && ent && (await includedLeft(tx, ent, s, rules, booking.id))) surcharge = 0;
   await tx
     .update(bookings)
     .set({
@@ -506,9 +726,45 @@ async function charge(
       entriesCharged,
       entitlementId: entId,
       method,
-      surcharge: surchargeFor(method, await classRules(tx, s), s, booking.seats),
+      surcharge,
     })
     .where(eq(bookings.id, booking.id));
+}
+
+/**
+ * A lesson included in the membership was cancelled in time – the allowance
+ * goes to the client's next unpaid surcharged booking of that month, if any.
+ */
+async function passIncludedOn(tx: Executor, b: Booking, s: ClassSession) {
+  if (b.method !== "membership" || b.surcharge !== 0 || !b.entitlementId) return;
+  const [e] = await tx.select().from(entitlements).where(eq(entitlements.id, b.entitlementId));
+  if (!e || e.includedClassTypeId !== s.classTypeId) return;
+  const rules = await classRules(tx, s);
+  if (!memberSurchargeFor(rules, s) || !(await includedLeft(tx, e, s, rules))) return;
+  const month = dateKey(s.startsAt).slice(0, 7);
+  const [next] = await tx
+    .select({ id: bookings.id })
+    .from(bookings)
+    .innerJoin(classSessions, eq(bookings.sessionId, classSessions.id))
+    .where(
+      and(
+        eq(bookings.entitlementId, e.id),
+        eq(bookings.status, "confirmed"),
+        gt(bookings.surcharge, 0),
+        isNull(bookings.surchargePaidAt),
+        eq(classSessions.classTypeId, s.classTypeId),
+        gte(classSessions.startsAt, pragueLocalToDate(`${month}-01T00:00`)),
+        lt(classSessions.startsAt, pragueLocalToDate(`${shiftPeriod(month, 1)}-01T00:00`)),
+      ),
+    )
+    .orderBy(asc(classSessions.startsAt))
+    .limit(1);
+  if (!next) return;
+  await tx.update(bookings).set({ surcharge: 0 }).where(eq(bookings.id, next.id));
+  await tx
+    .update(orders)
+    .set({ status: "cancelled" })
+    .where(and(eq(orders.kind, "surcharge"), eq(orders.bookingId, next.id), eq(orders.status, "pending")));
 }
 
 /** Gives back whatever the booking cost. */
@@ -584,18 +840,21 @@ export async function bookSession(db: DB, input: BookInput, now = new Date()) {
     const s = await lockSession(tx, input.sessionId);
     await expireStalePending(tx, now, s.id);
 
-    const window = await bookingWindowFor(tx, cfg, input.userId, now);
+    const window = (await viewerWindows(tx, cfg, input.userId, now)).forSession(s);
     const occupied = await occupancy(tx, s.id);
-    const state = sessionState(s, occupied, cfg, now, window);
+    const cap = await capacityFor(tx, s, input.userId, now);
+    const state = sessionState({ ...s, capacity: cap.capacity }, occupied, cfg, now, window);
     if (state === "full")
-      throw new UserError("Lekce je plná – můžeš se zapsat do pořadníku.");
+      throw new UserError(
+        cap.held && cap.releaseAt && occupied < s.capacity ? heldMessage(cap.held, cap.releaseAt) : "Lekce je plná – můžeš se zapsat do pořadníku.",
+      );
     if (state !== "bookable") throw new UserError(stateMessage[state]);
     if (input.method === "admin") throw new UserError("Nepovolená platba.");
     const guestName = input.guestName?.trim().slice(0, 80) || null;
     const seats = guestName ? 2 : 1;
     if (guestName && !guestAllowed(s))
       throw new UserError("Na individuální lekci kamarádku vzít nejde.");
-    if (occupied + seats > s.capacity)
+    if (occupied + seats > cap.capacity)
       throw new UserError("Pro dva už tu není místo – zbývá jen jedno.");
     if (s.isFree !== (input.method === "free_class"))
       throw new UserError("Zvol prosím jiný způsob platby.");
@@ -677,8 +936,9 @@ export async function joinWaitlist(
     const cfg = await getSettings(tx);
     const s = await lockSession(tx, input.sessionId);
     await expireStalePending(tx, now, s.id);
-    const window = await bookingWindowFor(tx, cfg, input.userId, now);
-    const state = sessionState(s, await occupancy(tx, s.id), cfg, now, window);
+    const window = (await viewerWindows(tx, cfg, input.userId, now)).forSession(s);
+    const cap = await capacityFor(tx, s, input.userId, now);
+    const state = sessionState({ ...s, capacity: cap.capacity }, await occupancy(tx, s.id), cfg, now, window);
     if (state === "bookable")
       throw new UserError("Na lekci je volné místo – rezervuj rovnou.");
     if (state !== "full") throw new UserError(stateMessage[state]);
@@ -704,24 +964,12 @@ export async function waitlistQueue(tx: Executor, s: ClassSession) {
     .where(and(eq(bookings.sessionId, s.id), eq(bookings.status, "waitlist")))
     .orderBy(asc(bookings.createdAt));
   if (!waiting.length) return waiting;
-  const members = new Set(
-    (
-      await tx
-        .select({ userId: entitlements.userId })
-        .from(entitlements)
-        .where(
-          and(
-            inArray(entitlements.userId, waiting.map((w) => w.userId)),
-            eq(entitlements.kind, "membership"),
-            eq(entitlements.status, "active"),
-            lte(entitlements.validFrom, s.startsAt),
-            gt(entitlements.validUntil, s.startsAt),
-          ),
-        )
-    ).map((r) => r.userId),
-  );
+  const members = await membersAt(tx, waiting.map((w) => w.userId), s.startsAt);
+  // a membership with this class included (Členství Reformer) goes first – the priority perk
+  const tier = new Set(await includedMemberships(tx, [...members], s));
+  const rank = (userId: string) => (tier.has(userId) ? 2 : members.has(userId) ? 1 : 0);
   // stable sort keeps the join order inside each group
-  return [...waiting].sort((a, b) => Number(members.has(b.userId)) - Number(members.has(a.userId)));
+  return [...waiting].sort((a, b) => rank(b.userId) - rank(a.userId));
 }
 
 /** Fills free spots from the waitlist, charging each client automatically. */
@@ -734,6 +982,9 @@ async function promoteWaitlist(tx: Executor, s: ClassSession, now: Date) {
   let free = s.capacity - (await occupancy(tx, s.id));
   for (const w of waiting) {
     if (free <= 0) break;
+    // a place held for non-members waits for one of them (or for its release)
+    const { held } = await nonMemberHold(tx, s, now);
+    if (held > 0 && free <= held && (await membersAt(tx, [w.userId], s.startsAt)).has(w.userId)) continue;
     const opt = autoOption(await bookingOptions(tx, w.userId, s));
     if (!opt) continue;
     await tx
@@ -745,6 +996,29 @@ async function promoteWaitlist(tx: Executor, s: ClassSession, now: Date) {
     free--;
   }
   return promoted;
+}
+
+/** Moves the waitlist up now (e.g. when places held for non-members are released). */
+export async function fillFromWaitlist(db: DB, sessionId: string, now = new Date()) {
+  return db.transaction(async (tx) => promoteWaitlist(tx, await lockSession(tx, sessionId), now));
+}
+
+/** Upcoming classes whose places for non-members are already released and that still have a waitlist. */
+export async function releasedHoldsWithWaitlist(db: Executor, now = new Date()) {
+  const rows = await db
+    .select({ id: classSessions.id, startsAt: classSessions.startsAt, hours: classTypes.nonMemberReleaseHours })
+    .from(classSessions)
+    .innerJoin(classTypes, eq(classSessions.classTypeId, classTypes.id))
+    .where(
+      and(
+        eq(classSessions.status, "scheduled"),
+        gt(classSessions.startsAt, now),
+        lt(classSessions.startsAt, new Date(now.getTime() + 60 * DAY)),
+        gt(classTypes.nonMemberSeats, 0),
+        sql`exists (select 1 from ${bookings} b where b.session_id = ${classSessions.id} and b.status = 'waitlist')`,
+      ),
+    );
+  return rows.filter((r) => r.startsAt.getTime() - r.hours * HOUR <= now.getTime()).map((r) => r.id);
 }
 
 export async function cancelBooking(
@@ -795,6 +1069,7 @@ export async function cancelBooking(
         lateCancel: b.status === "confirmed" && late && !refunded,
       })
       .where(eq(bookings.id, b.id));
+    if (refunded) await passIncludedOn(tx, b, s);
 
     const promoted =
       b.status === "waitlist" ? [] : await promoteWaitlist(tx, s, now);
@@ -978,10 +1253,11 @@ export async function sessionForUser(
     .where(eq(classSessions.id, sessionId));
   if (!s) return null;
   const occupied = await occupancy(db, s.id);
-  const window = await bookingWindowFor(db, cfg, userId, now);
-  const state = sessionState(s, occupied, cfg, now, window);
+  const window = (await viewerWindows(db, cfg, userId, now)).forSession(s);
+  const cap = await capacityFor(db, s, userId, now);
+  const state = sessionState({ ...s, capacity: cap.capacity }, occupied, cfg, now, window);
   // +1 only for group classes with two spots left
-  const canBringFriend = guestAllowed(s) && s.capacity - occupied >= 2;
+  const canBringFriend = guestAllowed(s) && cap.capacity - occupied >= 2;
   const withFriend = seats > 1 && canBringFriend;
 
   let myBooking: Booking | undefined;
@@ -1006,6 +1282,8 @@ export async function sessionForUser(
     waitlistPosition,
     options,
     lateCancel: isLateCancel(s, cfg, now),
+    /** a member sees it full while the last place is kept for non-members – until then */
+    heldForOthersUntil: cap.held > 0 && occupied < s.capacity ? cap.releaseAt : null,
     cfg,
     /** not_open: when this viewer can book; members' earlier start when they have a longer window */
     opensAt: bookingOpensAt(s, window),

@@ -3,7 +3,6 @@ import { availabilityText } from "@/components/session-card";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, CalendarPlus, Clock, MapPin } from "lucide-react";
-import { site } from "@/config/site";
 import { getDb } from "@/db";
 import { bookAction, cancelBookingAction, waitlistAction } from "@/app/actions/booking";
 import { ActionForm, SubmitButton } from "@/components/forms";
@@ -11,9 +10,10 @@ import { HealthCheckbox } from "@/components/health-checkbox";
 import { cardPayments } from "@/lib/payments";
 import { VideoEmbed } from "@/components/video-embed";
 import { Badge, ButtonLink, Card, Container, Eyebrow, cx } from "@/components/ui";
-import { memberSurchargeFor, passSurchargeFor, sessionForUser, stateMessage } from "@/domain/booking";
+import { memberSurchargeFor, membershipIncluding, passSurchargeFor, sessionForUser, stateMessage } from "@/domain/booking";
 import { getCurrentUser } from "@/lib/auth";
-import { formatDay, formatOpens, formatRange } from "@/lib/dates";
+import { dateKey, formatDateTime, formatDay, formatOpens, formatRange } from "@/lib/dates";
+import { priceNoteOn } from "@/lib/price-list";
 
 /** "5. 10." already ends the sentence, "5. 10. v 18:00" needs its full stop */
 const endSentence = (s: string) => (s.endsWith(".") ? s : `${s}.`);
@@ -22,6 +22,8 @@ import { sessionDetail } from "@/lib/queries";
 import { getContent } from "@/content";
 import { nbsp } from "@/lib/typography";
 import { SurchargePay } from "@/components/surcharge-pay";
+import { googleCalendarLink } from "@/lib/ics";
+import { lessonEvent } from "@/domain/calendar";
 
 const UUID = /^[0-9a-f-]{36}$/i;
 
@@ -30,17 +32,6 @@ export async function generateMetadata({ params }: PageProps<"/rozvrh/[id]">): P
   if (!UUID.test(id)) return {};
   const r = await sessionDetail(await getDb(), id);
   return r ? { title: `${r.ct.name} – ${formatDay(r.s.startsAt)}`, robots: { index: false } } : {};
-}
-
-function gcalLink(title: string, start: Date, durationMin: number, location: string) {
-  const f = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-  const end = new Date(start.getTime() + durationMin * 60_000);
-  return `https://calendar.google.com/calendar/render?${new URLSearchParams({
-    action: "TEMPLATE",
-    text: `${title} · ${site.name}`,
-    dates: `${f(start)}/${f(end)}`,
-    location,
-  })}`;
 }
 
 export default async function SessionPage({ params, searchParams }: PageProps<"/rozvrh/[id]">) {
@@ -57,6 +48,9 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
   const left = Math.max(0, s.capacity - view.occupied);
   const surcharge = s.isFree ? 0 : memberSurchargeFor(ct, s);
   const passSurcharge = s.isFree || ct.noPass ? 0 : passSurchargeFor(ct);
+  const tier = surcharge > 0 ? await membershipIncluding(db, ct.id, s.startsAt) : null;
+  // "S Členstvím Reformer máš 4 měsíčně bez doplatku."
+  const tierNote = tier && <> {tier.name} má {tier.perMonth}× měsíčně v ceně bez doplatku.</>;
 
   return (
     <section className="bg-forest text-papir">
@@ -77,7 +71,7 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
                 {surcharge > 0 ? (
                   <>
                     Permanentka na tuhle lekci neplatí. Členové mají lekci v ceně členství a doplácí jen{" "}
-                    <strong>{formatPrice(surcharge)}</strong>, ostatní zaplatí kreditem nebo jednorázově.
+                    <strong>{formatPrice(surcharge)}</strong>, ostatní zaplatí kreditem nebo jednorázově.{tierNote}
                   </>
                 ) : (
                   "Permanentka na tuhle lekci neplatí – zaplatíš kreditem nebo jednorázově."
@@ -88,7 +82,7 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
               <p className="mt-6 rounded-xl border border-zlato/40 bg-zlato/10 p-4 text-zlato-light">
                 {surcharge > 0 && (
                   <>
-                    Členové mají lekci v ceně členství a doplácí jen <strong>{formatPrice(surcharge)}</strong>.{" "}
+                    Členové mají lekci v ceně členství a doplácí jen <strong>{formatPrice(surcharge)}</strong>.{tierNote}{" "}
                   </>
                 )}
                 {passSurcharge > 0 ? (
@@ -110,6 +104,7 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
               <div><dt className="eyebrow text-papir/50">Vstup</dt><dd className="mt-1 font-semibold">{s.isFree ? "—" : s.dropInPrice !== null ? formatPrice(s.dropInPrice) : "—"}</dd></div>
               <div><dt className="eyebrow text-papir/50">Místa</dt><dd className="mt-1 font-semibold">{s.status === "cancelled" ? "—" : availabilityText(left, s.capacity)}</dd></div>
             </dl>
+            {!s.isFree && priceNoteOn(ct, dateKey(s.startsAt)) && <p className="mt-3 text-sm font-semibold text-zlato-light">{priceNoteOn(ct, dateKey(s.startsAt))}</p>}
           </div>
 
           <Card className="self-start border-zlato/30 bg-papir text-les">
@@ -119,7 +114,7 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
               needsHealth={!!user && !user.healthConfirmedAt}
               card={cardPayments()}
               sessionId={s.id}
-              gcal={gcalLink(ct.name, s.startsAt, s.durationMin, address)}
+              gcal={googleCalendarLink(lessonEvent(s, ct, `${c.raw("site.street")}, ${c.raw("site.city")}`))}
             />
           </Card>
         </div>
@@ -156,9 +151,14 @@ function BookingPanel({
         {b.surcharge > 0 && !b.surchargePaidAt && view.state !== "cancelled" && <SurchargePay bookingId={b.id} amount={b.surcharge} />}
         {view.state !== "past" && view.state !== "cancelled" && (
           <>
-            <a href={gcal} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-zeme underline underline-offset-4">
-              <CalendarPlus className="size-4" /> Přidat do Google kalendáře
-            </a>
+            <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-semibold text-zeme">
+              <CalendarPlus className="size-4" />
+              <a href={gcal} target="_blank" rel="noreferrer" className="underline underline-offset-4">Google kalendář</a>
+              <a href={`/api/kalendar/lekce/${sessionId}`} className="underline underline-offset-4">iPhone, Outlook (.ics)</a>
+            </p>
+            <p className="mt-1 text-xs text-les/60">
+              Nebo si <Link href="/ucet#kalendar" className="underline">přidej všechny lekce najednou</Link> – nové se pak v kalendáři objeví samy.
+            </p>
             <ActionForm action={cancelBookingAction} className="mt-6 border-t border-linka/60 pt-6" confirm="Opravdu zrušit rezervaci?">
               <input type="hidden" name="bookingId" value={b.id} />
               <p className="mb-3 text-sm text-les/70">
@@ -224,7 +224,13 @@ function BookingPanel({
   if (view.state === "full") {
     return (
       <div>
-        <h2 className="text-2xl font-semibold">Lekce je plná</h2>
+        <h2 className="text-2xl font-semibold">{view.heldForOthersUntil ? "Pro členy je teď plno" : "Lekce je plná"}</h2>
+        {view.heldForOthersUntil && (
+          <p className="mt-3 rounded-xl bg-krem/60 p-3 text-sm text-les/80">
+            Jedno místo držíme do {formatDateTime(view.heldForOthersUntil)} pro klienty bez členství, ať si lekci můžou vyzkoušet i nováčci.
+            Když ho do té doby nikdo nezabere, dostane ho první z pořadníku.
+          </p>
+        )}
         {b?.status === "waitlist" ? (
           <ActionForm action={cancelBookingAction} className="mt-4">
             <input type="hidden" name="bookingId" value={b.id} />

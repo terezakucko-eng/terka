@@ -79,6 +79,12 @@ export const orderKind = pgEnum("order_kind", [
   "surcharge", // doplatek za lekci – členství / permanentka (bookingId)
   "massage", // platba masáže kartou (massageBookingId)
   "membership_fee", // měsíční členský příspěvek (period)
+  "voucher", // dárkový poukaz (vouchers.orderId)
+]);
+
+export const voucherKind = pgEnum("voucher_kind", [
+  "product", // položka z ceníku (permanentka, kredit, masáže…)
+  "amount", // na částku – po uplatnění kredit
 ]);
 
 export const creditReason = pgEnum("credit_reason", [
@@ -142,6 +148,16 @@ export const users = pgTable("users", {
     .notNull()
     .unique()
     .default(sql`replace(gen_random_uuid()::text, '-', '')`),
+  /** tajná adresa osobního kalendáře (odběr rezervací v mobilu) */
+  calendarToken: text("calendar_token")
+    .notNull()
+    .unique()
+    .default(sql`replace(gen_random_uuid()::text, '-', '')`),
+  /** kód osobní pozvánky pro kamarádky (octopush.fit/pozvanka/…) */
+  referralCode: text("referral_code")
+    .notNull()
+    .unique()
+    .default(sql`substr(replace(gen_random_uuid()::text, '-', ''), 1, 10)`),
   /** převzato ze starého systému – účet čeká na nastavení hesla */
   importedAt: timestamp("imported_at", { withTimezone: true }),
   adminNote: text("admin_note"),
@@ -153,6 +169,12 @@ export const users = pgTable("users", {
   birthDate: text("birth_date"),
   /** Svátek "MM-DD" */
   nameDay: text("name_day"),
+  /** Rok, kdy klient dostal přání (a dárek) k narozeninám – posílá se jednou ročně */
+  birthdayGreetedYear: integer("birthday_greeted_year"),
+  /** Rok, kdy klient dostal přání k svátku */
+  nameDayGreetedYear: integer("name_day_greeted_year"),
+  /** Kdy odešel e-mail „Chybíš nám“ – další až po dalším návratu a nové pauze */
+  winbackSentAt: timestamp("winback_sent_at", { withTimezone: true }),
   /** Kdy klient potvrdil, že mu zdravotní stav cvičení dovoluje */
   healthConfirmedAt: timestamp("health_confirmed_at", { withTimezone: true }),
   /** Pauza v přihlašování za opakované pozdní odhlášení/nepříchod (členství) */
@@ -207,6 +229,16 @@ export const classTypes = pgTable("class_types", {
   memberSurcharge: integer("member_surcharge"),
   /** Od kterého dne se doplatek účtuje ("YYYY-MM-DD"); null = hned */
   memberSurchargeFrom: text("member_surcharge_from"),
+  /** Další výše doplatku pro členy (haléře) – platí od `memberSurchargeNextFrom` (nový ceník, např. 2027) */
+  memberSurchargeNext: integer("member_surcharge_next"),
+  memberSurchargeNextFrom: text("member_surcharge_next_from"),
+  /** Místa držená pro klienty bez členství (např. 1 na Reformeru) – členové je obsadit nemůžou… */
+  nonMemberSeats: integer("non_member_seats").notNull().default(0),
+  /** …do tolika hodin před lekcí (168 = týden), pak je může vzít kdokoli */
+  nonMemberReleaseHours: integer("non_member_release_hours").notNull().default(168),
+  /** Poznámka k ceně, např. „Zaváděcí cena pro rok 2026“ – ukazuje se u lekcí před `priceNoteUntil` ("YYYY-MM-DD") */
+  priceNote: text("price_note").notNull().default(""),
+  priceNoteUntil: text("price_note_until"),
   /** Doplatek k permanentce za místo (haléře) – strhne se vstup a doplácí se; null = bez doplatku */
   passSurcharge: integer("pass_surcharge"),
   /** Úvodní vstup zdarma na tuto lekci nejde použít */
@@ -282,6 +314,17 @@ export const products = pgTable("products", {
   membersOnly: boolean("members_only").notNull().default(false),
   /** Není v ceníku, koupit jde jen přes přímý odkaz (např. zvýhodněné členství pro vybrané) */
   linkOnly: boolean("link_only").notNull().default(false),
+  /** membership: závazek v měsících; 0 = bez závazku (platí se měsíčně, zruší se ke konci měsíce) */
+  commitmentMonths: integer("commitment_months").notNull().default(12),
+  /** membership: lekce v ceně bez doplatku (např. Reformer) – typ lekce… */
+  includedClassTypeId: uuid("included_class_type_id").references((): AnyPgColumn => classTypes.id, { onDelete: "set null" }),
+  /** …a kolik jich je v ceně za kalendářní měsíc; 0 = žádné */
+  includedPerMonth: integer("included_per_month").notNull().default(0),
+  /** Prodává se od / do (ceník na další rok); null = bez omezení */
+  saleFrom: timestamp("sale_from", { withTimezone: true }),
+  saleUntil: timestamp("sale_until", { withTimezone: true }),
+  /** membership: nejvýš tolik platných členství najednou (omezený počet míst); null = bez limitu */
+  maxActive: integer("max_active"),
   /** massage_pass: na kterou masáž; null = na kteroukoli */
   massageServiceId: uuid("massage_service_id").references((): AnyPgColumn => massageServices.id),
   sortOrder: integer("sort_order").notNull().default(0),
@@ -376,6 +419,11 @@ export const entitlements = pgTable(
     renewalCancelled: boolean("renewal_cancelled").notNull().default(false),
     /** membership: vlastní měsíční příspěvek v haléřích; null = výchozí z Nastavení */
     monthlyFee: integer("monthly_fee"),
+    /** membership: lekce v ceně bez doplatku (např. 4× Reformer měsíčně) – typ lekce a počet za kalendářní měsíc */
+    includedClassTypeId: uuid("included_class_type_id").references((): AnyPgColumn => classTypes.id, { onDelete: "set null" }),
+    includedPerMonth: integer("included_per_month").notNull().default(0),
+    /** Od kterého měsíce ("YYYY-MM") lekce v ceně platí – přechod na vyšší členství platí od dalšího měsíce; null = hned */
+    includedFrom: text("included_from"),
     note: text("note"),
     createdAt: createdAt(),
   },
@@ -440,6 +488,63 @@ export const creditTransactions = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("credit_tx_user_idx").on(t.userId)],
+);
+
+/** Dárkové poukazy – koupené na webu nebo vydané na recepci, uplatní se kódem. */
+export const vouchers = pgTable(
+  "vouchers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** "7KQ4M2PX" – na poukazu jako 7KQ4-M2PX */
+    code: text("code").notNull().unique(),
+    kind: voucherKind("kind").notNull(),
+    /** kind = product: co obdarovaný dostane */
+    productId: uuid("product_id").references(() => products.id),
+    /** Snapshot názvu („Permanentka 10 vstupů“, „Poukaz na 1 000 Kč“) */
+    title: text("title").notNull(),
+    /** Zaplacená cena / hodnota poukazu v haléřích */
+    amount: integer("amount").notNull(),
+    /** kind = amount: kolik kreditů se připíše */
+    credits: integer("credits"),
+    /** „Pro koho“ a věnování – vytiskne se na poukaz */
+    recipientName: text("recipient_name"),
+    message: text("message"),
+    buyerId: uuid("buyer_id").references(() => users.id, { onDelete: "set null" }),
+    orderId: uuid("order_id").references(() => orders.id, { onDelete: "set null" }),
+    /** Zaplaceno → poukaz platí */
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+    validUntil: timestamp("valid_until", { withTimezone: true }),
+    redeemedAt: timestamp("redeemed_at", { withTimezone: true }),
+    redeemedBy: uuid("redeemed_by").references(() => users.id, { onDelete: "set null" }),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    /** Kupující dostal e-mail, že je poukaz připravený */
+    notifiedAt: timestamp("notified_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("vouchers_buyer_idx").on(t.buyerId), index("vouchers_order_idx").on(t.orderId)],
+);
+
+/** Pozvi kamarádku: kdo koho pozval a kdy za to dostal odměnu. */
+export const referrals = pgTable(
+  "referrals",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    referrerId: uuid("referrer_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** pozvaná kamarádka – každá jen jednou */
+    friendId: uuid("friend_id")
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** kamarádka poprvé zaplatila → odměna připsána */
+    rewardedAt: timestamp("rewarded_at", { withTimezone: true }),
+    rewardEntitlementId: uuid("reward_entitlement_id").references(() => entitlements.id, { onDelete: "set null" }),
+    /** pozvávající dostala poděkování */
+    notifiedAt: timestamp("notified_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("referrals_referrer_idx").on(t.referrerId)],
 );
 
 export const announcements = pgTable("announcements", {
@@ -715,7 +820,7 @@ export const authAttempts = pgTable(
   "auth_attempts",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    kind: text("kind", { enum: ["login", "reset", "register"] }).notNull(),
+    kind: text("kind", { enum: ["login", "reset", "register", "voucher"] }).notNull(),
     key: text("key").notNull(),
     createdAt: createdAt(),
   },
@@ -761,6 +866,7 @@ export type InsuranceConfirmation = typeof insuranceConfirmations.$inferSelect;
 export type Entitlement = typeof entitlements.$inferSelect;
 export type Booking = typeof bookings.$inferSelect;
 export type Announcement = typeof announcements.$inferSelect;
+export type Voucher = typeof vouchers.$inferSelect;
 export type Campaign = typeof campaigns.$inferSelect;
 export type MassageService = typeof massageServices.$inferSelect;
 export type MassageBooking = typeof massageBookings.$inferSelect;

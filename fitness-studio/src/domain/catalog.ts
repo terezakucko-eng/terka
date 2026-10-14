@@ -1,6 +1,6 @@
 import { and, eq, gt, inArray, isNull, notExists, sql } from "drizzle-orm";
 import type { DB } from "@/db";
-import { bookings, classSessions, classTypes, entitlements, orders, products } from "@/db/schema";
+import { bookings, classSessions, classTypes, entitlements, orders, products, vouchers } from "@/db/schema";
 import { UserError } from "@/lib/errors";
 
 /**
@@ -69,7 +69,8 @@ export async function deleteProduct(db: DB, id: string, now = new Date()) {
       .from(entitlements)
       .where(eq(entitlements.productId, id))
       .limit(1);
-    if (!ordered && !owned) {
+    const [gifted] = await tx.select({ id: vouchers.id }).from(vouchers).where(eq(vouchers.productId, id)).limit(1);
+    if (!ordered && !owned && !gifted) {
       await tx.delete(products).where(eq(products.id, id));
       return "deleted" as const;
     }

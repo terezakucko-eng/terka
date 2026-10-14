@@ -11,18 +11,22 @@ import {
   orders,
   products,
   type Order,
-  type Product,
 } from "@/db/schema";
 import { UserError } from "@/lib/errors";
-import { formatDay, formatTime } from "@/lib/dates";
+import { formatDate, formatDay, formatTime } from "@/lib/dates";
+import { onSale, saleStartsLater } from "@/lib/price-list";
+import { membershipFull } from "./membership-fees";
 import { occupancy } from "./booking";
-import { changeCredits, extendCreditValidity } from "./wallet";
+import { changeCredits } from "./wallet";
+import { rewardReferral } from "./referrals";
+import { grantProduct } from "./grant";
+import { activateVoucher } from "./vouchers";
 
 const DAY = 86_400_000;
 
 export async function createProductOrder(
   db: Executor,
-  /** commitmentAccepted: false = the client didn't tick the 12-month box online (reception sales leave it out) */
+  /** commitmentAccepted: false = the client didn't tick the commitment box online (reception sales leave it out) */
   input: { userId: string; productId: string; commitmentAccepted?: boolean },
   now = new Date(),
 ) {
@@ -31,8 +35,15 @@ export async function createProductOrder(
     .from(products)
     .where(eq(products.id, input.productId));
   if (!p || !p.isActive) throw new UserError("Produkt není v nabídce.");
-  if (p.kind === "membership" && input.commitmentAccepted === false)
-    throw new UserError("Před zaplacením prosím potvrď, že bereš na vědomí závazek na 12 měsíců.");
+  if (!onSale(p, now))
+    throw new UserError(saleStartsLater(p, now) ? `Tohle je z ceníku na další rok – v prodeji od ${formatDate(p.saleFrom!)}.` : "Tohle už není v prodeji.");
+  if (p.kind === "membership" && (await membershipFull(db, p, now)))
+    throw new UserError(`${p.name} má omezený počet míst a teď je obsazené. Napiš nám, dáme ti vědět, až se místo uvolní.`);
+  if (p.kind === "membership" && p.commitmentMonths > 0 && input.commitmentAccepted === false)
+    throw new UserError(`Před zaplacením prosím potvrď, že bereš na vědomí závazek na ${p.commitmentMonths} měsíců.`);
+  // a member moves up in Můj účet (same membership, no new commitment) instead of buying a second one
+  if (p.kind === "membership" && p.includedPerMonth > 0 && input.commitmentAccepted !== undefined && (await isMember(db, input.userId, now)))
+    throw new UserError(`Členství už máš – na ${p.name} přejdeš v Můj účet, bez nového závazku.`);
   if (p.membersOnly && !(await isMember(db, input.userId, now)))
     throw new UserError("Tenhle produkt je jen pro členy. Zastav se na recepci nebo si pořiď členství.");
   const [order] = await db
@@ -48,47 +59,6 @@ export async function createProductOrder(
     })
     .returning();
   return { order, product: p };
-}
-
-/** Creates whatever the purchased product grants. */
-async function grantProduct(
-  tx: Executor,
-  order: Order,
-  p: Product,
-  now: Date,
-  periodEnd?: Date,
-) {
-  switch (p.kind) {
-    case "credit_pack":
-      await changeCredits(tx, {
-        userId: order.userId,
-        delta: p.credits ?? 0,
-        reason: "purchase",
-        orderId: order.id,
-        note: p.name,
-      });
-      if (p.validityDays) await extendCreditValidity(tx, order.userId, p.validityDays, now);
-      return;
-    case "pass":
-    case "membership":
-    case "solarium":
-    case "massage_pass":
-      await tx.insert(entitlements).values({
-        userId: order.userId,
-        kind: p.kind,
-        productId: p.id,
-        orderId: order.id,
-        name: p.name,
-        entriesTotal: p.entries,
-        weeklyLimit: p.kind === "membership" ? p.weeklyLimit : null,
-        massageServiceId: p.kind === "massage_pass" ? p.massageServiceId : null,
-        validFrom: now,
-        validUntil:
-          periodEnd ?? new Date(now.getTime() + (p.validityDays ?? 30) * DAY),
-        subscriptionId: order.subscriptionId,
-      });
-      return;
-  }
 }
 
 /**
@@ -132,14 +102,17 @@ export async function fulfillOrder(
         .select()
         .from(products)
         .where(eq(products.id, paid.productId));
-      await grantProduct(tx, paid, p, now, input.periodEnd ?? undefined);
+      await grantProduct(tx, { userId: paid.userId, orderId: paid.id, subscriptionId: paid.subscriptionId }, p, now, input.periodEnd ?? undefined);
     }
+    if (paid.kind === "voucher") await activateVoucher(tx, paid.id, now);
 
     if (paid.kind === "drop_in") await confirmDropIn(tx, paid, now);
     if (paid.kind === "surcharge" && paid.bookingId)
       await tx.update(bookings).set({ surchargePaidAt: now }).where(eq(bookings.id, paid.bookingId));
     if (paid.kind === "massage" && paid.massageBookingId)
       await tx.update(massageBookings).set({ paidAt: now }).where(eq(massageBookings.id, paid.massageBookingId));
+    // an invited friend's first payment thanks the one who invited her
+    if (paid.amount > 0) await rewardReferral(tx, paid.userId, now);
     return { order: paid, alreadyPaid: false };
   });
 }

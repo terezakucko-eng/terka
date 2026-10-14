@@ -58,12 +58,13 @@ export const EMAILS = {
     title: "Rezervace lekce potvrzena",
     when: "Po rezervaci lekce (u platby převodem hned, u karty po zaplacení).",
     subject: "Rezervace potvrzena: {{lekce}}",
-    body: "Ahoj {{osloveni}},\n\nmáš místo na lekci {{lekce}}.\n{{kamaradka}}\nDetail a případné storno: {{odkaz}}\n\nTěšíme se!",
+    body: "Ahoj {{osloveni}},\n\nmáš místo na lekci {{lekce}}.\n{{kamaradka}}\nDetail a případné storno: {{odkaz}}\nPřidat do kalendáře: {{kalendar}}\n\nTěšíme se!",
     vars: {
       osloveni,
       lekce,
       kamaradka: { label: "řádek o kamarádce (+1), jinak prázdné", sample: "Rezervovali jsme i místo pro kamarádku: Jana." },
       odkaz: { label: "odkaz na lekci", sample: `${site.url}/rozvrh/…` },
+      kalendar: { label: "odkaz na přidání lekce do kalendáře (.ics)", sample: `${site.url}/api/kalendar/lekce/…` },
     },
   },
   cancelled: {
@@ -204,6 +205,63 @@ export const EMAILS = {
       vzkaz: { label: "vzkaz klienta", sample: "Bylo by super mít lekci i v sobotu ráno." },
       odpoved: { label: "odpověď studia", sample: "Díky za tip! Od listopadu zkusíme sobotní ranní lekci." },
       odkaz: { label: "odkaz na schránku v účtu", sample: `${site.url}/ucet/schranka` },
+    },
+  },
+  birthday: {
+    title: "Přání k narozeninám",
+    when: "V den narozenin dopoledne – klientům s vyplněným datem narození (Nastavení → Přání a dárky).",
+    subject: "Všechno nejlepší, {{osloveni}}! 🎂",
+    body: "Ahoj {{osloveni}},\n\nvšechno nejlepší k narozeninám! 🎂 Ať tě tělo nese, hlava je v klidu a radost z pohybu tě neopouští.\n\n{{darek}}\n\nTvoje OCTOPUSH 🐙",
+    vars: {
+      osloveni,
+      darek: {
+        label: "řádek o dárku (lekce zdarma), jinak prázdné",
+        sample: `Na účtu máš od nás dárek – lekci zdarma, platí do 12. 11. 2026. Vyber si ji v rozvrhu: ${site.url}/rozvrh`,
+      },
+    },
+  },
+  nameDay: {
+    title: "Přání k svátku",
+    when: "V den svátku dopoledne – klientům s vyplněným svátkem (když nemají zrovna narozeniny).",
+    subject: "Krásný svátek, {{osloveni}}! 🌷",
+    body: "Ahoj {{osloveni}},\n\npřejeme ti krásný svátek! 🌷 Ať je dnešek plný radosti – a třeba i pohybu.\n\nTvoje OCTOPUSH 🐙",
+    vars: { osloveni },
+  },
+  winback: {
+    title: "Chybíš nám",
+    when: "Dopoledne, když klient nebyl na lekci (Nastavení → Přání a dárky) a nic nemá rezervováno. Jen se souhlasem s novinkami, jednou za pauzu.",
+    subject: "{{osloveni}}, chybíš nám 🐙",
+    body: "Ahoj {{osloveni}},\n\nod tvé poslední lekce u nás uběhlo pár týdnů a trochu se nám po tobě stýská. 🐙\nMrkni do rozvrhu, třeba tě něco naláká: {{odkaz}}\n\nTěšíme se na tebe!\n\nE-maily o novinkách si můžeš kdykoli odhlásit: {{odhlasit}}",
+    vars: {
+      osloveni,
+      odkaz: { label: "odkaz na rozvrh", sample: `${site.url}/rozvrh` },
+      odhlasit: { label: "odkaz na odhlášení novinek", sample: `${site.url}/o/…` },
+    },
+  },
+  referralReward: {
+    title: "Odměna za pozvání kamarádky",
+    when: "Když kamarádka pozvaná přes osobní odkaz poprvé něco zaplatí (do čtvrt hodiny).",
+    subject: "Díky za pozvání, {{osloveni}}! 💛",
+    body: "Ahoj {{osloveni}},\n\n{{kamaradka}} u nás má za sebou první nákup – díky za pozvání! 💛\nJako poděkování máš na účtu lekci zdarma, platí do {{platnost}}. Vyber si ji v rozvrhu: {{odkaz}}\n\nTvoje OCTOPUSH 🐙",
+    vars: {
+      osloveni,
+      kamaradka: { label: "jméno pozvané kamarádky", sample: "Jana" },
+      platnost: { label: "do kdy platí lekce zdarma", sample: "12. 12. 2026" },
+      odkaz: { label: "odkaz na rozvrh", sample: `${site.url}/rozvrh` },
+    },
+  },
+  voucherReady: {
+    title: "Dárkový poukaz zaplacen",
+    when: "Když je dárkový poukaz koupený na webu zaplacený (do čtvrt hodiny).",
+    subject: "Tvůj dárkový poukaz je připravený 🎁",
+    body: "Ahoj {{osloveni}},\n\ndíky za nákup! Dárkový poukaz „{{poukaz}}“ je zaplacený a připravený k darování.\nStáhni si ho (PDF k vytištění nebo poslání): {{odkaz}}\n\nKód poukazu: {{kod}} · platí do {{platnost}}\nObdarovaná osoba ho uplatní na {{uplatneni}}\n\nTvoje OCTOPUSH 🐙",
+    vars: {
+      osloveni,
+      poukaz: { label: "co poukaz obsahuje", sample: "Permanentka 10 vstupů" },
+      odkaz: { label: "odkaz na stažení poukazu (PDF)", sample: `${site.url}/api/poukaz/…` },
+      kod: { label: "kód poukazu", sample: "7KQ4-M2PX" },
+      platnost: { label: "do kdy poukaz platí", sample: "13. 10. 2027" },
+      uplatneni: { label: "odkaz na uplatnění", sample: `${site.url}/poukaz` },
     },
   },
   signature: {

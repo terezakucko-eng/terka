@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, lt, lte, max, ne } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, isNull, lt, lte, max, ne, or } from "drizzle-orm";
 import type { DB } from "@/db";
 import {
   announcements,
@@ -92,7 +92,20 @@ export const activeClassTypes = (db: DB) =>
 export const activeInstructors = (db: DB) =>
   db.select().from(instructors).where(eq(instructors.isActive, true)).orderBy(asc(instructors.sortOrder), asc(instructors.name));
 
-export const activeProducts = (db: DB) =>
+/** Within its sale dates (a price list for next year is shown, but sold from 1 January). */
+export const onSaleNow = (now = new Date()) =>
+  and(or(isNull(products.saleFrom), lte(products.saleFrom, now)), or(isNull(products.saleUntil), gt(products.saleUntil, now)));
+
+/** The price list as on sale today. */
+export const activeProducts = (db: DB, now = new Date()) =>
+  db
+    .select()
+    .from(products)
+    .where(and(eq(products.isActive, true), eq(products.linkOnly, false), onSaleNow(now)))
+    .orderBy(asc(products.sortOrder), asc(products.price));
+
+/** Everything in the price lists, this year's and next year's (Ceník page). */
+export const priceListProducts = (db: DB) =>
   db
     .select()
     .from(products)
@@ -100,8 +113,8 @@ export const activeProducts = (db: DB) =>
     .orderBy(asc(products.sortOrder), asc(products.price));
 
 /** Everything the reception can sell, including link-only products. */
-export const sellableProducts = (db: DB) =>
-  db.select().from(products).where(eq(products.isActive, true)).orderBy(asc(products.sortOrder), asc(products.price));
+export const sellableProducts = (db: DB, now = new Date()) =>
+  db.select().from(products).where(and(eq(products.isActive, true), onSaleNow(now))).orderBy(asc(products.sortOrder), asc(products.price));
 
 /** When the newest published board posts went up (for the "new posts" badge in the menu). */
 export async function boardPostTimes(db: DB, limit = 20) {

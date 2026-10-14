@@ -5,12 +5,17 @@ import { formatDay, formatTime } from "@/lib/dates";
 import { sendEmail } from "@/lib/email-templates";
 import { greetName } from "@/lib/vocative";
 import { pushQuietly } from "@/lib/push";
+import { fillReleasedPlaces, sendGreetings, sendReferralThanks, sendVoucherReady, sendWinbacks } from "@/lib/notify";
+import { pragueHour } from "@/lib/dates";
 
 export const maxDuration = 60;
 
 /**
  * Reminder (Vercel Cron every 15 min, see vercel.json): e-mails clients who opted in about a class
  * or massage starting within the next REMINDER_HOURS. Each booking is reminded only once.
+ * From 9:00 (Prague) it also sends the birthday / name-day wishes, from 10:00 „Chybíš nám“ –
+ * each once, so the first run of the day does it and the later ones find nothing. Places held
+ * for non-members go to the waitlist once they're released.
  */
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
@@ -51,5 +56,12 @@ export async function GET(req: Request) {
     }
   }
   await markReminded(db, done);
-  return Response.json({ classes: done.classes.length, massages: done.massages.length });
+  const now = new Date();
+  const hour = pragueHour(now);
+  const greetings = hour >= 9 && hour < 21 ? await sendGreetings(db, now) : null;
+  const winbacks = hour >= 10 && hour < 18 ? await sendWinbacks(db, now) : 0;
+  const referralThanks = hour >= 8 && hour < 21 ? await sendReferralThanks(db, now) : 0;
+  const vouchersReady = await sendVoucherReady(db, now);
+  const releasedPlaces = await fillReleasedPlaces(db, now);
+  return Response.json({ classes: done.classes.length, massages: done.massages.length, greetings, winbacks, referralThanks, vouchersReady, releasedPlaces });
 }

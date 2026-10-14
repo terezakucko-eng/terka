@@ -13,6 +13,13 @@ import { greetName } from "@/lib/vocative";
 import { pushQuietly } from "./push";
 import { sendMail } from "./mail";
 import { WISH_KINDS } from "@/domain/wishes";
+import { dueGreetings, dueWinbacks, greetBirthday, markNameDay, markWinback } from "@/domain/greetings";
+import { markAnnounced, unannouncedRewards } from "@/domain/referrals";
+import { formatVoucherCode, markVoucherNotified, unnotifiedVouchers } from "@/domain/vouchers";
+import { displayName } from "./profile";
+import { fillFromWaitlist, releasedHoldsWithWaitlist } from "@/domain/booking";
+import { getSettings } from "./settings";
+import { unsubscribeUrl } from "./links";
 
 async function describe(db: DB, sessionId: string) {
   const [row] = await db
@@ -82,6 +89,7 @@ export async function notifyBooked(db: DB, b: Pick<Booking, "userId" | "sessionI
     lekce: await describe(db, b.sessionId),
     kamaradka: b.guestName ? `Rezervovali jsme i místo pro kamarádku: ${b.guestName}.` : "",
     odkaz: link(b.sessionId),
+    kalendar: `${site.url}/api/kalendar/lekce/${b.sessionId}`,
   });
 }
 
@@ -94,6 +102,25 @@ export async function notifyCancelled(db: DB, b: Pick<Booking, "userId" | "sessi
     lekce: await describe(db, b.sessionId),
     vraceni: refunded ? "Vstup/kredit ti vracíme na účet." : "Storno proběhlo po lhůtě, vstup propadá.",
   });
+}
+
+/**
+ * Places held for non-members (e.g. one Reformer place) are released a week
+ * before the class – whoever waits on the waitlist gets them now and an
+ * e-mail. Run by the 15-minute cron.
+ */
+export async function fillReleasedPlaces(db: DB, now = new Date()) {
+  let n = 0;
+  for (const id of await releasedHoldsWithWaitlist(db, now)) {
+    try {
+      const promoted = await fillFromWaitlist(db, id, now);
+      await notifyPromoted(db, promoted);
+      n += promoted.length;
+    } catch {
+      // the next run tries again
+    }
+  }
+  return n;
 }
 
 export async function notifyPromoted(db: DB, promoted: Pick<Booking, "userId" | "sessionId">[]) {
@@ -147,4 +174,124 @@ export async function notifyWishReply(db: DB, w: Wish) {
   const odkaz = `${site.url}/ucet/schranka`;
   await sendEmail(u.email, "wishReply", { osloveni: greetName(u.name), vzkaz: w.body, odpoved: w.reply, odkaz });
   await pushQuietly(db, [u.id], { title: "💌 Odpověď na tvůj vzkaz", body: w.reply.slice(0, 140), url: odkaz });
+}
+
+/** Birthday (with the gift) and name-day greetings – e-mail and push, once a year each. */
+export async function sendGreetings(db: DB, now = new Date()) {
+  const cfg = await getSettings(db);
+  if (!cfg.birthdayGreetings) return { birthdays: 0, nameDays: 0 };
+  const { year, birthdays, nameDays } = await dueGreetings(db, now);
+  let sentBirthdays = 0;
+  let sentNameDays = 0;
+  for (const u of birthdays) {
+    const gift = await greetBirthday(db, u.id, year, cfg, now);
+    if (gift === false) continue;
+    await sendEmail(u.email, "birthday", {
+      osloveni: greetName(u.name),
+      darek: gift ? `Na účtu máš od nás dárek – lekci zdarma, platí do ${formatDate(gift)}. Vyber si ji v rozvrhu: ${site.url}/rozvrh` : "",
+    });
+    await pushQuietly(db, [u.id], {
+      title: "Všechno nejlepší! 🎂",
+      body: gift ? "Na účtu tě čeká dárek – lekce zdarma." : "Přejeme ti krásné narozeniny.",
+      url: `${site.url}/ucet`,
+    });
+    sentBirthdays++;
+  }
+  const celebrating = new Set(birthdays.map((u) => u.id));
+  for (const u of nameDays) {
+    // on a birthday the birthday wishes are enough
+    if (!(await markNameDay(db, u.id, year)) || celebrating.has(u.id)) continue;
+    await sendEmail(u.email, "nameDay", { osloveni: greetName(u.name) });
+    await pushQuietly(db, [u.id], { title: "Krásný svátek! 🌷", body: "Přejeme ti krásný den.", url: `${site.url}/rozvrh` });
+    sentNameDays++;
+  }
+  return { birthdays: sentBirthdays, nameDays: sentNameDays };
+}
+
+/** „Chybíš nám“ to clients who haven't been to a lesson for a while (news consent only). */
+export async function sendWinbacks(db: DB, now = new Date()) {
+  const cfg = await getSettings(db);
+  let sent = 0;
+  for (const u of await dueWinbacks(db, cfg.winbackDays, now)) {
+    await markWinback(db, u.id, now);
+    await sendEmail(u.email, "winback", { osloveni: greetName(u.name), odkaz: `${site.url}/rozvrh`, odhlasit: unsubscribeUrl(u.token) });
+    sent++;
+  }
+  return sent;
+}
+
+/** Thanks the client whose invited friend paid for the first time (the gift is already on the account). */
+export async function sendReferralThanks(db: DB, now = new Date()) {
+  const due = await unannouncedRewards(db);
+  if (!due.length) return 0;
+  const people = await db
+    .select({ id: users.id, email: users.email, name: users.name, nickname: users.nickname })
+    .from(users)
+    .where(inArray(users.id, [...new Set(due.flatMap(({ r }) => [r.referrerId, r.friendId]))]));
+  const byId = new Map(people.map((p) => [p.id, p]));
+  let sent = 0;
+  for (const { r, until } of due) {
+    await markAnnounced(db, r.id, now);
+    const who = byId.get(r.referrerId);
+    const friend = byId.get(r.friendId);
+    if (!who || !until) continue;
+    await sendEmail(who.email, "referralReward", {
+      osloveni: greetName(who.name),
+      kamaradka: friend ? displayName(friend) : "Tvoje kamarádka",
+      platnost: formatDate(until),
+      odkaz: `${site.url}/rozvrh`,
+    });
+    await pushQuietly(db, [who.id], { title: "Díky za pozvání! 💛", body: "Na účtu máš lekci zdarma.", url: `${site.url}/ucet` });
+    sent++;
+  }
+  return sent;
+}
+
+/** Tells the buyer their gift voucher is paid and ready to download. */
+export async function sendVoucherReady(db: DB, now = new Date()) {
+  let sent = 0;
+  for (const { v, email, name } of await unnotifiedVouchers(db)) {
+    await markVoucherNotified(db, v.id, now);
+    await sendEmail(email, "voucherReady", {
+      osloveni: greetName(name),
+      poukaz: v.title,
+      odkaz: `${site.url}/api/poukaz/${v.id}`,
+      kod: formatVoucherCode(v.code),
+      platnost: v.validUntil ? formatDate(v.validUntil) : "",
+      uplatneni: `${site.url}/poukaz`,
+    });
+    sent++;
+  }
+  return sent;
+}
+
+/** A client ended a membership without commitment – the studio hears about it. */
+/** A member switched to a higher membership (e.g. Členství Reformer) – the studio gets a push and an e-mail. */
+export async function notifyMembershipSwitched(db: DB, u: { id: string; name: string; email: string }, change: { from: string; to: string; price: number; since: string }) {
+  const admins = await db.select({ id: users.id }).from(users).where(eq(users.role, "admin"));
+  const url = `${site.url}/admin/klienti/${u.id}`;
+  await pushQuietly(db, admins.map((a) => a.id), { title: "Změna členství", body: `${u.name} – ${change.to} od ${change.since}`, url });
+  const c = await getContent();
+  await sendMail({
+    to: c.raw("site.email"),
+    subject: `Změna členství: ${u.name} → ${change.to}`,
+    text: [
+      `${u.name} (${u.email}) přešel/přešla z „${change.from}“ na „${change.to}“.`,
+      `Platí od ${change.since}, měsíční platba od té doby ${formatPrice(change.price)}.`,
+      "",
+      `Detail klienta: ${url}`,
+    ].join("\n"),
+  });
+}
+
+export async function notifyMembershipEnded(db: DB, u: { id: string; name: string; email: string }, lastDay: Date) {
+  const admins = await db.select({ id: users.id }).from(users).where(eq(users.role, "admin"));
+  const url = `${site.url}/admin/klienti/${u.id}`;
+  await pushQuietly(db, admins.map((a) => a.id), { title: "Ukončené členství", body: `${u.name} – platí do ${formatDate(lastDay)}`, url });
+  const c = await getContent();
+  await sendMail({
+    to: c.raw("site.email"),
+    subject: `Členství bez závazku ukončeno: ${u.name}`,
+    text: [`${u.name} (${u.email}) si ukončil/a členství bez závazku.`, `Platí do ${formatDate(lastDay)}, další měsíční platby už nepřijdou.`, "", `Detail klienta: ${url}`].join("\n"),
+  });
 }

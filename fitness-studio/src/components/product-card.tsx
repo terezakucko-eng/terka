@@ -8,10 +8,16 @@ import { credits, entries, formatPrice } from "@/lib/money";
 import { cardPayments } from "@/lib/payments";
 import { nbsp } from "@/lib/typography";
 
-function perks(p: Product): string[] {
+const weeks = (n: number) => (n === 1 ? "týden" : n < 5 ? `${n} týdny` : `${n} týdnů`);
+
+function perks(p: Product, includedClass?: string, priorityWeeks = 0): string[] {
   switch (p.kind) {
     case "membership":
       return [
+        ...(p.includedPerMonth > 0 ? [`${p.includedPerMonth}× ${includedClass ?? "lekce"} měsíčně v ceně – bez doplatku`] : []),
+        ...(p.includedPerMonth > 0 && priorityWeeks > 0
+          ? [`Přednostní rezervace na ${includedClass ?? "tyto lekce"} – o ${weeks(priorityWeeks)} dřív než ostatní členové`]
+          : []),
         p.weeklyLimit ? `Až ${p.weeklyLimit} standardní skupinové lekce týdně` : "Neomezený vstup na standardní skupinové lekce",
         "Zvýhodněný vstup na lekce Reformer a individuální tréninky",
         "Přednostní rezervace – termíny si zamluvíš dřív než ostatní",
@@ -58,6 +64,10 @@ export function ProductCard({
   passNotes = [],
   passExclusions = [],
   creditNotes = [],
+  includedClass,
+  priorityWeeks = 0,
+  saleNote,
+  placesLeft = null,
 }: {
   p: Product;
   loggedIn: boolean;
@@ -68,6 +78,14 @@ export function ProductCard({
   passExclusions?: string[];
   /** e.g. "Většina lekcí: 220 kreditů" – shown on credit pack cards */
   creditNotes?: string[];
+  /** membership with lessons included: the class name (e.g. "Reformer fusion") */
+  includedClass?: string;
+  /** Settings → priority booking of the included class (weeks before other members) */
+  priorityWeeks?: number;
+  /** Not sold yet (next year's price list): "V prodeji od 1. 1. 2027" instead of the buy buttons */
+  saleNote?: string;
+  /** Limited membership: places left (null = no limit) */
+  placesLeft?: number | null;
 }) {
   const card = cardPayments();
   return (
@@ -86,8 +104,15 @@ export function ProductCard({
                       {formatPrice(p.price)}
                       {p.kind === "membership" && p.recurring && <span className="text-base"> / měsíc</span>}
                     </p>
+                    {p.maxActive !== null && placesLeft !== null && (
+                      <p className={cx("mt-3 text-sm font-semibold", p.highlight ? "text-zlato-light" : "text-zeme")}>
+                        {placesLeft > 0
+                          ? `Omezený počet: ${placesLeft === 1 ? "zbývá 1 místo" : placesLeft < 5 ? `zbývají ${placesLeft} místa` : `zbývá ${placesLeft} míst`} z ${p.maxActive}`
+                          : "Teď obsazeno"}
+                      </p>
+                    )}
                     <ul className="mt-5 flex-1 space-y-2 text-sm">
-                      {[...perks(p), ...(p.kind === "pass" ? passNotes : p.kind === "credit_pack" ? creditNotes : [])].map((x) => (
+                      {[...perks(p, includedClass, priorityWeeks), ...(p.kind === "pass" ? passNotes : p.kind === "credit_pack" ? creditNotes : [])].map((x) => (
                         <li key={x} className="flex gap-2">
                           <Check className={cx("mt-0.5 size-4 shrink-0", p.highlight ? "text-zlato" : "text-salvej")} /> {x}
                         </li>
@@ -102,17 +127,30 @@ export function ProductCard({
                     {p.kind === "membership" && (
                       // a condition, not a perk – no check mark
                       <p className={cx("mt-5 border-t pt-4 text-xs", p.highlight ? "border-papir/15 text-papir/60" : "border-linka/60 text-les/60")}>
-                        Členství je závazné na 12 měsíců – 12 měsíčních plateb po {formatPrice(p.price)}.
+                        {p.commitmentMonths > 0
+                          ? `Členství je závazné na ${p.commitmentMonths} měsíců – ${p.commitmentMonths} měsíčních plateb po ${formatPrice(p.price)}.`
+                          : `Bez závazku – platíš ${formatPrice(p.price)} měsíčně a zrušit můžeš kdykoli ke konci zaplaceného měsíce v Můj účet.`}
                       </p>
                     )}
-                    {loggedIn ? (
+                    {saleNote ? (
+                      <p className={cx("mt-6 rounded-xl px-4 py-3 text-center text-sm font-semibold", p.highlight ? "bg-papir/10" : "bg-krem/60")}>
+                        {saleNote}
+                        {p.kind === "membership" && p.includedPerMonth > 0 && (
+                          <span className="mt-1 block text-xs font-normal">Máš členství se závazkem? Místo si můžeš zamluvit už teď v Můj účet.</span>
+                        )}
+                      </p>
+                    ) : placesLeft === 0 ? (
+                      <p className={cx("mt-6 rounded-xl px-4 py-3 text-center text-sm", p.highlight ? "bg-papir/10" : "bg-krem/60")}>
+                        Všechna místa jsou obsazená – napiš nám a dáme ti vědět, až se nějaké uvolní.
+                      </p>
+                    ) : loggedIn ? (
                       <ActionForm action={buyProductAction} className="mt-6 space-y-2">
                         <input type="hidden" name="productId" value={p.id} />
                         {p.kind === "membership" && (
                           <label className={cx("mb-3 flex gap-3 text-xs", p.highlight ? "text-papir/80" : "text-les/70")}>
                             <input type="checkbox" name="commitment" required className="mt-0.5 size-4 shrink-0 accent-[#c9a26b]" />
                             <span>
-                              Beru na vědomí, že členství je závazné na 12 měsíců, a souhlasím s{"\u00a0"}
+                              {p.commitmentMonths > 0 ? `Beru na vědomí, že členství je závazné na ${p.commitmentMonths} měsíců, a souhlasím s` : "Souhlasím s"}{"\u00a0"}
                               <Link href="/obchodni-podminky" target="_blank" className="underline">obchodními podmínkami</Link>.
                             </span>
                           </label>

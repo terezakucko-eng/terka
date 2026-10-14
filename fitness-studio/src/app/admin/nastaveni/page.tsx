@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { resetOrdersAction, saveSettingsAction } from "@/app/admin/actions";
 import { dateKey } from "@/lib/dates";
 import { AdminTitle } from "@/components/admin";
@@ -10,8 +11,11 @@ import { KEEP_AUTO, listBackups } from "@/domain/backup";
 import { formatDateTime } from "@/lib/dates";
 import { paymentProvider } from "@/lib/payments";
 import { getSettings, type Settings } from "@/lib/settings";
+import { and, eq } from "drizzle-orm";
+import { products } from "@/db/schema";
+import { formatPrice } from "@/lib/money";
 
-const fields: { key: keyof Settings; label: string; hint: string }[] = [
+const fields: { key: keyof Settings; label: string; hint: string; section?: string }[] = [
   { key: "cancellationHours", label: "Storno zdarma (hodin před lekcí)", hint: "Později vstup propadá." },
   { key: "bookingWindowWeeks", label: "Rezervace – kolik dalších týdnů (klienti)", hint: "1 = tento týden + příští. Nový týden se otevírá v pondělí o půlnoci. 0 = řídit se dny níže." },
   { key: "memberBookingWindowWeeks", label: "Rezervace – kolik dalších týdnů (členové)", hint: "2 = tento týden + další dva. Klienti s aktivním členstvím." },
@@ -28,23 +32,44 @@ const fields: { key: keyof Settings; label: string; hint: string }[] = [
   { key: "memberPauseDays", label: "Členové – délka pauzy v přihlašování (dní)", hint: "" },
   { key: "membershipMonthlyFee", label: "Členský příspěvek měsíčně (Kč)", hint: "Individuální částku nastavíš u člena. 0 = automatické výzvy vypnuté." },
   { key: "membershipFeeNoticeDay", label: "Výzva k platbě za další měsíc – den v měsíci", hint: "20 = výzva za listopad odejde 20. října. 1–28." },
+  { key: "includedPriorityWeeks", label: "Členství Reformer – přednostní rezervace (týdnů navíc)", hint: "Na lekce, které mají v ceně, rezervují o tolik týdnů dřív než ostatní členové. 0 = vypnuto." },
+  { key: "birthdayGreetings", label: "Přání k narozeninám a svátku", hint: "1 = posílat (e-mail a upozornění v mobilu dopoledne v den oslavy), 0 = vypnuto.", section: "Přání a dárky" },
+  { key: "birthdayGiftEntries", label: "Dárek k narozeninám – lekcí zdarma", hint: "0 = jen přání." },
+  { key: "birthdayGiftValidityDays", label: "Platnost dárku k narozeninám (dní)", hint: "" },
+  { key: "referralGiftEntries", label: "Pozvi kamarádku – lekcí zdarma za pozvání", hint: "Dostane ten, kdo pozval, po prvním nákupu kamarádky. 0 = vypnuto (sekce v účtu se skryje)." },
+  { key: "referralGiftValidityDays", label: "Platnost lekce za pozvání (dní)", hint: "" },
+  { key: "voucherValidityDays", label: "Dárkové poukazy – platnost (dní)", hint: "Od zaplacení. 365 = rok. Stejně dlouho pak platí i kredit z poukazu na částku." },
+  { key: "voucherCreditsPer100Kc", label: "Poukaz na částku – kreditů za 100 Kč", hint: "100 = 1 kredit za 1 Kč. Kolik kreditů dostane obdarovaný." },
+  { key: "winbackDays", label: "„Chybíš nám“ po kolika dnech bez lekce", hint: "Jen klientům se souhlasem s novinkami, kteří nic nemají rezervováno – jednou za každou pauzu. 0 = vypnuto." },
 ];
 
 export default async function AdminSettings() {
   await requireAdmin();
   const db = await getDb();
-  const [cfg, backupList] = await Promise.all([getSettings(db), listBackups(db)]);
+  const [cfg, backupList, packs] = await Promise.all([
+    getSettings(db),
+    listBackups(db),
+    db.select().from(products).where(and(eq(products.kind, "credit_pack"), eq(products.isActive, true))),
+  ]);
+  // what the price list gives for 100 Kč – a guide for the voucher rate
+  const packRates = packs
+    .filter((p) => p.credits && p.price)
+    .map((p) => `${p.name}: ${formatPrice(p.price)} → ${p.credits} kr. (${Math.round(((p.credits! * 10000) / p.price) * 10) / 10} za 100 Kč)`)
+    .join(" · ");
   const provider = paymentProvider();
   return (
     <>
       <AdminTitle title="Nastavení" />
       <Card className="max-w-3xl">
-        <h2 className="font-semibold">Pravidla rezervací</h2>
+        <h2 className="font-semibold">Pravidla rezervací a automatické zprávy</h2>
         <ActionForm action={saveSettingsAction} className="mt-5 grid gap-4 sm:grid-cols-2">
           {fields.map((f) => (
-            <Field key={f.key} label={f.label} hint={f.hint || undefined}>
-              <Input name={f.key} type="number" min={0} defaultValue={cfg[f.key]} required />
-            </Field>
+            <Fragment key={f.key}>
+              {f.section && <h3 className="mt-4 border-t border-linka/60 pt-5 font-semibold sm:col-span-2">{f.section}</h3>}
+              <Field label={f.label} hint={(f.key === "voucherCreditsPer100Kc" && packRates ? `${f.hint} Ceník: ${packRates}` : f.hint) || undefined}>
+                <Input name={f.key} type="number" min={0} defaultValue={cfg[f.key]} required />
+              </Field>
+            </Fragment>
           ))}
           <div className="sm:col-span-2"><SubmitButton>Uložit</SubmitButton></div>
         </ActionForm>

@@ -1,6 +1,6 @@
-import { and, desc, eq, gt, inArray, lt } from "drizzle-orm";
-import type { Executor } from "@/db";
-import { entitlements, orders, users, type Order } from "@/db/schema";
+import { and, asc, desc, eq, gt, gte, inArray, isNull, lt, or } from "drizzle-orm";
+import type { DB, Executor } from "@/db";
+import { entitlements, orders, products, users, type Entitlement, type Order, type Product } from "@/db/schema";
 import { dateKey, pragueLocalToDate } from "@/lib/dates";
 import { UserError } from "@/lib/errors";
 
@@ -16,6 +16,8 @@ const MONTHS = ["leden", "únor", "březen", "duben", "květen", "červen", "če
 export const isPeriod = (p: string) => /^\d{4}-(0[1-9]|1[0-2])$/.test(p);
 export const currentPeriod = (now = new Date()) => dateKey(now).slice(0, 7);
 export const periodLabel = (p: string) => `${MONTHS[+p.slice(5, 7) - 1]} ${p.slice(0, 4)}`;
+/** "2026-11" → "1. 11. 2026" (reads well after „od“) */
+export const periodStartLabel = (p: string) => `1. ${+p.slice(5, 7)}. ${p.slice(0, 4)}`;
 export function shiftPeriod(p: string, by: number) {
   const d = new Date(Date.UTC(+p.slice(0, 4), +p.slice(5, 7) - 1 + by, 1));
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
@@ -210,4 +212,175 @@ export async function recordPastFees(
     );
   }
   return { recorded: todo.length, skipped: periods.length - todo.length };
+}
+
+/** Memberships without commitment among these entitlements (the client may end them). */
+export async function flexibleMemberships(db: Executor, entitlementIds: string[]) {
+  if (!entitlementIds.length) return new Set<string>();
+  const rows = await db
+    .select({ id: entitlements.id })
+    .from(entitlements)
+    .innerJoin(products, eq(entitlements.productId, products.id))
+    .where(and(inArray(entitlements.id, entitlementIds), eq(entitlements.kind, "membership"), eq(products.commitmentMonths, 0)));
+  return new Set(rows.map((r) => r.id));
+}
+
+/**
+ * The client ends a membership without commitment: it runs to the end of
+ * the last paid month (at least this one), later unpaid fees are dropped.
+ * Returns the moment it ends.
+ */
+export async function endFlexibleMembership(db: DB, userId: string, entitlementId: string, now = new Date()) {
+  return db.transaction(async (tx) => {
+    const [row] = await tx
+      .select({ e: entitlements, commitment: products.commitmentMonths })
+      .from(entitlements)
+      .leftJoin(products, eq(entitlements.productId, products.id))
+      .where(and(eq(entitlements.id, entitlementId), eq(entitlements.userId, userId)));
+    if (!row || row.e.kind !== "membership" || row.e.status !== "active" || row.e.validUntil <= now) throw new UserError("Členství nenalezeno.");
+    if (row.commitment !== 0) throw new UserError("Členství se závazkem ukončíš jen po dohodě se studiem – napiš nám prosím.");
+    if (row.e.subscriptionId) throw new UserError("Členství placené předplatným kartou ukončíš na recepci.");
+    const current = currentPeriod(now);
+    const paid = await tx
+      .select({ period: orders.period })
+      .from(orders)
+      .where(and(eq(orders.userId, userId), eq(orders.kind, "membership_fee"), eq(orders.status, "paid"), gte(orders.period, current)));
+    const last = [current, ...paid.map((o) => o.period!)].sort().at(-1)!;
+    const end = pragueLocalToDate(`${shiftPeriod(last, 1)}-01T00:00`);
+    await tx
+      .update(entitlements)
+      .set({ validUntil: end < row.e.validUntil ? end : row.e.validUntil, renewalCancelled: true })
+      .where(eq(entitlements.id, entitlementId));
+    // fees for the months after the end are no longer due
+    await tx
+      .update(orders)
+      .set({ status: "cancelled" })
+      .where(and(eq(orders.userId, userId), eq(orders.kind, "membership_fee"), eq(orders.status, "pending"), gt(orders.period, last)));
+    return end < row.e.validUntil ? end : row.e.validUntil;
+  });
+}
+
+/**
+ * Places taken in memberships with a limited number (Členství Reformer):
+ * valid memberships of the product (switches from next month included) and
+ * orders still waiting for payment, by product id.
+ */
+export async function membershipPlacesTaken(db: Executor, productIds: string[], now = new Date()) {
+  const out = new Map<string, number>(productIds.map((id) => [id, 0]));
+  if (!productIds.length) return out;
+  const [ents, pending] = await Promise.all([
+    db
+      .select({ productId: entitlements.productId })
+      .from(entitlements)
+      .where(and(inArray(entitlements.productId, productIds), eq(entitlements.status, "active"), gt(entitlements.validUntil, now))),
+    db
+      .select({ productId: orders.productId })
+      .from(orders)
+      .where(and(inArray(orders.productId, productIds), eq(orders.status, "pending"), or(isNull(orders.expiresAt), gt(orders.expiresAt, now)))),
+  ]);
+  for (const r of [...ents, ...pending]) if (r.productId) out.set(r.productId, (out.get(r.productId) ?? 0) + 1);
+  return out;
+}
+
+/** A limited membership has no place left. */
+export async function membershipFull(db: Executor, p: Pick<Product, "id" | "maxActive">, now = new Date()) {
+  if (p.maxActive === null) return false;
+  return ((await membershipPlacesTaken(db, [p.id], now)).get(p.id) ?? 0) >= p.maxActive;
+}
+
+/**
+ * Higher memberships a client can switch to by themselves (e.g. from
+ * Členství to Členství Reformer, 4× Reformer a month included), keyed by
+ * entitlement id. Commitment stays as it was: a membership with commitment
+ * goes to one with commitment (same end date), one without to one without.
+ */
+export async function membershipUpgrades(db: Executor, ents: Entitlement[], now = new Date()) {
+  const mine = ents.filter(
+    (e) => e.kind === "membership" && e.status === "active" && e.validUntil > now && !e.subscriptionId && !e.renewalCancelled && e.includedPerMonth === 0,
+  );
+  const out = new Map<string, Product>();
+  if (!mine.length) return out;
+  const listed = await db
+    .select()
+    .from(products)
+    .where(
+      and(
+        eq(products.kind, "membership"),
+        eq(products.isActive, true),
+        isNull(products.archivedAt),
+        eq(products.linkOnly, false),
+        gt(products.includedPerMonth, 0),
+        // still sold (one sold from next year can be booked ahead – it starts then)
+        or(isNull(products.saleUntil), gt(products.saleUntil, now)),
+      ),
+    )
+    .orderBy(asc(products.sortOrder), asc(products.price));
+  const taken = await membershipPlacesTaken(db, listed.flatMap((p) => (p.maxActive !== null ? [p.id] : [])), now);
+  const offers = listed.filter((p) => p.maxActive === null || (taken.get(p.id) ?? 0) < p.maxActive);
+  if (!offers.length) return out;
+  const ids = mine.flatMap((e) => (e.productId ? [e.productId] : []));
+  const current = ids.length ? await db.select().from(products).where(inArray(products.id, ids)) : [];
+  for (const e of mine) {
+    // a membership set up at the reception without a product is one with commitment
+    const flexible = current.find((p) => p.id === e.productId)?.commitmentMonths === 0;
+    const offer = offers.find((p) => (p.commitmentMonths === 0) === flexible);
+    if (offer) out.set(e.id, offer);
+  }
+  return out;
+}
+
+/**
+ * The month a switch takes effect: the next one, or later when it is already
+ * paid at the old price – and not before the new membership is on sale.
+ */
+export async function switchPeriod(db: Executor, userId: string, now = new Date(), offer?: Pick<Product, "saleFrom">) {
+  let p = shiftPeriod(currentPeriod(now), 1);
+  if (offer?.saleFrom && offer.saleFrom > now) p = [p, currentPeriod(offer.saleFrom)].sort().at(-1)!;
+  const paid = await db
+    .select({ period: orders.period })
+    .from(orders)
+    .where(and(eq(orders.userId, userId), eq(orders.kind, "membership_fee"), eq(orders.status, "paid"), gte(orders.period, p)));
+  const done = new Set(paid.map((o) => o.period));
+  while (done.has(p)) p = shiftPeriod(p, 1);
+  return p;
+}
+
+/**
+ * The client switches to a higher membership from the next (unpaid) month:
+ * the new price applies to that month's fee and later ones, the included
+ * lessons from that month on. The membership itself – and its commitment –
+ * keeps running.
+ */
+export async function switchMembership(db: DB, userId: string, entitlementId: string, productId: string, now = new Date()) {
+  return db.transaction(async (tx) => {
+    const [e] = await tx
+      .select()
+      .from(entitlements)
+      .where(and(eq(entitlements.id, entitlementId), eq(entitlements.userId, userId)))
+      .for("update");
+    if (!e) throw new UserError("Členství nenalezeno.");
+    // one place at a time for a limited membership
+    if (productId) await tx.select({ id: products.id }).from(products).where(eq(products.id, productId)).for("update");
+    const offer = (await membershipUpgrades(tx, [e], now)).get(e.id);
+    if (!offer || offer.id !== productId) throw new UserError("Na tohle členství teď přejít nejde – místa jsou možná obsazená. Napiš nám prosím.");
+    const period = await switchPeriod(tx, userId, now, offer);
+    if (e.validUntil <= pragueLocalToDate(`${period}-01T00:00`)) throw new UserError("Členství končí dřív, než by změna začala platit.");
+    await tx
+      .update(entitlements)
+      .set({
+        productId: offer.id,
+        name: offer.name,
+        monthlyFee: offer.price,
+        includedClassTypeId: offer.includedClassTypeId,
+        includedPerMonth: offer.includedPerMonth,
+        includedFrom: period,
+      })
+      .where(eq(entitlements.id, e.id));
+    // fees already issued for the new months follow the new price
+    await tx
+      .update(orders)
+      .set({ amount: offer.price })
+      .where(and(eq(orders.userId, userId), eq(orders.kind, "membership_fee"), eq(orders.status, "pending"), gte(orders.period, period)));
+    return { period, product: offer, previous: e.name };
+  });
 }

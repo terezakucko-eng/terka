@@ -1,18 +1,20 @@
 import Link from "next/link";
-import { and, asc, eq, gt, ne, sql } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, ne, sql } from "drizzle-orm";
 import { cancelBookingAction } from "@/app/actions/booking";
 import { cancelMassageAction } from "@/app/actions/massages";
-import { bookings, massageBookings, orders } from "@/db/schema";
+import { bookings, classTypes, massageBookings, orders } from "@/db/schema";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { entitlementKindLabel } from "@/components/labels";
-import { Badge, ButtonLink, Card, Empty, Eyebrow } from "@/components/ui";
+import { Badge, ButtonLink, Card, Empty, Eyebrow, Input } from "@/components/ui";
 import { getDb } from "@/db";
 import { userBookings, userEntitlements } from "@/lib/account";
 import { requireUser } from "@/lib/auth";
-import { formatDate, formatDay, formatRange, formatTime } from "@/lib/dates";
+import { formatDate, formatDay, formatRange, formatTime, pragueLocalToDate } from "@/lib/dates";
 import { credits, formatPrice } from "@/lib/money";
 import { SurchargePay } from "@/components/surcharge-pay";
-import { openFees } from "@/domain/membership-fees";
+import { flexibleMemberships, membershipUpgrades, openFees, periodStartLabel, switchPeriod } from "@/domain/membership-fees";
+import { includedSummary } from "@/domain/booking";
+import { endMembershipAction, switchMembershipAction } from "@/app/actions/membership";
 import { insuranceYears } from "@/domain/insurance";
 import { payOrderAction } from "@/app/actions/booking";
 import { cardPayments } from "@/lib/payments";
@@ -22,9 +24,17 @@ import { splitName } from "@/lib/client-list";
 import { vocative } from "@/lib/vocative";
 import { myReview } from "@/domain/reviews";
 import { getContent } from "@/content";
+import { feedLinks } from "@/lib/ics";
+import { CopyButton, ShareButton } from "@/components/copy-button";
+import { myReferrals } from "@/domain/referrals";
+import { VOUCHER_STATUS, boughtVouchers, formatVoucherCode, voucherStatus } from "@/domain/vouchers";
+import { redeemVoucherAction } from "@/app/actions/vouchers";
+import { getSettings } from "@/lib/settings";
+import { site } from "@/config/site";
+import { resetCalendarAction } from "@/app/actions/calendar";
 
 export default async function AccountPage({ searchParams }: PageProps<"/ucet">) {
-  const { vitej } = await searchParams;
+  const { vitej, clenstvi } = await searchParams;
   const user = await requireUser("/ucet");
   const db = await getDb();
   const fees = await openFees(db, user.id);
@@ -56,9 +66,37 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
     getContent(),
     insuranceYears(db, user.id),
   ]);
+  const [cfg, invited, gifts, flexible, upgrades, included] = await Promise.all([
+    getSettings(db),
+    myReferrals(db, user.id),
+    boughtVouchers(db, user.id),
+    flexibleMemberships(db, ents.map((e) => e.id)),
+    membershipUpgrades(db, ents),
+    includedSummary(db, ents),
+  ]);
+  // a switch to a higher membership (e.g. Členství Reformer) starts with the next unpaid month
+  const switchPeriods = new Map(
+    await Promise.all(
+      [...new Map([...upgrades.values()].map((p) => [p.id, p])).values()].map(async (p) => [p.id, await switchPeriod(db, user.id, undefined, p)] as const),
+    ),
+  );
+  const switchFrom = new Map([...switchPeriods].map(([id, period]) => [id, periodStartLabel(period)]));
+  // a membership ending before the switch would start can't move up (it's renewed instead)
+  const canSwitch = (e: (typeof ents)[number]) => {
+    const offer = upgrades.get(e.id);
+    return !!offer && e.validUntil > pragueLocalToDate(`${switchPeriods.get(offer.id)}-01T00:00`);
+  };
+  const offerClasses = upgrades.size
+    ? await db
+        .select({ id: classTypes.id, name: classTypes.name })
+        .from(classTypes)
+        .where(inArray(classTypes.id, [...upgrades.values()].flatMap((p) => (p.includedClassTypeId ? [p.includedClassTypeId] : []))))
+    : [];
+  const invite = `${site.url}/pozvanka/${user.referralCode}`;
   // regulars who haven't written a review yet get a gentle nudge
   const google = content.googleReviewUrl;
   const askReview = user.role === "client" && visits >= 3 && !review;
+  const cal = feedLinks(user.calendarToken);
 
   return (
     <div className="space-y-12">
@@ -118,16 +156,83 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
             </p>
           ) : (
             <ul className="mt-4 divide-y divide-linka/60">
+              {clenstvi === "zmena" &&
+                ents
+                  .filter((e) => e.kind === "membership" && e.includedFrom)
+                  .slice(0, 1)
+                  .map((e) => (
+                    <li key="zmena" className="py-3">
+                      <p className="rounded-xl bg-salvej/15 px-4 py-3 text-sm font-semibold text-les">
+                        Hotovo! Od {periodStartLabel(e.includedFrom!)} máš {e.name}
+                        {e.monthlyFee ? ` – měsíčně ${formatPrice(e.monthlyFee)}` : ""}. Těšíme se na tebe 💛
+                      </p>
+                    </li>
+                  ))}
               {ents.map((e) => (
                 <li key={e.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                   <div>
                     <p className="font-semibold">{e.name} <Badge tone={e.kind === "free" ? "gold" : "green"}>{entitlementKindLabel[e.kind]}</Badge></p>
                     <p className="text-sm text-les/60">
                       {e.entriesTotal === null ? "Neomezeně" : `Zbývá ${e.entriesTotal - e.entriesUsed} z ${e.entriesTotal}${e.kind === "solarium" ? " min" : ""}`}
-                      {e.weeklyLimit ? ` · max ${e.weeklyLimit}× týdně` : ""} · platí do {formatDate(e.validUntil)}
-                      {e.kind === "membership" && " · členství spravuje studio"}
+                      {e.weeklyLimit ? ` · max ${e.weeklyLimit}× týdně` : ""}
+                      {flexible.has(e.id)
+                        ? e.renewalCancelled
+                          ? ` · ukončené, platí do ${formatDate(new Date(e.validUntil.getTime() - 1))}`
+                          : " · bez závazku"
+                        : ` · platí do ${formatDate(e.validUntil)}`}
+                      {e.kind === "membership" && !flexible.has(e.id) && " · členství spravuje studio"}
                     </p>
+                    {included.has(e.id) && (() => {
+                      const inc = included.get(e.id)!;
+                      return (
+                        <p className="text-sm text-les/60">
+                          {inc.perMonth}× {inc.className} měsíčně v ceně
+                          {inc.from
+                            ? ` od ${periodStartLabel(inc.from)}`
+                            : inc.left === null
+                              ? ""
+                              : inc.left === 0
+                                ? " · tento měsíc už vyčerpané"
+                                : ` · tento měsíc ${inc.left > 1 && inc.left < 5 ? "zbývají" : "zbývá"} ${inc.left}`}
+                        </p>
+                      );
+                    })()}
                   </div>
+                  {flexible.has(e.id) && !e.renewalCancelled && (
+                    <ActionForm action={endMembershipAction} confirm="Ukončit členství? Platí do konce zaplaceného měsíce, další platby už nepřijdou.">
+                      <input type="hidden" name="id" value={e.id} />
+                      <SubmitButton variant="ghost" className="px-3 py-2 text-[0.65rem]">Ukončit ke konci měsíce</SubmitButton>
+                    </ActionForm>
+                  )}
+                  {canSwitch(e) && (() => {
+                    const offer = upgrades.get(e.id)!;
+                    const cls = offerClasses.find((c) => c.id === offer.includedClassTypeId)?.name ?? "lekce";
+                    return (
+                      <details className="w-full rounded-xl border border-zlato/50 bg-krem/40 px-4 py-3 text-sm">
+                        <summary className="cursor-pointer font-semibold">
+                          Chceš {cls} v ceně? Přejdi na {offer.name}
+                        </summary>
+                        <p className="mt-2 text-les/70">
+                          {offer.includedPerMonth}× {cls} měsíčně bez doplatku
+                          {cfg.includedPriorityWeeks > 0 && `, přednostní rezervace na ${cls}`} a všechno, co máš teď.
+                          {offer.maxActive !== null && " Počet míst je omezený."} Od {switchFrom.get(offer.id)} platíš {formatPrice(offer.price)}{" "}
+                          měsíčně, {offer.commitmentMonths > 0 ? "závazek se nemění – platí do stejného data jako dosud." : "dál bez závazku."}
+                        </p>
+                        <ActionForm action={switchMembershipAction} className="mt-3 space-y-3">
+                          <input type="hidden" name="id" value={e.id} />
+                          <input type="hidden" name="productId" value={offer.id} />
+                          <label className="flex gap-3 text-xs text-les/70">
+                            <input type="checkbox" name="agree" required className="mt-0.5 size-4 shrink-0 accent-[#c9a26b]" />
+                            <span>
+                              Chci od {switchFrom.get(offer.id)} {offer.name} za {formatPrice(offer.price)} měsíčně a souhlasím s{"\u00a0"}
+                              <Link href="/obchodni-podminky" target="_blank" className="underline">obchodními podmínkami</Link>.
+                            </span>
+                          </label>
+                          <SubmitButton variant="dark" className="px-4 py-2" pendingText="Moment…">Přejít na {offer.name}</SubmitButton>
+                        </ActionForm>
+                      </details>
+                    );
+                  })()}
                 </li>
               ))}
             </ul>
@@ -270,6 +375,91 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
           </div>
         </section>
       )}
+
+      <section id="kalendar" className="rounded-2xl border border-linka/60 bg-krem/40 p-5">
+        <p className="font-semibold">📅 Lekce v kalendáři v mobilu</p>
+        <p className="mt-1 max-w-2xl text-sm text-les/70">
+          Přidej si svoje lekce a masáže do kalendáře. Nové rezervace se v něm objeví samy a zrušené zmizí – iPhone kalendář obnovuje zhruba
+          každou hodinu, Google kalendář párkrát denně. U Google kalendáře otevři odkaz raději na počítači, v mobilu se pak ukáže sám.
+        </p>
+        <span className="mt-4 flex flex-wrap gap-2">
+          <a href={cal.webcal} className="rounded-full bg-les px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-papir">iPhone a Mac</a>
+          <a href={cal.google} target="_blank" rel="noopener" className="rounded-full border border-les/30 px-5 py-2.5 text-xs font-semibold uppercase tracking-wider">Google kalendář ↗</a>
+          <a href={cal.outlook} target="_blank" rel="noopener" className="rounded-full border border-les/30 px-5 py-2.5 text-xs font-semibold uppercase tracking-wider">Outlook ↗</a>
+          <CopyButton text={cal.https} className="px-5 py-2.5" />
+        </span>
+        <details className="mt-3 text-xs text-les/60">
+          <summary className="cursor-pointer">Poslala jsi odkaz omylem někomu dalšímu?</summary>
+          <p className="mt-2">Odkaz je jen tvůj – kdo ho má, uvidí tvoje rezervace. Můžeš si vytvořit nový, starý pak přestane fungovat.</p>
+          <ActionForm action={resetCalendarAction} confirm="Vytvořit nový odkaz? Kalendář si pak přidej znovu." className="mt-2">
+            <SubmitButton variant="ghost" className="px-3 py-2 text-[0.65rem]">Vytvořit nový odkaz</SubmitButton>
+          </ActionForm>
+        </details>
+      </section>
+
+      {cfg.referralGiftEntries > 0 && user.role === "client" && (
+        <section id="pozvi" className="rounded-2xl border border-zlato/50 bg-zlato/10 p-5">
+          <p className="font-semibold">👯 Pozvi kamarádku</p>
+          <p className="mt-1 max-w-2xl text-sm text-les/70">
+            Pošli kamarádce svůj odkaz.{cfg.welcomeFreeEntries > 0 && " Ona má první lekci zdarma"}
+            {cfg.welcomeFreeEntries > 0 ? ", a jakmile" : " Jakmile"} si u nás poprvé něco zaplatí, dostaneš{" "}
+            {cfg.referralGiftEntries === 1 ? "lekci" : `${cfg.referralGiftEntries} lekce`} zdarma i ty (platí {cfg.referralGiftValidityDays} dní).
+          </p>
+          <p className="mt-3 break-all text-sm font-semibold text-zeme">{invite}</p>
+          <span className="mt-3 flex flex-wrap gap-2">
+            <ShareButton url={invite} text="Pojď si se mnou zacvičit do OCTOPUSH – první lekce je zdarma 🐙" className="px-5 py-2.5" />
+            <CopyButton text={invite} className="px-5 py-2.5" />
+          </span>
+          {invited.length > 0 && (
+            <ul className="mt-4 space-y-1 text-sm">
+              {invited.map((f) => (
+                <li key={f.id}>
+                  {f.rewarded ? "✅" : "⏳"} <strong>{f.name}</strong> –{" "}
+                  {f.rewarded ? "už u nás cvičí, lekce zdarma je na tvém účtu" : "má u nás účet, odměnu dostaneš po prvním nákupu"}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
+      <section id="poukazy" className="rounded-2xl border border-linka/60 bg-krem/40 p-5">
+        <p className="font-semibold">🎁 Dárkové poukazy</p>
+        <ActionForm action={redeemVoucherAction} className="mt-3 flex flex-wrap items-end gap-2">
+          <label className="flex-1">
+            <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-les/70">Máš poukaz? Zadej kód</span>
+            <Input name="code" placeholder="např. 7KQ4-M2PX" required autoCapitalize="characters" autoComplete="off" className="min-w-48" />
+          </label>
+          <SubmitButton variant="dark" className="px-5 py-3">Uplatnit</SubmitButton>
+        </ActionForm>
+        {gifts.length > 0 && (
+          <ul className="mt-4 divide-y divide-linka/60 text-sm">
+            {gifts.map((v) => {
+              const st = voucherStatus(v);
+              return (
+                <li key={v.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                  <span>
+                    <strong>{v.title}</strong>
+                    {v.recipientName && <span className="font-normal"> · pro: {v.recipientName}</span>}
+                    <span className="block text-xs text-les/60">
+                      {formatVoucherCode(v.code)} · {VOUCHER_STATUS[st]}
+                      {st === "active" && v.validUntil && `, platí do ${formatDate(v.validUntil)}`}
+                    </span>
+                  </span>
+                  {st !== "pending" && (
+                    <a href={`/api/poukaz/${v.id}`} className="rounded-full border border-les/30 px-4 py-2 text-xs font-semibold uppercase tracking-wider">
+                      Stáhnout PDF
+                    </a>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <p className="mt-3 text-sm text-les/70">
+          Chceš někoho obdarovat? <Link href="/poukazy" className="font-semibold text-zeme underline">Koupit dárkový poukaz</Link>
+        </p>
+      </section>
     </div>
   );
 }
