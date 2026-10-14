@@ -266,6 +266,27 @@ export async function abandonOrder(db: DB, orderId: string, now = new Date()) {
   });
 }
 
+/**
+ * The studio calls off an unpaid order (Admin → klient): it won't be paid,
+ * a place held for it in a class is let go. Returns false when it's no
+ * longer waiting for payment.
+ */
+export async function cancelOrder(db: DB, orderId: string, now = new Date()) {
+  return db.transaction(async (tx) => {
+    const [o] = await tx
+      .update(orders)
+      .set({ status: "cancelled" })
+      .where(and(eq(orders.id, orderId), eq(orders.status, "pending")))
+      .returning();
+    if (!o) return false;
+    await tx
+      .update(bookings)
+      .set({ status: "cancelled", cancelledAt: now })
+      .where(and(eq(bookings.orderId, o.id), inArray(bookings.status, ["pending_payment"])));
+    return true;
+  });
+}
+
 /** Reuses the client's open order for the same thing, so a retry doesn't pile up orders. */
 async function openOrder(tx: Executor, where: ReturnType<typeof and>) {
   const [o] = await tx

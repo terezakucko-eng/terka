@@ -32,7 +32,7 @@ import { deleteClassType, deleteProduct } from "@/domain/catalog";
 import { LESSON_TEMPLATES, templateFor } from "@/domain/lesson-templates";
 import { setDraftHidden } from "@/domain/lesson-drafts";
 import { deleteClient, deleteClients, deleteOrder, deleteOrders, purgeSession, seriesFrom } from "@/domain/cleanup";
-import { fulfillOrder, sellAtReception } from "@/domain/orders";
+import { cancelOrder, fulfillOrder, sellAtReception } from "@/domain/orders";
 import { deductSolarium } from "@/domain/solarium";
 import { grantEntitlement, normalizeEmail } from "@/domain/users";
 import { changeCredits } from "@/domain/wallet";
@@ -766,6 +766,15 @@ export async function markOrderPaidAction(_: FormState, fd: FormData): Promise<F
     // a bank transfer stays labelled as such once it's confirmed
     await fulfillOrder(db, { orderId, provider: o?.provider === "transfer" ? "transfer" : "manual" });
     return done("Označeno jako zaplacené.");
+  });
+}
+
+/** Client detail: an unpaid order won't be paid – call it off. */
+export async function cancelOrderAction(_: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  return attempt(async () => {
+    if (!(await cancelOrder(await getDb(), field.str(fd, "orderId")))) throw new UserError("Objednávka už nečeká na platbu.");
+    return done("Objednávka zrušena.");
   });
 }
 

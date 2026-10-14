@@ -1,4 +1,6 @@
 import { Fragment } from "react";
+import Link from "next/link";
+import { Images, Mail, Upload } from "lucide-react";
 import { resetOrdersAction, saveSettingsAction } from "@/app/admin/actions";
 import { dateKey } from "@/lib/dates";
 import { AdminTitle } from "@/components/admin";
@@ -60,6 +62,18 @@ export default async function AdminSettings() {
   return (
     <>
       <AdminTitle title="Nastavení" />
+      {/* tools used now and then – they don't need a place in the menu */}
+      <div className="mb-6 flex max-w-3xl flex-wrap gap-3 text-sm">
+        {[
+          { href: "/admin/emaily", label: "Automatické e-maily", icon: Mail },
+          { href: "/admin/obrazky", label: "Obrázky (AI)", icon: Images },
+          { href: "/admin/import", label: "Převod klientů ze starého systému", icon: Upload },
+        ].map((t) => (
+          <Link key={t.href} href={t.href} className="flex items-center gap-2 rounded-full border border-linka px-4 py-2 font-semibold hover:border-les">
+            <t.icon className="size-4 text-zeme" /> {t.label}
+          </Link>
+        ))}
+      </div>
       <Card className="max-w-3xl">
         <h2 className="font-semibold">Pravidla rezervací a automatické zprávy</h2>
         <ActionForm action={saveSettingsAction} className="mt-5 grid gap-4 sm:grid-cols-2">
