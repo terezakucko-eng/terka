@@ -72,7 +72,7 @@ describe("Členství Reformer 2027", () => {
     await switchMembership(h.db, member.id, e.id, tier.id, NOW); // the 2nd and last place
 
     const late = await makeUser(h.db);
-    await expect(createProductOrder(h.db, { userId: late.id, productId: tier.id, commitmentAccepted: true }, NOW)).rejects.toThrow("omezený počet míst");
+    await expect(createProductOrder(h.db, { userId: late.id, productId: tier.id, commitmentAccepted: true }, NOW)).rejects.toThrow("omezený počet členství");
     const other = await buy(basic.id);
     const [e2] = await h.db.select().from(entitlements).where(eq(entitlements.userId, other.id));
     expect(await membershipUpgrades(h.db, [e2], NOW)).toEqual(new Map());

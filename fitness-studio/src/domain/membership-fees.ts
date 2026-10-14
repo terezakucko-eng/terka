@@ -362,7 +362,7 @@ export async function switchMembership(db: DB, userId: string, entitlementId: st
     // one place at a time for a limited membership
     if (productId) await tx.select({ id: products.id }).from(products).where(eq(products.id, productId)).for("update");
     const offer = (await membershipUpgrades(tx, [e], now)).get(e.id);
-    if (!offer || offer.id !== productId) throw new UserError("Na tohle členství teď přejít nejde – místa jsou možná obsazená. Napiš nám prosím.");
+    if (!offer || offer.id !== productId) throw new UserError("Na tohle členství teď přejít nejde – všechna mohou být obsazená. Napiš nám prosím.");
     const period = await switchPeriod(tx, userId, now, offer);
     if (e.validUntil <= pragueLocalToDate(`${period}-01T00:00`)) throw new UserError("Členství končí dřív, než by změna začala platit.");
     await tx

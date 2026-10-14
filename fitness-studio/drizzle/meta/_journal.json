@@ -505,6 +505,13 @@
       "when": 1791975914571,
       "tag": "0071_launch_price_list_2027",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1791978021897,
+      "tag": "0072_reformer_wording",
+      "breakpoints": true
     }
   ]
 }

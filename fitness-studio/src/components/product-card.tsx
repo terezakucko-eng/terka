@@ -107,7 +107,7 @@ export function ProductCard({
                     {p.maxActive !== null && placesLeft !== null && (
                       <p className={cx("mt-3 text-sm font-semibold", p.highlight ? "text-zlato-light" : "text-zeme")}>
                         {placesLeft > 0
-                          ? `Omezený počet: ${placesLeft} ${placesLeft === 1 ? "volné místo" : placesLeft < 5 ? "volná místa" : "volných míst"} (celkem ${p.maxActive})`
+                          ? `Omezený počet členství: ${p.maxActive} · volná: ${placesLeft}`
                           : "Teď obsazeno"}
                       </p>
                     )}
@@ -136,12 +136,12 @@ export function ProductCard({
                       <p className={cx("mt-6 rounded-xl px-4 py-3 text-center text-sm font-semibold", p.highlight ? "bg-papir/10" : "bg-krem/60")}>
                         {saleNote}
                         {p.kind === "membership" && p.includedPerMonth > 0 && (
-                          <span className="mt-1 block text-xs font-normal">Máš členství se závazkem? Místo si můžeš zamluvit už teď v Můj účet.</span>
+                          <span className="mt-1 block text-xs font-normal">Máš členství se závazkem? Přechod si můžeš zamluvit už teď v Můj účet.</span>
                         )}
                       </p>
                     ) : placesLeft === 0 ? (
                       <p className={cx("mt-6 rounded-xl px-4 py-3 text-center text-sm", p.highlight ? "bg-papir/10" : "bg-krem/60")}>
-                        Všechna místa jsou obsazená – napiš nám a dáme ti vědět, až se nějaké uvolní.
+                        Všechna členství jsou obsazená – napiš nám a dáme ti vědět, až se nějaké uvolní.
                       </p>
                     ) : loggedIn ? (
                       <ActionForm action={buyProductAction} className="mt-6 space-y-2">
