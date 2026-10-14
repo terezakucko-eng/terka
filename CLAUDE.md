@@ -31,6 +31,11 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 - ROI = (tržby × GM1 − náklady) / náklady; PNO = náklady / tržby. GM1 = marže e-shopu v daném měsíci.
 - Predikce = **baseline posledních 3 měsíců** × sezónnost e-shopu (plán Adama) × vliv změny rozpočtu.
 - Kurzy: 25 Kč/€, 0,0625 Kč/Ft.
+- **Mechanika BI reportů – Allocated vs. Estimated** (Robert Junek, bootiq, komentář 14. 10. 2026 v todo Marketing 2.0 22336994/todos/10143358640, PDF „20261014_SCHEMA-marketing-allocated-vs-estimated“). Obě metody dávají stejný součet za web a měsíc (fakturované tržby z ABRY: bez DPH, vč. dopravy a platby, bez voucherů, po dobropisech), liší se jen rozdělením na kanály:
+  - **Allocated** = podíly kanálů z tržeb a transakcí v GA4 (jen souhlas s cookies, vč. zrušených a nezaplacených objednávek); **všechny kanály mají stejnou GM1 webu**; dobropisy podíly nemění. Velký vzorek, ale kanály s hodně storny jsou nadhodnocené.
+  - **Estimated** = podíly z vyfakturovaných objednávek spárovaných s GA4 („measured“, ~½ tržeb), zbytek rozpočítán ve stejném poměru; **každý kanál má vlastní GM1**; dobropis snižuje kanál původní objednávky. Menší vzorek, předpoklad, že lidé bez cookies chodí ze stejných kanálů; měsíc bez spárované objednávky je prázdný.
+  - Počet objednávek přes více měsíců je nadsazený o ~1,5 % (dobropis v jiném měsíci se počítá znovu). Marže „incl. services“ (doprava a platba se stejnou marží jako zboží) vs. „products“ (jen zboží, služby s nulovou marží). Neověřeno: zda tržby v GA4 obsahují dopravu, platbu a DPH.
+  - **Pro ROI kanálů je přesnější Estimated** (fakturované tržby + vlastní marže kanálu); ROI srovnávačů 2026 bylo spočítáno z Sales allocated × GM1 webu → u kanálů s nízkomaržovým zbožím (např. panny na Heurece) může být nadhodnocené. Na celkový MKT profit 1 (scénář D) to vliv nemá.
 - Výkon se cílí na **MKT profit 1**, ne na PNO.
 
 ## Srovnávače a Seznam – zjištění 2026
