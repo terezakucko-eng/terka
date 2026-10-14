@@ -59,6 +59,22 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 ## Targito – rozúčtování (platí, odsouhlaseno 14. 10. 2026)
 Detail v `targito-rozuctovani.md`. Shrnutí: faktura 84 952 Kč/měs. (dodatek, limit 6 mil.) → **Slon + Kondomshop 62 992 (74,2 %), Flagranti 21 960 (25,8 %)**; uvnitř Slona dle objemu z faktury (KS ~4,6 %); nadlimit uvnitř faktury se nepřeúčtovává; služby dle řádků (Růžový slon / Safety First). Měsíční kontrola – kalendář 3. pracovní den v měsíci.
 
+## Podklady od kolegů (zdroje pro plán 2027)
+- **Adam Bartnický** (e-maily 13. 10. 2026: „při práci na budgetu hodně pracuji s AI, data beru z BI, záložka Marketing / Google Analytics“):
+  - RS_Budget_Drivers / data plánu e-shopů: `1YnwmNwgG76sRGM9jVC18C2PmIPqcFQGGHm84gAaJBUE` (list Data: Traffic, Orders, Revenue, GP po byznysech a měsících 2024–2026, 10–12/2026 extrapolace; prodejny 2026 = 29,1 mil. vč. Foodora/eventy/Pikito)
+  - CZ_detail_channel `1KVoA_odxqySzsENH_yFk1-llROnWL7xWesUzcAsqzIA`, SK_detail_channel `1siSs1czgIWNT00OJ0KrKzHEccdbRxMkG1IpW4VJrBLc`
+  - Power BI: https://app.powerbi.com/groups/me/apps/44b71cd3-f671-4188-a650-ad58ff34bd8a/reports/55d1c0d4-98d7-4af0-a7d9-df94ea364fb9 (Marketing / Google Analytics; stránka „Custom date“ s filtrem data – obraty prodejen a divizí)
+- **Lenka Stará** – FP 2027: `1-1Fd6hvhgqUKF_Z_5ax4GOFOqz6HPdr44yO0muAL9Y0` (tržby za služby 2027 9,33 mil. = celofiremní číslo). PNO pro scénář B = 10 % (od Lenky), aktuální PNO ~13 %.
+- **Radek Hudák** – Google Ads „Performance Avengers“: `1rHMCXFygdJFRbG0Zoxw4mz9RUB_-h5__J-BcQk28eMg` (MTD modely 8/2026, 9/2026, 10/2026; cílí na MKT profit 1).
+- Kategorie produktů: `1vE34FTfGP_4m5IDpDGWBynz0QR7i0RMHejmBMoyWNY8`.
+- Czech On-line Expo 2027 (3.–4. 2. 2027, PVA Letňany): ceník stánků `1V_QiuJsiawlBI7Uy7CjlnZHHwe2uaON2ODvcCZBmjwA`, kontakt Martin Matuška (martin@czechonlineexpo.cz).
+
+## Historie práce (září–říjen 2026)
+- **Rutiny (Claude Code Routines):** každý pátek – Brand Manual týdenní update (nové sekce vždy NAHORU do těla zprávy 45681681/messages/9701476737, nikdy jako komentář; + needle zelená) a příprava zápisu MKT týmové porady (porada v pondělí, příprava v pátek 15:55–16:00 do pondělní occurrence; trigger trig_014ZnpV8JMMRKgydg4mpayBB). Konektory Gmail/Kalendář se k rutinám přidávají ručně na claude.ai/code/routines.
+- Basecamp: needles vyžadují HTML; URL opakované schůzky `.../schedule_entries/[ID]/occurrences/[YYYYMMDD]`; Google Chat přes Gmail MCP nejde (Tereza vkládá ručně).
+- Vyřešeno 29. 9.–14. 10.: počty kategorií; odpověď ke slevovým kuponům do vkládky (todo 45671942/todos/9630497042 – „zatím nevíme, řešíme příští týden“); zpětná vazba Marketing 2.0 (22336994/todos/10143358640) + Q&A k YoY metrikám a ROI srovnávačů; Firmy.cz investice; úkoly po termínu a plánování do kalendáře; oprava Basecamp CLI; zápisy Google konzultace a TV Nova (Irena Hradilová); todo OnePlay test 11–12/2026 a OnePlay 2027 (todolist 45674654/todolists/10377076837); Emailgin/SmartEmailing – balík gelů, kondomů a 200 kuponů, předání koordinátorce Evě Bukovjan, řeší Aneta Zajdová (todolist 9526311136); Angry Beards × RS drop todo (označen Jan Bezecný, FYI Gabriel Kopeć, Ladislav Kažimír); report 09/2026 (dokument 31903273/documents/10379527514 podle vzoru 10272796096); Q3 hodnocení HoM (kopie tabulky, plnění 100 %, Q4 projekt „SonicBrand RS – výběr dodavatele a zvukové logo“: agentura do 31. 10., smlouva+brief do 15. 11., logo+earcon do 31. 12.) + needle; příprava schůzky s Karlem Novotným 14. 10.; model nákladů 2027.
+- Meat Design (akce pro Beatu) – odmítnout: nemáme budget ani kapacity, ať osloví příště s předstihem.
+
 ## Otevřené úkoly
 - Marže po zářijovém přecenění – promítnout do scénáře D? (čeká na rozhodnutí)
 - Přepsat Model 2027 do `Náklady_MKT_2027_TERKA` (MKT plán 2027).
