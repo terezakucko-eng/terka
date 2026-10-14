@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { whatsappLink } from "@/lib/phone";
 import { and, count, eq, gt, ilike, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
-import { clientsBulkAction, deleteAllClientsAction } from "@/app/admin/actions";
+import { clientsBulkAction, createClientAction, deleteAllClientsAction } from "@/app/admin/actions";
 import { SelectAll } from "@/components/select-all";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { AdminTitle, Panel, Table, Td } from "@/components/admin";
@@ -99,6 +99,26 @@ export default async function ClientsPage({ searchParams }: PageProps<"/admin/kl
         Klientů celkem: <strong>{all.n}</strong> (z toho převzatých ze starého systému: {imported.n})
         {(term || tag) && <> · zobrazeno <strong>{list.length}</strong></>}
       </p>
+      <div className="mb-6 max-w-3xl">
+        <Panel title="+ Nová klientka / nový klient">
+          <ActionForm action={createClientAction} className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Jméno a příjmení"><Input name="name" required autoComplete="off" /></Field>
+              <Field label="E-mail"><Input name="email" type="email" required autoComplete="off" /></Field>
+              <Field label="Telefon" hint="Nepovinné."><Input name="phone" type="tel" autoComplete="off" /></Field>
+              <Field label="Datum narození" hint="Nepovinné – kvůli přání a potvrzení pro pojišťovnu."><Input name="birthDate" type="date" max={new Date().toISOString().slice(0, 10)} /></Field>
+            </div>
+            <label className="flex gap-3 text-sm">
+              <input type="checkbox" name="invite" defaultChecked className="mt-0.5 accent-[#674329]" />
+              <span>
+                Poslat pozvánku e-mailem
+                <span className="block text-xs text-les/60">Odkaz na nastavení hesla (platí 14 dní), pak ji web přesune do profilu, kde si zaškrtne souhlasy. Úvodní lekci zdarma dostane jako při registraci.</span>
+              </span>
+            </label>
+            <SubmitButton>Založit účet</SubmitButton>
+          </ActionForm>
+        </Panel>
+      </div>
       <div className="mb-6 flex flex-wrap gap-2 text-xs">
         <Link href={href({ stitek: null })} className={`rounded-full border px-3 py-1.5 font-semibold ${!tag ? "border-les bg-les text-papir" : "border-linka hover:border-les"}`}>
           Všichni

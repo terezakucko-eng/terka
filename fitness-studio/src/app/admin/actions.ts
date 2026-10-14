@@ -34,7 +34,10 @@ import { setDraftHidden } from "@/domain/lesson-drafts";
 import { deleteClient, deleteClients, deleteOrder, deleteOrders, purgeSession, seriesFrom } from "@/domain/cleanup";
 import { cancelOrder, fulfillOrder, sellAtReception } from "@/domain/orders";
 import { deductSolarium } from "@/domain/solarium";
-import { grantEntitlement, normalizeEmail } from "@/domain/users";
+import { createClientByStudio, grantEntitlement, normalizeEmail } from "@/domain/users";
+import { sendEmail } from "@/lib/email-templates";
+import { createPasswordLink } from "@/lib/password-links";
+import { greetName } from "@/lib/vocative";
 import { changeCredits } from "@/domain/wallet";
 import { requireAdmin, requireStaff } from "@/lib/auth";
 import { addDays, dateKey, formatDate, mondayOf, pragueLocalToDate, weekdayOf, isDateKey } from "@/lib/dates";
@@ -801,6 +804,52 @@ export async function resetOrdersAction(_: FormState, fd: FormData): Promise<For
     return done(n ? `Smazáno objednávek: ${n}.` : "Nic k smazání.");
   });
   return res;
+}
+
+/** E-mails the client a link to set her password; the link then leads to her consents in the profile. */
+async function sendAccountInvite(db: Awaited<ReturnType<typeof getDb>>, u: { id: string; name: string; email: string }) {
+  const link = await createPasswordLink(u.id, 14 * 24, db);
+  await sendEmail(u.email, "studioAccount", {
+    osloveni: greetName(u.name),
+    odkaz: `${link}&dalsi=${encodeURIComponent("/ucet/profil#osobni-udaje")}`,
+    prihlaseni: u.email,
+  });
+}
+
+/** Clients: the reception creates an account; the client gets an e-mail to set her password and consents. */
+export async function createClientAction(_: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  let created = "";
+  const res = await attempt(async () => {
+    const db = await getDb();
+    const u = await createClientByStudio(db, {
+      name: field.str(fd, "name"),
+      email: field.str(fd, "email"),
+      phone: field.str(fd, "phone"),
+      birthDate: field.str(fd, "birthDate"),
+    });
+    const invite = field.bool(fd, "invite");
+    if (invite) await sendAccountInvite(db, u);
+    created = `/admin/klienti/${u.id}?novy=${invite ? "pozvanka" : "ucet"}`;
+  });
+  if (created) {
+    revalidatePath("/", "layout");
+    redirect(created);
+  }
+  return res;
+}
+
+/** Client detail: the password isn't set yet – send the invitation (again). */
+export async function resendAccountInviteAction(_: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  return attempt(async () => {
+    const db = await getDb();
+    const [u] = await db.select().from(users).where(eq(users.id, field.str(fd, "userId")));
+    if (!u) throw new UserError("Klient nenalezen.");
+    if (!u.passwordHash.startsWith("!")) throw new UserError("Heslo už má nastavené – případně ať použije „Zapomenuté heslo“.");
+    await sendAccountInvite(db, u);
+    return `Pozvánka odeslána na ${u.email}.`;
+  });
 }
 
 export async function deleteClientAction(_: FormState, fd: FormData): Promise<FormState> {
