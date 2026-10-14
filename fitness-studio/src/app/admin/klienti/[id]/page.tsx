@@ -13,6 +13,8 @@ import {
   sellProductAction,
   updateClientAction,
   adminCancelBookingAction,
+  cancelOrderAction,
+  markOrderPaidAction,
 } from "@/app/admin/actions";
 import { adminCancelMassageAction } from "@/app/admin/massage-actions";
 import { recordPastFeesAction } from "@/app/admin/fee-actions";
@@ -37,6 +39,15 @@ import { recentSolariumUses, solariumPasses } from "@/domain/solarium";
 import { greetName } from "@/lib/vocative";
 import { memberStrikes } from "@/domain/strikes";
 import { referralInfo } from "@/domain/referrals";
+
+const providerLabel: Record<string, string> = {
+  stripe: "kartou online",
+  transfer: "převodem",
+  reception: "recepce",
+  manual: "ručně",
+  test: "test",
+  pending: "nezvoleno",
+};
 
 export default async function ClientDetail({ params }: PageProps<"/admin/klienti/[id]">) {
   await requireAdmin();
@@ -387,9 +398,31 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
               {orderList.map((o) => (
                 <tr key={o.id}>
                   <Td>{o.number}</Td>
-                  <Td>{o.description}<br /><span className="text-xs text-les/50">{formatDateTime(o.createdAt)} · {o.provider}</span></Td>
+                  <Td>
+                    {o.description}
+                    <br />
+                    <span className="text-xs text-les/50">
+                      {formatDateTime(o.createdAt)} · {providerLabel[o.provider] ?? o.provider}
+                      {o.provider === "transfer" && ` · VS ${o.number}`}
+                    </span>
+                  </Td>
                   <Td className="whitespace-nowrap">{formatPrice(o.amount)}</Td>
-                  <Td>{orderStatusLabel[o.status]}</Td>
+                  <Td>
+                    {orderStatusLabel[o.status]}
+                    {/* a transfer arrived (or it was paid at the desk): confirm and the credit, pass or membership is added */}
+                    {o.status === "pending" && o.kind !== "renewal" && (
+                      <div className="mt-1 flex flex-wrap gap-3">
+                        <ActionForm action={markOrderPaidAction} confirm={`Potvrdit platbu č. ${o.number} (${formatPrice(o.amount)})? Klientovi se hned připíše, co kupuje.`}>
+                          <input type="hidden" name="orderId" value={o.id} />
+                          <button className="text-xs font-semibold text-zeme underline">Zaplaceno</button>
+                        </ActionForm>
+                        <ActionForm action={cancelOrderAction} confirm={`Zrušit nezaplacenou objednávku č. ${o.number}?`}>
+                          <input type="hidden" name="orderId" value={o.id} />
+                          <button className="text-xs font-semibold text-chyba underline">Zrušit</button>
+                        </ActionForm>
+                      </div>
+                    )}
+                  </Td>
                 </tr>
               ))}
             </Table>
