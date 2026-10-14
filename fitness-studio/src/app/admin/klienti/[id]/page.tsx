@@ -15,6 +15,7 @@ import {
   adminCancelBookingAction,
   cancelOrderAction,
   markOrderPaidAction,
+  resendAccountInviteAction,
 } from "@/app/admin/actions";
 import { adminCancelMassageAction } from "@/app/admin/massage-actions";
 import { recordPastFeesAction } from "@/app/admin/fee-actions";
@@ -49,9 +50,10 @@ const providerLabel: Record<string, string> = {
   pending: "nezvoleno",
 };
 
-export default async function ClientDetail({ params }: PageProps<"/admin/klienti/[id]">) {
+export default async function ClientDetail({ params, searchParams }: PageProps<"/admin/klienti/[id]">) {
   await requireAdmin();
   const { id } = await params;
+  const { novy } = await searchParams;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const db = await getDb();
   const [u] = await db.select().from(users).where(eq(users.id, id));
@@ -113,6 +115,15 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
               <span className="text-les/50"> (✅ = kamarádka zaplatila, lekce zdarma připsána)</span>
             </p>
           )}
+          {u.passwordHash.startsWith("!") && (
+            <div className="flex flex-wrap items-center gap-3">
+              <span>Heslo si zatím nenastavil/a.</span>
+              <ActionForm action={resendAccountInviteAction} confirm={`Poslat ${u.email} odkaz na nastavení hesla?`}>
+                <input type="hidden" name="userId" value={u.id} />
+                <button className="text-xs font-semibold text-zeme underline">Poslat pozvánku e-mailem</button>
+              </ActionForm>
+            </div>
+          )}
           <p>{u.healthConfirmedAt ? `Zdravotní způsobilost potvrzena ${formatDate(u.healthConfirmedAt)}` : "Zdravotní způsobilost zatím nepotvrzena (potvrdí při další rezervaci)"}</p>
           <p>
             Mobil: {pushDevices ? `push upozornění zapnutá (${pushDevices} zař.)` : "push upozornění vypnutá"}
@@ -123,8 +134,16 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
         </div>
       </div>
       <AdminTitle title={u.name}>
-        <span className="text-sm text-les/60">{u.email} · {u.phone ?? "bez telefonu"}{u.passwordHash.startsWith("!") && " · převedený účet, heslo zatím nenastaveno"}</span>
+        <span className="text-sm text-les/60">{u.email} · {u.phone ?? "bez telefonu"}{u.passwordHash.startsWith("!") && (u.importedAt ? " · převedený účet, heslo zatím nenastaveno" : " · heslo zatím nenastaveno")}</span>
       </AdminTitle>
+      {(novy === "pozvanka" || novy === "ucet") && (
+        <p className="-mt-4 mb-6 rounded-xl bg-salvej/15 px-4 py-3 text-sm font-semibold">
+          Účet je založený.{" "}
+          {novy === "pozvanka"
+            ? `Pozvánka s odkazem na nastavení hesla odešla na ${u.email}.`
+            : "Pozvánku můžeš poslat níž, až bude potřeba."}
+        </p>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Kredit" value={u.creditBalance} sub={u.creditBalance > 0 && u.creditExpiresAt ? `platí do ${formatDate(u.creditExpiresAt)}` : undefined} />

@@ -2,6 +2,8 @@ import { eq } from "drizzle-orm";
 import type { DB } from "@/db";
 import { entitlements, users } from "@/db/schema";
 import { UserError } from "@/lib/errors";
+import { normalizePhone } from "@/lib/phone";
+import { cleanBirthDate } from "@/lib/profile";
 import { getSettings } from "@/lib/settings";
 
 const DAY = 86_400_000;
@@ -30,9 +32,12 @@ export async function registerUser(
       .select({ id: users.id, importedAt: users.importedAt, passwordHash: users.passwordHash })
       .from(users)
       .where(eq(users.email, email));
-    if (exists?.importedAt && exists.passwordHash.startsWith("!"))
+    // an account the studio created or brought over from the old system, the password not set yet
+    if (exists?.passwordHash.startsWith("!"))
       throw new UserError(
-        "Tenhle e-mail už máme ze starého systému – nastav si heslo přes „Zapomenuté heslo“ a vše najdeš na účtu.",
+        exists.importedAt
+          ? "Tenhle e-mail už máme ze starého systému – nastav si heslo přes „Zapomenuté heslo“ a vše najdeš na účtu."
+          : "Tenhle e-mail už u nás má účet – nastav si heslo přes „Zapomenuté heslo“ a vše na něm najdeš.",
       );
     if (exists) throw new UserError("Účet s tímto e-mailem už existuje.");
 
@@ -65,6 +70,30 @@ export async function registerUser(
     }
     return user;
   });
+}
+
+/** Password of an account the studio created – the client sets her own from the e-mailed link. */
+export const INVITED_PASSWORD = "!invited";
+
+/** The reception creates a client account (with the welcome entry, like a registration on the web). */
+export async function createClientByStudio(
+  db: DB,
+  input: { name: string; email: string; phone?: string; birthDate?: string },
+  now = new Date(),
+) {
+  const name = input.name.trim().replace(/\s+/g, " ");
+  if (name.length < 3) throw new UserError("Vyplň jméno a příjmení.");
+  const email = normalizeEmail(input.email);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new UserError("Zkontroluj e-mail.");
+  const phone = input.phone?.trim() ? normalizePhone(input.phone) : null;
+  if (input.phone?.trim() && !phone) throw new UserError("Zkontroluj telefon – třeba 732 699 080 nebo +420 732 699 080.");
+  const birthDate = input.birthDate?.trim() ? cleanBirthDate(input.birthDate.trim(), now) : null;
+  if (input.birthDate?.trim() && !birthDate) throw new UserError("Zkontroluj datum narození.");
+  const [exists] = await db.select({ id: users.id }).from(users).where(eq(users.email, email));
+  if (exists) throw new UserError("Účet s tímto e-mailem už existuje – najdeš ho v seznamu klientů.");
+  const user = await registerUser(db, { email, name, phone, passwordHash: INVITED_PASSWORD }, now);
+  if (birthDate) await db.update(users).set({ birthDate }).where(eq(users.id, user.id));
+  return { ...user, birthDate };
 }
 
 /** Admin gives free entries, a pass or a membership without payment. */

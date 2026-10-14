@@ -43,6 +43,17 @@ export const EMAILS = {
     body: "Ahoj {{osloveni}},\n\nnové heslo si nastavíš zde (odkaz platí 1 hodinu):\n{{odkaz}}\n\nPokud jsi o změnu nežádal/a, e-mail ignoruj.",
     vars: { osloveni, odkaz: { label: "odkaz pro nastavení hesla", sample: `${site.url}/obnova-hesla?token=…` } },
   },
+  studioAccount: {
+    title: "Účet založený studiem",
+    when: "Když v Klientech založíš nový účet a necháš zaškrtnuté „Poslat pozvánku“ (nebo ji pošleš znovu z detailu klienta).",
+    subject: "OCTOPUSH: máš u nás účet",
+    body: "Ahoj {{osloveni}},\n\nzaložili jsme ti účet v OCTOPUSH – rezervace lekcí, permanentky i kredit tam máš na jednom místě.\n\n1. Nastav si heslo (odkaz platí 14 dní):\n{{odkaz}}\n\n2. Web tě pak přesune do profilu – zaškrtni, jaké zprávy od nás chceš dostávat (novinky e-mailem, SMS nebo WhatsApp, připomínky lekcí), a ulož.\n\nPřihlašuješ se e-mailem {{prihlaseni}}.\n\nTěšíme se na tebe!",
+    vars: {
+      osloveni,
+      odkaz: { label: "odkaz pro nastavení hesla", sample: `${site.url}/obnova-hesla?token=…` },
+      prihlaseni: { label: "e-mail klienta", sample: "tereza@example.cz" },
+    },
+  },
   invite: {
     title: "Pozvánka převedeným klientům",
     when: "Když v Importu klientů klikneš na „Poslat pozvánky“.",

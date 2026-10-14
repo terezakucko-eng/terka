@@ -7,13 +7,14 @@ import { PasswordInput } from "@/components/password-input";
 export const metadata: Metadata = { title: "Nové heslo", robots: { index: false } };
 
 export default async function ResetPage({ searchParams }: PageProps<"/obnova-hesla">) {
-  const { token } = await searchParams;
+  const { token, dalsi } = await searchParams;
   return (
     <>
       <Eyebrow className="text-zeme">Heslo</Eyebrow>
       <h1 className="mt-3 text-4xl font-semibold tracking-tight">Nastav si nové heslo</h1>
       <ActionForm action={resetPasswordAction} className="mt-8 space-y-4">
         <input type="hidden" name="token" value={typeof token === "string" ? token : ""} />
+        {typeof dalsi === "string" && <input type="hidden" name="next" value={dalsi} />}
         <Field label="Nové heslo" hint="Alespoň 8 znaků."><PasswordInput name="password" autoComplete="new-password" minLength={8} required /></Field>
         <SubmitButton className="w-full">Uložit heslo</SubmitButton>
       </ActionForm>

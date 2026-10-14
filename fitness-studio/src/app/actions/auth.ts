@@ -135,6 +135,9 @@ export async function requestResetAction(_: FormState, fd: FormData): Promise<Fo
 
 export async function resetPasswordAction(_: FormState, fd: FormData): Promise<FormState> {
   let done = false;
+  // an invitation goes on to the profile (consents); only pages of the client's own account
+  const next = field.str(fd, "next");
+  const to = /^\/ucet(\/[a-z-]*)?(#[a-z-]+)?$/.test(next) ? next : "/ucet";
   const res = await attempt(async () => {
     const pw = password.safeParse(field.str(fd, "password"));
     if (!pw.success) throw new UserError(pw.error.issues[0].message);
@@ -155,7 +158,7 @@ export async function resetPasswordAction(_: FormState, fd: FormData): Promise<F
     await startSession(r.userId);
     done = true;
   });
-  if (done) redirect("/ucet");
+  if (done) redirect(to);
   return res;
 }
 
