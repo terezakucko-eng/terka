@@ -160,7 +160,8 @@ export function ProductCard({
                             {p.kind === "membership" && p.recurring ? "Platit kartou měsíčně" : "Koupit – kartou"}
                           </SubmitButton>
                         )}
-                        <SubmitButton name="pay" value="transfer" variant={card ? "outline" : p.highlight ? "gold" : "dark"} className="w-full" pendingText="Moment…">
+                        {/* on the dark (highlighted) card the plain outline would vanish – the light one stays visible */}
+                        <SubmitButton name="pay" value="transfer" variant={card ? (p.highlight ? "outline-light" : "outline") : p.highlight ? "gold" : "dark"} className="w-full" pendingText="Moment…">
                           {card ? "Převodem (QR)" : "Koupit – platba převodem"}
                         </SubmitButton>
                       </ActionForm>

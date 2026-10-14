@@ -100,7 +100,7 @@ export default async function PricingPage({ searchParams }: PageProps<"/cenik">)
       </PageHeader>
 
       {years.length > 1 && (
-        <Container className="pb-10 pt-8">
+        <Container className="pb-16 pt-10">
           <nav className="flex flex-wrap gap-2" aria-label="Ceník podle roku">
             {years.map((y) => (
               <Link
