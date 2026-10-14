@@ -8,6 +8,7 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 - Piš česky.
 - **Každý text do Basecampu, mailu nebo jinam ven nejdřív ukaž v chatu a počkej na schválení** („potřebuji text před přidáním vždy nejdříve odsouhlasit zde“).
 - Do tabulek Gabriela (HoM hodnocení apod.) nic nepiš – udělej kopii.
+- **Žádné speciální barvičky v buňkách** (Tereza 14. 10.: „vynechej v buňkách speciální barvičky“) – změněné buňky už neoznačovat žlutě; v Náklady_MKT_2027_TERKA vyčištěno (zůstává jen pruhování řádků, součty sekcí a záhlaví).
 - Hesla/tokeny nikdy do Environment variables CCR (vidí je všichni).
 - Tereza nepracuje v terminálu – vše vysvětlovat klikacími kroky.
 
