@@ -56,6 +56,7 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 - RS Eventy (Erofest duben, Colours of Ostrava červenec) jen jako náklady (řádky Konference, eventy = shodně s 2026), ne do tržeb.
 - Radek Hudák 70 tis./měs., Karel Novotný 100 tis./měs., školení 5 tis./měs., Dotykačka ukončena, Email INT a Mamata/Merglevský ukončeno.
 - Targito dle fixního klíče (viz níže).
+- **Dva pohledy na marži** (přepínač Přehled!C8): 1 = GM1 do srpna 2026 (plán Adama) → scénář D performance 37,0 mil., MKT celkem 77,5 mil., PNO 12,0 %; 2 = GM1 od září 2026 (po přecenění: CZ −1,8 p.b., SK −4,3, zahraničí 0, KS −2,6; Model 2027 G217/G221/G225/G229) → performance 30,3 mil., MKT celkem 70,8 mil., PNO 9,8 %. MKT profit 1 v obou 155,7 mil. (cíl dle MP1 % 1–9/2026).
 
 ## Targito – rozúčtování (platí, odsouhlaseno 14. 10. 2026)
 Detail v `targito-rozuctovani.md`. Shrnutí: faktura 84 952 Kč/měs. (dodatek, limit 6 mil.) → **Slon + Kondomshop 62 992 (74,2 %), Flagranti 21 960 (25,8 %)**; uvnitř Slona dle objemu z faktury (KS ~4,6 %); nadlimit uvnitř faktury se nepřeúčtovává; služby dle řádků (Růžový slon / Safety First). Měsíční kontrola – kalendář 3. pracovní den v měsíci.
