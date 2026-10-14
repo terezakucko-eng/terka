@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, gte, inArray, isNull, lt } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, isNull, lt, or } from "drizzle-orm";
 import type { DB, Executor } from "@/db";
 import { entitlements, orders, products, users, type Entitlement, type Order, type Product } from "@/db/schema";
 import { dateKey, pragueLocalToDate } from "@/lib/dates";
@@ -261,6 +261,34 @@ export async function endFlexibleMembership(db: DB, userId: string, entitlementI
 }
 
 /**
+ * Places taken in memberships with a limited number (Členství Reformer):
+ * valid memberships of the product (switches from next month included) and
+ * orders still waiting for payment, by product id.
+ */
+export async function membershipPlacesTaken(db: Executor, productIds: string[], now = new Date()) {
+  const out = new Map<string, number>(productIds.map((id) => [id, 0]));
+  if (!productIds.length) return out;
+  const [ents, pending] = await Promise.all([
+    db
+      .select({ productId: entitlements.productId })
+      .from(entitlements)
+      .where(and(inArray(entitlements.productId, productIds), eq(entitlements.status, "active"), gt(entitlements.validUntil, now))),
+    db
+      .select({ productId: orders.productId })
+      .from(orders)
+      .where(and(inArray(orders.productId, productIds), eq(orders.status, "pending"), or(isNull(orders.expiresAt), gt(orders.expiresAt, now)))),
+  ]);
+  for (const r of [...ents, ...pending]) if (r.productId) out.set(r.productId, (out.get(r.productId) ?? 0) + 1);
+  return out;
+}
+
+/** A limited membership has no place left. */
+export async function membershipFull(db: Executor, p: Pick<Product, "id" | "maxActive">, now = new Date()) {
+  if (p.maxActive === null) return false;
+  return ((await membershipPlacesTaken(db, [p.id], now)).get(p.id) ?? 0) >= p.maxActive;
+}
+
+/**
  * Higher memberships a client can switch to by themselves (e.g. from
  * Členství to Členství Reformer, 4× Reformer a month included), keyed by
  * entitlement id. Commitment stays as it was: a membership with commitment
@@ -272,11 +300,23 @@ export async function membershipUpgrades(db: Executor, ents: Entitlement[], now 
   );
   const out = new Map<string, Product>();
   if (!mine.length) return out;
-  const offers = await db
+  const listed = await db
     .select()
     .from(products)
-    .where(and(eq(products.kind, "membership"), eq(products.isActive, true), isNull(products.archivedAt), eq(products.linkOnly, false), gt(products.includedPerMonth, 0)))
+    .where(
+      and(
+        eq(products.kind, "membership"),
+        eq(products.isActive, true),
+        isNull(products.archivedAt),
+        eq(products.linkOnly, false),
+        gt(products.includedPerMonth, 0),
+        // still sold (one sold from next year can be booked ahead – it starts then)
+        or(isNull(products.saleUntil), gt(products.saleUntil, now)),
+      ),
+    )
     .orderBy(asc(products.sortOrder), asc(products.price));
+  const taken = await membershipPlacesTaken(db, listed.flatMap((p) => (p.maxActive !== null ? [p.id] : [])), now);
+  const offers = listed.filter((p) => p.maxActive === null || (taken.get(p.id) ?? 0) < p.maxActive);
   if (!offers.length) return out;
   const ids = mine.flatMap((e) => (e.productId ? [e.productId] : []));
   const current = ids.length ? await db.select().from(products).where(inArray(products.id, ids)) : [];
@@ -289,9 +329,13 @@ export async function membershipUpgrades(db: Executor, ents: Entitlement[], now 
   return out;
 }
 
-/** The month a switch takes effect: the next one, or later when it is already paid at the old price. */
-export async function switchPeriod(db: Executor, userId: string, now = new Date()) {
+/**
+ * The month a switch takes effect: the next one, or later when it is already
+ * paid at the old price – and not before the new membership is on sale.
+ */
+export async function switchPeriod(db: Executor, userId: string, now = new Date(), offer?: Pick<Product, "saleFrom">) {
   let p = shiftPeriod(currentPeriod(now), 1);
+  if (offer?.saleFrom && offer.saleFrom > now) p = [p, currentPeriod(offer.saleFrom)].sort().at(-1)!;
   const paid = await db
     .select({ period: orders.period })
     .from(orders)
@@ -315,9 +359,11 @@ export async function switchMembership(db: DB, userId: string, entitlementId: st
       .where(and(eq(entitlements.id, entitlementId), eq(entitlements.userId, userId)))
       .for("update");
     if (!e) throw new UserError("Členství nenalezeno.");
+    // one place at a time for a limited membership
+    if (productId) await tx.select({ id: products.id }).from(products).where(eq(products.id, productId)).for("update");
     const offer = (await membershipUpgrades(tx, [e], now)).get(e.id);
-    if (!offer || offer.id !== productId) throw new UserError("Na tohle členství teď přejít nejde – napiš nám prosím.");
-    const period = await switchPeriod(tx, userId, now);
+    if (!offer || offer.id !== productId) throw new UserError("Na tohle členství teď přejít nejde – místa jsou možná obsazená. Napiš nám prosím.");
+    const period = await switchPeriod(tx, userId, now, offer);
     if (e.validUntil <= pragueLocalToDate(`${period}-01T00:00`)) throw new UserError("Členství končí dřív, než by změna začala platit.");
     await tx
       .update(entitlements)

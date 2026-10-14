@@ -49,6 +49,8 @@ export const defaultSettings = {
   voucherValidityDays: 365,
   /** Poukaz na částku: kolik kreditů za každých 100 Kč (110 = jako dobití kreditu 1 000 Kč → 1 100 kreditů) */
   voucherCreditsPer100Kc: 110,
+  /** Členství s lekcemi v ceně (Členství Reformer): na tyto lekce rezervuje o X týdnů dřív než ostatní členové */
+  includedPriorityWeeks: 1,
 };
 
 export type Settings = typeof defaultSettings;

@@ -10,13 +10,14 @@ import { VideoEmbed } from "@/components/video-embed";
 import { site } from "@/config/site";
 import { getDb } from "@/db";
 import { classTypes } from "@/db/schema";
-import { opensFor, bookingWindowFor } from "@/domain/booking";
+import { opensFor, viewerWindows } from "@/domain/booking";
 import { getCurrentUser } from "@/lib/auth";
 import { credits, formatPrice } from "@/lib/money";
 import { activeClassTypes, listSessions } from "@/lib/queries";
 import { jsonLd } from "@/lib/seo";
 import { splitKeywords } from "@/lib/keywords";
-import { formatShortDay } from "@/lib/dates";
+import { dateKey, formatShortDay } from "@/lib/dates";
+import { priceNoteOn } from "@/lib/price-list";
 import { getSettings } from "@/lib/settings";
 import { nbsp } from "@/lib/typography";
 
@@ -58,8 +59,8 @@ export default async function LessonPage({ params }: PageProps<"/lekce/[slug]">)
     activeClassTypes(db),
     getSettings(db),
   ]);
-  const myWindow = await bookingWindowFor(db, settings, user?.id ?? null, now);
-  const opens = (s: { startsAt: Date }) => opensFor(s, myWindow, settings, now);
+  const windows = await viewerWindows(db, settings, user?.id ?? null, now);
+  const opens = (s: { startsAt: Date; classTypeId: string }) => opensFor(s, windows.forSession(s), settings, now);
   const tags = splitKeywords(t.keywords);
   const url = `${site.url}/lekce/${t.slug}`;
 
@@ -118,6 +119,7 @@ export default async function LessonPage({ params }: PageProps<"/lekce/[slug]">)
               {t.level} · {t.durationMin} min · {credits(t.creditCost)}
               {t.dropInPrice !== null && ` · jednorázově ${formatPrice(t.dropInPrice)}`}
               {t.firstVisitPrice !== null && ` · první lekce${t.firstVisitNewOnly ? " pro nováčky" : ""} ${formatPrice(t.firstVisitPrice)}`}
+              {priceNoteOn(t, dateKey(now)) && <span className="mt-1 block font-semibold text-zeme">{priceNoteOn(t, dateKey(now))}</span>}
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <ButtonLink href={`/rozvrh?lekce=${t.slug}`} variant="gold">Termíny v rozvrhu</ButtonLink>

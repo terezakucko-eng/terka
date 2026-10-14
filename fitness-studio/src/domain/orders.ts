@@ -13,7 +13,9 @@ import {
   type Order,
 } from "@/db/schema";
 import { UserError } from "@/lib/errors";
-import { formatDay, formatTime } from "@/lib/dates";
+import { formatDate, formatDay, formatTime } from "@/lib/dates";
+import { onSale, saleStartsLater } from "@/lib/price-list";
+import { membershipFull } from "./membership-fees";
 import { occupancy } from "./booking";
 import { changeCredits } from "./wallet";
 import { rewardReferral } from "./referrals";
@@ -33,6 +35,10 @@ export async function createProductOrder(
     .from(products)
     .where(eq(products.id, input.productId));
   if (!p || !p.isActive) throw new UserError("Produkt není v nabídce.");
+  if (!onSale(p, now))
+    throw new UserError(saleStartsLater(p, now) ? `Tohle je z ceníku na další rok – v prodeji od ${formatDate(p.saleFrom!)}.` : "Tohle už není v prodeji.");
+  if (p.kind === "membership" && (await membershipFull(db, p, now)))
+    throw new UserError(`${p.name} má omezený počet míst a teď je obsazené. Napiš nám, dáme ti vědět, až se místo uvolní.`);
   if (p.kind === "membership" && p.commitmentMonths > 0 && input.commitmentAccepted === false)
     throw new UserError(`Před zaplacením prosím potvrď, že bereš na vědomí závazek na ${p.commitmentMonths} měsíců.`);
   // a member moves up in Můj účet (same membership, no new commitment) instead of buying a second one

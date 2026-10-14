@@ -8,6 +8,7 @@ import { credits, formatPrice } from "@/lib/money";
 import { getSettings } from "@/lib/settings";
 import { changeCredits, extendCreditValidity } from "./wallet";
 import { grantProduct } from "./grant";
+import { onSaleNow } from "@/lib/queries";
 
 const DAY = 86_400_000;
 
@@ -52,6 +53,7 @@ export function giftableProducts(db: Executor) {
         eq(products.membersOnly, false),
         inArray(products.kind, [...GIFT_KINDS]),
         gt(products.price, 0),
+        onSaleNow(),
       ),
     )
     .orderBy(asc(products.sortOrder), asc(products.price));

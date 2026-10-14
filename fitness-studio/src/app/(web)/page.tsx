@@ -17,7 +17,7 @@ import { formatPrice } from "@/lib/money";
 import { activeProducts, listSessions, publishedAnnouncements } from "@/lib/queries";
 import { nbsp } from "@/lib/typography";
 import { approvedReviews, reviewStats, reviewsLabel } from "@/domain/reviews";
-import { opensFor, bookingWindowFor } from "@/domain/booking";
+import { opensFor, viewerWindows } from "@/domain/booking";
 import { getSettings } from "@/lib/settings";
 import { Stars } from "@/components/stars";
 
@@ -36,8 +36,8 @@ export default async function Home() {
     reviewStats(db),
   ]);
   const cfg = await getSettings(db);
-  const myWindow = await bookingWindowFor(db, cfg, user?.id ?? null, now);
-  const opens = (s: { startsAt: Date }) => opensFor(s, myWindow, cfg, now);
+  const windows = await viewerWindows(db, cfg, user?.id ?? null, now);
+  const opens = (s: { startsAt: Date; classTypeId: string }) => opensFor(s, windows.forSession(s), cfg, now);
   const cheapest = productList.find((p) => p.kind === "membership");
   const values = Array.from({ length: 8 }, (_, i) => ({
     title: c(`homeCharacter.v${i + 1}Title`),

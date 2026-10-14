@@ -32,6 +32,7 @@ const fields: { key: keyof Settings; label: string; hint: string; section?: stri
   { key: "memberPauseDays", label: "Členové – délka pauzy v přihlašování (dní)", hint: "" },
   { key: "membershipMonthlyFee", label: "Členský příspěvek měsíčně (Kč)", hint: "Individuální částku nastavíš u člena. 0 = automatické výzvy vypnuté." },
   { key: "membershipFeeNoticeDay", label: "Výzva k platbě za další měsíc – den v měsíci", hint: "20 = výzva za listopad odejde 20. října. 1–28." },
+  { key: "includedPriorityWeeks", label: "Členství Reformer – přednostní rezervace (týdnů navíc)", hint: "Na lekce, které mají v ceně, rezervují o tolik týdnů dřív než ostatní členové. 0 = vypnuto." },
   { key: "birthdayGreetings", label: "Přání k narozeninám a svátku", hint: "1 = posílat (e-mail a upozornění v mobilu dopoledne v den oslavy), 0 = vypnuto.", section: "Přání a dárky" },
   { key: "birthdayGiftEntries", label: "Dárek k narozeninám – lekcí zdarma", hint: "0 = jen přání." },
   { key: "birthdayGiftValidityDays", label: "Platnost dárku k narozeninám (dní)", hint: "" },

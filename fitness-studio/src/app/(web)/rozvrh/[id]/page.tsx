@@ -12,7 +12,8 @@ import { VideoEmbed } from "@/components/video-embed";
 import { Badge, ButtonLink, Card, Container, Eyebrow, cx } from "@/components/ui";
 import { memberSurchargeFor, membershipIncluding, passSurchargeFor, sessionForUser, stateMessage } from "@/domain/booking";
 import { getCurrentUser } from "@/lib/auth";
-import { formatDay, formatOpens, formatRange } from "@/lib/dates";
+import { dateKey, formatDay, formatOpens, formatRange } from "@/lib/dates";
+import { priceNoteOn } from "@/lib/price-list";
 
 /** "5. 10." already ends the sentence, "5. 10. v 18:00" needs its full stop */
 const endSentence = (s: string) => (s.endsWith(".") ? s : `${s}.`);
@@ -47,7 +48,7 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
   const left = Math.max(0, s.capacity - view.occupied);
   const surcharge = s.isFree ? 0 : memberSurchargeFor(ct, s);
   const passSurcharge = s.isFree || ct.noPass ? 0 : passSurchargeFor(ct);
-  const tier = surcharge > 0 ? await membershipIncluding(db, ct.id) : null;
+  const tier = surcharge > 0 ? await membershipIncluding(db, ct.id, s.startsAt) : null;
   // "S Členstvím Reformer máš 4 měsíčně bez doplatku."
   const tierNote = tier && <> {tier.name} má {tier.perMonth}× měsíčně v ceně bez doplatku.</>;
 
@@ -103,6 +104,7 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
               <div><dt className="eyebrow text-papir/50">Vstup</dt><dd className="mt-1 font-semibold">{s.isFree ? "—" : s.dropInPrice !== null ? formatPrice(s.dropInPrice) : "—"}</dd></div>
               <div><dt className="eyebrow text-papir/50">Místa</dt><dd className="mt-1 font-semibold">{s.status === "cancelled" ? "—" : availabilityText(left, s.capacity)}</dd></div>
             </dl>
+            {!s.isFree && priceNoteOn(ct, dateKey(s.startsAt)) && <p className="mt-3 text-sm font-semibold text-zlato-light">{priceNoteOn(ct, dateKey(s.startsAt))}</p>}
           </div>
 
           <Card className="self-start border-zlato/30 bg-papir text-les">

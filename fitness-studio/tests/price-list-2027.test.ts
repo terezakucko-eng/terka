@@ -1,0 +1,124 @@
+import { and, eq } from "drizzle-orm";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { bookings, classTypes, entitlements, products, type Product } from "@/db/schema";
+import { bookSession, cancelBooking, joinWaitlist, priorityWindow, viewerWindows, windowOf } from "@/domain/booking";
+import { membershipUpgrades, switchMembership, switchPeriod } from "@/domain/membership-fees";
+import { createProductOrder, fulfillOrder } from "@/domain/orders";
+import { grantEntitlement } from "@/domain/users";
+import { pragueLocalToDate } from "@/lib/dates";
+import { onSale, priceListYears, productsForYear, surchargeOn, surchargeSteps, yearStart } from "@/lib/price-list";
+import { getSettings } from "@/lib/settings";
+import { NOW, makeProduct, makeSession, makeUser, testDb } from "./helpers";
+
+let h: Awaited<ReturnType<typeof testDb>>;
+beforeAll(async () => {
+  h = await testDb();
+});
+afterAll(async () => h.close());
+
+const JAN = pragueLocalToDate("2027-01-01T00:00");
+const p = (over: Partial<Product>) => ({ isActive: true, saleFrom: null, saleUntil: null, ...over }) as Product;
+
+describe("price lists by year", () => {
+  it("sells a product only within its dates and shows next year's list once it's set", () => {
+    const y2026 = p({ name: "Členství 2026", saleUntil: JAN });
+    const y2027 = p({ name: "Členství 2027", saleFrom: JAN });
+    const always = p({ name: "Permanentka 10" });
+    expect([onSale(y2026, NOW), onSale(y2027, NOW), onSale(always, NOW)]).toEqual([true, false, true]);
+    expect([onSale(y2026, JAN), onSale(y2027, JAN)]).toEqual([false, true]);
+
+    expect(priceListYears([always], [], NOW)).toEqual([2026]);
+    expect(priceListYears([always, y2027], [], NOW)).toEqual([2026, 2027]);
+    expect(priceListYears([always], [{ memberSurchargeNextFrom: "2027-01-01" }], NOW)).toEqual([2026, 2027]);
+    expect(productsForYear([y2026, y2027, always], 2026, NOW).map((x) => x.name)).toEqual(["Členství 2026", "Permanentka 10"]);
+    expect(productsForYear([y2026, y2027, always], 2027, NOW).map((x) => x.name)).toEqual(["Členství 2027", "Permanentka 10"]);
+    // from 1 January the 2027 list is the current one
+    expect(priceListYears([y2026, y2027, always], [], JAN)).toEqual([2027]);
+    expect(productsForYear([y2026, y2027, always], 2027, JAN).map((x) => x.name)).toEqual(["Členství 2027", "Permanentka 10"]);
+  });
+
+  it("members' surcharge: introductory 2026 price, the 2027 one from 1 January", () => {
+    const reformer = { memberSurcharge: 10000, memberSurchargeFrom: "2026-11-01", memberSurchargeNext: 25000, memberSurchargeNextFrom: "2027-01-01" };
+    expect([surchargeOn(reformer, "2026-10-20"), surchargeOn(reformer, "2026-11-02"), surchargeOn(reformer, "2027-01-05")]).toEqual([0, 10000, 25000]);
+    expect(surchargeSteps(reformer, NOW, JAN)).toEqual([{ amount: 10000, from: "2026-11-01" }]);
+    expect(surchargeSteps(reformer, JAN, yearStart(2028))).toEqual([{ amount: 25000, from: null }]);
+  });
+
+  it("won't sell next year's product before it starts, nor last year's after it ended", async () => {
+    const u = await makeUser(h.db);
+    const next = await makeProduct(h.db, { kind: "pass", entries: 10, saleFrom: JAN });
+    const old = await makeProduct(h.db, { kind: "pass", entries: 10, saleUntil: NOW });
+    await expect(createProductOrder(h.db, { userId: u.id, productId: next.id }, NOW)).rejects.toThrow("v prodeji od 1. 1. 2027");
+    await expect(createProductOrder(h.db, { userId: u.id, productId: old.id }, NOW)).rejects.toThrow("už není v prodeji");
+    await expect(createProductOrder(h.db, { userId: u.id, productId: next.id }, JAN)).resolves.toBeTruthy();
+  });
+});
+
+describe("Členství Reformer 2027", () => {
+  it("has a limited number of places – buying and switching stop when they're taken", async () => {
+    const s = await makeSession(h.db);
+    const tier = await makeProduct(h.db, { kind: "membership", price: 250000, validityDays: 365, includedClassTypeId: s.classTypeId, includedPerMonth: 6, maxActive: 2, sortOrder: -100 });
+    const basic = await makeProduct(h.db, { kind: "membership", price: 140000, validityDays: 365 });
+    const buy = async (productId: string) => {
+      const u = await makeUser(h.db);
+      const { order } = await createProductOrder(h.db, { userId: u.id, productId, commitmentAccepted: true }, NOW);
+      await fulfillOrder(h.db, { orderId: order.id, provider: "test" }, NOW);
+      return u;
+    };
+    await buy(tier.id);
+    const member = await buy(basic.id);
+    const [e] = await h.db.select().from(entitlements).where(eq(entitlements.userId, member.id));
+    expect((await membershipUpgrades(h.db, [e], NOW)).get(e.id)?.id).toBe(tier.id);
+    await switchMembership(h.db, member.id, e.id, tier.id, NOW); // the 2nd and last place
+
+    const late = await makeUser(h.db);
+    await expect(createProductOrder(h.db, { userId: late.id, productId: tier.id, commitmentAccepted: true }, NOW)).rejects.toThrow("omezený počet míst");
+    const other = await buy(basic.id);
+    const [e2] = await h.db.select().from(entitlements).where(eq(entitlements.userId, other.id));
+    expect(await membershipUpgrades(h.db, [e2], NOW)).toEqual(new Map());
+    await expect(switchMembership(h.db, other.id, e2.id, tier.id, NOW)).rejects.toThrow("obsazená");
+    await h.db.update(products).set({ isActive: false }).where(eq(products.id, tier.id));
+  });
+
+  it("can be booked ahead from 2026 and starts on 1 January", async () => {
+    const s = await makeSession(h.db);
+    const tier = await makeProduct(h.db, { kind: "membership", price: 250000, validityDays: 365, includedClassTypeId: s.classTypeId, includedPerMonth: 6, saleFrom: JAN, sortOrder: -200 });
+    const u = await makeUser(h.db);
+    const e = await grantEntitlement(h.db, { userId: u.id, kind: "membership", name: "Členství 2026", entries: null, validityDays: 365 }, NOW);
+    expect(await switchPeriod(h.db, u.id, NOW, tier)).toBe("2027-01");
+    const done = await switchMembership(h.db, u.id, e.id, tier.id, NOW);
+    expect(done.period).toBe("2027-01");
+    await h.db.update(products).set({ isActive: false }).where(eq(products.id, tier.id));
+  });
+
+  it("books its class a week before other members and goes first on the waitlist", async () => {
+    const cfg = await getSettings(h.db);
+    expect(priorityWindow(cfg)).toEqual({ kind: "weeks", n: windowOf(cfg, true).n + 1 });
+    // Wednesday 28 Oct: members (this week + 2) can't book it on Monday 5 Oct yet, the Reformer membership can
+    const later = await makeSession(h.db, { capacity: 6, startsAt: pragueLocalToDate("2026-10-28T17:00") });
+    const classTypeId = later.classTypeId;
+    await h.db.update(classTypes).set({ memberSurcharge: 25000 }).where(eq(classTypes.id, classTypeId));
+    const member = await makeUser(h.db);
+    const m = await grantEntitlement(h.db, { userId: member.id, kind: "membership", name: "Členství", entries: null, validityDays: 365 }, NOW);
+    const reformerMember = await makeUser(h.db);
+    const r = await grantEntitlement(h.db, { userId: reformerMember.id, kind: "membership", name: "Členství Reformer", entries: null, validityDays: 365 }, NOW);
+    await h.db.update(entitlements).set({ includedClassTypeId: classTypeId, includedPerMonth: 6 }).where(eq(entitlements.id, r.id));
+
+    expect((await viewerWindows(h.db, cfg, reformerMember.id, NOW)).forSession(later)).toEqual(priorityWindow(cfg));
+    expect((await viewerWindows(h.db, cfg, member.id, NOW)).forSession(later)).toEqual(windowOf(cfg, true));
+    await expect(bookSession(h.db, { userId: member.id, sessionId: later.id, method: "membership", entitlementId: m.id }, NOW)).rejects.toThrow("ještě nejsou otevřené");
+    const { booking } = await bookSession(h.db, { userId: reformerMember.id, sessionId: later.id, method: "membership", entitlementId: r.id }, NOW);
+    expect(booking.status).toBe("confirmed");
+
+    // a full class this week: the member joined the waitlist first, the Reformer membership still goes first
+    const full = await makeSession(h.db, { classTypeId, capacity: 1, startsAt: pragueLocalToDate("2026-10-07T17:00") });
+    const holder = await makeUser(h.db, 1000);
+    const { booking: held } = await bookSession(h.db, { userId: holder.id, sessionId: full.id, method: "credits" }, NOW);
+    await joinWaitlist(h.db, { userId: member.id, sessionId: full.id }, NOW);
+    await joinWaitlist(h.db, { userId: reformerMember.id, sessionId: full.id }, NOW);
+    const { promoted } = await cancelBooking(h.db, { bookingId: held.id, actorId: holder.id }, NOW);
+    expect(promoted.map((b) => b.userId)).toEqual([reformerMember.id]);
+    const [mine] = await h.db.select().from(bookings).where(and(eq(bookings.sessionId, full.id), eq(bookings.userId, reformerMember.id)));
+    expect(mine).toMatchObject({ status: "confirmed", surcharge: 0 });
+  });
+});

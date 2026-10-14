@@ -355,7 +355,7 @@ Napiš sem, jak studio vzniklo a co pro tebe pohyb znamená.
         "Po registraci ti ji připíšeme na účet, platí {{platnost_zdarma}} dní. Sleduj také lekce označené „Zdarma“ v rozvrhu.",
       ),
       membershipTitle: t("Členství – nadpis", "Členství"),
-      membershipText: ta("Členství – text", "Pro ty, kdo chodí pravidelně – nejvýhodnější cena za lekci. Platí se měsíčně – se závazkem na 12 měsíců výhodněji, nebo bez závazku. Členství Reformer má navíc Reformery v ceně."),
+      membershipText: ta("Členství – text", "Pro ty, kdo chodí pravidelně – nejvýhodnější cena za lekci. Platí se měsíčně – se závazkem na 12 měsíců výhodněji, nebo bez závazku."),
       passTitle: t("Permanentky – nadpis", "Permanentky"),
       passText: ta("Permanentky – text", "Balíček vstupů na lekce s platností. Běžná lekce = 1 vstup, u některých lekcí se strhne víc vstupů – vždy to najdeš u lekce."),
       creditTitle: t("Kredit – nadpis", "Kredit"),
@@ -418,8 +418,9 @@ Napiš sem, jak studio vzniklo a co pro tebe pohyb znamená.
 - Závazek na 12 měsíců klient potvrzuje při nákupu členství (zaškrtnutím souhlasu na webu nebo podpisem na recepci).
 - Členství se závazkem nelze během 12 měsíců jednostranně zrušit. Předčasné ukončení je možné jen po dohodě se studiem.
 - Členství bez závazku se platí měsíčně ve výši uvedené v ceníku. Klient ho může kdykoli ukončit v Můj účet (nebo na recepci) ke konci posledního zaplaceného měsíce; zaplacené měsíce se nevracejí.
-- Členství s lekcemi v ceně (např. Členství Reformer) zahrnuje uvedený počet lekcí daného typu za kalendářní měsíc bez doplatku. Nevyčerpané lekce se do dalšího měsíce nepřevádějí; lekce zrušená později než {{storno_hodin}} hodin předem se počítá jako vyčerpaná.
-- Na členství s lekcemi v ceně lze přejít v Můj účet od následujícího nezaplaceného měsíce. Doba závazku se tím nemění.
+- Členství s lekcemi v ceně (např. Členství Reformer) zahrnuje uvedený počet lekcí daného typu za kalendářní měsíc bez doplatku a přednostní rezervaci těchto lekcí. Nevyčerpané lekce se do dalšího měsíce nepřevádějí; lekce zrušená později než {{storno_hodin}} hodin předem se počítá jako vyčerpaná. Počet těchto členství může být omezený.
+- Na členství s lekcemi v ceně lze přejít v Můj účet od následujícího nezaplaceného měsíce, nejdříve ode dne, kdy je v prodeji. Doba závazku se tím nemění.
+- Ceny lekcí a doplatků se řídí ceníkem platným v den lekce – i u členství a permanentek koupených dříve. Zaváděcí ceny platí do data uvedeného v ceníku.
 - Členství v účtu klienta spravuje studio – o změnu požádej na recepci.
 
 ## 5. Platby

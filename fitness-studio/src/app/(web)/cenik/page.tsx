@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
 import { getDb } from "@/db";
 import { ProductCard } from "@/components/product-card";
-import { ButtonLink, Container, Eyebrow, PageHeader } from "@/components/ui";
+import { ButtonLink, Container, Eyebrow, PageHeader, cx } from "@/components/ui";
 import type { Product } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { credits, entriesLabel, formatPrice } from "@/lib/money";
-import { activeClassTypes, activeProducts } from "@/lib/queries";
+import { activeClassTypes, priceListProducts } from "@/lib/queries";
+import Link from "next/link";
+import { membershipPlacesTaken } from "@/domain/membership-fees";
+import { dateKey } from "@/lib/dates";
+import { dayLabel, onSale, priceListStart, priceListYears, priceNoteOn, productsForYear, saleStartsLater, surchargeSteps, yearStart } from "@/lib/price-list";
 import { getSettings } from "@/lib/settings";
 import { getContent, type Content } from "@/content";
 import { nbsp } from "@/lib/typography";
@@ -25,15 +29,27 @@ const groups = (c: Content): { kind: Product["kind"]; title: string; text: strin
 ];
 const nth = (i: number) => String(i + 1).padStart(2, "0");
 
-export default async function PricingPage() {
+export default async function PricingPage({ searchParams }: PageProps<"/cenik">) {
+  const { rok } = await searchParams;
   const db = await getDb();
-  const [list, types, user, cfg, c] = await Promise.all([
-    activeProducts(db),
+  const now = new Date();
+  const [all, types, user, cfg, c] = await Promise.all([
+    priceListProducts(db),
     activeClassTypes(db),
     getCurrentUser(),
     getSettings(db),
     getContent(),
   ]);
+  // this year's price list, and next year's once it's set (a tab; it applies from 1 January)
+  const years = priceListYears(all, types, now);
+  const year = years.find((y) => String(y) === rok) ?? years[0];
+  const later = year !== years[0];
+  const list = productsForYear(all, year, now);
+  const from = priceListStart(year, now);
+  const day = dateKey(from);
+  const limited = list.filter((p) => p.maxActive !== null);
+  const taken = await membershipPlacesTaken(db, limited.map((p) => p.id), now);
+  const placesLeft = (p: (typeof list)[number]) => (p.maxActive === null ? null : Math.max(0, p.maxActive - (taken.get(p.id) ?? 0)));
 
   const hasPass = list.some((p) => p.kind === "pass");
   const multi = types.filter((t) => !t.noPass && (t.passEntries > 1 || !!t.passSurcharge));
@@ -83,6 +99,31 @@ export default async function PricingPage() {
         {c("pricing.intro")}
       </PageHeader>
 
+      {years.length > 1 && (
+        <Container className="pt-8">
+          <nav className="flex flex-wrap gap-2" aria-label="Ceník podle roku">
+            {years.map((y) => (
+              <Link
+                key={y}
+                href={y === years[0] ? "/cenik" : `/cenik?rok=${y}`}
+                aria-current={y === year ? "page" : undefined}
+                className={cx(
+                  "rounded-full border px-5 py-2 text-sm font-semibold transition",
+                  y === year ? "border-les bg-les text-papir" : "border-linka hover:border-les",
+                )}
+              >
+                Ceník {y}
+              </Link>
+            ))}
+          </nav>
+          <p className="mt-3 max-w-2xl text-sm text-les/70">
+            {later
+              ? `Platí od ${dayLabel(day)} – i pro členství a permanentky koupené dřív (doplatky k lekcím se řídí ceníkem platným v den lekce). Položky z tohoto ceníku jsou v prodeji od ${dayLabel(day)}.`
+              : `Ceny platí do 31. 12. ${year}. Od 1. 1. ${year + 1} platí ceník ${year + 1}.`}
+          </p>
+        </Container>
+      )}
+
       {cfg.welcomeFreeEntries > 0 && (
         <section className="bg-forest text-papir">
           <Container className="flex flex-col items-start justify-between gap-6 py-10 md:flex-row md:items-center">
@@ -113,11 +154,14 @@ export default async function PricingPage() {
                     key={p.id}
                     p={p}
                     loggedIn={!!user}
-                    next="/cenik"
+                    next={later ? `/cenik?rok=${year}` : "/cenik"}
                     passNotes={passNotes}
                     passExclusions={passExclusions}
                     creditNotes={creditNotes}
                     includedClass={types.find((t) => t.id === p.includedClassTypeId)?.name}
+                    priorityWeeks={cfg.includedPriorityWeeks}
+                    placesLeft={placesLeft(p)}
+                    saleNote={!onSale(p, now) && saleStartsLater(p, now) ? `V prodeji od ${dayLabel(dateKey(p.saleFrom!))}` : undefined}
                   />
                 ))}
               </div>
@@ -149,12 +193,13 @@ export default async function PricingPage() {
                   {t.duoPrice !== null && t.capacity > 2 && (
                     <span className="block text-xs">s kamarádkou {formatPrice(t.duoPrice)} za obě</span>
                   )}
-                  {!!t.memberSurcharge && (
-                    <span className="block text-xs">
-                      členové doplácí {formatPrice(t.memberSurcharge)}
-                      {t.memberSurchargeFrom && ` od ${t.memberSurchargeFrom.split("-").reverse().map(Number).join(". ")}`}
+                  {surchargeSteps(t, from, yearStart(year + 1)).map((step) => (
+                    <span key={step.from ?? "now"} className="block text-xs">
+                      členové doplácí {formatPrice(step.amount)}
+                      {step.from && ` od ${dayLabel(step.from)}`}
                     </span>
-                  )}
+                  ))}
+                  {priceNoteOn(t, day) && <span className="block text-xs font-semibold text-zeme">{priceNoteOn(t, day)}</span>}
                   {list
                     .filter((p) => p.kind === "membership" && p.includedClassTypeId === t.id && p.includedPerMonth > 0 && p.commitmentMonths > 0)
                     .slice(0, 1)

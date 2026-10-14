@@ -229,6 +229,12 @@ export const classTypes = pgTable("class_types", {
   memberSurcharge: integer("member_surcharge"),
   /** Od kterého dne se doplatek účtuje ("YYYY-MM-DD"); null = hned */
   memberSurchargeFrom: text("member_surcharge_from"),
+  /** Další výše doplatku pro členy (haléře) – platí od `memberSurchargeNextFrom` (nový ceník, např. 2027) */
+  memberSurchargeNext: integer("member_surcharge_next"),
+  memberSurchargeNextFrom: text("member_surcharge_next_from"),
+  /** Poznámka k ceně, např. „Zaváděcí cena pro rok 2026“ – ukazuje se u lekcí před `priceNoteUntil` ("YYYY-MM-DD") */
+  priceNote: text("price_note").notNull().default(""),
+  priceNoteUntil: text("price_note_until"),
   /** Doplatek k permanentce za místo (haléře) – strhne se vstup a doplácí se; null = bez doplatku */
   passSurcharge: integer("pass_surcharge"),
   /** Úvodní vstup zdarma na tuto lekci nejde použít */
@@ -310,6 +316,11 @@ export const products = pgTable("products", {
   includedClassTypeId: uuid("included_class_type_id").references((): AnyPgColumn => classTypes.id, { onDelete: "set null" }),
   /** …a kolik jich je v ceně za kalendářní měsíc; 0 = žádné */
   includedPerMonth: integer("included_per_month").notNull().default(0),
+  /** Prodává se od / do (ceník na další rok); null = bez omezení */
+  saleFrom: timestamp("sale_from", { withTimezone: true }),
+  saleUntil: timestamp("sale_until", { withTimezone: true }),
+  /** membership: nejvýš tolik platných členství najednou (omezený počet míst); null = bez limitu */
+  maxActive: integer("max_active"),
   /** massage_pass: na kterou masáž; null = na kteroukoli */
   massageServiceId: uuid("massage_service_id").references((): AnyPgColumn => massageServices.id),
   sortOrder: integer("sort_order").notNull().default(0),

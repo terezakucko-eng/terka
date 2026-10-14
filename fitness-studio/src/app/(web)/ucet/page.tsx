@@ -9,7 +9,7 @@ import { Badge, ButtonLink, Card, Empty, Eyebrow, Input } from "@/components/ui"
 import { getDb } from "@/db";
 import { userBookings, userEntitlements } from "@/lib/account";
 import { requireUser } from "@/lib/auth";
-import { formatDate, formatDay, formatRange, formatTime } from "@/lib/dates";
+import { formatDate, formatDay, formatRange, formatTime, pragueLocalToDate } from "@/lib/dates";
 import { credits, formatPrice } from "@/lib/money";
 import { SurchargePay } from "@/components/surcharge-pay";
 import { flexibleMemberships, membershipUpgrades, openFees, periodStartLabel, switchPeriod } from "@/domain/membership-fees";
@@ -75,7 +75,17 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
     includedSummary(db, ents),
   ]);
   // a switch to a higher membership (e.g. Členství Reformer) starts with the next unpaid month
-  const switchFrom = upgrades.size ? periodStartLabel(await switchPeriod(db, user.id)) : null;
+  const switchPeriods = new Map(
+    await Promise.all(
+      [...new Map([...upgrades.values()].map((p) => [p.id, p])).values()].map(async (p) => [p.id, await switchPeriod(db, user.id, undefined, p)] as const),
+    ),
+  );
+  const switchFrom = new Map([...switchPeriods].map(([id, period]) => [id, periodStartLabel(period)]));
+  // a membership ending before the switch would start can't move up (it's renewed instead)
+  const canSwitch = (e: (typeof ents)[number]) => {
+    const offer = upgrades.get(e.id);
+    return !!offer && e.validUntil > pragueLocalToDate(`${switchPeriods.get(offer.id)}-01T00:00`);
+  };
   const offerClasses = upgrades.size
     ? await db
         .select({ id: classTypes.id, name: classTypes.name })
@@ -194,7 +204,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
                       <SubmitButton variant="ghost" className="px-3 py-2 text-[0.65rem]">Ukončit ke konci měsíce</SubmitButton>
                     </ActionForm>
                   )}
-                  {upgrades.has(e.id) && (() => {
+                  {canSwitch(e) && (() => {
                     const offer = upgrades.get(e.id)!;
                     const cls = offerClasses.find((c) => c.id === offer.includedClassTypeId)?.name ?? "lekce";
                     return (
@@ -203,7 +213,9 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
                           Chceš {cls} v ceně? Přejdi na {offer.name}
                         </summary>
                         <p className="mt-2 text-les/70">
-                          {offer.includedPerMonth}× {cls} měsíčně bez doplatku a všechno, co máš teď. Od {switchFrom} platíš {formatPrice(offer.price)}{" "}
+                          {offer.includedPerMonth}× {cls} měsíčně bez doplatku
+                          {cfg.includedPriorityWeeks > 0 && `, přednostní rezervace na ${cls}`} a všechno, co máš teď.
+                          {offer.maxActive !== null && " Počet míst je omezený."} Od {switchFrom.get(offer.id)} platíš {formatPrice(offer.price)}{" "}
                           měsíčně, {offer.commitmentMonths > 0 ? "závazek se nemění – platí do stejného data jako dosud." : "dál bez závazku."}
                         </p>
                         <ActionForm action={switchMembershipAction} className="mt-3 space-y-3">
@@ -212,7 +224,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
                           <label className="flex gap-3 text-xs text-les/70">
                             <input type="checkbox" name="agree" required className="mt-0.5 size-4 shrink-0 accent-[#c9a26b]" />
                             <span>
-                              Chci od {switchFrom} {offer.name} za {formatPrice(offer.price)} měsíčně a souhlasím s{"\u00a0"}
+                              Chci od {switchFrom.get(offer.id)} {offer.name} za {formatPrice(offer.price)} měsíčně a souhlasím s{"\u00a0"}
                               <Link href="/obchodni-podminky" target="_blank" className="underline">obchodními podmínkami</Link>.
                             </span>
                           </label>
