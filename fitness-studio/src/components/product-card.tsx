@@ -107,7 +107,7 @@ export function ProductCard({
                     {p.maxActive !== null && placesLeft !== null && (
                       <p className={cx("mt-3 text-sm font-semibold", p.highlight ? "text-zlato-light" : "text-zeme")}>
                         {placesLeft > 0
-                          ? `Omezený počet: ${placesLeft === 1 ? "zbývá 1 místo" : placesLeft < 5 ? `zbývají ${placesLeft} místa` : `zbývá ${placesLeft} míst`} z ${p.maxActive}`
+                          ? `Omezený počet: ${placesLeft} ${placesLeft === 1 ? "volné místo" : placesLeft < 5 ? "volná místa" : "volných míst"} (celkem ${p.maxActive})`
                           : "Teď obsazeno"}
                       </p>
                     )}

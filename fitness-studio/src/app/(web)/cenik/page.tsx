@@ -100,7 +100,7 @@ export default async function PricingPage({ searchParams }: PageProps<"/cenik">)
       </PageHeader>
 
       {years.length > 1 && (
-        <Container className="pt-8">
+        <Container className="pb-10 pt-8">
           <nav className="flex flex-wrap gap-2" aria-label="Ceník podle roku">
             {years.map((y) => (
               <Link
@@ -219,7 +219,7 @@ export default async function PricingPage({ searchParams }: PageProps<"/cenik">)
             <p className="text-2xl font-semibold">🎁 Hledáš dárek?</p>
             <p className="mt-1 text-les/70">Daruj pohyb – dárkový poukaz na permanentku, kredit, masáž nebo libovolnou částku. PDF k vytištění hned po zaplacení.</p>
           </div>
-          <ButtonLink href="/poukazy" variant="gold">Dárkové poukazy</ButtonLink>
+          <ButtonLink href="/poukazy" variant="gold" className="shrink-0 whitespace-nowrap text-center">Dárkové poukazy</ButtonLink>
         </section>
 
         <section className="grid gap-6 rounded-2xl bg-krem/50 p-8 text-sm text-les/80 md:grid-cols-3">
