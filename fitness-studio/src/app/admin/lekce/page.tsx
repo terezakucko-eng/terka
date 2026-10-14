@@ -31,6 +31,9 @@ function ClassTypeForm({ t }: { t?: ClassType }) {
         <Field label="Cena v kreditech"><Input name="creditCost" type="number" min={0} defaultValue={t?.creditCost ?? 1} /></Field>
         <Field label="Jednorázový vstup (Kč)" hint="Prázdné = nelze koupit jednorázově"><Input name="dropInPrice" inputMode="decimal" defaultValue={kc(t?.dropInPrice)} /></Field>
         <Field label="Pořadí"><Input name="sortOrder" type="number" defaultValue={t?.sortOrder ?? 0} /></Field>
+        <Field label="Storno zdarma (hodin před lekcí)" hint="Prázdné = podle Nastavení. Reformer, brunch = 24">
+          <Input name="cancellationHours" type="number" min={0} defaultValue={t?.cancellationHours ?? ""} />
+        </Field>
       </div>
       <fieldset className="rounded-xl border border-linka/60 p-4">
         <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-les/70">Zvláštní ceny</legend>

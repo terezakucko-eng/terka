@@ -1,8 +1,9 @@
 import "server-only";
-import { windowOf, type BookingWindow } from "@/domain/booking";
+import { stornoExceptions, windowOf, type BookingWindow } from "@/domain/booking";
 import { cache } from "react";
 import { getDb } from "@/db";
-import { content } from "@/db/schema";
+import { classTypes, content } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { getSettings } from "@/lib/settings";
 import { SECTIONS, fieldDef, type ContentKey, type SectionDef, type SectionId } from "./definitions";
 import { nbsp } from "@/lib/typography";
@@ -17,11 +18,16 @@ export function fillPlaceholders(text: string, vars: Record<string, string>) {
  */
 export const getContent = cache(async () => {
   const db = await getDb();
-  const [rows, cfg] = await Promise.all([db.select().from(content), getSettings(db)]);
+  const [rows, cfg, types] = await Promise.all([
+    db.select().from(content),
+    getSettings(db),
+    db.select({ name: classTypes.name, cancellationHours: classTypes.cancellationHours }).from(classTypes).where(eq(classTypes.isActive, true)),
+  ]);
   const saved = new Map(rows.map((r) => [r.key, r.value]));
   const raw = (key: string) => saved.get(key) ?? fieldDef(key)?.default ?? "";
   const vars: Record<string, string> = {
     storno_hodin: String(cfg.cancellationHours),
+    storno_vyjimky: stornoExceptions(types, cfg.cancellationHours),
     prohresky: String(cfg.memberStrikeLimit),
     prohresky_dni: String(cfg.memberStrikeWindowDays),
     pauza_dni: String(cfg.memberPauseDays),

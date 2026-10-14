@@ -172,7 +172,7 @@ export const EMAILS = {
     title: "Členství – varování před pauzou",
     when: "Když se člen po pozdním odhlášení nebo nepříchodu dostane jeden prohřešek před pauzu (Nastavení).",
     subject: "Pozor na pozdní odhlašování",
-    body: "Ahoj {{osloveni}},\n\nza posledních {{dni}} dní máš {{pocet}}× pozdní odhlášení nebo nepříchod na lekci. Místo, které zůstane prázdné, by jinak mohl využít někdo z pořadníku.\n\nPři {{limit}}. prohřešku se na {{pauza_dni}} dní pozastaví přihlašování na lekce. Když nemůžeš dorazit, odhlas se prosím včas – nejpozději {{storno_hodin}} h před lekcí.\n\nDíky za pochopení!",
+    body: "Ahoj {{osloveni}},\n\nza posledních {{dni}} dní máš {{pocet}}× pozdní odhlášení nebo nepříchod na lekci. Místo, které zůstane prázdné, by jinak mohl využít někdo z pořadníku.\n\nPři {{limit}}. prohřešku se na {{pauza_dni}} dní pozastaví přihlašování na lekce. Když nemůžeš dorazit, odhlas se prosím včas – nejpozději {{storno_hodin}} h před lekcí{{storno_vyjimky}}.\n\nDíky za pochopení!",
     vars: {
       osloveni,
       pocet: { label: "počet prohřešků", sample: "2" },
@@ -294,6 +294,7 @@ export const COMMON_VARS: Record<string, string> = {
   telefon: "telefon studia",
   adresa: "adresa studia",
   storno_hodin: "storno zdarma (hodin před lekcí)",
+  storno_vyjimky: "lekce s jinou lhůtou pro storno, např. „ (u lekcí Reformer fusion a Fitness brunch 24 h)“",
 };
 
 /** Saved texts (subject/body) per e-mail; missing = default. */

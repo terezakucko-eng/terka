@@ -163,8 +163,8 @@ function BookingPanel({
               <input type="hidden" name="bookingId" value={b.id} />
               <p className="mb-3 text-sm text-les/70">
                 {view.lateCancel
-                  ? `Do lekce zbývá méně než ${view.cfg.cancellationHours} h – při zrušení vstup propadá.`
-                  : `Zrušit můžeš zdarma do ${view.cfg.cancellationHours} h před začátkem.`}
+                  ? `Do lekce zbývá méně než ${view.cancellationHours} h – při zrušení vstup propadá.`
+                  : `Zrušit můžeš zdarma do ${view.cancellationHours} h před začátkem.`}
               </p>
               <SubmitButton variant="danger">Zrušit rezervaci</SubmitButton>
             </ActionForm>
@@ -316,7 +316,7 @@ function BookingPanel({
       <SubmitButton variant="gold" className="mt-6 w-full" disabled={!firstEnabled} pendingText="Rezervuji…">
         Rezervovat
       </SubmitButton>
-      <p className="mt-3 text-center text-xs text-les/50">Storno zdarma do {view.cfg.cancellationHours} h před lekcí.</p>
+      <p className="mt-3 text-center text-xs text-les/50">Storno zdarma do {view.cancellationHours} h před lekcí.</p>
     </ActionForm>
   );
 }

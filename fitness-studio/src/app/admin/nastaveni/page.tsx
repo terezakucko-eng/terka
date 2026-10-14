@@ -18,7 +18,7 @@ import { products } from "@/db/schema";
 import { formatPrice } from "@/lib/money";
 
 const fields: { key: keyof Settings; label: string; hint: string; section?: string }[] = [
-  { key: "cancellationHours", label: "Storno zdarma (hodin před lekcí)", hint: "Později vstup propadá." },
+  { key: "cancellationHours", label: "Storno zdarma (hodin před lekcí)", hint: "Později vstup propadá. Lekce můžou mít vlastní lhůtu (Typy lekcí – Reformer, brunch 24 h)." },
   { key: "bookingWindowWeeks", label: "Rezervace – kolik dalších týdnů (klienti)", hint: "1 = tento týden + příští. Nový týden se otevírá v pondělí o půlnoci. 0 = řídit se dny níže." },
   { key: "memberBookingWindowWeeks", label: "Rezervace – kolik dalších týdnů (členové)", hint: "2 = tento týden + další dva. Klienti s aktivním členstvím." },
   { key: "bookingWindowDays", label: "Rezervace dopředu (dní)", hint: "Platí jen když je počet týdnů 0. Používá se i pro masáže." },
