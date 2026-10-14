@@ -2,6 +2,7 @@
 
 Tento soubor je dlouhodobá paměť mezi relacemi. Na začátku každé relace si ho přečti a drž se ho.
 Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 10. 2026.
+**Na konci každé větší práce tento soubor sám (bez připomenutí) aktualizuj a pushni do větve claude/basecamp-clickup-integration-LRFe6** – Tereza si to výslovně přeje („nic z této konverzace nesmí být zapomenuto“). Rozhodnutí, odkazy, čísla a otevřené úkoly zapisuj sem.
 
 ## Komunikace a pravidla (VŽDY)
 - Piš česky.
