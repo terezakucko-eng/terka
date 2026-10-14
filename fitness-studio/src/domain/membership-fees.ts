@@ -1,6 +1,6 @@
-import { and, desc, eq, gt, inArray, lt } from "drizzle-orm";
-import type { Executor } from "@/db";
-import { entitlements, orders, users, type Order } from "@/db/schema";
+import { and, desc, eq, gt, gte, inArray, lt } from "drizzle-orm";
+import type { DB, Executor } from "@/db";
+import { entitlements, orders, products, users, type Order } from "@/db/schema";
 import { dateKey, pragueLocalToDate } from "@/lib/dates";
 import { UserError } from "@/lib/errors";
 
@@ -210,4 +210,50 @@ export async function recordPastFees(
     );
   }
   return { recorded: todo.length, skipped: periods.length - todo.length };
+}
+
+/** Memberships without commitment among these entitlements (the client may end them). */
+export async function flexibleMemberships(db: Executor, entitlementIds: string[]) {
+  if (!entitlementIds.length) return new Set<string>();
+  const rows = await db
+    .select({ id: entitlements.id })
+    .from(entitlements)
+    .innerJoin(products, eq(entitlements.productId, products.id))
+    .where(and(inArray(entitlements.id, entitlementIds), eq(entitlements.kind, "membership"), eq(products.commitmentMonths, 0)));
+  return new Set(rows.map((r) => r.id));
+}
+
+/**
+ * The client ends a membership without commitment: it runs to the end of
+ * the last paid month (at least this one), later unpaid fees are dropped.
+ * Returns the moment it ends.
+ */
+export async function endFlexibleMembership(db: DB, userId: string, entitlementId: string, now = new Date()) {
+  return db.transaction(async (tx) => {
+    const [row] = await tx
+      .select({ e: entitlements, commitment: products.commitmentMonths })
+      .from(entitlements)
+      .leftJoin(products, eq(entitlements.productId, products.id))
+      .where(and(eq(entitlements.id, entitlementId), eq(entitlements.userId, userId)));
+    if (!row || row.e.kind !== "membership" || row.e.status !== "active" || row.e.validUntil <= now) throw new UserError("Členství nenalezeno.");
+    if (row.commitment !== 0) throw new UserError("Členství se závazkem ukončíš jen po dohodě se studiem – napiš nám prosím.");
+    if (row.e.subscriptionId) throw new UserError("Členství placené předplatným kartou ukončíš na recepci.");
+    const current = currentPeriod(now);
+    const paid = await tx
+      .select({ period: orders.period })
+      .from(orders)
+      .where(and(eq(orders.userId, userId), eq(orders.kind, "membership_fee"), eq(orders.status, "paid"), gte(orders.period, current)));
+    const last = [current, ...paid.map((o) => o.period!)].sort().at(-1)!;
+    const end = pragueLocalToDate(`${shiftPeriod(last, 1)}-01T00:00`);
+    await tx
+      .update(entitlements)
+      .set({ validUntil: end < row.e.validUntil ? end : row.e.validUntil, renewalCancelled: true })
+      .where(eq(entitlements.id, entitlementId));
+    // fees for the months after the end are no longer due
+    await tx
+      .update(orders)
+      .set({ status: "cancelled" })
+      .where(and(eq(orders.userId, userId), eq(orders.kind, "membership_fee"), eq(orders.status, "pending"), gt(orders.period, last)));
+    return end < row.e.validUntil ? end : row.e.validUntil;
+  });
 }

@@ -355,7 +355,7 @@ Napiš sem, jak studio vzniklo a co pro tebe pohyb znamená.
         "Po registraci ti ji připíšeme na účet, platí {{platnost_zdarma}} dní. Sleduj také lekce označené „Zdarma“ v rozvrhu.",
       ),
       membershipTitle: t("Členství – nadpis", "Členství"),
-      membershipText: ta("Členství – text", "Pro ty, kdo chodí pravidelně – nejvýhodnější cena za lekci. Platí se měsíčně, závazek na 12 měsíců."),
+      membershipText: ta("Členství – text", "Pro ty, kdo chodí pravidelně – nejvýhodnější cena za lekci. Platí se měsíčně – se závazkem na 12 měsíců výhodněji, nebo bez závazku."),
       passTitle: t("Permanentky – nadpis", "Permanentky"),
       passText: ta("Permanentky – text", "Balíček vstupů na lekce s platností. Běžná lekce = 1 vstup, u některých lekcí se strhne víc vstupů – vždy to najdeš u lekce."),
       creditTitle: t("Kredit – nadpis", "Kredit"),
@@ -414,9 +414,10 @@ Napiš sem, jak studio vzniklo a co pro tebe pohyb znamená.
 ## 4. Kredit, permanentky a členství
 - Kredit je nepřenosný a nepropadá. 1 kredit odpovídá ceně uvedené u lekce.
 - Permanentky platí po dobu uvedenou v ceníku od data nákupu.
-- Členství se uzavírá na dobu určitou 12 měsíců a platí se 12 měsíčními platbami ve výši uvedené v ceníku. Cena členství platí za podmínky, že klient uhradí všech 12 plateb.
+- Členství se závazkem se uzavírá na dobu určitou 12 měsíců a platí se 12 měsíčními platbami ve výši uvedené v ceníku. Cena členství platí za podmínky, že klient uhradí všech 12 plateb.
 - Závazek na 12 měsíců klient potvrzuje při nákupu členství (zaškrtnutím souhlasu na webu nebo podpisem na recepci).
-- Členství nelze během 12 měsíců jednostranně zrušit. Předčasné ukončení je možné jen po dohodě se studiem.
+- Členství se závazkem nelze během 12 měsíců jednostranně zrušit. Předčasné ukončení je možné jen po dohodě se studiem.
+- Členství bez závazku se platí měsíčně ve výši uvedené v ceníku. Klient ho může kdykoli ukončit v Můj účet (nebo na recepci) ke konci posledního zaplaceného měsíce; zaplacené měsíce se nevracejí.
 - Členství v účtu klienta spravuje studio – o změnu požádej na recepci.
 
 ## 5. Platby

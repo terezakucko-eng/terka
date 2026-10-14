@@ -32,6 +32,7 @@ function ProductForm({ p, services }: { p?: Product; services: MassageService[] 
         <Field label="Vstupů / minut" hint="Permanentka: vstupy · Masáže: počet masáží · Solárium: minuty · Členství: prázdné = neomezeně"><Input name="entries" type="number" min={1} defaultValue={p?.entries ?? ""} /></Field>
         <Field label="Platnost (dny)" hint="U kreditu: od posledního dobití · prázdné = nepropadá"><Input name="validityDays" type="number" min={1} defaultValue={p ? (p.validityDays ?? "") : 30} /></Field>
         <Field label="Limit / týden" hint="Jen u členství"><Input name="weeklyLimit" type="number" min={1} defaultValue={p?.weeklyLimit ?? ""} /></Field>
+        <Field label="Závazek (měsíců)" hint="Jen u členství · 0 = bez závazku (zruší si ho v účtu ke konci měsíce)"><Input name="commitmentMonths" type="number" min={0} defaultValue={p?.commitmentMonths ?? 12} /></Field>
         <Field label="Na masáž" hint="Jen u permanentky na masáže">
           <Select name="massageServiceId" defaultValue={p?.massageServiceId ?? ""}>
             <option value="">Kterákoli masáž</option>

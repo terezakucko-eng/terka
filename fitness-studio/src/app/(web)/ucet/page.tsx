@@ -12,7 +12,8 @@ import { requireUser } from "@/lib/auth";
 import { formatDate, formatDay, formatRange, formatTime } from "@/lib/dates";
 import { credits, formatPrice } from "@/lib/money";
 import { SurchargePay } from "@/components/surcharge-pay";
-import { openFees } from "@/domain/membership-fees";
+import { flexibleMemberships, openFees } from "@/domain/membership-fees";
+import { endMembershipAction } from "@/app/actions/membership";
 import { insuranceYears } from "@/domain/insurance";
 import { payOrderAction } from "@/app/actions/booking";
 import { cardPayments } from "@/lib/payments";
@@ -64,7 +65,12 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
     getContent(),
     insuranceYears(db, user.id),
   ]);
-  const [cfg, invited, gifts] = await Promise.all([getSettings(db), myReferrals(db, user.id), boughtVouchers(db, user.id)]);
+  const [cfg, invited, gifts, flexible] = await Promise.all([
+    getSettings(db),
+    myReferrals(db, user.id),
+    boughtVouchers(db, user.id),
+    flexibleMemberships(db, ents.map((e) => e.id)),
+  ]);
   const invite = `${site.url}/pozvanka/${user.referralCode}`;
   // regulars who haven't written a review yet get a gentle nudge
   const google = content.googleReviewUrl;
@@ -135,10 +141,21 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
                     <p className="font-semibold">{e.name} <Badge tone={e.kind === "free" ? "gold" : "green"}>{entitlementKindLabel[e.kind]}</Badge></p>
                     <p className="text-sm text-les/60">
                       {e.entriesTotal === null ? "Neomezeně" : `Zbývá ${e.entriesTotal - e.entriesUsed} z ${e.entriesTotal}${e.kind === "solarium" ? " min" : ""}`}
-                      {e.weeklyLimit ? ` · max ${e.weeklyLimit}× týdně` : ""} · platí do {formatDate(e.validUntil)}
-                      {e.kind === "membership" && " · členství spravuje studio"}
+                      {e.weeklyLimit ? ` · max ${e.weeklyLimit}× týdně` : ""}
+                      {flexible.has(e.id)
+                        ? e.renewalCancelled
+                          ? ` · ukončené, platí do ${formatDate(new Date(e.validUntil.getTime() - 1))}`
+                          : " · bez závazku"
+                        : ` · platí do ${formatDate(e.validUntil)}`}
+                      {e.kind === "membership" && !flexible.has(e.id) && " · členství spravuje studio"}
                     </p>
                   </div>
+                  {flexible.has(e.id) && !e.renewalCancelled && (
+                    <ActionForm action={endMembershipAction} confirm="Ukončit členství? Platí do konce zaplaceného měsíce, další platby už nepřijdou.">
+                      <input type="hidden" name="id" value={e.id} />
+                      <SubmitButton variant="ghost" className="px-3 py-2 text-[0.65rem]">Ukončit ke konci měsíce</SubmitButton>
+                    </ActionForm>
+                  )}
                 </li>
               ))}
             </ul>

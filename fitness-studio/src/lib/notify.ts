@@ -244,3 +244,16 @@ export async function sendVoucherReady(db: DB, now = new Date()) {
   }
   return sent;
 }
+
+/** A client ended a membership without commitment – the studio hears about it. */
+export async function notifyMembershipEnded(db: DB, u: { id: string; name: string; email: string }, lastDay: Date) {
+  const admins = await db.select({ id: users.id }).from(users).where(eq(users.role, "admin"));
+  const url = `${site.url}/admin/klienti/${u.id}`;
+  await pushQuietly(db, admins.map((a) => a.id), { title: "Ukončené členství", body: `${u.name} – platí do ${formatDate(lastDay)}`, url });
+  const c = await getContent();
+  await sendMail({
+    to: c.raw("site.email"),
+    subject: `Členství bez závazku ukončeno: ${u.name}`,
+    text: [`${u.name} (${u.email}) si ukončil/a členství bez závazku.`, `Platí do ${formatDate(lastDay)}, další měsíční platby už nepřijdou.`, "", `Detail klienta: ${url}`].join("\n"),
+  });
+}

@@ -102,7 +102,9 @@ export function ProductCard({
                     {p.kind === "membership" && (
                       // a condition, not a perk – no check mark
                       <p className={cx("mt-5 border-t pt-4 text-xs", p.highlight ? "border-papir/15 text-papir/60" : "border-linka/60 text-les/60")}>
-                        Členství je závazné na 12 měsíců – 12 měsíčních plateb po {formatPrice(p.price)}.
+                        {p.commitmentMonths > 0
+                          ? `Členství je závazné na ${p.commitmentMonths} měsíců – ${p.commitmentMonths} měsíčních plateb po ${formatPrice(p.price)}.`
+                          : `Bez závazku – platíš ${formatPrice(p.price)} měsíčně a zrušit můžeš kdykoli ke konci zaplaceného měsíce v Můj účet.`}
                       </p>
                     )}
                     {loggedIn ? (
@@ -112,7 +114,7 @@ export function ProductCard({
                           <label className={cx("mb-3 flex gap-3 text-xs", p.highlight ? "text-papir/80" : "text-les/70")}>
                             <input type="checkbox" name="commitment" required className="mt-0.5 size-4 shrink-0 accent-[#c9a26b]" />
                             <span>
-                              Beru na vědomí, že členství je závazné na 12 měsíců, a souhlasím s{"\u00a0"}
+                              {p.commitmentMonths > 0 ? `Beru na vědomí, že členství je závazné na ${p.commitmentMonths} měsíců, a souhlasím s` : "Souhlasím s"}{"\u00a0"}
                               <Link href="/obchodni-podminky" target="_blank" className="underline">obchodními podmínkami</Link>.
                             </span>
                           </label>

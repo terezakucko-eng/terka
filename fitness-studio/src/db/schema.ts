@@ -304,6 +304,8 @@ export const products = pgTable("products", {
   membersOnly: boolean("members_only").notNull().default(false),
   /** Není v ceníku, koupit jde jen přes přímý odkaz (např. zvýhodněné členství pro vybrané) */
   linkOnly: boolean("link_only").notNull().default(false),
+  /** membership: závazek v měsících; 0 = bez závazku (platí se měsíčně, zruší se ke konci měsíce) */
+  commitmentMonths: integer("commitment_months").notNull().default(12),
   /** massage_pass: na kterou masáž; null = na kteroukoli */
   massageServiceId: uuid("massage_service_id").references((): AnyPgColumn => massageServices.id),
   sortOrder: integer("sort_order").notNull().default(0),
