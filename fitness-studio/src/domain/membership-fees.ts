@@ -174,6 +174,29 @@ export async function feeOverview(db: Executor, period: string) {
   };
 }
 
+/**
+ * The client's monthly fee changed (Admin → klient): unpaid requests for the
+ * coming months at the old amount follow it; discounted ones stay as they
+ * are. Returns the periods changed, in order.
+ */
+export async function followMonthlyFee(db: Executor, userId: string, before: number, after: number, now = new Date()) {
+  if (after <= 0 || before === after) return [];
+  const rows = await db
+    .update(orders)
+    .set({ amount: after })
+    .where(
+      and(
+        eq(orders.userId, userId),
+        eq(orders.kind, "membership_fee"),
+        eq(orders.status, "pending"),
+        gt(orders.period, currentPeriod(now)),
+        eq(orders.amount, before),
+      ),
+    )
+    .returning({ period: orders.period });
+  return rows.map((o) => o.period!).sort();
+}
+
 /** Open fee orders of a client (Můj účet). */
 export async function openFees(db: Executor, userId: string) {
   return db

@@ -1,8 +1,8 @@
 import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { bookings, classTypes, entitlements, products, type Product } from "@/db/schema";
+import { bookings, classTypes, entitlements, orders, products, type Product } from "@/db/schema";
 import { bookSession, cancelBooking, joinWaitlist, priorityWindow, viewerWindows, windowOf } from "@/domain/booking";
-import { createMonthlyFees, feeOverview, membershipUpgrades, switchMembership, switchPeriod } from "@/domain/membership-fees";
+import { createMonthlyFees, feeOverview, followMonthlyFee, membershipUpgrades, switchMembership, switchPeriod } from "@/domain/membership-fees";
 import { createProductOrder, fulfillOrder } from "@/domain/orders";
 import { grantEntitlement } from "@/domain/users";
 import { pragueLocalToDate } from "@/lib/dates";
@@ -148,5 +148,18 @@ describe("Členství Reformer 2027", () => {
     expect(promoted.map((b) => b.userId)).toEqual([reformerMember.id]);
     const [mine] = await h.db.select().from(bookings).where(and(eq(bookings.sessionId, full.id), eq(bookings.userId, reformerMember.id)));
     expect(mine).toMatchObject({ status: "confirmed", surcharge: 0 });
+  });
+});
+
+describe("a member's own monthly fee", () => {
+  it("unpaid requests for the coming months follow it, this month and discounted ones stay", async () => {
+    const u = await makeUser(h.db);
+    await grantEntitlement(h.db, { userId: u.id, kind: "membership", name: "Členství", entries: null, validityDays: 365 }, NOW);
+    const fee = (period: string, amount: number) =>
+      h.db.insert(orders).values({ userId: u.id, kind: "membership_fee", period, description: period, amount, provider: "transfer" }).returning().then(([o]) => o);
+    const [oct, nov, dec, jan] = [await fee("2026-10", 140000), await fee("2026-11", 140000), await fee("2026-12", 140000), await fee("2027-01", 70000)];
+    expect(await followMonthlyFee(h.db, u.id, 140000, 100000, NOW)).toEqual(["2026-11", "2026-12"]);
+    const amounts = await h.db.select({ id: orders.id, amount: orders.amount }).from(orders).where(eq(orders.userId, u.id));
+    expect([oct, nov, dec, jan].map((o) => amounts.find((a) => a.id === o.id)!.amount)).toEqual([140000, 100000, 100000, 70000]);
   });
 });
