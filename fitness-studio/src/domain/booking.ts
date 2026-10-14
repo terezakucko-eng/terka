@@ -1,4 +1,4 @@
-import { and, asc, count, eq, gte, inArray, lt, lte, ne, gt, sql } from "drizzle-orm";
+import { and, asc, count, eq, gte, inArray, isNull, lt, lte, ne, gt, or, sql } from "drizzle-orm";
 import type { DB, Executor } from "@/db";
 import {
   bookings,
@@ -6,6 +6,7 @@ import {
   classTypes,
   entitlements,
   orders,
+  products,
   users,
   type Booking,
   type ClassSession,
@@ -16,6 +17,7 @@ import { UserError } from "@/lib/errors";
 import { credits as creditsLabel, formatPrice } from "@/lib/money";
 import { getSettings, type Settings } from "@/lib/settings";
 import { changeCredits, creditExpired } from "./wallet";
+import { periodLabel, shiftPeriod } from "./membership-fees";
 
 /** Statuses that take up a spot in the class. */
 export const OCCUPYING = [
@@ -230,7 +232,7 @@ async function weeklyUsage(tx: Executor, entitlementId: string, s: ClassSession)
 
 /** Why an entitlement can't pay for this session, or null if it can. */
 /** Per-class-type pricing rules (member / pass surcharge, first visit, free entry). */
-async function classRules(tx: Executor, s: ClassSession) {
+async function classRules(tx: Executor, s: Pick<ClassSession, "classTypeId">) {
   const [ct] = await tx
     .select({
       memberSurcharge: classTypes.memberSurcharge,
@@ -254,6 +256,85 @@ export function memberSurchargeFor(rules: ClassRules, s: Pick<ClassSession, "sta
   if (!rules.memberSurcharge) return 0;
   if (rules.memberSurchargeFrom && dateKey(s.startsAt) < rules.memberSurchargeFrom) return 0;
   return rules.memberSurcharge;
+}
+
+type Included = Pick<Entitlement, "id" | "includedClassTypeId" | "includedPerMonth" | "includedFrom">;
+
+/**
+ * Lessons included in a membership (e.g. 4× Reformer a month with no member
+ * surcharge): how many are left in the session's month, or null when the
+ * membership includes none of this class then. Bookings within the allowance
+ * are the ones without a surcharge; a late cancellation uses one up too.
+ */
+export async function includedLeft(tx: Executor, e: Included, s: Pick<ClassSession, "startsAt" | "classTypeId">, rules: ClassRules, exceptBookingId?: string) {
+  if (!e.includedClassTypeId || e.includedPerMonth <= 0 || e.includedClassTypeId !== s.classTypeId) return null;
+  const month = dateKey(s.startsAt).slice(0, 7);
+  if (e.includedFrom && month < e.includedFrom) return null;
+  // only lessons that would otherwise cost a surcharge count
+  const from = [`${month}-01`, rules.memberSurchargeFrom ?? ""].sort().at(-1)!;
+  const [r] = await tx
+    .select({ n: count() })
+    .from(bookings)
+    .innerJoin(classSessions, eq(bookings.sessionId, classSessions.id))
+    .where(
+      and(
+        eq(bookings.entitlementId, e.id),
+        eq(classSessions.classTypeId, s.classTypeId),
+        gte(classSessions.startsAt, pragueLocalToDate(`${from}T00:00`)),
+        lt(classSessions.startsAt, pragueLocalToDate(`${shiftPeriod(month, 1)}-01T00:00`)),
+        eq(bookings.surcharge, 0),
+        or(inArray(bookings.status, [...OCCUPYING]), and(eq(bookings.status, "cancelled"), eq(bookings.lateCancel, true))),
+        exceptBookingId ? ne(bookings.id, exceptBookingId) : undefined,
+      ),
+    );
+  return Math.max(0, e.includedPerMonth - r.n);
+}
+
+/**
+ * Lessons included in these memberships for Můj účet: class name, how many a
+ * month, from which month (a switch takes effect later) and how many are
+ * left this month (null while no surcharge applies, so nothing is counted).
+ */
+export async function includedSummary(tx: Executor, ents: Entitlement[], now = new Date()) {
+  const out = new Map<string, { className: string; perMonth: number; from: string | null; left: number | null }>();
+  const month = dateKey(now).slice(0, 7);
+  for (const e of ents) {
+    if (e.kind !== "membership" || !e.includedClassTypeId || e.includedPerMonth <= 0) continue;
+    const [ct] = await tx.select({ name: classTypes.name }).from(classTypes).where(eq(classTypes.id, e.includedClassTypeId));
+    if (!ct) continue;
+    const later = !!e.includedFrom && e.includedFrom > month;
+    const at = { startsAt: now, classTypeId: e.includedClassTypeId };
+    const rules = await classRules(tx, at);
+    const left = later || !memberSurchargeFor(rules, at) ? null : await includedLeft(tx, e, at, rules);
+    out.set(e.id, { className: ct.name, perMonth: e.includedPerMonth, from: later ? e.includedFrom : null, left });
+  }
+  return out;
+}
+
+/** The membership on offer that includes this class (e.g. Členství Reformer for Reformer), for the class page. */
+export async function membershipIncluding(tx: Executor, classTypeId: string) {
+  const [p] = await tx
+    .select({ name: products.name, perMonth: products.includedPerMonth })
+    .from(products)
+    .where(
+      and(
+        eq(products.kind, "membership"),
+        eq(products.isActive, true),
+        eq(products.linkOnly, false),
+        isNull(products.archivedAt),
+        eq(products.includedClassTypeId, classTypeId),
+        gt(products.includedPerMonth, 0),
+      ),
+    )
+    .orderBy(sql`${products.commitmentMonths} = 0`, asc(products.sortOrder))
+    .limit(1);
+  return p ?? null;
+}
+
+/** "na listopad zbývají 3" */
+function includedNote(left: number, s: Pick<ClassSession, "startsAt">) {
+  const month = periodLabel(dateKey(s.startsAt).slice(0, 7)).split(" ")[0];
+  return left === 1 ? `na ${month} zbývá 1` : left < 5 ? `na ${month} zbývají ${left}` : `na ${month} zbývá ${left}`;
 }
 
 /** Surcharge for booking with a pass – per seat, on top of the entries (0 = none). */
@@ -390,12 +471,20 @@ export async function bookingOptions(
         ? "neomezeně"
         : `zbývá ${e.entriesTotal - e.entriesUsed} z ${e.entriesTotal}` +
           (need > 1 ? ` · strhnou se ${need} vstupy` : "");
-    const extra = surchargeFor(methodForKind[e.kind], rules, s, seats);
+    let extra = surchargeFor(methodForKind[e.kind], rules, s, seats);
+    let included = "";
+    if (e.kind === "membership" && extra > 0) {
+      const n = await includedLeft(tx, e, s, rules);
+      if (n) {
+        extra = 0;
+        included = ` · v ceně členství, ${includedNote(n, s)}`;
+      } else if (n === 0) included = ", lekce v ceně na tento měsíc jsou vyčerpané";
+    }
     opts.push({
       method: methodForKind[e.kind],
       entitlementId: e.id,
       label: e.name,
-      detail: extra ? `${left} · doplatek ${formatPrice(extra)} (kartou nebo převodem)` : left,
+      detail: extra ? `${left} · doplatek ${formatPrice(extra)} (kartou nebo převodem)${included}` : left + included,
       ...(problem ? { disabled: problem } : {}),
     });
   }
@@ -456,6 +545,7 @@ async function charge(
   let creditsCharged = 0;
   let entriesCharged = 0;
   let entId: string | null = null;
+  let ent: Entitlement | null = null;
 
   switch (method) {
     case "free_class":
@@ -491,6 +581,7 @@ async function charge(
           .where(eq(entitlements.id, e.id));
       }
       entId = e.id;
+      ent = e;
       break;
     }
     case "admin":
@@ -499,6 +590,10 @@ async function charge(
       throw new Error("drop_in is charged through an order");
   }
 
+  const rules = await classRules(tx, s);
+  let surcharge = surchargeFor(method, rules, s, booking.seats);
+  // lessons included in the membership (e.g. 4× Reformer a month) need no surcharge
+  if (surcharge > 0 && method === "membership" && ent && (await includedLeft(tx, ent, s, rules, booking.id))) surcharge = 0;
   await tx
     .update(bookings)
     .set({
@@ -506,9 +601,45 @@ async function charge(
       entriesCharged,
       entitlementId: entId,
       method,
-      surcharge: surchargeFor(method, await classRules(tx, s), s, booking.seats),
+      surcharge,
     })
     .where(eq(bookings.id, booking.id));
+}
+
+/**
+ * A lesson included in the membership was cancelled in time – the allowance
+ * goes to the client's next unpaid surcharged booking of that month, if any.
+ */
+async function passIncludedOn(tx: Executor, b: Booking, s: ClassSession) {
+  if (b.method !== "membership" || b.surcharge !== 0 || !b.entitlementId) return;
+  const [e] = await tx.select().from(entitlements).where(eq(entitlements.id, b.entitlementId));
+  if (!e || e.includedClassTypeId !== s.classTypeId) return;
+  const rules = await classRules(tx, s);
+  if (!memberSurchargeFor(rules, s) || !(await includedLeft(tx, e, s, rules))) return;
+  const month = dateKey(s.startsAt).slice(0, 7);
+  const [next] = await tx
+    .select({ id: bookings.id })
+    .from(bookings)
+    .innerJoin(classSessions, eq(bookings.sessionId, classSessions.id))
+    .where(
+      and(
+        eq(bookings.entitlementId, e.id),
+        eq(bookings.status, "confirmed"),
+        gt(bookings.surcharge, 0),
+        isNull(bookings.surchargePaidAt),
+        eq(classSessions.classTypeId, s.classTypeId),
+        gte(classSessions.startsAt, pragueLocalToDate(`${month}-01T00:00`)),
+        lt(classSessions.startsAt, pragueLocalToDate(`${shiftPeriod(month, 1)}-01T00:00`)),
+      ),
+    )
+    .orderBy(asc(classSessions.startsAt))
+    .limit(1);
+  if (!next) return;
+  await tx.update(bookings).set({ surcharge: 0 }).where(eq(bookings.id, next.id));
+  await tx
+    .update(orders)
+    .set({ status: "cancelled" })
+    .where(and(eq(orders.kind, "surcharge"), eq(orders.bookingId, next.id), eq(orders.status, "pending")));
 }
 
 /** Gives back whatever the booking cost. */
@@ -795,6 +926,7 @@ export async function cancelBooking(
         lateCancel: b.status === "confirmed" && late && !refunded,
       })
       .where(eq(bookings.id, b.id));
+    if (refunded) await passIncludedOn(tx, b, s);
 
     const promoted =
       b.status === "waitlist" ? [] : await promoteWaitlist(tx, s, now);

@@ -35,6 +35,9 @@ export async function createProductOrder(
   if (!p || !p.isActive) throw new UserError("Produkt není v nabídce.");
   if (p.kind === "membership" && p.commitmentMonths > 0 && input.commitmentAccepted === false)
     throw new UserError(`Před zaplacením prosím potvrď, že bereš na vědomí závazek na ${p.commitmentMonths} měsíců.`);
+  // a member moves up in Můj účet (same membership, no new commitment) instead of buying a second one
+  if (p.kind === "membership" && p.includedPerMonth > 0 && input.commitmentAccepted !== undefined && (await isMember(db, input.userId, now)))
+    throw new UserError(`Členství už máš – na ${p.name} přejdeš v Můj účet, bez nového závazku.`);
   if (p.membersOnly && !(await isMember(db, input.userId, now)))
     throw new UserError("Tenhle produkt je jen pro členy. Zastav se na recepci nebo si pořiď členství.");
   const [order] = await db

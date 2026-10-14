@@ -106,9 +106,19 @@ export default async function PricingPage() {
             <section key={g.kind}>
               <Eyebrow n={nth(i)} className="text-zeme">{g.title}</Eyebrow>
               <p className="mt-3 max-w-xl text-les/70">{g.text}</p>
-              <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {/* four cards (e.g. memberships with / without commitment) read best as a 2 × 2 grid */}
+              <div className={`mt-8 grid gap-5 md:grid-cols-2 ${items.length === 4 ? "" : "lg:grid-cols-3"}`}>
                 {items.map((p) => (
-                  <ProductCard key={p.id} p={p} loggedIn={!!user} next="/cenik" passNotes={passNotes} passExclusions={passExclusions} creditNotes={creditNotes} />
+                  <ProductCard
+                    key={p.id}
+                    p={p}
+                    loggedIn={!!user}
+                    next="/cenik"
+                    passNotes={passNotes}
+                    passExclusions={passExclusions}
+                    creditNotes={creditNotes}
+                    includedClass={types.find((t) => t.id === p.includedClassTypeId)?.name}
+                  />
                 ))}
               </div>
             </section>
@@ -145,6 +155,14 @@ export default async function PricingPage() {
                       {t.memberSurchargeFrom && ` od ${t.memberSurchargeFrom.split("-").reverse().map(Number).join(". ")}`}
                     </span>
                   )}
+                  {list
+                    .filter((p) => p.kind === "membership" && p.includedClassTypeId === t.id && p.includedPerMonth > 0 && p.commitmentMonths > 0)
+                    .slice(0, 1)
+                    .map((p) => (
+                      <span key={p.id} className="block text-xs">
+                        {p.name}: {p.includedPerMonth}× měsíčně v ceně
+                      </span>
+                    ))}
                 </span>
               </div>
             ))}

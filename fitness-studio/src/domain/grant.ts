@@ -43,8 +43,10 @@ export async function grantProduct(
         validUntil:
           periodEnd ?? new Date(now.getTime() + (p.validityDays ?? 30) * DAY),
         subscriptionId: to.subscriptionId ?? null,
-        // a membership without commitment is billed at its own (higher) monthly price
-        monthlyFee: p.kind === "membership" && p.commitmentMonths === 0 ? p.price : null,
+        // a membership without commitment or with lessons included is billed at its own monthly price
+        monthlyFee: p.kind === "membership" && (p.commitmentMonths === 0 || p.includedPerMonth > 0) ? p.price : null,
+        includedClassTypeId: p.kind === "membership" ? p.includedClassTypeId : null,
+        includedPerMonth: p.kind === "membership" ? p.includedPerMonth : 0,
         note: to.note ?? null,
       });
       return;

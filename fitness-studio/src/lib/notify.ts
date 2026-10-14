@@ -246,6 +246,24 @@ export async function sendVoucherReady(db: DB, now = new Date()) {
 }
 
 /** A client ended a membership without commitment – the studio hears about it. */
+/** A member switched to a higher membership (e.g. Členství Reformer) – the studio gets a push and an e-mail. */
+export async function notifyMembershipSwitched(db: DB, u: { id: string; name: string; email: string }, change: { from: string; to: string; price: number; since: string }) {
+  const admins = await db.select({ id: users.id }).from(users).where(eq(users.role, "admin"));
+  const url = `${site.url}/admin/klienti/${u.id}`;
+  await pushQuietly(db, admins.map((a) => a.id), { title: "Změna členství", body: `${u.name} – ${change.to} od ${change.since}`, url });
+  const c = await getContent();
+  await sendMail({
+    to: c.raw("site.email"),
+    subject: `Změna členství: ${u.name} → ${change.to}`,
+    text: [
+      `${u.name} (${u.email}) přešel/přešla z „${change.from}“ na „${change.to}“.`,
+      `Platí od ${change.since}, měsíční platba od té doby ${formatPrice(change.price)}.`,
+      "",
+      `Detail klienta: ${url}`,
+    ].join("\n"),
+  });
+}
+
 export async function notifyMembershipEnded(db: DB, u: { id: string; name: string; email: string }, lastDay: Date) {
   const admins = await db.select({ id: users.id }).from(users).where(eq(users.role, "admin"));
   const url = `${site.url}/admin/klienti/${u.id}`;

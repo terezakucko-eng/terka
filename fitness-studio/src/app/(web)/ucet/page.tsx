@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { and, asc, eq, gt, ne, sql } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, ne, sql } from "drizzle-orm";
 import { cancelBookingAction } from "@/app/actions/booking";
 import { cancelMassageAction } from "@/app/actions/massages";
-import { bookings, massageBookings, orders } from "@/db/schema";
+import { bookings, classTypes, massageBookings, orders } from "@/db/schema";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { entitlementKindLabel } from "@/components/labels";
 import { Badge, ButtonLink, Card, Empty, Eyebrow, Input } from "@/components/ui";
@@ -12,8 +12,9 @@ import { requireUser } from "@/lib/auth";
 import { formatDate, formatDay, formatRange, formatTime } from "@/lib/dates";
 import { credits, formatPrice } from "@/lib/money";
 import { SurchargePay } from "@/components/surcharge-pay";
-import { flexibleMemberships, openFees } from "@/domain/membership-fees";
-import { endMembershipAction } from "@/app/actions/membership";
+import { flexibleMemberships, membershipUpgrades, openFees, periodStartLabel, switchPeriod } from "@/domain/membership-fees";
+import { includedSummary } from "@/domain/booking";
+import { endMembershipAction, switchMembershipAction } from "@/app/actions/membership";
 import { insuranceYears } from "@/domain/insurance";
 import { payOrderAction } from "@/app/actions/booking";
 import { cardPayments } from "@/lib/payments";
@@ -33,7 +34,7 @@ import { site } from "@/config/site";
 import { resetCalendarAction } from "@/app/actions/calendar";
 
 export default async function AccountPage({ searchParams }: PageProps<"/ucet">) {
-  const { vitej } = await searchParams;
+  const { vitej, clenstvi } = await searchParams;
   const user = await requireUser("/ucet");
   const db = await getDb();
   const fees = await openFees(db, user.id);
@@ -65,12 +66,22 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
     getContent(),
     insuranceYears(db, user.id),
   ]);
-  const [cfg, invited, gifts, flexible] = await Promise.all([
+  const [cfg, invited, gifts, flexible, upgrades, included] = await Promise.all([
     getSettings(db),
     myReferrals(db, user.id),
     boughtVouchers(db, user.id),
     flexibleMemberships(db, ents.map((e) => e.id)),
+    membershipUpgrades(db, ents),
+    includedSummary(db, ents),
   ]);
+  // a switch to a higher membership (e.g. Členství Reformer) starts with the next unpaid month
+  const switchFrom = upgrades.size ? periodStartLabel(await switchPeriod(db, user.id)) : null;
+  const offerClasses = upgrades.size
+    ? await db
+        .select({ id: classTypes.id, name: classTypes.name })
+        .from(classTypes)
+        .where(inArray(classTypes.id, [...upgrades.values()].flatMap((p) => (p.includedClassTypeId ? [p.includedClassTypeId] : []))))
+    : [];
   const invite = `${site.url}/pozvanka/${user.referralCode}`;
   // regulars who haven't written a review yet get a gentle nudge
   const google = content.googleReviewUrl;
@@ -135,6 +146,18 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
             </p>
           ) : (
             <ul className="mt-4 divide-y divide-linka/60">
+              {clenstvi === "zmena" &&
+                ents
+                  .filter((e) => e.kind === "membership" && e.includedFrom)
+                  .slice(0, 1)
+                  .map((e) => (
+                    <li key="zmena" className="py-3">
+                      <p className="rounded-xl bg-salvej/15 px-4 py-3 text-sm font-semibold text-les">
+                        Hotovo! Od {periodStartLabel(e.includedFrom!)} máš {e.name}
+                        {e.monthlyFee ? ` – měsíčně ${formatPrice(e.monthlyFee)}` : ""}. Těšíme se na tebe 💛
+                      </p>
+                    </li>
+                  ))}
               {ents.map((e) => (
                 <li key={e.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                   <div>
@@ -149,6 +172,21 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
                         : ` · platí do ${formatDate(e.validUntil)}`}
                       {e.kind === "membership" && !flexible.has(e.id) && " · členství spravuje studio"}
                     </p>
+                    {included.has(e.id) && (() => {
+                      const inc = included.get(e.id)!;
+                      return (
+                        <p className="text-sm text-les/60">
+                          {inc.perMonth}× {inc.className} měsíčně v ceně
+                          {inc.from
+                            ? ` od ${periodStartLabel(inc.from)}`
+                            : inc.left === null
+                              ? ""
+                              : inc.left === 0
+                                ? " · tento měsíc už vyčerpané"
+                                : ` · tento měsíc ${inc.left > 1 && inc.left < 5 ? "zbývají" : "zbývá"} ${inc.left}`}
+                        </p>
+                      );
+                    })()}
                   </div>
                   {flexible.has(e.id) && !e.renewalCancelled && (
                     <ActionForm action={endMembershipAction} confirm="Ukončit členství? Platí do konce zaplaceného měsíce, další platby už nepřijdou.">
@@ -156,6 +194,33 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
                       <SubmitButton variant="ghost" className="px-3 py-2 text-[0.65rem]">Ukončit ke konci měsíce</SubmitButton>
                     </ActionForm>
                   )}
+                  {upgrades.has(e.id) && (() => {
+                    const offer = upgrades.get(e.id)!;
+                    const cls = offerClasses.find((c) => c.id === offer.includedClassTypeId)?.name ?? "lekce";
+                    return (
+                      <details className="w-full rounded-xl border border-zlato/50 bg-krem/40 px-4 py-3 text-sm">
+                        <summary className="cursor-pointer font-semibold">
+                          Chceš {cls} v ceně? Přejdi na {offer.name}
+                        </summary>
+                        <p className="mt-2 text-les/70">
+                          {offer.includedPerMonth}× {cls} měsíčně bez doplatku a všechno, co máš teď. Od {switchFrom} platíš {formatPrice(offer.price)}{" "}
+                          měsíčně, {offer.commitmentMonths > 0 ? "závazek se nemění – platí do stejného data jako dosud." : "dál bez závazku."}
+                        </p>
+                        <ActionForm action={switchMembershipAction} className="mt-3 space-y-3">
+                          <input type="hidden" name="id" value={e.id} />
+                          <input type="hidden" name="productId" value={offer.id} />
+                          <label className="flex gap-3 text-xs text-les/70">
+                            <input type="checkbox" name="agree" required className="mt-0.5 size-4 shrink-0 accent-[#c9a26b]" />
+                            <span>
+                              Chci od {switchFrom} {offer.name} za {formatPrice(offer.price)} měsíčně a souhlasím s{"\u00a0"}
+                              <Link href="/obchodni-podminky" target="_blank" className="underline">obchodními podmínkami</Link>.
+                            </span>
+                          </label>
+                          <SubmitButton variant="dark" className="px-4 py-2" pendingText="Moment…">Přejít na {offer.name}</SubmitButton>
+                        </ActionForm>
+                      </details>
+                    );
+                  })()}
                 </li>
               ))}
             </ul>

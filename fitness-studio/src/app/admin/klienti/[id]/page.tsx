@@ -17,7 +17,7 @@ import {
 import { adminCancelMassageAction } from "@/app/admin/massage-actions";
 import { recordPastFeesAction } from "@/app/admin/fee-actions";
 import { insuranceYears } from "@/domain/insurance";
-import { currentPeriod, shiftPeriod } from "@/domain/membership-fees";
+import { currentPeriod, periodStartLabel, shiftPeriod } from "@/domain/membership-fees";
 import { getSettings } from "@/lib/settings";
 import { AdminTitle, Stat, Table, Td } from "@/components/admin";
 import { Avatar } from "@/components/avatar";
@@ -316,7 +316,12 @@ export default async function ClientDetail({ params }: PageProps<"/admin/klienti
                     <ActionForm action={updateEntitlementAction} className="flex flex-wrap items-center gap-2 text-xs">
                       <input type="hidden" name="id" value={e.id} />
                       {e.entriesTotal === null ? (
-                        <span className="mr-2">neomezeně{e.weeklyLimit ? ` · ${e.weeklyLimit}×/týden` : ""}</span>
+                        <span className="mr-2">
+                          neomezeně{e.weeklyLimit ? ` · ${e.weeklyLimit}×/týden` : ""}
+                          {e.includedPerMonth > 0 &&
+                            ` · ${e.includedPerMonth}× ${lessonTypes.find((t) => t.id === e.includedClassTypeId)?.name ?? "lekce"} měsíčně v ceně` +
+                              (e.includedFrom && e.includedFrom > dateKey(now).slice(0, 7) ? ` od ${periodStartLabel(e.includedFrom)}` : "")}
+                        </span>
                       ) : (
                         <label className="flex items-center gap-1">
                           {e.entriesUsed}/<Input name="entries" type="number" min={e.entriesUsed} defaultValue={e.entriesTotal} className="w-16 px-2 py-1" aria-label="Vstupů celkem" />

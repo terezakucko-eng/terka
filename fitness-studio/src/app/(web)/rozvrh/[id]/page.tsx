@@ -10,7 +10,7 @@ import { HealthCheckbox } from "@/components/health-checkbox";
 import { cardPayments } from "@/lib/payments";
 import { VideoEmbed } from "@/components/video-embed";
 import { Badge, ButtonLink, Card, Container, Eyebrow, cx } from "@/components/ui";
-import { memberSurchargeFor, passSurchargeFor, sessionForUser, stateMessage } from "@/domain/booking";
+import { memberSurchargeFor, membershipIncluding, passSurchargeFor, sessionForUser, stateMessage } from "@/domain/booking";
 import { getCurrentUser } from "@/lib/auth";
 import { formatDay, formatOpens, formatRange } from "@/lib/dates";
 
@@ -47,6 +47,9 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
   const left = Math.max(0, s.capacity - view.occupied);
   const surcharge = s.isFree ? 0 : memberSurchargeFor(ct, s);
   const passSurcharge = s.isFree || ct.noPass ? 0 : passSurchargeFor(ct);
+  const tier = surcharge > 0 ? await membershipIncluding(db, ct.id) : null;
+  // "S Členstvím Reformer máš 4 měsíčně bez doplatku."
+  const tierNote = tier && <> {tier.name} má {tier.perMonth}× měsíčně v ceně bez doplatku.</>;
 
   return (
     <section className="bg-forest text-papir">
@@ -67,7 +70,7 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
                 {surcharge > 0 ? (
                   <>
                     Permanentka na tuhle lekci neplatí. Členové mají lekci v ceně členství a doplácí jen{" "}
-                    <strong>{formatPrice(surcharge)}</strong>, ostatní zaplatí kreditem nebo jednorázově.
+                    <strong>{formatPrice(surcharge)}</strong>, ostatní zaplatí kreditem nebo jednorázově.{tierNote}
                   </>
                 ) : (
                   "Permanentka na tuhle lekci neplatí – zaplatíš kreditem nebo jednorázově."
@@ -78,7 +81,7 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
               <p className="mt-6 rounded-xl border border-zlato/40 bg-zlato/10 p-4 text-zlato-light">
                 {surcharge > 0 && (
                   <>
-                    Členové mají lekci v ceně členství a doplácí jen <strong>{formatPrice(surcharge)}</strong>.{" "}
+                    Členové mají lekci v ceně členství a doplácí jen <strong>{formatPrice(surcharge)}</strong>.{tierNote}{" "}
                   </>
                 )}
                 {passSurcharge > 0 ? (

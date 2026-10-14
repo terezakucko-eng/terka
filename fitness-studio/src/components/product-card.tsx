@@ -8,10 +8,11 @@ import { credits, entries, formatPrice } from "@/lib/money";
 import { cardPayments } from "@/lib/payments";
 import { nbsp } from "@/lib/typography";
 
-function perks(p: Product): string[] {
+function perks(p: Product, includedClass?: string): string[] {
   switch (p.kind) {
     case "membership":
       return [
+        ...(p.includedPerMonth > 0 ? [`${p.includedPerMonth}× ${includedClass ?? "lekce"} měsíčně v ceně – bez doplatku`] : []),
         p.weeklyLimit ? `Až ${p.weeklyLimit} standardní skupinové lekce týdně` : "Neomezený vstup na standardní skupinové lekce",
         "Zvýhodněný vstup na lekce Reformer a individuální tréninky",
         "Přednostní rezervace – termíny si zamluvíš dřív než ostatní",
@@ -58,6 +59,7 @@ export function ProductCard({
   passNotes = [],
   passExclusions = [],
   creditNotes = [],
+  includedClass,
 }: {
   p: Product;
   loggedIn: boolean;
@@ -68,6 +70,8 @@ export function ProductCard({
   passExclusions?: string[];
   /** e.g. "Většina lekcí: 220 kreditů" – shown on credit pack cards */
   creditNotes?: string[];
+  /** membership with lessons included: the class name (e.g. "Reformer fusion") */
+  includedClass?: string;
 }) {
   const card = cardPayments();
   return (
@@ -87,7 +91,7 @@ export function ProductCard({
                       {p.kind === "membership" && p.recurring && <span className="text-base"> / měsíc</span>}
                     </p>
                     <ul className="mt-5 flex-1 space-y-2 text-sm">
-                      {[...perks(p), ...(p.kind === "pass" ? passNotes : p.kind === "credit_pack" ? creditNotes : [])].map((x) => (
+                      {[...perks(p, includedClass), ...(p.kind === "pass" ? passNotes : p.kind === "credit_pack" ? creditNotes : [])].map((x) => (
                         <li key={x} className="flex gap-2">
                           <Check className={cx("mt-0.5 size-4 shrink-0", p.highlight ? "text-zlato" : "text-salvej")} /> {x}
                         </li>

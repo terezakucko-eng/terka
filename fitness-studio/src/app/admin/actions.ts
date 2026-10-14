@@ -231,6 +231,8 @@ export async function saveProductAction(_: FormState, fd: FormData): Promise<For
       validityDays: kind === "credit_pack" ? field.int(fd, "validityDays") : (field.int(fd, "validityDays") ?? 30),
       weeklyLimit: kind === "membership" ? field.int(fd, "weeklyLimit") : null,
       commitmentMonths: kind === "membership" ? (field.int(fd, "commitmentMonths") ?? 12) : 12,
+      includedClassTypeId: kind === "membership" ? field.str(fd, "includedClassTypeId") || null : null,
+      includedPerMonth: kind === "membership" && field.str(fd, "includedClassTypeId") ? Math.max(0, field.int(fd, "includedPerMonth") ?? 0) : 0,
       recurring: kind === "membership" && field.bool(fd, "recurring"),
       highlight: field.bool(fd, "highlight"),
       linkOnly: field.bool(fd, "linkOnly"),

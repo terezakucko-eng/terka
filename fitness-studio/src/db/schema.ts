@@ -306,6 +306,10 @@ export const products = pgTable("products", {
   linkOnly: boolean("link_only").notNull().default(false),
   /** membership: závazek v měsících; 0 = bez závazku (platí se měsíčně, zruší se ke konci měsíce) */
   commitmentMonths: integer("commitment_months").notNull().default(12),
+  /** membership: lekce v ceně bez doplatku (např. Reformer) – typ lekce… */
+  includedClassTypeId: uuid("included_class_type_id").references((): AnyPgColumn => classTypes.id, { onDelete: "set null" }),
+  /** …a kolik jich je v ceně za kalendářní měsíc; 0 = žádné */
+  includedPerMonth: integer("included_per_month").notNull().default(0),
   /** massage_pass: na kterou masáž; null = na kteroukoli */
   massageServiceId: uuid("massage_service_id").references((): AnyPgColumn => massageServices.id),
   sortOrder: integer("sort_order").notNull().default(0),
@@ -400,6 +404,11 @@ export const entitlements = pgTable(
     renewalCancelled: boolean("renewal_cancelled").notNull().default(false),
     /** membership: vlastní měsíční příspěvek v haléřích; null = výchozí z Nastavení */
     monthlyFee: integer("monthly_fee"),
+    /** membership: lekce v ceně bez doplatku (např. 4× Reformer měsíčně) – typ lekce a počet za kalendářní měsíc */
+    includedClassTypeId: uuid("included_class_type_id").references((): AnyPgColumn => classTypes.id, { onDelete: "set null" }),
+    includedPerMonth: integer("included_per_month").notNull().default(0),
+    /** Od kterého měsíce ("YYYY-MM") lekce v ceně platí – přechod na vyšší členství platí od dalšího měsíce; null = hned */
+    includedFrom: text("included_from"),
     note: text("note"),
     createdAt: createdAt(),
   },
