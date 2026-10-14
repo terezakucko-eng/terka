@@ -484,6 +484,13 @@
       "when": 1791966652701,
       "tag": "0068_price_list_2027",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1791968276698,
+      "tag": "0069_reformer_variant_b",
+      "breakpoints": true
     }
   ]
 }
