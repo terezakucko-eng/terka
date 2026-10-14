@@ -47,6 +47,11 @@ export default async function PricingPage({ searchParams }: PageProps<"/cenik">)
   const list = productsForYear(all, year, now);
   const from = priceListStart(year, now);
   const day = dateKey(from);
+  // next year's list: what can be bought already (presale) and from when the rest
+  const presale = list.filter((p) => inPresale(p, now)).map((p) => p.name);
+  const onSaleFrom = presale.length
+    ? `${presale.join(" a ")} ${presale.length > 1 ? "jsou" : "je"} v předprodeji – koupíš ${presale.length > 1 ? "je" : "ho"} už teď. Ostatní položky jsou v prodeji od ${dayLabel(day)}.`
+    : `Položky z tohoto ceníku jsou v prodeji od ${dayLabel(day)}.`;
   const limited = list.filter((p) => p.maxActive !== null);
   const taken = await membershipPlacesTaken(db, limited.map((p) => p.id), now);
   const placesLeft = (p: (typeof list)[number]) => (p.maxActive === null ? null : Math.max(0, p.maxActive - (taken.get(p.id) ?? 0)));
@@ -118,7 +123,7 @@ export default async function PricingPage({ searchParams }: PageProps<"/cenik">)
           </nav>
           <p className="mt-3 max-w-2xl text-sm text-les/70">
             {later
-              ? `Platí od ${dayLabel(day)} – i pro členství a permanentky koupené dřív (doplatky k lekcím se řídí ceníkem platným v den lekce). Položky z tohoto ceníku jsou v prodeji od ${dayLabel(day)}.`
+              ? `Platí od ${dayLabel(day)} – i pro členství a permanentky koupené dřív (doplatky k lekcím se řídí ceníkem platným v den lekce). ${onSaleFrom}`
               : `Ceny platí do 31. 12. ${year}. Od 1. 1. ${year + 1} platí ceník ${year + 1}.`}
           </p>
         </Container>
