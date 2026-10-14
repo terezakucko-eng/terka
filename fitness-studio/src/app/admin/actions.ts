@@ -43,8 +43,10 @@ import { attempt, field, type FormState } from "@/lib/form";
 import { notifyBooked, notifyPromoted, notifySessionCancelled, notifyStrike } from "@/lib/notify";
 import { afterMemberStrike, clearPause } from "@/domain/strikes";
 import { storeImage, uploadedFile } from "@/lib/media";
+import { formatPrice } from "@/lib/money";
 import { normalizePhone } from "@/lib/phone";
-import { defaultSettings, saveSettings, type Settings } from "@/lib/settings";
+import { defaultSettings, getSettings, saveSettings, type Settings } from "@/lib/settings";
+import { followMonthlyFee, periodLabel } from "@/domain/membership-fees";
 import { cleanBirthDate, cleanNameDay } from "@/lib/profile";
 import { videoEmbedUrl } from "@/lib/video";
 import { pushQuietly } from "@/lib/push";
@@ -243,6 +245,7 @@ export async function saveProductAction(_: FormState, fd: FormData): Promise<For
       maxActive: kind === "membership" ? field.int(fd, "maxActive") : null,
       saleFrom: startOfDay(field.str(fd, "saleFrom")),
       saleUntil: startOfDay(field.str(fd, "saleUntil")),
+      presaleFrom: startOfDay(field.str(fd, "presaleFrom")),
       recurring: kind === "membership" && field.bool(fd, "recurring"),
       highlight: field.bool(fd, "highlight"),
       linkOnly: field.bool(fd, "linkOnly"),
@@ -701,7 +704,15 @@ export async function updateEntitlementAction(_: FormState, fd: FormData): Promi
       .update(entitlements)
       .set({ validFrom: from, validUntil: until, entriesTotal, monthlyFee })
       .where(eq(entitlements.id, e.id));
-    return done(`Uloženo – platí ${formatDate(from)} – ${formatDate(until)}.`);
+    // a new monthly fee: unpaid requests for the coming months follow it
+    let note = "";
+    if (e.kind === "membership" && monthlyFee !== e.monthlyFee) {
+      const base = (await getSettings(db)).membershipMonthlyFee * 100;
+      const after = monthlyFee ?? base;
+      const followed = await followMonthlyFee(db, e.userId, e.monthlyFee ?? base, after);
+      if (followed.length) note = ` Nezaplacené výzvy (${followed.map(periodLabel).join(", ")}) jsou teď na ${formatPrice(after)}.`;
+    }
+    return done(`Uloženo – platí ${formatDate(from)} – ${formatDate(until)}.${note}`);
   });
 }
 

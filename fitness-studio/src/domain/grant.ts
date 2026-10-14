@@ -1,5 +1,6 @@
 import type { Executor } from "@/db";
 import { entitlements, type Product } from "@/db/schema";
+import { startsAt } from "@/lib/price-list";
 import { changeCredits, extendCreditValidity } from "./wallet";
 
 const DAY = 86_400_000;
@@ -29,7 +30,9 @@ export async function grantProduct(
     case "pass":
     case "membership":
     case "solarium":
-    case "massage_pass":
+    case "massage_pass": {
+      // bought in presale (Členství 2027 in December) it starts on 1 January
+      const from = startsAt(p, now);
       await tx.insert(entitlements).values({
         userId: to.userId,
         kind: p.kind,
@@ -39,9 +42,8 @@ export async function grantProduct(
         entriesTotal: p.entries,
         weeklyLimit: p.kind === "membership" ? p.weeklyLimit : null,
         massageServiceId: p.kind === "massage_pass" ? p.massageServiceId : null,
-        validFrom: now,
-        validUntil:
-          periodEnd ?? new Date(now.getTime() + (p.validityDays ?? 30) * DAY),
+        validFrom: from,
+        validUntil: periodEnd ?? new Date(from.getTime() + (p.validityDays ?? 30) * DAY),
         subscriptionId: to.subscriptionId ?? null,
         // a membership without commitment or with lessons included is billed at its own monthly price
         monthlyFee: p.kind === "membership" && (p.commitmentMonths === 0 || p.includedPerMonth > 0) ? p.price : null,
@@ -50,5 +52,6 @@ export async function grantProduct(
         note: to.note ?? null,
       });
       return;
+    }
   }
 }

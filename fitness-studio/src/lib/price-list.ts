@@ -8,12 +8,20 @@ import { dateKey, formatDate, pragueLocalToDate } from "./dates";
  * current year and – once something is priced for it – the next one.
  */
 
-/** Can be bought at this moment: in the price list and within its sale dates. */
-export const onSale = (p: Pick<Product, "isActive" | "saleFrom" | "saleUntil">, at = new Date()) =>
-  p.isActive && (!p.saleFrom || p.saleFrom <= at) && (!p.saleUntil || p.saleUntil > at);
+/** In presale: bought already now, it starts when its price list does („Platí od 1. 1. 2027“). */
+export const inPresale = (p: Pick<Product, "saleFrom" | "presaleFrom">, at = new Date()) =>
+  !!p.saleFrom && p.saleFrom > at && !!p.presaleFrom && p.presaleFrom <= at;
+
+/** Can be bought at this moment: in the price list and within its sale dates (or in presale). */
+export const onSale = (p: Pick<Product, "isActive" | "saleFrom" | "saleUntil" | "presaleFrom">, at = new Date()) =>
+  p.isActive && (!p.saleFrom || p.saleFrom <= at || inPresale(p, at)) && (!p.saleUntil || p.saleUntil > at);
 
 /** Not on sale yet, but will be – "V prodeji od 1. 1. 2027". */
-export const saleStartsLater = (p: Pick<Product, "saleFrom">, at = new Date()) => !!p.saleFrom && p.saleFrom > at;
+export const saleStartsLater = (p: Pick<Product, "saleFrom" | "presaleFrom">, at = new Date()) =>
+  !!p.saleFrom && p.saleFrom > at && !inPresale(p, at);
+
+/** When what the product gives starts: now, or the start of its price list when bought in presale. */
+export const startsAt = (p: Pick<Product, "saleFrom">, now = new Date()) => (p.saleFrom && p.saleFrom > now ? p.saleFrom : now);
 
 export const yearStart = (y: number) => pragueLocalToDate(`${y}-01-01T00:00`);
 const yearOf = (d: Date) => +dateKey(d).slice(0, 4);

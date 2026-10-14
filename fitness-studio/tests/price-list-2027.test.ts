@@ -1,12 +1,12 @@
 import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { bookings, classTypes, entitlements, products, type Product } from "@/db/schema";
+import { bookings, classTypes, entitlements, orders, products, type Product } from "@/db/schema";
 import { bookSession, cancelBooking, joinWaitlist, priorityWindow, viewerWindows, windowOf } from "@/domain/booking";
-import { membershipUpgrades, switchMembership, switchPeriod } from "@/domain/membership-fees";
+import { createMonthlyFees, feeOverview, followMonthlyFee, membershipUpgrades, switchMembership, switchPeriod } from "@/domain/membership-fees";
 import { createProductOrder, fulfillOrder } from "@/domain/orders";
 import { grantEntitlement } from "@/domain/users";
 import { pragueLocalToDate } from "@/lib/dates";
-import { onSale, priceListYears, productsForYear, surchargeOn, surchargeSteps, yearStart } from "@/lib/price-list";
+import { inPresale, onSale, priceListYears, productsForYear, saleStartsLater, surchargeOn, surchargeSteps, yearStart } from "@/lib/price-list";
 import { getSettings } from "@/lib/settings";
 import { NOW, makeProduct, makeSession, makeUser, testDb } from "./helpers";
 
@@ -54,6 +54,34 @@ describe("price lists by year", () => {
   });
 });
 
+describe("presale", () => {
+  it("Členství 2027 is bought now and starts on 1 January – the purchase pays January", async () => {
+    const y2027 = await makeProduct(h.db, { kind: "membership", name: "Členství 2027", price: 140000, validityDays: 365, saleFrom: JAN, presaleFrom: NOW, recurring: true });
+    expect([inPresale(y2027, NOW), onSale(y2027, NOW), saleStartsLater(y2027, NOW)]).toEqual([true, true, false]);
+    expect(onSale({ ...y2027, presaleFrom: null }, NOW)).toBe(false);
+    // still in the 2027 tab only
+    expect(productsForYear([y2027], 2026, NOW)).toEqual([]);
+
+    const u = await makeUser(h.db);
+    const { order } = await createProductOrder(h.db, { userId: u.id, productId: y2027.id, commitmentAccepted: true }, NOW);
+    await fulfillOrder(h.db, { orderId: order.id, provider: "transfer" }, NOW);
+    const [e] = await h.db.select().from(entitlements).where(eq(entitlements.userId, u.id));
+    expect(e.validFrom).toEqual(JAN);
+    expect(e.validUntil).toEqual(new Date(JAN.getTime() + 365 * 86_400_000));
+    // not a member before January: no classes this year, no switching yet
+    const soon = await makeSession(h.db, { startsAt: pragueLocalToDate("2026-10-07T17:00") });
+    await expect(bookSession(h.db, { userId: u.id, sessionId: soon.id, method: "membership", entitlementId: e.id }, NOW)).rejects.toThrow(/Platí až od 1\.\s1\.\s2027/);
+    expect(await membershipUpgrades(h.db, [e], NOW)).toEqual(new Map());
+
+    // no fee for December, none for January (paid by the purchase), February as usual
+    expect((await createMonthlyFees(h.db, { period: "2026-12", amountKc: 1400, userIds: [u.id] })).length).toBe(0);
+    expect((await createMonthlyFees(h.db, { period: "2027-01", amountKc: 1400, userIds: [u.id] })).length).toBe(0);
+    const jan = (await feeOverview(h.db, "2027-01")).rows.find((r) => r.userId === u.id);
+    expect(jan).toMatchObject({ status: "purchase", amount: 140000 });
+    expect((await createMonthlyFees(h.db, { period: "2027-02", amountKc: 1400, userIds: [u.id] })).map((o) => o.amount)).toEqual([140000]);
+  });
+});
+
 describe("Členství Reformer 2027", () => {
   it("has a limited number of places – buying and switching stop when they're taken", async () => {
     const s = await makeSession(h.db);
@@ -72,7 +100,7 @@ describe("Členství Reformer 2027", () => {
     await switchMembership(h.db, member.id, e.id, tier.id, NOW); // the 2nd and last place
 
     const late = await makeUser(h.db);
-    await expect(createProductOrder(h.db, { userId: late.id, productId: tier.id, commitmentAccepted: true }, NOW)).rejects.toThrow("omezený počet míst");
+    await expect(createProductOrder(h.db, { userId: late.id, productId: tier.id, commitmentAccepted: true }, NOW)).rejects.toThrow("omezený počet členství");
     const other = await buy(basic.id);
     const [e2] = await h.db.select().from(entitlements).where(eq(entitlements.userId, other.id));
     expect(await membershipUpgrades(h.db, [e2], NOW)).toEqual(new Map());
@@ -120,5 +148,18 @@ describe("Členství Reformer 2027", () => {
     expect(promoted.map((b) => b.userId)).toEqual([reformerMember.id]);
     const [mine] = await h.db.select().from(bookings).where(and(eq(bookings.sessionId, full.id), eq(bookings.userId, reformerMember.id)));
     expect(mine).toMatchObject({ status: "confirmed", surcharge: 0 });
+  });
+});
+
+describe("a member's own monthly fee", () => {
+  it("unpaid requests for the coming months follow it, this month and discounted ones stay", async () => {
+    const u = await makeUser(h.db);
+    await grantEntitlement(h.db, { userId: u.id, kind: "membership", name: "Členství", entries: null, validityDays: 365 }, NOW);
+    const fee = (period: string, amount: number) =>
+      h.db.insert(orders).values({ userId: u.id, kind: "membership_fee", period, description: period, amount, provider: "transfer" }).returning().then(([o]) => o);
+    const [oct, nov, dec, jan] = [await fee("2026-10", 140000), await fee("2026-11", 140000), await fee("2026-12", 140000), await fee("2027-01", 70000)];
+    expect(await followMonthlyFee(h.db, u.id, 140000, 100000, NOW)).toEqual(["2026-11", "2026-12"]);
+    const amounts = await h.db.select({ id: orders.id, amount: orders.amount }).from(orders).where(eq(orders.userId, u.id));
+    expect([oct, nov, dec, jan].map((o) => amounts.find((a) => a.id === o.id)!.amount)).toEqual([140000, 100000, 100000, 70000]);
   });
 });

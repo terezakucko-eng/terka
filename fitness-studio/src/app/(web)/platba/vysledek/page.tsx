@@ -1,8 +1,9 @@
-import { eq } from "drizzle-orm";
+import { and, eq, gt } from "drizzle-orm";
 import { ButtonLink, Card, Container, Eyebrow } from "@/components/ui";
 import { getDb } from "@/db";
-import { orders, vouchers } from "@/db/schema";
+import { entitlements, orders, vouchers } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
+import { formatDate } from "@/lib/dates";
 
 export default async function PaymentResultPage({ searchParams }: PageProps<"/platba/vysledek">) {
   const { order: id, stav } = await searchParams;
@@ -15,6 +16,14 @@ export default async function PaymentResultPage({ searchParams }: PageProps<"/pl
   const paid = mine?.status === "paid";
   const [gift] = mine?.kind === "voucher" ? await (await getDb()).select().from(vouchers).where(eq(vouchers.orderId, mine.id)) : [];
   const cancelled = stav === "zruseno" && !paid;
+  // bought in presale (Členství 2027): it starts later
+  const [later] =
+    paid && mine?.kind === "product"
+      ? await (await getDb())
+          .select({ validFrom: entitlements.validFrom })
+          .from(entitlements)
+          .where(and(eq(entitlements.orderId, mine.id), gt(entitlements.validFrom, new Date())))
+      : [];
 
   return (
     <Container className="max-w-lg py-16">
@@ -29,7 +38,9 @@ export default async function PaymentResultPage({ searchParams }: PageProps<"/pl
             : paid
             ? mine?.kind === "drop_in" || mine?.kind === "surcharge" || mine?.kind === "massage" || mine?.kind === "membership_fee"
               ? "Zaplaceno, děkujeme. Těšíme se na tebe."
-              : "Nákup máš na účtu, můžeš rovnou rezervovat."
+              : later
+                ? `Nákup máš na účtu – platí od ${formatDate(later.validFrom)}. Těšíme se na tebe.`
+                : "Nákup máš na účtu, můžeš rovnou rezervovat."
             : cancelled
               ? "Nic se nestrhlo. Můžeš to zkusit znovu."
               : "Potvrzení od banky obvykle dorazí do pár vteřin. Obnov stránku, nebo se podívej do svého účtu."}

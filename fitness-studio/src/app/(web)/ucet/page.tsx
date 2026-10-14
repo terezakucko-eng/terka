@@ -178,8 +178,8 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
                       {flexible.has(e.id)
                         ? e.renewalCancelled
                           ? ` · ukončené, platí do ${formatDate(new Date(e.validUntil.getTime() - 1))}`
-                          : " · bez závazku"
-                        : ` · platí do ${formatDate(e.validUntil)}`}
+                          : ` · bez závazku${e.validFrom > new Date() ? `, platí od ${formatDate(e.validFrom)}` : ""}`
+                        : ` · platí ${e.validFrom > new Date() ? `od ${formatDate(e.validFrom)} ` : ""}do ${formatDate(e.validUntil)}`}
                       {e.kind === "membership" && !flexible.has(e.id) && " · členství spravuje studio"}
                     </p>
                     {included.has(e.id) && (() => {
@@ -215,7 +215,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
                         <p className="mt-2 text-les/70">
                           {offer.includedPerMonth}× {cls} měsíčně bez doplatku
                           {cfg.includedPriorityWeeks > 0 && `, přednostní rezervace na ${cls}`} a všechno, co máš teď.
-                          {offer.maxActive !== null && " Počet míst je omezený."} Od {switchFrom.get(offer.id)} platíš {formatPrice(offer.price)}{" "}
+                          {offer.maxActive !== null && " Počet těchto členství je omezený."} Od {switchFrom.get(offer.id)} platíš {formatPrice(offer.price)}{" "}
                           měsíčně, {offer.commitmentMonths > 0 ? "závazek se nemění – platí do stejného data jako dosud." : "dál bez závazku."}
                         </p>
                         <ActionForm action={switchMembershipAction} className="mt-3 space-y-3">

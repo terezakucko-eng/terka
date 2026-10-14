@@ -67,6 +67,7 @@ export function ProductCard({
   includedClass,
   priorityWeeks = 0,
   saleNote,
+  startsOn,
   placesLeft = null,
 }: {
   p: Product;
@@ -84,6 +85,8 @@ export function ProductCard({
   priorityWeeks?: number;
   /** Not sold yet (next year's price list): "V prodeji od 1. 1. 2027" instead of the buy buttons */
   saleNote?: string;
+  /** In presale: bought now, it starts on this day ("1. 1. 2027") */
+  startsOn?: string;
   /** Limited membership: places left (null = no limit) */
   placesLeft?: number | null;
 }) {
@@ -107,7 +110,7 @@ export function ProductCard({
                     {p.maxActive !== null && placesLeft !== null && (
                       <p className={cx("mt-3 text-sm font-semibold", p.highlight ? "text-zlato-light" : "text-zeme")}>
                         {placesLeft > 0
-                          ? `Omezený počet: ${placesLeft} ${placesLeft === 1 ? "volné místo" : placesLeft < 5 ? "volná místa" : "volných míst"} (celkem ${p.maxActive})`
+                          ? `Omezený počet členství: ${p.maxActive} · volná: ${placesLeft}`
                           : "Teď obsazeno"}
                       </p>
                     )}
@@ -136,15 +139,16 @@ export function ProductCard({
                       <p className={cx("mt-6 rounded-xl px-4 py-3 text-center text-sm font-semibold", p.highlight ? "bg-papir/10" : "bg-krem/60")}>
                         {saleNote}
                         {p.kind === "membership" && p.includedPerMonth > 0 && (
-                          <span className="mt-1 block text-xs font-normal">Máš členství se závazkem? Místo si můžeš zamluvit už teď v Můj účet.</span>
+                          <span className="mt-1 block text-xs font-normal">Máš členství se závazkem? Přechod si můžeš zamluvit už teď v Můj účet.</span>
                         )}
                       </p>
                     ) : placesLeft === 0 ? (
                       <p className={cx("mt-6 rounded-xl px-4 py-3 text-center text-sm", p.highlight ? "bg-papir/10" : "bg-krem/60")}>
-                        Všechna místa jsou obsazená – napiš nám a dáme ti vědět, až se nějaké uvolní.
+                        Všechna členství jsou obsazená – napiš nám a dáme ti vědět, až se nějaké uvolní.
                       </p>
                     ) : loggedIn ? (
                       <ActionForm action={buyProductAction} className="mt-6 space-y-2">
+                        {startsOn && <PresaleNote p={p} startsOn={startsOn} />}
                         <input type="hidden" name="productId" value={p.id} />
                         {p.kind === "membership" && (
                           <label className={cx("mb-3 flex gap-3 text-xs", p.highlight ? "text-papir/80" : "text-les/70")}>
@@ -157,18 +161,32 @@ export function ProductCard({
                         )}
                         {card && (
                           <SubmitButton name="pay" value="card" variant={p.highlight ? "gold" : "dark"} className="w-full" pendingText="Moment…">
-                            {p.kind === "membership" && p.recurring ? "Platit kartou měsíčně" : "Koupit – kartou"}
+                            {p.kind === "membership" && p.recurring && !startsOn ? "Platit kartou měsíčně" : "Koupit – kartou"}
                           </SubmitButton>
                         )}
-                        <SubmitButton name="pay" value="transfer" variant={card ? "outline" : p.highlight ? "gold" : "dark"} className="w-full" pendingText="Moment…">
+                        {/* on the dark (highlighted) card the plain outline would vanish – the light one stays visible */}
+                        <SubmitButton name="pay" value="transfer" variant={card ? (p.highlight ? "outline-light" : "outline") : p.highlight ? "gold" : "dark"} className="w-full" pendingText="Moment…">
                           {card ? "Převodem (QR)" : "Koupit – platba převodem"}
                         </SubmitButton>
                       </ActionForm>
                     ) : (
-                      <ButtonLink href={`/prihlaseni?next=${encodeURIComponent(next)}`} variant={p.highlight ? "gold" : "outline"} className="mt-6 w-full">
-                        Přihlásit a koupit
-                      </ButtonLink>
+                      <div className="mt-6 space-y-2">
+                        {startsOn && <PresaleNote p={p} startsOn={startsOn} />}
+                        <ButtonLink href={`/prihlaseni?next=${encodeURIComponent(next)}`} variant={p.highlight ? "gold" : "outline"} className="w-full">
+                          Přihlásit a koupit
+                        </ButtonLink>
+                      </div>
                     )}
                   </article>
+  );
+}
+
+/** "Platí od 1. 1. 2027" above the buy buttons of a product in presale. */
+function PresaleNote({ p, startsOn }: { p: Product; startsOn: string }) {
+  return (
+    <p className={cx("mb-3 rounded-xl px-4 py-3 text-center text-sm", p.highlight ? "bg-papir/10" : "bg-krem/60")}>
+      <span className="font-semibold">Platí od {startsOn}</span> – koupit můžeš už teď.
+      {p.kind === "membership" && <span className="mt-1 block text-xs">Platbou při koupi máš zaplacený první měsíc členství.</span>}
+    </p>
   );
 }

@@ -9,7 +9,7 @@ import { activeClassTypes, priceListProducts } from "@/lib/queries";
 import Link from "next/link";
 import { membershipPlacesTaken } from "@/domain/membership-fees";
 import { dateKey } from "@/lib/dates";
-import { dayLabel, onSale, priceListStart, priceListYears, priceNoteOn, productsForYear, saleStartsLater, surchargeSteps, yearStart } from "@/lib/price-list";
+import { dayLabel, inPresale, onSale, priceListStart, priceListYears, priceNoteOn, productsForYear, saleStartsLater, surchargeSteps, yearStart } from "@/lib/price-list";
 import { getSettings } from "@/lib/settings";
 import { getContent, type Content } from "@/content";
 import { nbsp } from "@/lib/typography";
@@ -100,7 +100,7 @@ export default async function PricingPage({ searchParams }: PageProps<"/cenik">)
       </PageHeader>
 
       {years.length > 1 && (
-        <Container className="pb-10 pt-8">
+        <Container className="pb-16 pt-10">
           <nav className="flex flex-wrap gap-2" aria-label="Ceník podle roku">
             {years.map((y) => (
               <Link
@@ -162,6 +162,7 @@ export default async function PricingPage({ searchParams }: PageProps<"/cenik">)
                     priorityWeeks={cfg.includedPriorityWeeks}
                     placesLeft={placesLeft(p)}
                     saleNote={!onSale(p, now) && saleStartsLater(p, now) ? `V prodeji od ${dayLabel(dateKey(p.saleFrom!))}` : undefined}
+                    startsOn={inPresale(p, now) ? dayLabel(dateKey(p.saleFrom!)) : undefined}
                   />
                 ))}
               </div>

@@ -92,9 +92,12 @@ export const activeClassTypes = (db: DB) =>
 export const activeInstructors = (db: DB) =>
   db.select().from(instructors).where(eq(instructors.isActive, true)).orderBy(asc(instructors.sortOrder), asc(instructors.name));
 
-/** Within its sale dates (a price list for next year is shown, but sold from 1 January). */
+/** Within its sale dates (a price list for next year is shown, but sold from 1 January – or earlier in presale). */
 export const onSaleNow = (now = new Date()) =>
-  and(or(isNull(products.saleFrom), lte(products.saleFrom, now)), or(isNull(products.saleUntil), gt(products.saleUntil, now)));
+  and(
+    or(isNull(products.saleFrom), lte(products.saleFrom, now), lte(products.presaleFrom, now)),
+    or(isNull(products.saleUntil), gt(products.saleUntil, now)),
+  );
 
 /** The price list as on sale today. */
 export const activeProducts = (db: DB, now = new Date()) =>

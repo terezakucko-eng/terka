@@ -43,8 +43,9 @@ function ProductForm({ p, services, types }: { p?: Product; services: MassageSer
           </Select>
         </Field>
         <Field label="…kolik měsíčně" hint="Za kalendářní měsíc, nevyčerpané se nepřevádí"><Input name="includedPerMonth" type="number" min={0} defaultValue={p?.includedPerMonth ?? 0} /></Field>
-        <Field label="Omezený počet" hint="Jen u členství · nejvýš tolik platných členství najednou · prázdné = bez limitu"><Input name="maxActive" type="number" min={1} defaultValue={p?.maxActive ?? ""} /></Field>
+        <Field label="Omezený počet členství" hint="Jen u členství · nejvýš tolik platných členství najednou · prázdné = bez limitu"><Input name="maxActive" type="number" min={1} defaultValue={p?.maxActive ?? ""} /></Field>
         <Field label="V prodeji od" hint="Ceník na další rok (např. 1. 1. 2027) · prázdné = hned"><Input name="saleFrom" type="date" defaultValue={p?.saleFrom ? dateKey(p.saleFrom) : ""} /></Field>
+        <Field label="Předprodej od" hint="Koupit jde už od tohoto dne, platit začne až od „V prodeji od“ · prázdné = bez předprodeje"><Input name="presaleFrom" type="date" defaultValue={p?.presaleFrom ? dateKey(p.presaleFrom) : ""} /></Field>
         <Field label="V prodeji do" hint="Den, kdy se prodej ukončí (např. 1. 1. 2027) · prázdné = bez konce"><Input name="saleUntil" type="date" defaultValue={p?.saleUntil ? dateKey(p.saleUntil) : ""} /></Field>
         <Field label="Na masáž" hint="Jen u permanentky na masáže">
           <Select name="massageServiceId" defaultValue={p?.massageServiceId ?? ""}>
@@ -88,7 +89,7 @@ export default async function AdminPricing() {
       <div className="space-y-3">
         <Panel title="+ Nový produkt"><ProductForm services={services} types={types} /></Panel>
         {list.map((p) => (
-          <Panel key={p.id} title={`${p.name} · ${formatPrice(p.price)} · ${productKindLabel[p.kind]}${p.isActive ? (p.linkOnly ? " · jen přes odkaz" : "") : " · skryto"}${p.saleFrom ? ` · v prodeji od ${formatDate(p.saleFrom)}` : ""}${p.saleUntil ? ` · do ${formatDate(p.saleUntil)}` : ""}`}>
+          <Panel key={p.id} title={`${p.name} · ${formatPrice(p.price)} · ${productKindLabel[p.kind]}${p.isActive ? (p.linkOnly ? " · jen přes odkaz" : "") : " · skryto"}${p.saleFrom ? ` · v prodeji od ${formatDate(p.saleFrom)}` : ""}${p.presaleFrom && p.saleFrom ? ` (předprodej od ${formatDate(p.presaleFrom)})` : ""}${p.saleUntil ? ` · do ${formatDate(p.saleUntil)}` : ""}`}>
             {!p.isActive && <Badge tone="red">Není v nabídce</Badge>}
             <ProductForm p={p} services={services} types={types} />
             <ActionForm

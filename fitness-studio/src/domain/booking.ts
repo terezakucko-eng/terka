@@ -12,7 +12,7 @@ import {
   type ClassSession,
   type Entitlement,
 } from "@/db/schema";
-import { addDays, dateKey, formatDateTime, mondayOf, pragueLocalToDate, weekRange } from "@/lib/dates";
+import { addDays, dateKey, formatDate, formatDateTime, mondayOf, pragueLocalToDate, weekRange } from "@/lib/dates";
 import { UserError } from "@/lib/errors";
 import { credits as creditsLabel, formatPrice } from "@/lib/money";
 import { getSettings, type Settings } from "@/lib/settings";
@@ -522,8 +522,8 @@ async function entitlementProblem(
   // a free entry given for this very class counts even where intro entries don't
   if (e.kind === "free" && !e.classTypeId && (await classRules(tx, s)).noFreeEntry)
     return "Úvodní vstup zdarma na tuhle lekci použít nejde.";
-  if (e.validFrom > s.startsAt || e.validUntil <= s.startsAt)
-    return "Na datum lekce už neplatí.";
+  if (e.validFrom > s.startsAt) return `Platí až od ${formatDate(e.validFrom)}.`;
+  if (e.validUntil <= s.startsAt) return "Na datum lekce už neplatí.";
   if (e.entriesTotal !== null) {
     const need = entriesFor(e, await classRules(tx, s), seats);
     if (e.entriesUsed + need > e.entriesTotal)
