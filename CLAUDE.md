@@ -46,9 +46,10 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 - MKT plán 10–12/2026 pro srovnávače zapsán v jednotkách dobití (žlutě označené buňky).
 - Basecamp komentář s žádostí o rozpočet 518405 (10–12: 156 459 / 163 867 / 187 983) odeslán do todo „MKT | požadavek na změnu budgetu“ (36422922/todos/10259674263).
 
-## Model 2027 – rozhodnutí (scénář D, MKT celkem ~77,5 mil.)
+## Model 2027 – rozhodnutí (scénář D, MKT celkem ~76,9 mil.)
 - Scénáře: A tempo 7–9/2026, B PNO 10 % (Lenka), C PNO 13 %, D cílový MKT profit 1 po trzích. Přepínač na listu Přehled.
-- Metoda „Plán…“ ve sloupci E + měsíční částky ve žlutých sloupcích AK–AV; plánové řádky se neškálují koeficientem scénáře.
+- Metoda „Plán…“ ve sloupci E + měsíční částky ve žlutých sloupcích AK–AV; plánové řádky se neškálují koeficientem scénáře. Od 14. 10. má **každý řádek položky** jednotný vzorec S:AD s větví „Plán“ → libovolný řádek stačí přepnout na „Plán…“ a vyplnit AK–AV. Koeficient scénáře je teď ř. 194 (po vložení řádku OnePlay).
+- **TV Nova 2027 (Irena Hradilová):** sponzoring 7 344 373 Kč (Tereza odsouhlasila mailem 7. 10.; závazná objednávka ZO 14-27 přišla 14. 10. k podpisu), ř. 33 „Plán“, měsíce zatím dle profilu 2026 (MP xlsx z Gmailu nejde stáhnout, zpřesnit, až ho Tereza nahraje). **ONEPLAY 2027** 3 000 000 Kč (4 056 000 impresí, ~0,49 Kč/zhl.), nový ř. 34, 250 tis./měs. Celkem 10,34 mil. vs. 2026 10,95 mil. (Irena: letos 10 896 420 vč. převodu z 2025). Dopad: Brand 29,69 → 29,08 mil., MKT celkem 77,50 → 76,89 mil. (pohled marže 1). OnePlay test 11–12/2026 (1 mil., −50 %, 1 348 000 impresí) – ověřit, zda je v MKT plánu 2026.
 - Srovnávače + Seznam dle ROI a sezónnosti (celkem ~1,67 mil.), Srovname RS 0, zahraničí minimum.
 - Czech On-line Expo 2/2027: stánek +105 tis., dárky +40 tis., cestovné +35 tis.
 - Rezerva na předem neurčenou brandovou aktivitu: 100 tis./měs. (kategorie Brand).
@@ -56,7 +57,7 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 - RS Eventy (Erofest duben, Colours of Ostrava červenec) jen jako náklady (řádky Konference, eventy = shodně s 2026), ne do tržeb.
 - Radek Hudák 70 tis./měs., Karel Novotný 100 tis./měs., školení 5 tis./měs., Dotykačka ukončena, Email INT a Mamata/Merglevský ukončeno.
 - Targito dle fixního klíče (viz níže).
-- **Dva pohledy na marži** (přepínač Přehled!C8): 1 = GM1 do srpna 2026 (plán Adama) → scénář D performance 37,0 mil., MKT celkem 77,5 mil., PNO 12,0 %; 2 = GM1 od září 2026 (po přecenění: CZ −1,8 p.b., SK −4,3, zahraničí 0, KS −2,6; Model 2027 G217/G221/G225/G229) → performance 30,3 mil., MKT celkem 70,8 mil., PNO 9,8 %. MKT profit 1 v obou 155,7 mil. (cíl dle MP1 % 1–9/2026).
+- **Dva pohledy na marži** (přepínač Přehled!C8): 1 = GM1 do srpna 2026 (plán Adama) → scénář D performance 37,0 mil., MKT celkem 76,9 mil. (dříve 77,5 před TV Nova/OnePlay), PNO 12,0 %; 2 = GM1 od září 2026 (po přecenění: CZ −1,8 p.b., SK −4,3, zahraničí 0, KS −2,6; Model 2027 G218/G222/G226/G230 po vložení řádku) → performance 30,3 mil., MKT celkem ~70,2 mil. (po TV Nova/OnePlay), PNO 9,8 %. MKT profit 1 v obou 155,7 mil. (cíl dle MP1 % 1–9/2026).
 
 ## Targito – rozúčtování (platí, odsouhlaseno 14. 10. 2026)
 Detail v `targito-rozuctovani.md`. Shrnutí: faktura 84 952 Kč/měs. (dodatek, limit 6 mil.) → **Slon + Kondomshop 62 992 (74,2 %), Flagranti 21 960 (25,8 %)**; uvnitř Slona dle objemu z faktury (KS ~4,6 %); nadlimit uvnitř faktury se nepřeúčtovává; služby dle řádků (Růžový slon / Safety First). Měsíční kontrola – kalendář 3. pracovní den v měsíci.
