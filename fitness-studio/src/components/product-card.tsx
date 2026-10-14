@@ -187,6 +187,9 @@ function PresaleNote({ p, startsOn }: { p: Product; startsOn: string }) {
     <p className={cx("mb-3 rounded-xl px-4 py-3 text-center text-sm", p.highlight ? "bg-papir/10" : "bg-krem/60")}>
       <span className="font-semibold">Platí od {startsOn}</span> – koupit můžeš už teď.
       {p.kind === "membership" && <span className="mt-1 block text-xs">Platbou při koupi máš zaplacený první měsíc členství.</span>}
+      {p.kind === "membership" && p.includedPerMonth > 0 && (
+        <span className="mt-1 block text-xs">Máš už členství se závazkem? Přechod si zamluvíš v Můj účet.</span>
+      )}
     </p>
   );
 }
