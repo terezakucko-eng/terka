@@ -9,10 +9,10 @@ import { Badge, ButtonLink, Card, Empty, Eyebrow, Input } from "@/components/ui"
 import { getDb } from "@/db";
 import { userBookings, userEntitlements } from "@/lib/account";
 import { requireUser } from "@/lib/auth";
-import { formatDate, formatDay, formatRange, formatTime, pragueLocalToDate } from "@/lib/dates";
+import { formatDate, formatDay, formatRange, formatTime } from "@/lib/dates";
 import { credits, formatPrice } from "@/lib/money";
 import { SurchargePay } from "@/components/surcharge-pay";
-import { flexibleMemberships, membershipUpgrades, openFees, periodStartLabel, switchPeriod } from "@/domain/membership-fees";
+import { flexibleMemberships, membershipSwitches, openFees, periodStartLabel } from "@/domain/membership-fees";
 import { includedSummary } from "@/domain/booking";
 import { endMembershipAction, switchMembershipAction } from "@/app/actions/membership";
 import { insuranceYears } from "@/domain/insurance";
@@ -66,31 +66,20 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
     getContent(),
     insuranceYears(db, user.id),
   ]);
-  const [cfg, invited, gifts, flexible, upgrades, included] = await Promise.all([
+  const [cfg, invited, gifts, flexible, switches, included] = await Promise.all([
     getSettings(db),
     myReferrals(db, user.id),
     boughtVouchers(db, user.id),
     flexibleMemberships(db, ents.map((e) => e.id)),
-    membershipUpgrades(db, ents),
+    // a switch to a higher membership (e.g. Členství Reformer) starts with the next unpaid month
+    membershipSwitches(db, user.id, ents),
     includedSummary(db, ents),
   ]);
-  // a switch to a higher membership (e.g. Členství Reformer) starts with the next unpaid month
-  const switchPeriods = new Map(
-    await Promise.all(
-      [...new Map([...upgrades.values()].map((p) => [p.id, p])).values()].map(async (p) => [p.id, await switchPeriod(db, user.id, undefined, p)] as const),
-    ),
-  );
-  const switchFrom = new Map([...switchPeriods].map(([id, period]) => [id, periodStartLabel(period)]));
-  // a membership ending before the switch would start can't move up (it's renewed instead)
-  const canSwitch = (e: (typeof ents)[number]) => {
-    const offer = upgrades.get(e.id);
-    return !!offer && e.validUntil > pragueLocalToDate(`${switchPeriods.get(offer.id)}-01T00:00`);
-  };
-  const offerClasses = upgrades.size
+  const offerClasses = switches.size
     ? await db
         .select({ id: classTypes.id, name: classTypes.name })
         .from(classTypes)
-        .where(inArray(classTypes.id, [...upgrades.values()].flatMap((p) => (p.includedClassTypeId ? [p.includedClassTypeId] : []))))
+        .where(inArray(classTypes.id, [...switches.values()].flatMap(({ offer }) => (offer.includedClassTypeId ? [offer.includedClassTypeId] : []))))
     : [];
   const invite = `${site.url}/pozvanka/${user.referralCode}`;
   // regulars who haven't written a review yet get a gentle nudge
@@ -204,8 +193,9 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
                       <SubmitButton variant="ghost" className="px-3 py-2 text-[0.65rem]">Ukončit ke konci měsíce</SubmitButton>
                     </ActionForm>
                   )}
-                  {canSwitch(e) && (() => {
-                    const offer = upgrades.get(e.id)!;
+                  {switches.has(e.id) && (() => {
+                    const { offer, period } = switches.get(e.id)!;
+                    const from = periodStartLabel(period);
                     const cls = offerClasses.find((c) => c.id === offer.includedClassTypeId)?.name ?? "lekce";
                     return (
                       <details className="w-full rounded-xl border border-zlato/50 bg-krem/40 px-4 py-3 text-sm">
@@ -215,7 +205,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
                         <p className="mt-2 text-les/70">
                           {offer.includedPerMonth}× {cls} měsíčně bez doplatku
                           {cfg.includedPriorityWeeks > 0 && `, přednostní rezervace na ${cls}`} a všechno, co máš teď.
-                          {offer.maxActive !== null && " Počet těchto členství je omezený."} Od {switchFrom.get(offer.id)} platíš {formatPrice(offer.price)}{" "}
+                          {offer.maxActive !== null && " Počet těchto členství je omezený."} Od {from} platíš {formatPrice(offer.price)}{" "}
                           měsíčně, {offer.commitmentMonths > 0 ? "závazek se nemění – platí do stejného data jako dosud." : "dál bez závazku."}
                         </p>
                         <ActionForm action={switchMembershipAction} className="mt-3 space-y-3">
@@ -224,7 +214,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
                           <label className="flex gap-3 text-xs text-les/70">
                             <input type="checkbox" name="agree" required className="mt-0.5 size-4 shrink-0 accent-[#c9a26b]" />
                             <span>
-                              Chci od {switchFrom.get(offer.id)} {offer.name} za {formatPrice(offer.price)} měsíčně a souhlasím s{"\u00a0"}
+                              Chci od {from} {offer.name} za {formatPrice(offer.price)} měsíčně a souhlasím s{"\u00a0"}
                               <Link href="/obchodni-podminky" target="_blank" className="underline">obchodními podmínkami</Link>.
                             </span>
                           </label>
