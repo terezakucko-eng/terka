@@ -119,6 +119,8 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 
 - **15. 10.: Blok MKT PROFIT (list ř. 198–214) obarven podle štítků ve sloupci G** (Tereza výslovně chtěla – výjimka z pravidla bez barev): MKT_profit_1 = světle modrá (pozadí 0.749/0.882/0.965, text 0.039/0.325/0.659) ř. 202–204 (Performance, MP1, MP1 %); MKT_profit_2 = světle fialová (0.902/0.812/0.949, text 0.353/0.196/0.525) ř. 205–207; MKT_profit_3 = světle oranžová (1/0.784/0.667, text 0.459/0.220/0) ř. 208–210. Řádky bloku: 199 tržba, 200 služby, 201 hrubý zisk, 202 GM1, 203–205 MP1, 206–208 MP2, 209–211 MP3, 212 PNO, 213 PNM (pozn.: zápis výše uvádí ř. 198–213 – po vložení SonicBrandu +1).
 
+- **15. 10.: YOY 2026 doplněno do bloku MKT PROFIT** (sloupce YOY I, M, … AO = leden–září 2026; 10–12 prázdné, součet BE jen 1–9): tržba/služby/hrubý zisk z Terezina reportu 2026 (zaokr. 0,1 mil.), náklady SUMIF ze sloupců YOY listu. Sedí s reportem: perf 24,38 (report 24,5 vč. října 95 tis.), MP1 100,1, brand 20,7, MP2 79,4, ostatní 6,94 (report 7,3 – rozdíl ~0,3 mil. = smazané řádky Retino, Kopčanová ap.), MP3 72,5 mil. (37,5 %). **Řádek „Bannery“ (518410, list) smazán** (Tereza: zbytečný; v modelu nebyl) → blok MKT PROFIT teď ř. 197–212 (tržba 198, GP 200, MP1 203, MP2 206, MP3 209, PNO 211, PNM 212), MKT TOTAL ř. 194 = 89 823 318.
+
 ## Targito – rozúčtování (platí, odsouhlaseno 14. 10. 2026)
 Detail v `targito-rozuctovani.md`. Shrnutí: faktura 84 952 Kč/měs. (dodatek, limit 6 mil.) → **Slon + Kondomshop 62 992 (74,2 %), Flagranti 21 960 (25,8 %)**; uvnitř Slona dle objemu z faktury (KS ~4,6 %); nadlimit uvnitř faktury se nepřeúčtovává; služby dle řádků (Růžový slon / Safety First). Měsíční kontrola – kalendář 3. pracovní den v měsíci.
 
