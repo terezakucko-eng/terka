@@ -125,6 +125,8 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 
 - **15. 10.: Příspěvky dodavatelů na eventy 2027** (Tereza: „v dubnu nám náklady na Erofest mají víceméně doplatit dodavatelé“, „náklady na Colours z 50 % taktéž“): nový ř. 204 v bloku MKT PROFIT „Příspěvky dodavatelů na eventy“ = duben 548 974 (Erofest 2026 dle FA: březen FOTION plocha+partnerství 200 000 + expozice 89 450; duben stavba expozice 111 575 + drobné ≈ 129 333, externisté 93 711 – Mirek 30 300, moderace 25 000, foto 16 075, web 13 992…, trička 36 480) + červenec 249 850 (50 % Colours 2026 ≈ 499 701: prezentace 400 000 + služby COO 49 515 + ostatní). Náklady v plánu v plné výši, příspěvek jako výnos (GP celkem ř. 205 = 202+203+204). Blok teď ř. 197–217 (MP1 208, MP2 211, MP3 214, PNO 216, PNM 217). **MKT profit 3 2027 = 132,7 mil. (38,3 %)**. Ověřit: jak se příspěvky účtují (tržba vs. dobropis na náklad) a zda byly i v 2026.
 
+- **15. 10.: Colours – příspěvek dodavatelů v plánu jen 1/3** (Tereza: „ať mám rezervu“): ř. 204 červenec 166 567 (1/3 z ~499 701; reálně čeká až 50 %). Příspěvky celkem 715 541; **MKT profit 3 2027 = 132,58 mil. (38,3 %)**.
+
 ## Targito – rozúčtování (platí, odsouhlaseno 14. 10. 2026)
 Detail v `targito-rozuctovani.md`. Shrnutí: faktura 84 952 Kč/měs. (dodatek, limit 6 mil.) → **Slon + Kondomshop 62 992 (74,2 %), Flagranti 21 960 (25,8 %)**; uvnitř Slona dle objemu z faktury (KS ~4,6 %); nadlimit uvnitř faktury se nepřeúčtovává; služby dle řádků (Růžový slon / Safety First). Měsíční kontrola – kalendář 3. pracovní den v měsíci.
 
