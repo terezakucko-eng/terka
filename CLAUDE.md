@@ -102,6 +102,8 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 
 - **15. 10.: Dárky (reprezentace…) 2027 + eventy** (Tereza: „v dubnu Erofest a v červenci Colours – započítej dárky i tam“): model ř. 26, list ř. 20 (šedý rolling limit) = 20 tis./měs. + únor Expo +40 tis., **duben Erofest +40 tis. (2026 v dubnu jen 3 386 – dárky Erofestu asi jinde), červenec Colours +60 tis. (7/2026 skutečnost 80 502)** → 380 tis./rok. Stav: model MKT celkem 88,57 mil., list 88,55 mil.
 
+- **15. 10.: Arukereso HU 2027** (Tereza vidí dobíjení ~2× měsíčně; „na silné měsíce dle plánu Lenky dej dobití 2× – do BI dodáme, už jsem žádala“): 1 kredit (6 683) měsíčně, **2 kredity v červnu, srpnu, září, říjnu a prosinci** (tržby HU v FP Lenky nad průměrem ~323 tis.: 356/433/371/457/368 tis.) → 17 kreditů = 113 611 Kč (model ř. 62, list ř. 67). Měření HU do BI zajišťuje Tereza. Stav: model MKT celkem 88,59 mil., list 88,57 mil.
+
 ## Targito – rozúčtování (platí, odsouhlaseno 14. 10. 2026)
 Detail v `targito-rozuctovani.md`. Shrnutí: faktura 84 952 Kč/měs. (dodatek, limit 6 mil.) → **Slon + Kondomshop 62 992 (74,2 %), Flagranti 21 960 (25,8 %)**; uvnitř Slona dle objemu z faktury (KS ~4,6 %); nadlimit uvnitř faktury se nepřeúčtovává; služby dle řádků (Růžový slon / Safety First). Měsíční kontrola – kalendář 3. pracovní den v měsíci.
 
@@ -134,7 +136,6 @@ Detail v `targito-rozuctovani.md`. Shrnutí: faktura 84 952 Kč/měs. (dodatek, 
 - 14. 10.: dárky slíbené 80 tis. a reprezentace 20 tis. jsou **rolling limity, ne vždy se vyčerpají** (2026: slíbené ~50 tis./měs., reprezentace ~18 tis./měs.) – v plánu nechat jako strop, v predikci čerpání počítat s historickým tempem.
 - 14. 10.: dárky slíbené 2027 = pevně 80 tis./měs. (ř. 25 „Plán pevně“, mimo strop scénáře), reprezentace 20 tis./měs. (+ Expo 40 tis. v únoru). Prefix pro řádky mimo strop scénáře přejmenován na **„Plán pevně“** (Google Ads CZ/SK Adam + dárky slíbené). Model: performance 44,75 mil., brand 29,08, MKT celkem 84,63 mil.
 - **Marketingový souhlas (opt-in) email/SMS** – Basecamp todo 7403370/todos/10254785440 ([emailing] VIVmail Targito; Adam Durčák 15. 10. se ptá, jak to vidíme; dnes oprávněný zájem, Adam chce vedle sbírat explicitní opt-in; návrhy: Martin Plšek – definovat stavy kontaktů, Jan Tříska – checkbox ve formuláři slevy na 1. nákup, Adam – souhlas při potvrzení jako Astratex). **V kalendáři Terezy st 21. 10. 2026 9:00–10:30** (návrh postupu → odpověď do Basecampu, text ukázat ke schválení).
-- Arukereso HU 2027: plán 1 kredit/měs. (86 879), Tereza vidí dobíjení ~2× měsíčně; účetnictví 1–9/2026 = 78 251 (≈1,3 kreditu/měs.). Čeká na volbu: snížit spotřebu v systému (doporučeno, ROI ~+17 % neměřené) vs. 2 kredity/měs. (160 tis.).
 - Zpráva o Targito rozúčtování pro Kubu, Zuzku, Lenku, Gabriela (ukázat ke schválení).
 - Heureka Product Ads CZ – je v přehledu odečtů, nebo se platí zvlášť?
 - Plán marketingu 2027 přes stakeholdery (zápis s Karlem 21. 9. 2026): Majitel, Produkt, Finance, Sales (e-com + prodejny), HR, IT, Flagranti, privátní značka – vizualizovat.
