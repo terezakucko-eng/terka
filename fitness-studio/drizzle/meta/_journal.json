@@ -575,6 +575,13 @@
       "when": 1792067510768,
       "tag": "0081_student_drop_in",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1792071227985,
+      "tag": "0082_entitlement_limits",
+      "breakpoints": true
     }
   ]
 }

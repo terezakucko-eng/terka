@@ -310,6 +310,19 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
                 {lessonTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
               </Select>
             </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Jen lekce začínající do">
+                <Select name="beforeHour" defaultValue="">
+                  <option value="">Kdykoli</option>
+                  <option value="12">12:00 (ranní)</option>
+                  <option value="15">15:00</option>
+                  <option value="17">17:00</option>
+                </Select>
+              </Field>
+              <label className="mt-6 flex items-start gap-2 text-sm">
+                <input type="checkbox" name="sameDayOnly" className="mt-1" /> Jen v den lekce (zbylé volné místo)
+              </label>
+            </div>
             <Field label="Název" hint="Prázdné = podle typu a lekce, např. „Vstup zdarma – Reformer“"><Input name="name" placeholder="např. Dárek k narozeninám" /></Field>
             <SubmitButton className="w-full">Přidělit</SubmitButton>
           </ActionForm>

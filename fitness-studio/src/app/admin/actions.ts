@@ -675,6 +675,8 @@ export async function grantEntitlementAction(_: FormState, fd: FormData): Promis
       entries: field.int(fd, "entries"),
       validityDays: field.int(fd, "validityDays") ?? 30,
       weeklyLimit: field.int(fd, "weeklyLimit"),
+      sameDayOnly: field.bool(fd, "sameDayOnly"),
+      beforeHour: field.int(fd, "beforeHour"),
       note: field.optional(fd, "note"),
     });
     return done("Přiděleno.");
