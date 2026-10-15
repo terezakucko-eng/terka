@@ -110,6 +110,8 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 
 - **15. 10.: Heureka bannery 2027 – časové rozlišení** (Tereza: „roční bannery se platí jednorázově a je tam časové rozlišení“): model ř. 76–77, list ř. 81–82 = 1/12 měsíčně – CZ Slon 533 131 → 44 428/měs. (+ drobný display dle 2026; celkem 546 873), SK 235 540 → 19 628/měs.; kampaně dál hlavně 2/6/11/12 (jen v poznámce). Součty beze změny (list MKT plán 88,57 mil.).
 
+- **15. 10.: Nové řádky v listu Náklady_MKT_2027_TERKA: ř. 83 „Display - Heureka CZ“ a ř. 84 „Display - Heureka SK“** (Tereza: „dej mi tam asi řádek Display – Heureka CZ/SK“; účet 518409, MKT_profit_2, Brand). Plán 2027: CZ 44 428/měs. (prosinec 44 423) = 533 131, SK 19 628/měs. (prosinec 19 632) = 235 540; YOY 2026 prázdné (bannery 2026 zůstávají v ř. 81–82 Display media a v dubnu v Heureka PPC). Ř. 81 Display media CZ = jen drobný display 13 742/rok, ř. 82 SK 2027 prázdný. **Všechny řádky listu od ř. 83 dolů posunuty o +2** (affiliate 107–110, Mergado 153–161, prodejny 181–186, mzdy 189–190, MKT TOTAL ř. 193 = 88 573 318). V modelu zůstávají bannery v ř. 76–77 (Display media) – model a list se tu liší strukturou, součty sedí.
+
 ## Targito – rozúčtování (platí, odsouhlaseno 14. 10. 2026)
 Detail v `targito-rozuctovani.md`. Shrnutí: faktura 84 952 Kč/měs. (dodatek, limit 6 mil.) → **Slon + Kondomshop 62 992 (74,2 %), Flagranti 21 960 (25,8 %)**; uvnitř Slona dle objemu z faktury (KS ~4,6 %); nadlimit uvnitř faktury se nepřeúčtovává; služby dle řádků (Růžový slon / Safety First). Měsíční kontrola – kalendář 3. pracovní den v měsíci.
 
