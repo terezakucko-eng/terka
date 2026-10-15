@@ -58,4 +58,25 @@ describe("free entries with limits", () => {
       ["Reformer zdarma – volné místo v den lekce", true, null, true, null],
     ]);
   });
+
+  it("migration 0083 makes her general free entries unlimited, nothing else", async () => {
+    const [r] = await h.db.select().from(users).where(eq(users.email, "rk@test.cz"));
+    const year = await grantEntitlement(h.db, { userId: r.id, kind: "free", name: "Vstup zdarma", entries: 365, validityDays: 365 }, now);
+    const welcome = await grantEntitlement(h.db, { userId: r.id, kind: "free", name: "Úvodní lekce zdarma", entries: 1, validityDays: 365 }, now);
+    const other = await makeUser(h.db);
+    const theirs = await grantEntitlement(h.db, { userId: other.id, kind: "free", name: "Vstup zdarma", entries: 365, validityDays: 365 }, now);
+
+    const update = readFileSync("drizzle/0083_family_free_unlimited.sql", "utf8");
+    await h.db.execute(sql.raw(update));
+    await h.db.execute(sql.raw(update)); // safe to repeat
+
+    const byId = async (id: string) => (await h.db.select().from(entitlements).where(eq(entitlements.id, id)))[0];
+    const y = await byId(year.id);
+    expect(y.entriesTotal).toBeNull();
+    expect(y.validUntil.toISOString()).toBe("2030-12-31T22:59:00.000Z");
+    expect((await byId(welcome.id)).entriesTotal).toBe(1);
+    expect((await byId(theirs.id)).entriesTotal).toBe(365);
+    const reformer = await h.db.select().from(entitlements).where(sql`${entitlements.userId} = ${r.id} and ${entitlements.classTypeId} is not null`);
+    expect(reformer.every((e) => e.entriesTotal === null && e.validUntil.toISOString() === "2030-12-31T22:59:00.000Z")).toBe(true);
+  });
 });
