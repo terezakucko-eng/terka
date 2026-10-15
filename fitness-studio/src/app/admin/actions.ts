@@ -34,6 +34,7 @@ import { setDraftHidden } from "@/domain/lesson-drafts";
 import { deleteClient, deleteClients, deleteOrder, deleteOrders, purgeSession, seriesFrom } from "@/domain/cleanup";
 import { cancelOrder, fulfillOrder, sellAtReception } from "@/domain/orders";
 import { deductSolarium } from "@/domain/solarium";
+import { deleteStudentProof } from "@/domain/students";
 import { createClientByStudio, grantEntitlement, normalizeEmail } from "@/domain/users";
 import { sendEmail } from "@/lib/email-templates";
 import { createPasswordLink } from "@/lib/password-links";
@@ -256,6 +257,7 @@ export async function saveProductAction(_: FormState, fd: FormData): Promise<For
       highlight: field.bool(fd, "highlight"),
       linkOnly: field.bool(fd, "linkOnly"),
       membersOnly: field.bool(fd, "membersOnly"),
+      studentsOnly: field.bool(fd, "studentsOnly"),
       isActive: field.bool(fd, "isActive"),
       sortOrder: field.int(fd, "sortOrder") ?? 0,
       massageServiceId: kind === "massage_pass" ? field.str(fd, "massageServiceId") || null : null,
@@ -946,8 +948,12 @@ export async function updateClientAction(_: FormState, fd: FormData): Promise<Fo
         nickname: field.str(fd, "nickname").slice(0, 30) || null,
         birthDate: cleanBirthDate(field.str(fd, "birthDate")),
         nameDay: cleanNameDay(field.int(fd, "nameDayDay"), field.int(fd, "nameDayMonth")),
+        // ISIC / potvrzení o studiu seen at the reception; empty = not a student
+        studentUntil: isDateKey(field.str(fd, "studentUntil")) ? field.str(fd, "studentUntil") : null,
       })
       .where(eq(users.id, id));
+    // verified (or turned down) – the uploaded ID photo isn't needed any more
+    if (isDateKey(field.str(fd, "studentUntil")) || field.bool(fd, "dropStudentProof")) await deleteStudentProof(db, id);
     return done("Klient uložen.");
   });
 }

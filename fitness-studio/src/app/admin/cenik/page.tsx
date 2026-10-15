@@ -62,6 +62,7 @@ function ProductForm({ p, services, types }: { p?: Product; services: MassageSer
         <label className="flex items-center gap-2"><input type="checkbox" name="highlight" defaultChecked={p?.highlight ?? false} /> Zvýraznit</label>
         <label className="flex items-center gap-2"><input type="checkbox" name="isActive" defaultChecked={p?.isActive ?? true} /> V nabídce</label>
         <label className="flex items-center gap-2"><input type="checkbox" name="membersOnly" defaultChecked={p?.membersOnly ?? false} /> Online jen pro členy</label>
+        <label className="flex items-center gap-2"><input type="checkbox" name="studentsOnly" defaultChecked={p?.studentsOnly ?? false} /> Studentská cena (koupí jen ověřený student – „Student do“ v kartě klienta)</label>
         <label className="flex items-center gap-2"><input type="checkbox" name="linkOnly" defaultChecked={p?.linkOnly ?? false} /> Jen přes odkaz (nezobrazovat v ceníku)</label>
       </div>
       {p?.linkOnly && p.isActive && (

@@ -51,6 +51,7 @@ export function giftableProducts(db: Executor) {
         isNull(products.archivedAt),
         eq(products.linkOnly, false),
         eq(products.membersOnly, false),
+        eq(products.studentsOnly, false),
         inArray(products.kind, [...GIFT_KINDS]),
         gt(products.price, 0),
         onSaleNow(),

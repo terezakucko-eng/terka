@@ -106,6 +106,7 @@ export async function buyProductAction(_: FormState, fd: FormData): Promise<Form
       userId: user.id,
       productId: field.str(fd, "productId"),
       commitmentAccepted: fd.get("commitment") === "on",
+      studentConfirmed: fd.get("student") === "on",
     });
     url = await startCheckout(db, order, user, product, field.str(fd, "pay") === "card" && cardPayments() ? "card" : "transfer");
   });

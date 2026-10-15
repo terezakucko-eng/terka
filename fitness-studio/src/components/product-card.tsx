@@ -7,6 +7,7 @@ import type { Product } from "@/db/schema";
 import { credits, entries, formatPrice } from "@/lib/money";
 import { cardPayments } from "@/lib/payments";
 import { nbsp } from "@/lib/typography";
+import { STUDENT_CONFIRM } from "@/lib/student";
 
 const weeks = (n: number) => (n === 1 ? "týden" : n < 5 ? `${n} týdny` : `${n} týdnů`);
 
@@ -31,7 +32,7 @@ function perks(p: Product, includedClass?: string, priorityWeeks = 0): string[] 
       return [
         entries(p.entries ?? 0),
         `Platnost ${p.validityDays} dní`,
-        `Cena za vstup ${formatPrice(Math.round(p.price / (p.entries || 1)))}`,
+        ...((p.entries ?? 0) > 1 ? [`Cena za vstup ${formatPrice(Math.round(p.price / (p.entries ?? 1)))}`] : []),
       ];
     case "solarium":
       return [
@@ -69,6 +70,7 @@ export function ProductCard({
   saleNote,
   startsOn,
   placesLeft = null,
+  studentUnverified = false,
 }: {
   p: Product;
   loggedIn: boolean;
@@ -89,6 +91,8 @@ export function ProductCard({
   startsOn?: string;
   /** Limited membership: places left (null = no limit) */
   placesLeft?: number | null;
+  /** Student price and the client isn't verified yet – she confirms she studies when buying */
+  studentUnverified?: boolean;
 }) {
   const card = cardPayments();
   return (
@@ -115,7 +119,7 @@ export function ProductCard({
                       </p>
                     )}
                     <ul className="mt-5 flex-1 space-y-2 text-sm">
-                      {[...perks(p, includedClass, priorityWeeks), ...(p.kind === "pass" ? passNotes : p.kind === "credit_pack" ? creditNotes : [])].map((x) => (
+                      {[...(p.studentsOnly ? ["Studentská cena – s ISIC nebo potvrzením o studiu"] : []), ...perks(p, includedClass, priorityWeeks), ...(p.kind === "pass" ? passNotes : p.kind === "credit_pack" ? creditNotes : [])].map((x) => (
                         <li key={x} className="flex gap-2">
                           <Check className={cx("mt-0.5 size-4 shrink-0", p.highlight ? "text-zlato" : "text-salvej")} /> {x}
                         </li>
@@ -150,6 +154,12 @@ export function ProductCard({
                       <ActionForm action={buyProductAction} className="mt-6 space-y-2">
                         {startsOn && <PresaleNote p={p} startsOn={startsOn} />}
                         <input type="hidden" name="productId" value={p.id} />
+                        {p.studentsOnly && studentUnverified && (
+                          <label className={cx("mb-3 flex gap-3 text-xs", p.highlight ? "text-papir/80" : "text-les/70")}>
+                            <input type="checkbox" name="student" required className="mt-0.5 size-4 shrink-0 accent-[#c9a26b]" />
+                            <span>{STUDENT_CONFIRM}</span>
+                          </label>
+                        )}
                         {p.kind === "membership" && (
                           <label className={cx("mb-3 flex gap-3 text-xs", p.highlight ? "text-papir/80" : "text-les/70")}>
                             <input type="checkbox" name="commitment" required className="mt-0.5 size-4 shrink-0 accent-[#c9a26b]" />

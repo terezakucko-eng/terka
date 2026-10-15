@@ -11,6 +11,7 @@ import { addDays, dateKey, pragueLocalToDate } from "@/lib/dates";
 import { formatPrice } from "@/lib/money";
 import { formatDayMonth, upcomingCelebrations } from "@/lib/profile";
 import { listSessions } from "@/lib/queries";
+import { pendingStudentProofs } from "@/domain/students";
 
 export default async function AdminDashboard() {
   const user = await requireStaff();
@@ -31,6 +32,8 @@ export default async function AdminDashboard() {
       .where(or(isNotNull(users.birthDate), isNotNull(users.nameDay))),
   ]);
   const celebrations = upcomingCelebrations(celebrants, today, 7);
+  // only the admin checks the ISIC photos
+  const proofs = user.role === "admin" ? await pendingStudentProofs(db) : [];
 
   const capacity = weekSessions.reduce((a, s) => a + s.capacity, 0);
   const booked = weekSessions.reduce((a, s) => a + s.occupied, 0);
@@ -65,6 +68,21 @@ export default async function AdminDashboard() {
           ))}
         </div>
       </section>
+      {proofs.length > 0 && (
+        <section className="mt-10 rounded-2xl border border-zlato/50 bg-zlato/10 p-5">
+          <h2 className="font-semibold">🎓 Ke kontrole: fotky ISIC ({proofs.length})</h2>
+          <p className="mt-1 text-sm text-les/60">Klient nahrál fotku kvůli studentské ceně. Zkontroluj ji a v kartě klienta vyplň „Student do“ – fotka se pak smaže.</p>
+          <ul className="mt-3 flex flex-wrap gap-2 text-sm">
+            {proofs.map((p) => (
+              <li key={p.id}>
+                <Link href={`/admin/klienti/${p.id}#udaje`} className="inline-flex rounded-full border border-les/30 bg-papir px-3 py-1 hover:border-les">
+                  {p.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {celebrations.length > 0 && (
         <section className="mt-10">
           <h2 className="text-xl font-semibold">Kdo slaví (7 dní)</h2>

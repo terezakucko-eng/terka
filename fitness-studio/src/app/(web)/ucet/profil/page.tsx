@@ -1,4 +1,7 @@
-import { changePasswordAction, deleteAccountAction, updateAvatarAction, updateProfileAction } from "@/app/actions/auth";
+import { changePasswordAction, deleteAccountAction, updateAvatarAction, updateProfileAction, uploadStudentProofAction } from "@/app/actions/auth";
+import { hasStudentProof } from "@/domain/students";
+import { isStudent } from "@/lib/student";
+import { formatDate } from "@/lib/dates";
 import { deletionCheck } from "@/domain/account-deletion";
 import { birthDateLocked, hasConfirmation } from "@/domain/insurance";
 import { credits } from "@/lib/money";
@@ -19,7 +22,12 @@ export default async function ProfilePage({ searchParams }: PageProps<"/ucet/pro
   const { pojistovna } = await searchParams;
   const user = await requireUser("/ucet/profil");
   const db = await getDb();
-  const [{ publicKey }, deletion, confirmed] = await Promise.all([vapidKeys(db), deletionCheck(db, user.id), hasConfirmation(db, user.id)]);
+  const [{ publicKey }, deletion, confirmed, proofAt] = await Promise.all([
+    vapidKeys(db),
+    deletionCheck(db, user.id),
+    hasConfirmation(db, user.id),
+    hasStudentProof(db, user.id),
+  ]);
   const locked = birthDateLocked(confirmed, user.birthDate);
   const current = parseAvatar(user.avatar);
   const [nameDayMonth, nameDayDay] = user.nameDay?.split("-").map(Number) ?? [];
@@ -40,6 +48,30 @@ export default async function ProfilePage({ searchParams }: PageProps<"/ucet/pro
           </p>
         </Card>
       )}
+      <Card id="student" className="lg:col-span-2">
+        <h2 className="text-xl font-semibold">Studentské ceny</h2>
+        {isStudent(user) ? (
+          <p className="mt-2 text-sm text-les/70">
+            🎓 Studentský status máš ověřený do <strong>{formatDate(new Date(`${user.studentUntil}T12:00:00Z`))}</strong>.
+          </p>
+        ) : (
+          <>
+            <p className="mt-2 text-sm text-les/70">
+              Studuješ? Studentské ceny z <Link href="/cenik" className="underline underline-offset-4">ceníku</Link> si koupíš rovnou. Status ověříme podle
+              ISIC nebo potvrzení o studiu – ukaž ho ve studiu, nebo sem nahraj jeho fotku. Vidí ji jen recepce a po kontrole ji smažeme.
+            </p>
+            {proofAt && <p className="mt-3 rounded-xl bg-zlato/15 px-3 py-2 text-sm">Fotku jsme dostali {formatDate(proofAt)} – brzy ji zkontrolujeme.</p>}
+            <ActionForm action={uploadStudentProofAction} resetOnSuccess className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="flex-1">
+                <Field label={proofAt ? "Nahrát jinou fotku" : "Fotka ISIC nebo potvrzení o studiu"}>
+                  <ImageInput name="proof" />
+                </Field>
+              </div>
+              <SubmitButton>Odeslat k ověření</SubmitButton>
+            </ActionForm>
+          </>
+        )}
+      </Card>
       <Card className="lg:col-span-2">
         <h2 className="text-xl font-semibold">Profilovka</h2>
         <ActionForm action={updateAvatarAction} resetOnSuccess={false} className="mt-5 flex flex-col gap-6 sm:flex-row sm:items-start">
