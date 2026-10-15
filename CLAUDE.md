@@ -14,6 +14,7 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 
 ## Nástroje
 - **Basecamp CLI** (veřejné): `GOPATH=/tmp/gopath /usr/local/go/bin/go install github.com/basecamp/basecamp-cli/cmd/basecamp@latest`, `export PATH=/tmp/gopath/bin:$PATH`, přihlášení `basecamp auth login --device-code --no-browser` (Tereza schválí odkazem). Účet 3317373. Komentáře: `basecamp comments create <url> - < soubor.md` (Markdown, tabulky fungují, zmínky `@Jméno.Příjmení`).
+- **Basecamp – názvy todo v seznamu [MKT] - Spolupráce (45674654/todolists/9467218976) vždy začínají „[MKT] - Spolupráce | “** (Tereza 15. 10.); ostatní todo tam mají krátký název („[MKT] - Spolupráce | SLEVOMAT 2026“, „| Divadlo Mír - Kondomedie“). 15. 10. doplněno u 5 todo (Nejdůvěryhodnější značka, Colours, Active Radio, Meiro, eMimino).
 - Google Sheets: locale cs_CZ → ve vzorcích oddělovač `;`.
 - PDF faktury: `python3 -m venv pdfenv && ./pdfenv/bin/pip install pypdf` (systémový pypdf padá).
 
