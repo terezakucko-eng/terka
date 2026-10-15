@@ -156,6 +156,7 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 - 15. 10.: Středně tučné čáry obnoveny na ř. 1–256 (vložené součtové řádky je neměly) + levá čára u sloupců YOY (M, Q, … BE), aby oddělení měsíců bylo vidět i při sbalené Skutečnosti. Po vkládání řádků čáry zkontrolovat.
 - **15. 10.: Obhajitelnost plánu – sekce v Legendě 2027 (ř. 46–57)** „Proč si myslím, že je plán obhajitelný“ + „Co hlídám (rizika)“: MP3 leden–září 2027 92,6 vs 2026 84,5 mil. (+8,1, +10 %), náklady 1–9 +16 % (60,6 vs 52,2) vs hrubý zisk +12 % (153,2 vs 136,5); stropy (šedé řádky) 3,09 mil. (dárky slíbené 1,45 + reprezentace 0,38 + rezerva 1,2 + školení 0,06); Google Ads +5,9 mil. nad FP (32,3 vs 26,4); bez stropů a navýšení Googlu ~75,8 mil. = FP + 3,5 mil.
 - **Otázka na Lenku: DPP 52110 v BGT (233 031 Kč, 2027 = kopie 2026 1–9: 19 820/18 310/18 900/65 297/27 724/23 400/19 555/20 470/19 555, 10–12 = 0)** – co je to za náklad, kdo jsou brigádníci (Tereza 15. 10.); text ukázán ke schválení.
+- **15. 10.: DPP 52110 v kopii BGT (ř. 164) jen únor 18 310, duben 65 297, červenec 19 555 = 103 162 Kč** (Tereza; hodnoty místo odkazu na Lenčin blok) → kopie MARKETING 84 935 996 = plán 84 832 834 + DPP 103 162.
 - **MKT_performance_ROI_2026 (gid 1877542992) aktualizovat po každém uzavřeném měsíci** (Tereza 15. 10.): skutečnost měsíce místo predikce (náklady ze systémů/účetnictví, tržby + sessions z BI exportu, GM1 e-shopu), pak přepočet predikce zbylých měsíců (baseline 3 měsíců).
 
 ## Targito – rozúčtování (platí, odsouhlaseno 14. 10. 2026)
