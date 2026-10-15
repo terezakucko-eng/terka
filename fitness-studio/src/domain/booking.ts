@@ -13,7 +13,7 @@ import {
   type ClassSession,
   type Entitlement,
 } from "@/db/schema";
-import { addDays, dateKey, formatDate, formatDateTime, mondayOf, pragueLocalToDate, weekRange } from "@/lib/dates";
+import { addDays, dateKey, formatDate, formatDateTime, mondayOf, pragueLocalToDate, weekRange, pragueHour } from "@/lib/dates";
 import { UserError } from "@/lib/errors";
 import { credits as creditsLabel, formatPrice } from "@/lib/money";
 import { getSettings, type Settings } from "@/lib/settings";
@@ -538,6 +538,7 @@ async function entitlementProblem(
   e: Entitlement,
   s: ClassSession,
   seats = 1,
+  now = new Date(),
 ): Promise<string | null> {
   if (e.status !== "active") return "Oprávnění není aktivní.";
   if (seats > 1 && e.kind === "membership")
@@ -545,6 +546,8 @@ async function entitlementProblem(
   if (e.kind === "pass" && (await classRules(tx, s)).noPass)
     return "Permanentka na tuhle lekci neplatí.";
   if (e.classTypeId && e.classTypeId !== s.classTypeId) return "Platí jen na jinou lekci.";
+  if (e.beforeHour !== null && pragueHour(s.startsAt) >= e.beforeHour) return `Platí jen na lekce začínající do ${e.beforeHour}:00.`;
+  if (e.sameDayOnly && dateKey(s.startsAt) !== dateKey(now)) return "Platí jen v den lekce, když zbývá volné místo.";
   // a free entry given for this very class counts even where intro entries don't
   if (e.kind === "free" && !e.classTypeId && (await classRules(tx, s)).noFreeEntry)
     return "Úvodní vstup zdarma na tuhle lekci použít nejde.";
@@ -581,6 +584,7 @@ export async function bookingOptions(
   userId: string,
   s: ClassSession,
   seats = 1,
+  now = new Date(),
 ): Promise<BookingOption[]> {
   if (s.isFree) {
     return [
@@ -615,7 +619,7 @@ export async function bookingOptions(
   );
   classEnts.sort((a, b) => rank[a.kind] - rank[b.kind]);
   for (const e of classEnts) {
-    const problem = await entitlementProblem(tx, e, s, seats);
+    const problem = await entitlementProblem(tx, e, s, seats, now);
     const need = entriesFor(e, rules, seats);
     const left =
       e.entriesTotal === null
@@ -701,6 +705,7 @@ async function charge(
   s: ClassSession,
   method: Method,
   entitlementId: string | undefined,
+  now = new Date(),
 ) {
   let creditsCharged = 0;
   let entriesCharged = 0;
@@ -731,7 +736,7 @@ async function charge(
         .for("update");
       if (!e || e.userId !== booking.userId || !isClassKind(e.kind) || methodForKind[e.kind] !== method)
         throw new UserError("Permanentka nenalezena.");
-      const problem = await entitlementProblem(tx, e, s, booking.seats);
+      const problem = await entitlementProblem(tx, e, s, booking.seats, now);
       if (problem) throw new UserError(problem);
       if (e.entriesTotal !== null) {
         entriesCharged = entriesFor(e, await classRules(tx, s), booking.seats);
@@ -961,7 +966,7 @@ export async function bookSession(db: DB, input: BookInput, now = new Date()) {
         seats,
       })
       .returning();
-    await charge(tx, booking, s, input.method, input.entitlementId);
+    await charge(tx, booking, s, input.method, input.entitlementId, now);
     return { booking, order: null };
   });
 }

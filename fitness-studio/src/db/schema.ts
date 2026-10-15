@@ -436,6 +436,10 @@ export const entitlements = pgTable(
     includedPerMonth: integer("included_per_month").notNull().default(0),
     /** Od kterého měsíce ("YYYY-MM") lekce v ceně platí – přechod na vyšší členství platí od dalšího měsíce; null = hned */
     includedFrom: text("included_from"),
+    /** Přihlásit se jde jen v den lekce – zbylé volné místo (např. Reformer zdarma pro rodinu) */
+    sameDayOnly: boolean("same_day_only").notNull().default(false),
+    /** Jen na lekce začínající před touto hodinou (12 = ranní); null = kdykoli */
+    beforeHour: integer("before_hour"),
     note: text("note"),
     createdAt: createdAt(),
   },

@@ -110,6 +110,10 @@ export async function grantEntitlement(
     weeklyLimit?: number | null;
     /** Only for this class type (e.g. free entries for Reformer). */
     classTypeId?: string | null;
+    /** Bookable only on the day of the class (a spot left over). */
+    sameDayOnly?: boolean;
+    /** Only classes starting before this hour (12 = morning). */
+    beforeHour?: number | null;
     note?: string | null;
   },
   now = new Date(),
@@ -127,6 +131,8 @@ export async function grantEntitlement(
       entriesTotal: input.entries,
       weeklyLimit: input.weeklyLimit ?? null,
       classTypeId: input.classTypeId || null,
+      sameDayOnly: input.sameDayOnly ?? false,
+      beforeHour: input.beforeHour ?? null,
       validFrom: now,
       validUntil: input.validUntil ?? new Date(now.getTime() + input.validityDays * DAY),
       note: input.note ?? null,
