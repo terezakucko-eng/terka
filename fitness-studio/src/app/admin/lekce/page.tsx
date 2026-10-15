@@ -74,6 +74,9 @@ function ClassTypeForm({ t }: { t?: ClassType }) {
               <input type="checkbox" name="firstVisitNewOnly" defaultChecked={t?.firstVisitNewOnly ?? false} /> jen pro nováčky (ještě nebyli na žádné lekci)
             </label>
           </Field>
+          <Field label="Studentský vstup (Kč)" hint="Nabídne se u rezervace studentům (s ISIC). Prázdné = bez studentské ceny">
+            <Input name="studentDropInPrice" inputMode="decimal" defaultValue={kc(t?.studentDropInPrice)} />
+          </Field>
           <Field label="Jednorázově pro dva (Kč)" hint="Klient + kamarádka. Prázdné = 2× jednorázová cena">
             <Input name="duoPrice" inputMode="decimal" defaultValue={kc(t?.duoPrice)} />
           </Field>

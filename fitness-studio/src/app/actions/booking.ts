@@ -31,7 +31,10 @@ async function confirmHealth(user: { id: string; healthConfirmedAt: Date | null 
 export async function bookAction(_: FormState, fd: FormData): Promise<FormState> {
   const sessionId = field.str(fd, "sessionId");
   const user = await requireUser(`/rozvrh/${sessionId}`);
-  const [method, entitlementId, pay] = field.str(fd, "option").split(":");
+  const [method, ref, pay] = field.str(fd, "option").split(":");
+  // "drop_in:student:…" = the student drop-in, otherwise the second part is the entitlement
+  const student = method === "drop_in" && ref === "student";
+  const entitlementId = student ? "" : ref;
   const payMethod: PayMethod = pay === "card" && cardPayments() ? "card" : "transfer";
   let checkoutUrl: string | null = null;
 
@@ -47,6 +50,8 @@ export async function bookAction(_: FormState, fd: FormData): Promise<FormState>
       entitlementId: entitlementId || undefined,
       payLater: payMethod === "transfer",
       guestName: field.str(fd, "guestName") || undefined,
+      student,
+      studentConfirmed: fd.get("student") === "on",
     });
     if (order) {
       if (booking.status === "confirmed") await notifyBooked(db, booking);

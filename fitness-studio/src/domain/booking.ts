@@ -1,3 +1,4 @@
+import { isStudent } from "@/lib/student";
 import { and, asc, count, eq, gte, inArray, isNull, lt, lte, ne, gt, or, sql } from "drizzle-orm";
 import type { DB, Executor } from "@/db";
 import {
@@ -37,6 +38,8 @@ export type BookingOption = {
   detail: string;
   /** Reason the option can't be used right now (shown greyed out). */
   disabled?: string;
+  /** drop_in at the student price (the client confirms she studies unless verified) */
+  student?: boolean;
 };
 
 export type SessionState =
@@ -391,10 +394,11 @@ async function classRules(tx: Executor, s: Pick<ClassSession, "classTypeId">) {
       firstVisitNewOnly: classTypes.firstVisitNewOnly,
       passEntries: classTypes.passEntries,
       duoPrice: classTypes.duoPrice,
+      studentDropInPrice: classTypes.studentDropInPrice,
     })
     .from(classTypes)
     .where(eq(classTypes.id, s.classTypeId));
-  return ct ?? { memberSurcharge: null, memberSurchargeFrom: null, memberSurchargeNext: null, memberSurchargeNextFrom: null, passSurcharge: null, noFreeEntry: false, noPass: false, firstVisitPrice: null, firstVisitNewOnly: false, passEntries: 1, duoPrice: null };
+  return ct ?? { memberSurcharge: null, memberSurchargeFrom: null, memberSurchargeNext: null, memberSurchargeNextFrom: null, passSurcharge: null, noFreeEntry: false, noPass: false, firstVisitPrice: null, firstVisitNewOnly: false, passEntries: 1, duoPrice: null, studentDropInPrice: null };
 }
 type ClassRules = Awaited<ReturnType<typeof classRules>>;
 
@@ -672,6 +676,15 @@ export async function bookingOptions(
       detail: "Zaplatíš online kartou.",
     });
   }
+  // cheaper than the regular drop-in only – a student's first lesson may already cost less
+  if (rules.studentDropInPrice !== null && (!dropIn || rules.studentDropInPrice < dropIn.price)) {
+    opts.push({
+      method: "drop_in",
+      student: true,
+      label: `Studentský vstup ${formatPrice(rules.studentDropInPrice)}`,
+      detail: "S ISIC nebo potvrzením o studiu.",
+    });
+  }
   return opts;
 }
 
@@ -854,6 +867,10 @@ export type BookInput = {
   payLater?: boolean;
   /** A friend without an account coming along (+1) – takes a second spot. */
   guestName?: string;
+  /** drop_in at the student price… */
+  student?: boolean;
+  /** …which a client not verified yet confirms she studies for (undefined = reception) */
+  studentConfirmed?: boolean;
 };
 
 export async function bookSession(db: DB, input: BookInput, now = new Date()) {
@@ -893,9 +910,18 @@ export async function bookSession(db: DB, input: BookInput, now = new Date()) {
 
     if (input.method === "drop_in") {
       const rules = await classRules(tx, s);
-      const dropIn = guestName
-        ? await duoDropInPriceFor(tx, input.userId, s, rules).then((price) => price === null ? null : { price, intro: false })
-        : await dropInPriceFor(tx, input.userId, s, rules);
+      const student = !!input.student && !guestName;
+      if (student) {
+        if (rules.studentDropInPrice === null) throw new UserError("Na tuhle lekci studentský vstup není.");
+        const [u] = await tx.select({ studentUntil: users.studentUntil }).from(users).where(eq(users.id, input.userId));
+        if (input.studentConfirmed === false && !isStudent(u, now))
+          throw new UserError("Studentský vstup: potvrď prosím, že studuješ. ISIC nebo potvrzení o studiu pak ukážeš ve studiu.");
+      }
+      const dropIn = student
+        ? { price: rules.studentDropInPrice!, intro: false }
+        : guestName
+          ? await duoDropInPriceFor(tx, input.userId, s, rules).then((price) => price === null ? null : { price, intro: false })
+          : await dropInPriceFor(tx, input.userId, s, rules);
       if (!dropIn) throw new UserError("Na tuto lekci nelze koupit jednorázový vstup.");
       const [order] = await tx
         .insert(orders)
@@ -903,7 +929,7 @@ export async function bookSession(db: DB, input: BookInput, now = new Date()) {
           userId: input.userId,
           kind: "drop_in",
           sessionId: s.id,
-          description: guestName ? "Jednorázový vstup pro dva" : dropIn.intro ? "První lekce" : "Jednorázový vstup",
+          description: guestName ? "Jednorázový vstup pro dva" : student ? "Studentský vstup" : dropIn.intro ? "První lekce" : "Jednorázový vstup",
           amount: dropIn.price,
           provider: "pending",
           expiresAt: input.payLater ? null : new Date(now.getTime() + cfg.pendingPaymentMinutes * MIN),
