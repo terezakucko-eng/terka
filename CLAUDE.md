@@ -108,6 +108,8 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 
 - **15. 10.: Mergado – platby a plánování.** Schválené FA: FP-1965/2026 (3. 9. 2026) **roční předplatné RS 9/2026–8/2027 = 129 081,86 bez DPH** (156 189 s DPH) → účetní časově rozlišuje 10 757/měs. = přesně součet řádků CZ 4 206 + SK 3 646 + HU 1 029 + BG/HR/SI/RO 4× 469; FP-2191/2026 (1. 10. 2026) **Kondomshop KS-CZ+SK 10/2026–9/2027 = 30 316,47** → 2 526/měs. Dřív: FP-473/2026 HU 7. 3.–31. 8. 2026 (3 277), FP-820/2026 KS 20. 4.–30. 9. 2026, FP-1979/2026 KS-CZ září; 2025 předplatné 1–8 (únor) a 9–12 (září). Za RS 1–8/2026 faktura ve schválených FA není (CZ/SK…) – ověřit. **Pravidlo: předplatné/licence plánovat časovým rozlišením (rovnoměrně po měsících, jak účtuje účetní); kredity/peněženky po dobitích.** Obnova RS 9/2027 (~156 tis. s DPH) a KS 10/2027 = cash flow. Poznámky list BI152, BI159.
 
+- **15. 10.: Heureka bannery 2027 – časové rozlišení** (Tereza: „roční bannery se platí jednorázově a je tam časové rozlišení“): model ř. 76–77, list ř. 81–82 = 1/12 měsíčně – CZ Slon 533 131 → 44 428/měs. (+ drobný display dle 2026; celkem 546 873), SK 235 540 → 19 628/měs.; kampaně dál hlavně 2/6/11/12 (jen v poznámce). Součty beze změny (list MKT plán 88,57 mil.).
+
 ## Targito – rozúčtování (platí, odsouhlaseno 14. 10. 2026)
 Detail v `targito-rozuctovani.md`. Shrnutí: faktura 84 952 Kč/měs. (dodatek, limit 6 mil.) → **Slon + Kondomshop 62 992 (74,2 %), Flagranti 21 960 (25,8 %)**; uvnitř Slona dle objemu z faktury (KS ~4,6 %); nadlimit uvnitř faktury se nepřeúčtovává; služby dle řádků (Růžový slon / Safety First). Měsíční kontrola – kalendář 3. pracovní den v měsíci.
 
