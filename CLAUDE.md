@@ -127,6 +127,8 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 
 - **15. 10.: Colours – příspěvek dodavatelů v plánu jen 1/3** (Tereza: „ať mám rezervu“): ř. 204 červenec 166 567 (1/3 z ~499 701; reálně čeká až 50 %). Příspěvky celkem 715 541; **MKT profit 3 2027 = 132,58 mil. (38,3 %)**.
 
+- **15. 10.: Blok MKT PROFIT přepnut celý na plán A. Bartnického** (Tereza: „udělej to dle Adama, dolů dej srovnání dle Lenky a dle Adama“): ř. 198 tržby e-shopů = Adam (CZ+SK+zahraničí+KS z listu Model; 2027 309,37 mil.; YOY 2026 1–9 z Adamových Data 193,06 mil.), ř. 202 GP e-shopů = Adam GP + služby (2027 192,71 + 4,27; YOY 121,74 + 3,02). **Výsledek 2027: tržba celkem 346,5 mil., GP 220,8, MP1 175,6 (50,7 %), MP2 142,3 (41,1 %), MP3 130,9 mil. (37,8 %); 2026 1–9 MP3 84,5 (40,0 %).** Nový blok **SROVNÁNÍ ZDROJŮ ř. 220–232**: tržby e-shopů Adam vs Lenka (+0,07 mil.), GP e-shopů (Adam −1,64 mil.), MKT náklady náš plán vs FP Lenky (ř. 194 sloupce FP; +17,46 mil.), MKT profit 3 Adam+náš plán 130,9 vs Lenka (její GP + služby + prodejny + příspěvky − její náklady MKT) 150,0 → −19,1 mil.
+
 ## Targito – rozúčtování (platí, odsouhlaseno 14. 10. 2026)
 Detail v `targito-rozuctovani.md`. Shrnutí: faktura 84 952 Kč/měs. (dodatek, limit 6 mil.) → **Slon + Kondomshop 62 992 (74,2 %), Flagranti 21 960 (25,8 %)**; uvnitř Slona dle objemu z faktury (KS ~4,6 %); nadlimit uvnitř faktury se nepřeúčtovává; služby dle řádků (Růžový slon / Safety First). Měsíční kontrola – kalendář 3. pracovní den v měsíci.
 
