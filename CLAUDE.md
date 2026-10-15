@@ -48,6 +48,7 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 - RS Srovname nepoužívá. Arukereso HU ~+17 % (odhad), v září vypadl kredit – hlídat/automatické dobíjení. Zahraniční srovnávače BI nesleduje (Adam má přemapovat); přístupy k nim Tereza nemá.
 - Heureka CZ 4/2026: 260 tis. = PPC výpadek doháněný **DISPLAYEM (Heureka bannery) ~200 tis.**, zaúčtováno na řádku Heureka PPC (Tereza 15. 10.). → Heureka bannery Slon 2026 celkem ~620 tis. (display CZ 2–6/2026 319 tis. + SK 104 tis. + duben ~200 tis.), Heureka PPC CZ 2026 očištěně ~775 tis./rok.
 - Heureka Product Ads (privátní značka): CZ ~11 tis./měs., SK ~1 tis./měs.
+- **Heureka bannery 2026 – výsledky doručení (report od Terezy 15. 10.):** objednáno ~4,86 mil. impresí, doručeno 4 176 381 (85,9 %), **chybí ~686 tis.** – CZ branding −259 tis. (doručeno 44 %), CZ remarketing −603 tis. (60 %), SK branding −79 tis. (49 %); hlavní formáty přes plán (CZ 112 %, SK 112 %). Kliky 4 087, **CTR 0,10 %** (branding/remarketing 0,06–0,09 %); CZ 2,38 mil. impresí / 2 525 kliků, SK 1,80 mil. / 1 562. Při ~620 tis. nákladů CPT ≈ 148 Kč, **CPC ≈ 152 Kč** (PPC řádově jednotky Kč). Nabídka 2027 (6 mil. impresí) ≈ 6 000 kliků. Body k jednání s Heurekou: kompenzace nedoručených impresí 2026, garance doručení v objednávce 2027, data o konverzích/tržbách (post-click/post-view), CPT pod 144 Kč. Bannery = brand formát, hodnotit dosahem, ne kliky.
 
 ## Rok 2026 – provedené úpravy
 - Náklady 2026, říjen–prosinec: auta, leasing, školení = 0.
