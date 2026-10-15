@@ -122,6 +122,7 @@ export async function saveClassTypeAction(_: FormState, fd: FormData): Promise<F
       firstVisitPrice: field.money(fd, "firstVisitPrice"),
       firstVisitNewOnly: field.bool(fd, "firstVisitNewOnly"),
       duoPrice: field.money(fd, "duoPrice"),
+      studentDropInPrice: field.money(fd, "studentDropInPrice"),
       noFreeEntry: field.bool(fd, "noFreeEntry"),
       noPass: field.bool(fd, "noPass"),
       passEntries: Math.max(1, field.int(fd, "passEntries") ?? 1),

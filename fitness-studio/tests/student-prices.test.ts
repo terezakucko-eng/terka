@@ -1,11 +1,12 @@
 import { eq } from "drizzle-orm";
 import sharp from "sharp";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { users } from "@/db/schema";
+import { classTypes, users } from "@/db/schema";
+import { bookSession, bookingOptions } from "@/domain/booking";
 import { createProductOrder } from "@/domain/orders";
 import { deleteStudentProof, hasStudentProof, pendingStudentProofs, saveStudentProof } from "@/domain/students";
 import { isStudent } from "@/lib/student";
-import { NOW, makeProduct, makeUser, testDb } from "./helpers";
+import { NOW, makeProduct, makeSession, makeUser, testDb } from "./helpers";
 
 vi.mock("server-only", () => ({}));
 
@@ -52,5 +53,26 @@ describe("student prices", () => {
     expect(isStudent({ studentUntil: "2026-10-04" }, new Date("2026-10-05T08:00:00Z"))).toBe(false);
     expect(isStudent({ studentUntil: null })).toBe(false);
     expect(isStudent(null)).toBe(false);
+  });
+
+  it("student drop-in at the lesson: offered next to the regular one, bought on trust", async () => {
+    const s = await makeSession(h.db, { dropInPrice: 25000 });
+    await h.db.update(classTypes).set({ studentDropInPrice: 15000 }).where(eq(classTypes.id, s.classTypeId));
+    const u = await makeUser(h.db);
+    const opts = await bookingOptions(h.db, u.id, s);
+    expect(opts.find((o) => o.student)?.label).toMatch(/Studentský vstup 150/);
+
+    await expect(bookSession(h.db, { userId: u.id, sessionId: s.id, method: "drop_in", student: true, studentConfirmed: false }, NOW)).rejects.toThrow(
+      /studuješ/,
+    );
+    const { order } = await bookSession(h.db, { userId: u.id, sessionId: s.id, method: "drop_in", student: true, studentConfirmed: true }, NOW);
+    expect(order).toMatchObject({ amount: 15000, description: "Studentský vstup" });
+
+    // a lesson without a student price doesn't offer it
+    const reformer = await makeSession(h.db, { dropInPrice: 49000 });
+    expect((await bookingOptions(h.db, u.id, reformer)).some((o) => o.student)).toBe(false);
+    await expect(bookSession(h.db, { userId: u.id, sessionId: reformer.id, method: "drop_in", student: true, studentConfirmed: true }, NOW)).rejects.toThrow(
+      /studentský vstup není/,
+    );
   });
 });

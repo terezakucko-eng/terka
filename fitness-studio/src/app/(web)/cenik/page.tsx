@@ -225,6 +225,7 @@ export default async function PricingPage({ searchParams }: PageProps<"/cenik">)
                   {t.firstVisitPrice !== null && (
                     <span className="block text-xs">první lekce{t.firstVisitNewOnly && " pro nováčky"} {formatPrice(t.firstVisitPrice)}</span>
                   )}
+                  {t.studentDropInPrice !== null && <span className="block text-xs">studenti {formatPrice(t.studentDropInPrice)}</span>}
                   {t.duoPrice !== null && t.capacity > 2 && (
                     <span className="block text-xs">s kamarádkou {formatPrice(t.duoPrice)} za obě</span>
                   )}

@@ -21,6 +21,8 @@ import { credits, entriesLabel, formatPrice } from "@/lib/money";
 import { sessionDetail } from "@/lib/queries";
 import { getContent } from "@/content";
 import { nbsp } from "@/lib/typography";
+import { STUDENT_CONFIRM, isStudent } from "@/lib/student";
+import { StudentConfirm } from "@/components/student-confirm";
 import { SurchargePay } from "@/components/surcharge-pay";
 import { googleCalendarLink } from "@/lib/ics";
 import { lessonEvent } from "@/domain/calendar";
@@ -112,6 +114,7 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
               view={view}
               loggedIn={!!user}
               needsHealth={!!user && !user.healthConfirmedAt}
+              studentVerified={isStudent(user)}
               card={cardPayments()}
               sessionId={s.id}
               gcal={googleCalendarLink(lessonEvent(s, ct, `${c.raw("site.street")}, ${c.raw("site.city")}`))}
@@ -127,10 +130,13 @@ function BookingPanel({
   view,
   loggedIn,
   needsHealth,
+  studentVerified,
   card,
   sessionId,
   gcal,
 }: {
+  /** "Student do" still valid – no need to confirm the student drop-in */
+  studentVerified: boolean;
   card: boolean;
   view: NonNullable<Awaited<ReturnType<typeof sessionForUser>>>;
   loggedIn: boolean;
@@ -282,7 +288,7 @@ function BookingPanel({
       <fieldset className="mt-5 space-y-2">
         <legend className="sr-only">Způsob platby</legend>
         {options.map((o) => {
-          const value = `${o.method}:${o.entitlementId ?? ""}:${o.pay}`;
+          const value = `${o.method}:${o.student ? "student" : (o.entitlementId ?? "")}:${o.pay}`;
           return (
             <label
               key={value}
@@ -295,6 +301,7 @@ function BookingPanel({
                 type="radio"
                 name="option"
                 value={value}
+                data-student={o.student ? "" : undefined}
                 disabled={!!o.disabled}
                 defaultChecked={o === firstEnabled}
                 className="mt-1 accent-[#674329]"
@@ -307,6 +314,7 @@ function BookingPanel({
           );
         })}
       </fieldset>
+      {options.some((o) => o.student) && !studentVerified && <StudentConfirm text={STUDENT_CONFIRM} />}
       {!firstEnabled && (
         <p className="mt-4 text-sm text-les/70">
           Nemáš čím zaplatit. <Link href="/cenik" className="font-semibold text-zeme underline">Kup si kredit nebo permanentku</Link>.

@@ -568,6 +568,13 @@
       "when": 1792064849935,
       "tag": "0080_student_prices_on",
       "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1792067510768,
+      "tag": "0081_student_drop_in",
+      "breakpoints": true
     }
   ]
 }
