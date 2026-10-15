@@ -137,6 +137,8 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 
 - **15. 10.: Blok MKT PROFIT – nové ř. 216–217 „MKT profit 3 – jen e-shopy“ (+ %)** pro srovnání s reportem 2026 (jen e-shopy): = GP e-shopů vč. služeb (202) + příspěvky na eventy (204) − (perf 207 + brand 210 + ostatní 213 − MKT prodejny Σ ř. 188). **2026 1–9: 72,7 mil. (37,7 %; report 72,3 / 37,4 %), 2027: 116,7 mil. (37,7 %).** Celkový MP3 vč. prodejen: 2026 1–9 40,0 %, 2027 138,7 mil. (40,0 %). Report 2026 ve sloupci celkem 33,2 % je zkreslený neuzavřeným říjnem (tržba 23,8 mil. bez nákladů/GP). Řádky bloku: MP3 214, MP3 % 215, e-shopy 216–217, PNO 218, PNM 219; srovnání zdrojů ř. 222–234.
 
+- **15. 10.: Srovnání zdrojů (list ř. 222–234) graficky upraveno:** záhlaví modré (jako záhlaví listu) + tučně, skupiny po 3 řádcích oddělené silnou čarou, řádky Rozdíl tučně kurzívou, blok MKT profit 3 tučně. Podklad pro graf ř. 237–241 (J = názvy, K–V = měsíce; odkazy na ř. 229/230/232/233), **kombinovaný graf** (chartId 653765277, kotva F243): sloupce = náklady MKT náš plán vs FP Lenky, čáry = MKT profit 3 náš plán vs FP Lenky. Stav: náklady 82,05 vs 72,32 (+9,7), MP3 138,7 vs 150,1 (−11,4).
+
 ## Targito – rozúčtování (platí, odsouhlaseno 14. 10. 2026)
 Detail v `targito-rozuctovani.md`. Shrnutí: faktura 84 952 Kč/měs. (dodatek, limit 6 mil.) → **Slon + Kondomshop 62 992 (74,2 %), Flagranti 21 960 (25,8 %)**; uvnitř Slona dle objemu z faktury (KS ~4,6 %); nadlimit uvnitř faktury se nepřeúčtovává; služby dle řádků (Růžový slon / Safety First). Měsíční kontrola – kalendář 3. pracovní den v měsíci.
 
