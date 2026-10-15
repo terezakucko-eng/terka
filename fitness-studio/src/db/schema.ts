@@ -431,6 +431,8 @@ export const entitlements = pgTable(
     monthlyFee: integer("monthly_fee"),
     /** …do kterého měsíce ("YYYY-MM") vlastní příspěvek platí, pak výchozí z Nastavení (speciální cena na pár měsíců); null = bez konce */
     monthlyFeeUntil: text("monthly_fee_until"),
+    /** membership přepnutá na vyšší od pozdějšího měsíce (includedFrom): příspěvek za měsíce před přechodem; null = výchozí z Nastavení */
+    monthlyFeeBefore: integer("monthly_fee_before"),
     /** membership: lekce v ceně bez doplatku (např. 4× Reformer měsíčně) – typ lekce a počet za kalendářní měsíc */
     includedClassTypeId: uuid("included_class_type_id").references((): AnyPgColumn => classTypes.id, { onDelete: "set null" }),
     includedPerMonth: integer("included_per_month").notNull().default(0),
