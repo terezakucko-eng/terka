@@ -405,6 +405,29 @@ export async function switchPeriod(db: Executor, userId: string, now = new Date(
 }
 
 /**
+ * Switches the client can make in Můj účet, keyed by entitlement id – a
+ * membership ending before the switch would start can't move up (she buys
+ * the new one instead, as a renewal).
+ */
+export async function membershipSwitches(db: Executor, userId: string, ents: Entitlement[], now = new Date()) {
+  const out = new Map<string, { offer: Product; period: string }>();
+  for (const [id, offer] of await membershipUpgrades(db, ents, now)) {
+    const period = await switchPeriod(db, userId, now, offer);
+    if (ents.find((e) => e.id === id)!.validUntil > pragueLocalToDate(`${period}-01T00:00`)) out.set(id, { offer, period });
+  }
+  return out;
+}
+
+/** Memberships the client moves up to in Můj účet rather than buying them (product ids). */
+export async function switchableTo(db: Executor, userId: string, now = new Date()) {
+  const ents = await db
+    .select()
+    .from(entitlements)
+    .where(and(eq(entitlements.userId, userId), eq(entitlements.kind, "membership")));
+  return new Set([...(await membershipSwitches(db, userId, ents, now)).values()].map((s) => s.offer.id));
+}
+
+/**
  * The client switches to a higher membership from the next (unpaid) month:
  * the new price applies to that month's fee and later ones, the included
  * lessons from that month on. The membership itself – and its commitment –

@@ -71,6 +71,7 @@ export function ProductCard({
   startsOn,
   placesLeft = null,
   studentUnverified = false,
+  switchInAccount = false,
 }: {
   p: Product;
   loggedIn: boolean;
@@ -93,6 +94,8 @@ export function ProductCard({
   placesLeft?: number | null;
   /** Student price and the client isn't verified yet – she confirms she studies when buying */
   studentUnverified?: boolean;
+  /** A member moves up to this membership in Můj účet – no buy buttons */
+  switchInAccount?: boolean;
 }) {
   const card = cardPayments();
   return (
@@ -146,6 +149,13 @@ export function ProductCard({
                           <span className="mt-1 block text-xs font-normal">Máš členství se závazkem? Přechod si můžeš zamluvit už teď v Můj účet.</span>
                         )}
                       </p>
+                    ) : switchInAccount ? (
+                      <div className={cx("mt-6 rounded-xl px-4 py-3 text-center text-sm", p.highlight ? "bg-papir/10" : "bg-krem/60")}>
+                        Členství už máš – na {p.name} přejdeš v Můj účet, bez nového závazku.
+                        <ButtonLink href="/ucet" variant={p.highlight ? "gold" : "dark"} className="mt-3 w-full">
+                          Přejít v Můj účet
+                        </ButtonLink>
+                      </div>
                     ) : placesLeft === 0 ? (
                       <p className={cx("mt-6 rounded-xl px-4 py-3 text-center text-sm", p.highlight ? "bg-papir/10" : "bg-krem/60")}>
                         Všechna členství jsou obsazená – napiš nám a dáme ti vědět, až se nějaké uvolní.

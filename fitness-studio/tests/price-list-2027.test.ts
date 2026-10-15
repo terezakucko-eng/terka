@@ -1,8 +1,8 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { bookings, classTypes, entitlements, orders, products, type Product } from "@/db/schema";
 import { bookSession, cancelBooking, joinWaitlist, priorityWindow, viewerWindows, windowOf } from "@/domain/booking";
-import { createMonthlyFees, feeOverview, followMonthlyFee, membershipUpgrades, switchMembership, switchPeriod } from "@/domain/membership-fees";
+import { createMonthlyFees, feeOverview, followMonthlyFee, membershipUpgrades, switchMembership, switchPeriod, switchableTo } from "@/domain/membership-fees";
 import { createProductOrder, fulfillOrder } from "@/domain/orders";
 import { grantEntitlement } from "@/domain/users";
 import { pragueLocalToDate } from "@/lib/dates";
@@ -97,6 +97,35 @@ describe("Členství Reformer in presale", () => {
     expect(e).toMatchObject({ validFrom: JAN, monthlyFee: 250000, includedPerMonth: 8 });
     await expect(createProductOrder(h.db, { userId: (await makeUser(h.db)).id, productId: tier.id, commitmentAccepted: true }, NOW)).rejects.toThrow("obsazená");
     await h.db.update(products).set({ isActive: false }).where(eq(products.id, tier.id));
+  });
+
+  it("a member who can't switch in Můj účet buys it – a membership ending in December, or one without commitment", async () => {
+    const s = await makeSession(h.db);
+    const tier = await makeProduct(h.db, { kind: "membership", price: 250000, validityDays: 365, includedClassTypeId: s.classTypeId, includedPerMonth: 8, maxActive: 4, saleFrom: JAN, presaleFrom: NOW, sortOrder: -300 });
+    const flexBasic = await makeProduct(h.db, { kind: "membership", price: 160000, validityDays: 3650, commitmentMonths: 0 });
+
+    // ends on 31 December: the new one is her renewal from 1 January
+    const ending = await makeUser(h.db);
+    await grantEntitlement(h.db, { userId: ending.id, kind: "membership", name: "Členství 2026", entries: null, validityDays: 1, validUntil: JAN }, NOW);
+    expect(await switchableTo(h.db, ending.id, NOW)).toEqual(new Set());
+    const { order } = await createProductOrder(h.db, { userId: ending.id, productId: tier.id, commitmentAccepted: true }, NOW);
+    await fulfillOrder(h.db, { orderId: order.id, provider: "transfer" }, NOW);
+    const [renewed] = await h.db.select().from(entitlements).where(and(eq(entitlements.userId, ending.id), eq(entitlements.productId, tier.id)));
+    expect(renewed).toMatchObject({ validFrom: JAN, includedPerMonth: 8 });
+
+    // without commitment there's nothing to switch to – she takes the one with commitment
+    const flex = await makeUser(h.db);
+    const { order: basic } = await createProductOrder(h.db, { userId: flex.id, productId: flexBasic.id, commitmentAccepted: true }, NOW);
+    await fulfillOrder(h.db, { orderId: basic.id, provider: "transfer" }, NOW);
+    expect(await switchableTo(h.db, flex.id, NOW)).toEqual(new Set());
+    await expect(createProductOrder(h.db, { userId: flex.id, productId: tier.id, commitmentAccepted: true }, NOW)).resolves.toMatchObject({ product: { id: tier.id } });
+
+    // a member still with us in January switches in Můj účet
+    const staying = await makeUser(h.db);
+    await grantEntitlement(h.db, { userId: staying.id, kind: "membership", name: "Členství 2026", entries: null, validityDays: 365 }, NOW);
+    expect(await switchableTo(h.db, staying.id, NOW)).toEqual(new Set([tier.id]));
+    await expect(createProductOrder(h.db, { userId: staying.id, productId: tier.id, commitmentAccepted: true }, NOW)).rejects.toThrow("přejdeš v Můj účet");
+    await h.db.update(products).set({ isActive: false }).where(inArray(products.id, [tier.id, flexBasic.id]));
   });
 });
 

@@ -17,7 +17,7 @@ import { UserError } from "@/lib/errors";
 import { isStudent } from "@/lib/student";
 import { formatDate, formatDay, formatTime } from "@/lib/dates";
 import { onSale, saleStartsLater } from "@/lib/price-list";
-import { membershipFull } from "./membership-fees";
+import { membershipFull, switchableTo } from "./membership-fees";
 import { occupancy } from "./booking";
 import { changeCredits } from "./wallet";
 import { rewardReferral } from "./referrals";
@@ -43,8 +43,9 @@ export async function createProductOrder(
     throw new UserError(`${p.name} má omezený počet členství a teď jsou všechna obsazená. Napiš nám, dáme ti vědět, až se nějaké uvolní.`);
   if (p.kind === "membership" && p.commitmentMonths > 0 && input.commitmentAccepted === false)
     throw new UserError(`Před zaplacením prosím potvrď, že bereš na vědomí závazek na ${p.commitmentMonths} měsíců.`);
-  // a member moves up in Můj účet (same membership, no new commitment) instead of buying a second one
-  if (p.kind === "membership" && p.includedPerMonth > 0 && input.commitmentAccepted !== undefined && (await isMember(db, input.userId, now)))
+  // a member moves up in Můj účet (same membership, no new commitment) instead of buying a second one –
+  // unless she can't (her membership ends before the new one starts, is without commitment or paid by card subscription)
+  if (p.kind === "membership" && p.includedPerMonth > 0 && input.commitmentAccepted !== undefined && (await switchableTo(db, input.userId, now)).has(p.id))
     throw new UserError(`Členství už máš – na ${p.name} přejdeš v Můj účet, bez nového závazku.`);
   if (p.membersOnly && !(await isMember(db, input.userId, now)))
     throw new UserError("Tenhle produkt je jen pro členy. Zastav se na recepci nebo si pořiď členství.");
