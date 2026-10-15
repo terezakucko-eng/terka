@@ -141,6 +141,8 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 
 - **15. 10.: PPC 2027 = kompromis Google Ads CZ 27 mil. + SK 5,3 mil.** (Tereza: „u PPC máme málo… zkusme to takto“; místo varianty B 25+5; měsíce dle Adamova profilu; model ř. 47–48, list ř. 51–52 + poznámky). **Stav: list MKT plán 84,35 mil. (FP Lenky 72,32; +12,0), model 84,37; MKT profit 3 136,4 mil. (39,4 %), jen e-shopy 114,4 mil. (37,0 %; 2026 1–9 37,7 %), PNO 13,5 %, PNM 24,3 %; MP3 dle FP Lenky 150,1 → −13,7 mil.** Alternativa nabídnutá a nezvolená: podmíněná rezerva PPC mimo součty.
 
+- **15. 10.: Poznámky BI51–BI52 (PPC CZ/SK) přepsány – „jak jsme k tomu došli“** (Tereza): Adam 29,7/5,7 mil. (víc reklamy = víc tržeb) → Lenka stejné tržby, ale PPC na úrovni 2026 (21,8/4,6) → kompromis 27/5,3, aby náklady nerostly rychleji než zisk a MP3 zůstal ~39 % → měsíce dle plánu tržeb → v roce řízení na MKT profit.
+
 ## Targito – rozúčtování (platí, odsouhlaseno 14. 10. 2026)
 Detail v `targito-rozuctovani.md`. Shrnutí: faktura 84 952 Kč/měs. (dodatek, limit 6 mil.) → **Slon + Kondomshop 62 992 (74,2 %), Flagranti 21 960 (25,8 %)**; uvnitř Slona dle objemu z faktury (KS ~4,6 %); nadlimit uvnitř faktury se nepřeúčtovává; služby dle řádků (Růžový slon / Safety First). Měsíční kontrola – kalendář 3. pracovní den v měsíci.
 
