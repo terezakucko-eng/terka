@@ -135,6 +135,8 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 
 - **15. 10.: SonicBrand v listu ř. 121 vyplněn (leden–červen 208 333, celkem 1,25 mil.), ale MIMO SOUČTY** (Tereza: „doplň částku, ale nezapočítávej ji do celkových nákladů, jen ať na to nezapomeneme“): Σ MKT_Ostatní ř. 126 = SUM(113:125) − ř. 121 ve všech sloupcích I–BH, štítek MKT profit (G121) vymazán (blok MKT PROFIT ho nesčítá), řádek kurzívou, v názvu „(MIMO SOUČTY – rozpočet projektů)“ + poznámka BI. Model ř. 112 = 0. MKT plán list 82,05 mil. beze změny.
 
+- **15. 10.: Blok MKT PROFIT – nové ř. 216–217 „MKT profit 3 – jen e-shopy“ (+ %)** pro srovnání s reportem 2026 (jen e-shopy): = GP e-shopů vč. služeb (202) + příspěvky na eventy (204) − (perf 207 + brand 210 + ostatní 213 − MKT prodejny Σ ř. 188). **2026 1–9: 72,7 mil. (37,7 %; report 72,3 / 37,4 %), 2027: 116,7 mil. (37,7 %).** Celkový MP3 vč. prodejen: 2026 1–9 40,0 %, 2027 138,7 mil. (40,0 %). Report 2026 ve sloupci celkem 33,2 % je zkreslený neuzavřeným říjnem (tržba 23,8 mil. bez nákladů/GP). Řádky bloku: MP3 214, MP3 % 215, e-shopy 216–217, PNO 218, PNM 219; srovnání zdrojů ř. 222–234.
+
 ## Targito – rozúčtování (platí, odsouhlaseno 14. 10. 2026)
 Detail v `targito-rozuctovani.md`. Shrnutí: faktura 84 952 Kč/měs. (dodatek, limit 6 mil.) → **Slon + Kondomshop 62 992 (74,2 %), Flagranti 21 960 (25,8 %)**; uvnitř Slona dle objemu z faktury (KS ~4,6 %); nadlimit uvnitř faktury se nepřeúčtovává; služby dle řádků (Růžový slon / Safety First). Měsíční kontrola – kalendář 3. pracovní den v měsíci.
 
