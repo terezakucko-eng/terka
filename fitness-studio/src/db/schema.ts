@@ -167,6 +167,8 @@ export const users = pgTable("users", {
   nickname: text("nickname"),
   /** Datum narození "YYYY-MM-DD" */
   birthDate: text("birth_date"),
+  /** Ověřený student (ISIC / potvrzení o studiu) do "YYYY-MM-DD" včetně – smí kupovat studentské položky; null = ne */
+  studentUntil: text("student_until"),
   /** Svátek "MM-DD" */
   nameDay: text("name_day"),
   /** Rok, kdy klient dostal přání (a dárek) k narozeninám – posílá se jednou ročně */
@@ -314,6 +316,8 @@ export const products = pgTable("products", {
   isActive: boolean("is_active").notNull().default(true),
   /** Online koupit jen klient s aktivním členstvím */
   membersOnly: boolean("members_only").notNull().default(false),
+  /** Studentská cena: online koupit jen klient s ověřeným studentským statusem (users.studentUntil) */
+  studentsOnly: boolean("students_only").notNull().default(false),
   /** Není v ceníku, koupit jde jen přes přímý odkaz (např. zvýhodněné členství pro vybrané) */
   linkOnly: boolean("link_only").notNull().default(false),
   /** membership: závazek v měsících; 0 = bez závazku (platí se měsíčně, zruší se ke konci měsíce) */
@@ -678,6 +682,19 @@ export const media = pgTable("media", {
   height: integer("height"),
   size: integer("size").notNull(),
   data: bytea("data").notNull(),
+  createdAt: createdAt(),
+});
+
+/**
+ * Fotka ISIC / potvrzení o studiu, kterou klient nahrál k ověření studentské ceny.
+ * Soukromá – vidí ji jen recepce, nejde do záloh a po ověření se smaže.
+ */
+export const studentProofs = pgTable("student_proofs", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  data: bytea("data").notNull(),
+  size: integer("size").notNull(),
   createdAt: createdAt(),
 });
 

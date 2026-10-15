@@ -547,6 +547,20 @@
       "when": 1792009520516,
       "tag": "0077_facebook_reviews",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1792059648572,
+      "tag": "0078_student_prices",
+      "breakpoints": true
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1792060382127,
+      "tag": "0079_student_proofs",
+      "breakpoints": true
     }
   ]
 }

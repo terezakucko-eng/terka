@@ -359,6 +359,11 @@ Napiš sem, jak studio vzniklo a co pro tebe pohyb znamená.
       ),
       membershipTitle: t("Členství – nadpis", "Členství"),
       membershipText: ta("Členství – text", "Pro ty, kdo chodí pravidelně – nejvýhodnější cena za lekci. Platí se měsíčně – se závazkem na 12 měsíců výhodněji, nebo bez závazku."),
+      studentTitle: t("Pro studenty – nadpis", "Pro studenty"),
+      studentText: ta(
+        "Pro studenty – text",
+        "Studuješ? Studentské ceny si koupíš rovnou online. ISIC nebo potvrzení o studiu pak ukážeš ve studiu, nebo nahraješ jeho fotku v Můj účet → Profil.",
+      ),
       passTitle: t("Permanentky – nadpis", "Permanentky"),
       passText: ta("Permanentky – text", "Balíček vstupů na lekce s platností. Běžná lekce = 1 vstup, u některých lekcí se strhne víc vstupů – vždy to najdeš u lekce."),
       creditTitle: t("Kredit – nadpis", "Kredit"),

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { isStudent } from "@/lib/student";
+import { hasStudentProof } from "@/domain/students";
 import { notFound } from "next/navigation";
 import { and, asc, count, eq, gt } from "drizzle-orm";
 import {
@@ -58,6 +60,7 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
   const db = await getDb();
   const [u] = await db.select().from(users).where(eq(users.id, id));
   if (!u) notFound();
+  const proofAt = await hasStudentProof(db, u.id);
   const [upcoming, past, ents, orderList, ledger, productList, lessonTypes] = await Promise.all([
     userBookings(db, u.id, "upcoming"),
     userBookings(db, u.id, "past", new Date(), 30),
@@ -97,6 +100,17 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
         <div className="text-sm text-les/70">
           {u.nickname && <p>Přezdívka: <strong>{u.nickname}</strong></p>}
           {u.birthDate && <p>Narozeniny: <strong>{formatDate(new Date(`${u.birthDate}T12:00:00Z`))}</strong></p>}
+          {proofAt && !isStudent(u) && (
+            <p>
+              🎓 <a href="#udaje" className="font-semibold text-zeme underline">Nahrála fotku ISIC – ověřit</a>
+            </p>
+          )}
+          {u.studentUntil && (
+            <p>
+              🎓 Student do: <strong>{formatDate(new Date(`${u.studentUntil}T12:00:00Z`))}</strong>
+              {!isStudent(u) && <span className="text-chyba"> (vypršelo)</span>}
+            </p>
+          )}
           {u.nameDay && <p>Svátek: <strong>{formatDayMonth(u.nameDay)}</strong></p>}
           {refs.invitedBy && (
             <p>
@@ -462,7 +476,7 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
         </section>
       </div>
 
-      <Card className="mt-10 max-w-2xl">
+      <Card id="udaje" className="mt-10 max-w-2xl">
         <h2 className="font-semibold">Údaje klienta</h2>
         <ActionForm action={updateClientAction} className="mt-4 grid gap-4 sm:grid-cols-2">
           <input type="hidden" name="userId" value={u.id} />
@@ -471,6 +485,21 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
           <Field label="Telefon"><Input name="phone" defaultValue={u.phone ?? ""} /></Field>
           <Field label="Přezdívka"><Input name="nickname" maxLength={30} defaultValue={u.nickname ?? ""} /></Field>
           <Field label="Narozeniny"><Input name="birthDate" type="date" defaultValue={u.birthDate ?? ""} /></Field>
+          <Field label="Student do" hint="Ověřeno podle ISIC nebo potvrzení o studiu (zpravidla do konce platnosti ISIC). Po uložení se nahraná fotka smaže.">
+            <Input name="studentUntil" type="date" defaultValue={u.studentUntil ?? ""} />
+          </Field>
+          {proofAt && (
+            <div className="sm:col-span-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-les/70">Nahraná fotka ISIC / potvrzení ({formatDate(proofAt)})</p>
+              <a href={`/admin/klienti/${u.id}/isic`} target="_blank" rel="noopener">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`/admin/klienti/${u.id}/isic`} alt="Fotka ISIC nebo potvrzení o studiu" className="mt-2 max-h-64 rounded-lg border border-linka/60" />
+              </a>
+              <label className="mt-2 flex items-center gap-2 text-sm">
+                <input type="checkbox" name="dropStudentProof" /> Smazat fotku bez ověření (neplatná / nečitelná)
+              </label>
+            </div>
+          )}
           <Field label="Svátek">
             <div className="flex gap-2">
               <Select name="nameDayDay" defaultValue={u.nameDay ? Number(u.nameDay.slice(3)) : ""} aria-label="Den svátku">

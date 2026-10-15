@@ -3,7 +3,7 @@ import { and, desc, eq, getTableColumns, is, notInArray } from "drizzle-orm";
 import { PgTable, getTableConfig } from "drizzle-orm/pg-core";
 import type { Executor } from "@/db";
 import * as schema from "@/db/schema";
-import { backups, media, settings } from "@/db/schema";
+import { backups, media, settings, studentProofs } from "@/db/schema";
 
 const DAY = 86_400_000;
 /** Weekly backups kept (manual ones are kept until deleted). */
@@ -11,7 +11,8 @@ export const KEEP_AUTO = 8;
 
 const tables = () =>
   (Object.values(schema) as unknown[])
-    .filter((t): t is PgTable => is(t, PgTable) && t !== backups)
+    // ID photos for the student price stay out of downloadable backups
+    .filter((t): t is PgTable => is(t, PgTable) && t !== backups && t !== studentProofs)
     .map((t) => ({ table: t, name: getTableConfig(t).name }));
 
 /**

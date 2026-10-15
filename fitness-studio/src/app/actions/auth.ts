@@ -1,5 +1,6 @@
 "use server";
 
+import { saveStudentProof } from "@/domain/students";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
@@ -208,6 +209,19 @@ export async function updateAvatarAction(_: FormState, fd: FormData): Promise<Fo
     return "Profilovka uložena.";
   });
   revalidatePath("/", "layout");
+  return res;
+}
+
+/** Photo of the ISIC / confirmation of studies – the reception checks it and sets "Student do". */
+export async function uploadStudentProofAction(_: FormState, fd: FormData): Promise<FormState> {
+  const user = await requireUser("/ucet/profil");
+  const res = await attempt(async () => {
+    const file = uploadedFile(fd, "proof");
+    if (!file) throw new UserError("Vyber fotku ISIC nebo potvrzení o studiu.");
+    await saveStudentProof(await getDb(), user.id, file);
+    return "Díky! Fotku zkontrolujeme a pak ji smažeme.";
+  });
+  revalidatePath("/ucet/profil");
   return res;
 }
 

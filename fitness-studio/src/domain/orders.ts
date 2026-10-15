@@ -10,9 +10,11 @@ import {
   massageBookings,
   orders,
   products,
+  users,
   type Order,
 } from "@/db/schema";
 import { UserError } from "@/lib/errors";
+import { isStudent } from "@/lib/student";
 import { formatDate, formatDay, formatTime } from "@/lib/dates";
 import { onSale, saleStartsLater } from "@/lib/price-list";
 import { membershipFull } from "./membership-fees";
@@ -27,7 +29,7 @@ const DAY = 86_400_000;
 export async function createProductOrder(
   db: Executor,
   /** commitmentAccepted: false = the client didn't tick the commitment box online (reception sales leave it out) */
-  input: { userId: string; productId: string; commitmentAccepted?: boolean },
+  input: { userId: string; productId: string; commitmentAccepted?: boolean; studentConfirmed?: boolean },
   now = new Date(),
 ) {
   const [p] = await db
@@ -46,6 +48,12 @@ export async function createProductOrder(
     throw new UserError(`Členství už máš – na ${p.name} přejdeš v Můj účet, bez nového závazku.`);
   if (p.membersOnly && !(await isMember(db, input.userId, now)))
     throw new UserError("Tenhle produkt je jen pro členy. Zastav se na recepci nebo si pořiď členství.");
+  // student price: bought on trust, the reception checks the ISIC later (verified students skip it)
+  if (p.studentsOnly && input.studentConfirmed === false) {
+    const [u] = await db.select({ studentUntil: users.studentUntil }).from(users).where(eq(users.id, input.userId));
+    if (!isStudent(u, now))
+      throw new UserError("Tohle je studentská cena – potvrď prosím, že studuješ. ISIC nebo potvrzení o studiu pak ukážeš ve studiu.");
+  }
   const [order] = await db
     .insert(orders)
     .values({

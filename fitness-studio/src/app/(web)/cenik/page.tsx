@@ -13,6 +13,7 @@ import { dayLabel, inPresale, onSale, priceListStart, priceListYears, priceNoteO
 import { getSettings } from "@/lib/settings";
 import { getContent, type Content } from "@/content";
 import { nbsp } from "@/lib/typography";
+import { isStudent } from "@/lib/student";
 
 export const metadata: Metadata = {
   title: "Ceník, členství a permanentky",
@@ -95,8 +96,13 @@ export default async function PricingPage({ searchParams }: PageProps<"/cenik">)
         introText,
         noIntro.length ? `Neplatí na: ${names(noIntro)}.` : "",
       ].filter(Boolean).join(" ");
+  // student prices have a section of their own
+  const studentItems = list.filter((p) => p.studentsOnly);
+  const regular = list.filter((p) => !p.studentsOnly);
+  const studentUnverified = !!user && !isStudent(user, now);
   // number only the sections that actually have something in them
-  const shown = groups(c).filter((g) => list.some((p) => p.kind === g.kind));
+  const shown = groups(c).filter((g) => regular.some((p) => p.kind === g.kind));
+  const dropInIdx = shown.length + (studentItems.length ? 1 : 0);
 
   return (
     <>
@@ -147,7 +153,7 @@ export default async function PricingPage({ searchParams }: PageProps<"/cenik">)
 
       <Container className="space-y-20 py-16">
         {shown.map((g, i) => {
-          const items = list.filter((p) => p.kind === g.kind);
+          const items = regular.filter((p) => p.kind === g.kind);
           return (
             <section key={g.kind}>
               <Eyebrow n={nth(i)} className="text-zeme">{g.title}</Eyebrow>
@@ -175,8 +181,31 @@ export default async function PricingPage({ searchParams }: PageProps<"/cenik">)
           );
         })}
 
+        {studentItems.length > 0 && (
+          <section>
+            <Eyebrow n={nth(shown.length)} className="text-zeme">{c("pricing.studentTitle")}</Eyebrow>
+            <p className="mt-3 max-w-xl text-les/70">{c("pricing.studentText")}</p>
+            <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {studentItems.map((p) => (
+                <ProductCard
+                  key={p.id}
+                  p={p}
+                  loggedIn={!!user}
+                  next={later ? `/cenik?rok=${year}` : "/cenik"}
+                  passNotes={passNotes}
+                  passExclusions={passExclusions}
+                  priorityWeeks={cfg.includedPriorityWeeks}
+                  studentUnverified={studentUnverified}
+                  saleNote={!onSale(p, now) && saleStartsLater(p, now) ? `V prodeji od ${dayLabel(dateKey(p.saleFrom!))}` : undefined}
+                  startsOn={inPresale(p, now) ? dayLabel(dateKey(p.saleFrom!)) : undefined}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
         <section>
-          <Eyebrow n={nth(shown.length)} className="text-zeme">{c("pricing.dropInTitle")}</Eyebrow>
+          <Eyebrow n={nth(dropInIdx)} className="text-zeme">{c("pricing.dropInTitle")}</Eyebrow>
           <p className="mt-3 max-w-xl text-les/70">{c("pricing.dropInText")}</p>
           <div className="mt-8 divide-y divide-linka/60 border-y border-linka/60">
             {types.map((t) => (
