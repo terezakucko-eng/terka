@@ -104,6 +104,8 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 
 - **15. 10.: Arukereso HU 2027** (Tereza vidí dobíjení ~2× měsíčně; „na silné měsíce dle plánu Lenky dej dobití 2× – do BI dodáme, už jsem žádala“): 1 kredit (6 683) měsíčně, **2 kredity v červnu, srpnu, září, říjnu a prosinci** (tržby HU v FP Lenky nad průměrem ~323 tis.: 356/433/371/457/368 tis.) → 17 kreditů = 113 611 Kč (model ř. 62, list ř. 67). Měření HU do BI zajišťuje Tereza. Stav: model MKT celkem 88,59 mil., list 88,57 mil.
 
+- **15. 10.: Affiliate 2027 – poznámky doplněny (list BI105–BI108).** Současný plán: CZ (list ř. 105, model ř. 100) = průměr 7–9/2026 × sezónnost × koeficient scénáře → list 999 960 / model 992 466 (list neaktualizovaný o 7,5 tis.) vs. 2026 ~1,58 mil. (1–9 skutečnost 1,53 mil.; květen 512 tis. a červen 217 tis. = špičky, příčina neznámá) a FP 1,85 mil. SK/HU řádky mají v 2026 jen leden → od 2/2026 se provize zřejmě účtují na CZ (ověřit). Navrženo Tereze: plán jako 2026 po měsících × růst tržeb (FP Lenky), s květnovou špičkou jen pokud se zopakuje (~1,6–1,7 mil.) – affiliate je platba za prodej, ne škálovat koeficientem. Čeká na odpověď.
+
 ## Targito – rozúčtování (platí, odsouhlaseno 14. 10. 2026)
 Detail v `targito-rozuctovani.md`. Shrnutí: faktura 84 952 Kč/měs. (dodatek, limit 6 mil.) → **Slon + Kondomshop 62 992 (74,2 %), Flagranti 21 960 (25,8 %)**; uvnitř Slona dle objemu z faktury (KS ~4,6 %); nadlimit uvnitř faktury se nepřeúčtovává; služby dle řádků (Růžový slon / Safety First). Měsíční kontrola – kalendář 3. pracovní den v měsíci.
 
