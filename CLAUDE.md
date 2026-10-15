@@ -143,6 +143,8 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 
 - **15. 10.: Poznámky BI51–BI52 (PPC CZ/SK) přepsány – „jak jsme k tomu došli“** (Tereza): Adam 29,7/5,7 mil. (víc reklamy = víc tržeb) → Lenka stejné tržby, ale PPC na úrovni 2026 (21,8/4,6) → kompromis 27/5,3, aby náklady nerostly rychleji než zisk a MP3 zůstal ~39 % → měsíce dle plánu tržeb → v roce řízení na MKT profit.
 
+- **15. 10.: Sbalování v listu Náklady_MKT_2027_TERKA:** skupiny řádků po sekcích (položky 4–21, 24–28, 31–48, 51–111, 114–125, 128–138, 141–179, 182–187, 190–191; součty Σ zůstávají vidět) a skupiny sloupců YOY 2026 + Skutečnost u každého měsíce (I, L:M, P:Q … BD:BE, BH) – **sloupce defaultně sbalené** → vidět FP plán × MKT plán. Graf (chartId 653765277) nastaven na SHOW_ALL (funguje i se sbalenými sloupci). **Nový list „Legenda 2027“** (sheetId 1304503392): jednoduchá legenda – jak tabulku číst, odkud jsou čísla, pravidla, reklama Google, co jsme zefektivnili, MKT profit 1–3, výsledek 2027 (84,35 mil.; MP3 136,4 mil. = 39,4 %). Při změnách čísel legendu aktualizovat.
+
 ## Targito – rozúčtování (platí, odsouhlaseno 14. 10. 2026)
 Detail v `targito-rozuctovani.md`. Shrnutí: faktura 84 952 Kč/měs. (dodatek, limit 6 mil.) → **Slon + Kondomshop 62 992 (74,2 %), Flagranti 21 960 (25,8 %)**; uvnitř Slona dle objemu z faktury (KS ~4,6 %); nadlimit uvnitř faktury se nepřeúčtovává; služby dle řádků (Růžový slon / Safety First). Měsíční kontrola – kalendář 3. pracovní den v měsíci.
 
