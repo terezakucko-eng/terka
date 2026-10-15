@@ -46,7 +46,7 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 - Heureka RS CZ ROI ~+178 %, RS SK ~+186 %, Kondomshop CZ ~+389 %, KS SK ~+460 %. Realistické panny a dámské soupravy na Heurece prodělávají → stáhnout.
 - Kondomshop CZ/SK nemá měřicí kód konverzí Heureky; Srovname KS nemá propojení s GA4.
 - RS Srovname nepoužívá. Arukereso HU ~+17 % (odhad), v září vypadl kredit – hlídat/automatické dobíjení. Zahraniční srovnávače BI nesleduje (Adam má přemapovat); přístupy k nim Tereza nemá.
-- Heureka CZ 4/2026: 260 tis. = PPC výpadek doháněný brand kampaní (~200 tis. mimo PPC).
+- Heureka CZ 4/2026: 260 tis. = PPC výpadek doháněný **DISPLAYEM (Heureka bannery) ~200 tis.**, zaúčtováno na řádku Heureka PPC (Tereza 15. 10.). → Heureka bannery Slon 2026 celkem ~620 tis. (display CZ 2–6/2026 319 tis. + SK 104 tis. + duben ~200 tis.), Heureka PPC CZ 2026 očištěně ~775 tis./rok.
 - Heureka Product Ads (privátní značka): CZ ~11 tis./měs., SK ~1 tis./měs.
 
 ## Rok 2026 – provedené úpravy
