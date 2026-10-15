@@ -100,6 +100,8 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 
 - **15. 10.: Licence TV spotů 2027 ZRUŠENY** (Tereza: „licenci teda asi nemusíme řešit, když budou spoty nové“): řádek licence 25 tis./měs. (model ř. 42, list ř. 44) = 0 a leden −99 866 roční licence starého spotu (model ř. 41, list ř. 42) → −399 866 Kč. Nové spoty mají licenci v ceně výroby na 1. rok, prodloužení až 2028. **Riziko: master musí být hotový k 1. 1. 2027 (sponzoring Nova běží od ledna) – jinak licence starého spotu.** List ř. 42 / model ř. 41 „Náklady na výrobu TV spotů“ 2027 = 0 (Tereza: 2026 tam „byly predikce úprav a úpravy“ → v 2027 jsou úpravy jen v kreativě), −200 tis. **TV spoty 2027 celkem: kreativa 799 316 + operativa 53 902 = 853 218 Kč.** Stav: model MKT celkem 88,47 mil., list 88,45 mil.
 
+- **15. 10.: Dárky (reprezentace…) 2027 + eventy** (Tereza: „v dubnu Erofest a v červenci Colours – započítej dárky i tam“): model ř. 26, list ř. 20 (šedý rolling limit) = 20 tis./měs. + únor Expo +40 tis., **duben Erofest +40 tis. (2026 v dubnu jen 3 386 – dárky Erofestu asi jinde), červenec Colours +60 tis. (7/2026 skutečnost 80 502)** → 380 tis./rok. Stav: model MKT celkem 88,57 mil., list 88,55 mil.
+
 ## Targito – rozúčtování (platí, odsouhlaseno 14. 10. 2026)
 Detail v `targito-rozuctovani.md`. Shrnutí: faktura 84 952 Kč/měs. (dodatek, limit 6 mil.) → **Slon + Kondomshop 62 992 (74,2 %), Flagranti 21 960 (25,8 %)**; uvnitř Slona dle objemu z faktury (KS ~4,6 %); nadlimit uvnitř faktury se nepřeúčtovává; služby dle řádků (Růžový slon / Safety First). Měsíční kontrola – kalendář 3. pracovní den v měsíci.
 
