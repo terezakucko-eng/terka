@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="cs">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ad Banner Generator</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand-block">
+        <h1>Ad Banner Generator</h1>
+        <div class="brand-info">
+          <label class="brand-picker" id="brandPickerWrap"><span>Firma</span>
+            <select id="brandSelect"></select>
+          </label>
+          <span class="brand-name" id="brandName">Brand</span>
+          <div class="brand-swatches" id="brandSwatches"></div>
+          <span class="brand-fonts" id="brandFonts"></span>
+        </div>
+      </div>
+      <div class="status" id="status">Načítám…</div>
+    </header>
+
+    <main class="layout">
+      <!-- LEVÝ PANEL: CO tvořím (rozměr, jazyk, vizuál, texty) -->
+      <aside class="panel editor">
+        <section class="card">
+          <h2>1 · Rozměr &amp; jazyk</h2>
+          <label class="field">
+            <span>Rozměr banneru</span>
+            <select id="formatSelect"></select>
+          </label>
+          <label class="field">
+            <span>Jazyk <small class="scope-badge">⭐ CZ = master, ostatní ho dědí</small></span>
+            <div class="lang-tabs" id="langTabs"></div>
+          </label>
+          <label class="field">
+            <span>Šablona <small class="scope-badge">tento rozměr</small></span>
+            <select id="templateSelect"></select>
+          </label>
+          <p class="hint" id="templateDesc"></p>
+          <button class="btn ghost" id="btnTemplateAll">⭐ Použít tuto šablonu na všechny rozměry</button>
+          <p class="hint">Nastaví aktuální šablonu jako <b>master</b> pro všechny rozměry (přepíše jejich šablonu). Pak ji u jednotlivého rozměru můžeš zase změnit.</p>
+          <label class="slider hidden" id="overlayShadeWrap"><span>Ztmavení fotky pod textem <b id="overlayShadeVal">100%</b> <small class="scope-badge">tento rozměr</small></span><input type="range" id="overlayShade" min="0" max="100" value="100" /></label>
+          <p class="hint hidden" id="overlayShadeHint">Jen šablona <b>Overlay</b>. Nižší = světlejší foto (0 % = bez stínu).</p>
+        </section>
+
+        <section class="card">
+          <h2>2 · Vizuál</h2>
+          <div class="uploads">
+            <div class="upload-slot">
+              <div class="thumb thumb-wide" id="thumb-full">
+                <span class="thumb-label">Vizuál</span>
+                <button class="thumb-clear" id="btnClearFull" title="Odebrat">×</button>
+              </div>
+              <input type="file" id="uploadFull" accept="image/*" hidden />
+            </div>
+          </div>
+          <p class="hint">Klikni na dlaždici pro nahrání vizuálu (master obrázek).</p>
+
+          <div class="lc-title" style="margin-top: 12px">🎯 Těžiště motivu <small class="scope-badge">všechny rozměry</small></div>
+          <label class="slider"><span>Vodorovně (X) <b id="focusXVal">50%</b></span><input type="range" id="focusX" min="0" max="100" value="50" /></label>
+          <label class="slider"><span>Svisle (Y) <b id="focusYVal">45%</b></span><input type="range" id="focusY" min="0" max="100" value="45" /></label>
+          <p class="hint">Kde je hlavní motiv — nastavíš jednou a drží se v záběru <b>napříč rozměry</b>.</p>
+
+          <div class="layout-controls">
+            <div class="lc-title">
+              Posun &amp; zoom obrázku <small class="scope-badge" id="imgFmtLabel">tento rozměr</small>
+              <span class="mode-pill">rozvržení: <span id="layoutMode">automatické</span></span>
+            </div>
+            <label class="slider">
+              <span>Zoom (oddálit ↔ přiblížit) <b id="zoomVal">100%</b></span>
+              <input type="range" id="imgZoom" min="20" max="600" value="100" />
+            </label>
+            <label class="slider"><span>Posun X</span><input type="range" id="imgX" min="-100" max="100" value="0" /></label>
+            <label class="slider"><span>Posun Y</span><input type="range" id="imgY" min="-100" max="100" value="0" /></label>
+            <button class="btn ghost" id="btnResetLayout">↺ Reset rozvržení (tento rozměr)</button>
+
+            <hr />
+            <div class="lc-title">➕ Další obrázek <small class="scope-badge">jen tento rozměr</small></div>
+            <button class="btn" id="btnAddExtra">🖼 Přidat / nahradit další obrázek</button>
+            <input type="file" id="uploadExtra" accept="image/*" hidden />
+            <label class="slider hidden" id="extraSizeWrap"><span>Velikost dalšího obrázku <b id="extraSizeVal">100%</b></span><input type="range" id="extraSize" min="15" max="400" value="100" /></label>
+            <button class="btn ghost danger hidden" id="btnRemoveExtra">Odebrat další obrázek</button>
+            <p class="hint">Druhý obrázek jen do tohoto rozměru. Přetáhneš ho myší, velikost posuvníkem.</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>3 · Texty <small id="activeLangLabel"></small></h2>
+          <label class="chk block"><input type="checkbox" id="perFormatText" /> ✏️ Vlastní textace jen pro <b>tento rozměr</b> (jinak společná)</label>
+          <label class="field">
+            <span>Nadčárka (overline) <em>(malá verzálka nad headline)</em></span>
+            <textarea id="inOverline" maxlength="80" rows="1" placeholder="Např. OSLAVTE MDŽ JINAK!"></textarea>
+          </label>
+          <label class="field">
+            <span>Headline <em>(Enter = nový řádek)</em></span>
+            <textarea id="inHeadline" maxlength="160" rows="2" placeholder="Napiš headline…"></textarea>
+          </label>
+          <label class="field">
+            <span>Subline <em>(Enter = nový řádek)</em></span>
+            <textarea id="inSubline" maxlength="200" rows="2" placeholder="Napiš subline…"></textarea>
+          </label>
+          <label class="field">
+            <span>CTA tlačítko</span>
+            <input type="text" id="inCta" maxlength="40" placeholder="Např. Nakupovat" />
+          </label>
+
+          <div class="hl-tools">
+            <div class="lc-title">✨ Zvýraznit slovo (větší + barevně)</div>
+            <p class="hint">V Headline/Subline <b>označ myší slovo</b> a klikni. (Ručně: obal slovo <b>*hvězdičkami*</b>.)</p>
+            <button class="btn" id="btnWrapHighlight">✨ Zvýraznit označené slovo</button>
+            <div class="inline2" style="margin-top:8px">
+              <label class="field" style="flex:1;margin:0"><span>Barva</span><input type="color" id="highlightColor" value="#DC004E" /></label>
+              <label class="field" style="width:120px;margin:0"><span>Velikost <b id="highlightScaleVal">135%</b></span><input type="range" id="highlightScale" min="100" max="220" value="135" /></label>
+            </div>
+          </div>
+
+          <button class="btn" id="btnAutoTranslate">🌐 Automaticky přeložit do všech jazyků</button>
+          <p class="hint">Přeloží z <b id="translateFromLabel">CZ</b> do ostatních (online překladač). <b>Strojový překlad zkontroluj.</b> Formátování (zvýraznění) i velká/malá písmena se zachovají.</p>
+          <p class="hint">Vlastní <b>výchozí texty</b> = „⭐ Uložit jako výchozí" (vpravo) — uloží texty i rozvržení jako start.</p>
+        </section>
+      </aside>
+
+      <!-- STŘED: výběr prvku + náhled + galerie -->
+      <section class="panel preview">
+        <div class="elem-bar">
+          <span class="elem-bar-label">Uprav prvek:</span>
+          <div class="tt-elements" id="ttElements">
+            <button type="button" data-sel="overline">Nadčárka</button>
+            <button type="button" data-sel="headline" class="active">Headline</button>
+            <button type="button" data-sel="subline">Subline</button>
+            <button type="button" data-sel="cta">CTA</button>
+            <button type="button" data-sel="logo">Logo</button>
+            <button type="button" data-sel="badge">Pusinka</button>
+            <button type="button" data-sel="image">Obrázek</button>
+          </div>
+        </div>
+        <div class="preview-stage">
+          <canvas id="mainPreview"></canvas>
+        </div>
+        <div class="preview-meta" id="previewMeta"></div>
+        <div class="preview-hint">✋ Prvky (headline, subline, CTA, logo, pusinka, další obrázek) <b>přetáhneš myší</b> přímo v náhledu. Táhnutím přes obrázek ho posuneš.</div>
+        <h3 class="gallery-title" id="galleryTitle">Všechny formáty (aktivní jazyk)</h3>
+        <div class="gallery" id="gallery"></div>
+      </section>
+
+      <!-- PRAVÝ PANEL: JAK to vypadá (vlastnosti prvku, globální styl) + výstup -->
+      <aside class="panel exports">
+        <section class="card props-card">
+          <h2>Vlastnosti prvku <small class="scope-badge">tento rozměr / jazyk</small></h2>
+          <p class="hint">Vyber prvek nad náhledem uprostřed. Změny platí pro <b>aktivní rozměr</b> (posun a velikost textu i pro <b>aktivní jazyk</b>).</p>
+          <label class="tt-check" id="ttShowWrap"><input type="checkbox" id="ttShow" checked /> Zobrazit prvek</label>
+          <div class="prop-row">
+            <span class="prop-label">Zarovnání</span>
+            <div class="align-group" id="ttAlign">
+              <button type="button" data-align="left" title="Vlevo">⬅</button>
+              <button type="button" data-align="center" title="Na střed">↔</button>
+              <button type="button" data-align="right" title="Vpravo">➡</button>
+            </div>
+          </div>
+          <label class="tt-slider" id="ttSizeWrap"><span>Velikost <b id="ttSizeVal">100%</b></span><input type="range" id="ttSize" min="40" max="300" value="100" /></label>
+          <label class="tt-slider" id="ttLhWrap"><span>Řádkování <b id="ttLhVal">1.15</b></span><input type="range" id="ttLineHeight" min="90" max="220" value="115" /></label>
+          <label class="tt-select hidden" id="ttLogoColorWrap"><span>Barva loga</span>
+            <select id="ttLogoColor">
+              <option value="auto">Auto</option>
+              <option value="white">Bílá</option>
+              <option value="black">Černá</option>
+              <option value="pink">Růžová</option>
+            </select>
+          </label>
+          <div class="tt-badge hidden" id="ttBadgeColors">
+            <div class="tt-swatch-row"><span>Barva pusinky</span><span class="tt-swatches" id="ttBadgeFill"></span></div>
+            <div class="tt-swatch-row"><span>Barva textu</span><span class="tt-swatches" id="ttBadgeText"></span></div>
+          </div>
+          <div class="tt-badge hidden" id="ttCtaControls">
+            <div class="tt-swatch-row"><span>Barva CTA</span><span class="tt-swatches" id="ttCtaColor"></span></div>
+            <label class="tt-check"><input type="checkbox" id="ttCtaArrow" checked /> Šipka ▸</label>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Barvy &amp; odznak</h2>
+          <label class="field">
+            <span>Změny barev (CTA, pusinka) platí pro</span>
+            <select id="colorScope">
+              <option value="format">Tento rozměr</option>
+              <option value="all">Všechny rozměry</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Barva CTA tlačítka</span>
+            <span class="color-row">
+              <input type="color" id="ctaColor" value="#2FB773" />
+              <button class="swatch-btn" data-cta="#2FB773" style="background:#2FB773" title="Zelená"></button>
+              <button class="swatch-btn" data-cta="#DC004E" style="background:#DC004E" title="Růžová"></button>
+              <button class="swatch-btn" data-cta="#985FA3" style="background:#985FA3" title="Fialová"></button>
+              <button class="swatch-btn" data-cta="#114CAA" style="background:#114CAA" title="Modrá"></button>
+              <button class="swatch-btn" data-cta="#F8C7C8" style="background:#F8C7C8" title="Světlá růžová"></button>
+              <button class="swatch-btn" data-cta="#1F0F36" style="background:#1F0F36" title="Tmavá"></button>
+            </span>
+          </label>
+          <label class="chk block"><input type="checkbox" id="ctaShow" checked /> Zobrazit CTA tlačítko <b>(tento rozměr)</b></label>
+          <label class="chk block"><input type="checkbox" id="ctaArrow" checked /> Šipka v CTA (▸)</label>
+          <hr />
+          <div class="lc-title">🎨 Barvy pozadí <small class="scope-badge">Minimal / Split / Classic panel</small></div>
+          <label class="field">
+            <span>Barva 1 (začátek přechodu)</span>
+            <span class="color-row">
+              <input type="color" id="bgColor1" value="#DC004E" />
+              <button class="swatch-btn" data-bg1="#DC004E" style="background:#DC004E" title="Růžová"></button>
+              <button class="swatch-btn" data-bg1="#1F0F36" style="background:#1F0F36" title="Tmavá"></button>
+              <button class="swatch-btn" data-bg1="#985FA3" style="background:#985FA3" title="Fialová"></button>
+              <button class="swatch-btn" data-bg1="#11AAAA" style="background:#11AAAA" title="Tyrkysová"></button>
+              <button class="swatch-btn" data-bg1="#114CAA" style="background:#114CAA" title="Modrá"></button>
+              <button class="swatch-btn" data-bg1="#F4B945" style="background:#F4B945" title="Žlutá"></button>
+              <button class="swatch-btn" data-bg1="#2FB773" style="background:#2FB773" title="Zelená"></button>
+              <button class="swatch-btn" data-bg1="#FFFFFF" style="background:#FFFFFF" title="Bílá"></button>
+            </span>
+          </label>
+          <label class="field">
+            <span>Barva 2 (konec přechodu)</span>
+            <span class="color-row">
+              <input type="color" id="bgColor2" value="#1F0F36" />
+              <button class="swatch-btn" data-bg2="#1F0F36" style="background:#1F0F36" title="Tmavá"></button>
+              <button class="swatch-btn" data-bg2="#DC004E" style="background:#DC004E" title="Růžová"></button>
+              <button class="swatch-btn" data-bg2="#985FA3" style="background:#985FA3" title="Fialová"></button>
+              <button class="swatch-btn" data-bg2="#F8C7C8" style="background:#F8C7C8" title="Světlá růžová"></button>
+              <button class="swatch-btn" data-bg2="#114CAA" style="background:#114CAA" title="Modrá"></button>
+              <button class="swatch-btn" data-bg2="#FCEAEA" style="background:#FCEAEA" title="Nejsvětlejší"></button>
+              <button class="swatch-btn" data-bg2="#FFFFFF" style="background:#FFFFFF" title="Bílá"></button>
+            </span>
+          </label>
+          <p class="hint">Pozadí u <b>Minimal</b>, <b>Split</b> i <b>textového panelu Classic</b>. Pro <b>jednolitou barvu</b> nastav obě stejně (např. obě bílé). Text i logo se na světlém pozadí automaticky ztmaví. U <b>Classic</b> platí: dokud barvu nezměníš, panel se tónuje automaticky dle vizuálu. Platí dle volby „platí pro" nahoře.</p>
+          <hr />
+          <label class="chk block"><input type="checkbox" id="discountShow" /> Slevový odznak („pusinka")</label>
+          <div class="inline2">
+            <textarea id="discountText" maxlength="40" rows="2" placeholder="-20 %">-20 %</textarea>
+            <input type="color" id="discountColor" value="#DC004E" title="Barva odznaku" />
+            <input type="color" id="discountTextColor" value="#FFFFFF" title="Barva textu v odznaku" />
+          </div>
+          <p class="hint"><b>Enter</b> = nový řádek v pusince (např. „SLEVA" a pod tím „-20 %").</p>
+          <div class="badge-presets">
+            <button type="button" class="chip-btn" data-badge="SLEVA&#10;-20 %">SLEVA -20 %</button>
+            <button type="button" class="chip-btn" data-badge="ZĽAVA&#10;-20 %">ZĽAVA -20 %</button>
+            <button type="button" class="chip-btn" data-badge="-20 %">-20 %</button>
+            <button type="button" class="chip-btn" data-badge="DÁREK">DÁREK</button>
+            <button type="button" class="chip-btn" data-badge="DARČEK">DARČEK</button>
+          </div>
+          <label class="slider"><span>Řádkování v pusince <b id="discountLhVal">1.10</b></span><input type="range" id="discountLineHeight" min="80" max="200" value="110" /></label>
+          <label class="slider"><span>Velikost textu v pusince <b id="discountTextScaleVal">100%</b></span><input type="range" id="discountTextScale" min="40" max="200" value="100" /></label>
+          <label class="slider"><span>Velikost odznaku (celá pusinka) <b id="discountSizeVal">100%</b> <small class="scope-badge">tento rozměr</small></span><input type="range" id="discountSize" min="40" max="300" value="100" /></label>
+          <div class="badge-presets" style="margin-top:2px">
+            <span class="prop-label" style="width:100%">Odstín pusinky:</span>
+            <button type="button" class="swatch-btn" data-badgefill="#DC004E" style="background:#DC004E" title="Primární"></button>
+            <button type="button" class="swatch-btn" data-badgefill="#F29BA8" style="background:#F29BA8" title="Růžová"></button>
+            <button type="button" class="swatch-btn" data-badgefill="#F8C7C8" style="background:#F8C7C8" title="Světlá růžová"></button>
+            <button type="button" class="swatch-btn" data-badgefill="#FCEAEA" style="background:#FCEAEA" title="Nejsvětlejší"></button>
+            <button type="button" class="swatch-btn" data-badgefill="#985FA3" style="background:#985FA3" title="Fialová"></button>
+            <button type="button" class="swatch-btn" data-badgefill="#1F0F36" style="background:#1F0F36" title="Tmavá"></button>
+          </div>
+          <label class="chk block"><input type="checkbox" id="discountGradient" /> Přechod (gradient) v pusince</label>
+          <label class="chk block"><input type="checkbox" id="discountShadow" /> Stín pod pusinkou</label>
+        </section>
+
+        <section class="card">
+          <h2>Logo &amp; text (globální)</h2>
+          <label class="field">
+            <span>Styl loga</span>
+            <select id="logoStyle">
+              <option value="text">Nápis (Růžový Slon)</option>
+              <option value="monogram">Monogram (S)</option>
+              <option value="mark">Značka (pusinka + S)</option>
+            </select>
+          </label>
+          <label class="chk block"><input type="checkbox" id="showLogo" checked /> Zobrazit logo <b>(tento rozměr)</b></label>
+          <label class="slider"><span>Velikost loga <b id="logoScaleVal">100%</b> <small class="scope-badge">tento rozměr</small></span><input type="range" id="logoScale" min="40" max="260" value="100" /></label>
+          <label class="field">
+            <span>Barva loga</span>
+            <select id="logoColorMode">
+              <option value="auto">Auto (dle podkladu)</option>
+              <option value="white">Bílá</option>
+              <option value="black">Černá</option>
+              <option value="pink">Růžová</option>
+            </select>
+          </label>
+          <button class="btn ghost" id="btnResetLogo">↺ Reset pozice loga</button>
+          <label class="chk block"><input type="checkbox" id="hideLogoAll" /> Skrýt logo u <b>všech</b> bannerů</label>
+          <hr />
+          <label class="field">
+            <span>Barva textu</span>
+            <select id="textColor">
+              <option value="auto">Auto (dle šablony)</option>
+              <option value="light">Světlá</option>
+              <option value="dark">Tmavá</option>
+            </select>
+          </label>
+          <label class="slider"><span>Velikost textu — <b>master</b> (všechny) <b id="textScaleVal">100%</b></span><input type="range" id="textScale" min="60" max="250" value="100" /></label>
+          <p class="hint">Master mění velikost naráz u všech. Jeden rozměr → „Velikost" ve „Vlastnostech prvku".</p>
+          <hr />
+          <label class="chk block"><input type="checkbox" id="showGuides" /> Vodicí lišty (přichytávání na střed)</label>
+          <label class="chk block"><input type="checkbox" id="showGrid" /> Vodicí mřížka (jen náhled)</label>
+        </section>
+
+        <section class="card">
+          <h2>Export</h2>
+          <div class="inline2">
+            <label class="field" style="flex:1;margin:0">
+              <span>Formát souboru</span>
+              <select id="exportFileFormat">
+                <option value="png">PNG (bez ztráty)</option>
+                <option value="jpg">JPG (komprimované)</option>
+              </select>
+            </label>
+            <label class="field" id="maxKbField" style="width:120px;margin:0">
+              <span>Max kB (JPG)</span>
+              <input type="number" id="exportMaxKB" value="250" min="30" max="4000" />
+            </label>
+          </div>
+          <label class="chk block"><input type="checkbox" id="autoKB" checked /> kB <b>automaticky dle formátu</b> (doporučeno)</label>
+          <p class="hint" id="autoKbHint">Každý formát má vlastní limit (Sklik/Heureka/Google ≈ 150 kB, web ≈ 500 kB…). Limit platí pro JPG.</p>
+          <button class="btn primary" id="btnExportPng">⬇ Stáhnout aktuální banner</button>
+          <hr />
+          <h3>Hromadný export (ZIP)</h3>
+          <div class="export-group">
+            <div class="export-head">
+              <span>Formáty</span>
+              <span class="head-actions">
+                <button class="link" id="btnSelectAllFormats">vše</button>
+                <button class="link" id="btnSelectNoneFormats">žádné</button>
+              </span>
+            </div>
+            <div class="chk-grid" id="exportFormats"></div>
+          </div>
+          <div class="export-group">
+            <div class="export-head">
+              <span>Jazyky</span>
+              <span class="head-actions">
+                <button class="link" id="btnSelectAllLangs">vše</button>
+                <button class="link" id="btnSelectNoneLangs">žádné</button>
+              </span>
+            </div>
+            <div class="chk-grid" id="exportLangs"></div>
+          </div>
+          <button class="btn primary" id="btnExportZip">📦 Exportovat vše do ZIP</button>
+        </section>
+
+        <section class="card">
+          <h2>Projekty &amp; sdílení</h2>
+          <label class="field">
+            <span>Název projektu</span>
+            <input type="text" id="projectName" placeholder="např. jarni-kampan" />
+          </label>
+          <button class="btn" id="btnSaveProject">💾 Uložit</button>
+          <hr />
+          <label class="field">
+            <span>Uložené projekty</span>
+            <select id="projectList"></select>
+          </label>
+          <div class="btn-row">
+            <button class="btn" id="btnLoadProject">Načíst</button>
+            <button class="btn ghost danger" id="btnDeleteProject">Smazat</button>
+          </div>
+          <hr />
+          <div class="btn-row">
+            <button class="btn" id="btnSaveDefault">⭐ Uložit jako výchozí</button>
+            <button class="btn ghost" id="btnClearDefault">Zrušit výchozí</button>
+          </div>
+          <p class="hint">Uloží aktuální texty i rozvržení jako výchozí — načte se při startu.</p>
+          <hr />
+          <button class="btn primary" id="btnExportHtml">📤 Vytvořit appku s tímto nastavením (HTML)</button>
+          <p class="hint">Samostatný HTML s tvou kampaní uvnitř. Komu ho pošleš, uvidí přesně tohle.</p>
+          <hr />
+          <button class="btn ghost danger" id="btnRemoveImage">🗑 Odebrat vizuál</button>
+          <button class="btn ghost danger" id="btnResetPlacement">↺ Reset umístění (všechny rozměry)</button>
+          <p class="hint">Obojí vyžaduje <b>dvojí potvrzení</b>.</p>
+        </section>
+      </aside>
+    </main>
+
+    <script src="js/brands.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/zip.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>
