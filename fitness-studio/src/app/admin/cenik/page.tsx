@@ -31,7 +31,7 @@ function ProductForm({ p, services, types }: { p?: Product; services: MassageSer
         <Field label="Pořadí"><Input name="sortOrder" type="number" defaultValue={p?.sortOrder ?? 0} /></Field>
         <Field label="Kreditů" hint="Jen u kreditu"><Input name="credits" type="number" min={1} defaultValue={p?.credits ?? ""} /></Field>
         <Field label="Vstupů / minut" hint="Permanentka: vstupy · Masáže: počet masáží · Solárium: minuty · Členství: prázdné = neomezeně"><Input name="entries" type="number" min={1} defaultValue={p?.entries ?? ""} /></Field>
-        <Field label="Platnost (dny)" hint="U kreditu: od posledního dobití · prázdné = nepropadá"><Input name="validityDays" type="number" min={1} defaultValue={p ? (p.validityDays ?? "") : 30} /></Field>
+        <Field label="Platnost (dny)" hint="U kreditu: od posledního dobití · prázdné = nepropadá · členství zaplacené jednorázově platí vždy 365 dní"><Input name="validityDays" type="number" min={1} defaultValue={p ? (p.validityDays ?? "") : 30} /></Field>
         <Field label="Limit / týden" hint="Jen u členství"><Input name="weeklyLimit" type="number" min={1} defaultValue={p?.weeklyLimit ?? ""} /></Field>
         <Field label="Závazek (měsíců)" hint="Jen u členství · 0 = bez závazku (zruší si ho v účtu ke konci měsíce)"><Input name="commitmentMonths" type="number" min={0} defaultValue={p?.commitmentMonths ?? 12} /></Field>
         <Field label="Lekce v ceně" hint="Jen u členství · bez doplatku (např. Reformer)">

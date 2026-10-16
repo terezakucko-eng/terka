@@ -610,6 +610,13 @@
       "when": 1792129256048,
       "tag": "0086_commitment_validity",
       "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1792129951290,
+      "tag": "0087_membership_year",
+      "breakpoints": true
     }
   ]
 }
