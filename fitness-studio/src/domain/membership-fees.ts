@@ -56,6 +56,9 @@ export async function membersInMonth(db: Executor, period: string) {
       prev.auto ||= !!r.e.subscriptionId;
       continue;
     }
+    // a year paid once from mid-month ends a few days into its 13th month – the purchase paid the
+    // first days, so these need no fee: 12 payments a year
+    if (r.e.orderId && !r.e.subscriptionId && r.e.validUntil < end && period === shiftPeriod(currentPeriod(r.e.validFrom), 12)) continue;
     // bought this month (or in presale to start this month): the purchase is this month's payment
     const bought = !!r.e.orderId && !r.e.subscriptionId && r.e.validFrom >= start && r.e.validFrom < end;
     byUser.set(r.e.userId, {

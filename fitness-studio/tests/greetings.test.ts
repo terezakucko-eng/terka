@@ -12,6 +12,7 @@ const { bookings, entitlements, users } = await import("@/db/schema");
 const { celebrationDays, dueWinbacks } = await import("@/domain/greetings");
 const { sendGreetings, sendWinbacks } = await import("@/lib/notify");
 const { saveSettings } = await import("@/lib/settings");
+const { pushQuietly } = await import("@/lib/push");
 const { NOW, hours, makeSession, makeUser, testDb } = await import("./helpers");
 
 let h: Awaited<ReturnType<typeof testDb>>;
@@ -47,6 +48,11 @@ describe("birthday and name-day wishes", () => {
     expect(await sendGreetings(h.db, NOW)).toEqual({ birthdays: 2, nameDays: 1 });
     expect(sent.map((m) => `${m.to}:${m.id}`).sort()).toEqual([`${born.email}:birthday`, `${both.email}:birthday`, `${named.email}:nameDay`].sort());
     expect(sent.find((m) => m.to === born.email)?.vars.darek).toContain("lekci zdarma, platí do 4. 11. 2026");
+    // the studio gets one push with who celebrates today
+    const toStudio = vi.mocked(pushQuietly).mock.calls.filter(([, ids]) => ids.includes(admin.id));
+    expect(toStudio).toHaveLength(1);
+    expect(toStudio[0][2].title).toBe("🎂 Dnes slaví");
+    expect(toStudio[0][2].body.split(", ").sort()).toEqual([`${born.name} – narozeniny`, `${both.name} – narozeniny a svátek`, `${named.name} – svátek`].sort());
 
     const gifts = await h.db.select().from(entitlements).where(and(eq(entitlements.userId, born.id), eq(entitlements.kind, "free")));
     expect(gifts).toHaveLength(1);
@@ -57,6 +63,7 @@ describe("birthday and name-day wishes", () => {
     sent.length = 0;
     expect(await sendGreetings(h.db, hours(5))).toEqual({ birthdays: 0, nameDays: 0 });
     expect(sent).toEqual([]);
+    expect(vi.mocked(pushQuietly).mock.calls.filter(([, ids]) => ids.includes(admin.id))).toHaveLength(1);
     // next year again
     expect((await sendGreetings(h.db, new Date("2027-10-05T08:00:00Z"))).birthdays).toBe(2);
   });

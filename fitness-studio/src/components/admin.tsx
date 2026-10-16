@@ -40,6 +40,25 @@ export function Table({ head, children, className }: { head: ReactNode[]; childr
   );
 }
 
+/** A long history: the newest `show` rows, the older ones folded under „Starší“. */
+export function FoldedTable({ head, rows, show = 3 }: { head: ReactNode[]; rows: ReactNode[]; show?: number }) {
+  const older = rows.slice(show);
+  return (
+    <>
+      <Table head={head}>{rows.slice(0, show)}</Table>
+      {older.length > 0 && (
+        <details className="group mt-2">
+          <summary className="cursor-pointer list-none py-2 text-sm font-semibold text-zeme [&::-webkit-details-marker]:hidden">
+            <span className="mr-1.5 inline-block transition group-open:rotate-90">›</span>
+            Starší ({older.length})
+          </summary>
+          <Table head={head} className="mt-1">{older}</Table>
+        </details>
+      )}
+    </>
+  );
+}
+
 type TdProps = { children?: ReactNode; className?: string; colSpan?: number; label?: ReactNode };
 
 export function Td({ children, className, colSpan, label }: TdProps) {
