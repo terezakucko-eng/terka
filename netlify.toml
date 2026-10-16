@@ -1,4 +1,5 @@
 # Root netlify.toml je prázdný — každý projekt má vlastní:
 # - calendar-app/netlify.toml
 # - fortune-wheel/netlify.toml
+# - publikacni-plan/netlify.toml
 # Base directory se nastavuje v Netlify UI per-site.
