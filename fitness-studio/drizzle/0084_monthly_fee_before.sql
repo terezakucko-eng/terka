@@ -1,0 +1,1 @@
+ALTER TABLE "entitlements" ADD COLUMN "monthly_fee_before" integer;

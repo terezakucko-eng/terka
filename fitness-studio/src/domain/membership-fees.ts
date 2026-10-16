@@ -62,8 +62,14 @@ export async function membersInMonth(db: Executor, period: string) {
       userId: r.e.userId,
       name: r.name,
       email: r.email,
+      // switched to a higher membership from a later month: the old fee until then;
       // a special price for a few months: then the default one
-      monthlyFee: r.e.monthlyFeeUntil && period > r.e.monthlyFeeUntil ? null : r.e.monthlyFee,
+      monthlyFee:
+        r.e.includedFrom && period < r.e.includedFrom
+          ? r.e.monthlyFeeBefore
+          : r.e.monthlyFeeUntil && period > r.e.monthlyFeeUntil
+            ? null
+            : r.e.monthlyFee,
       auto: !!r.e.subscriptionId,
       purchaseOrderId: bought ? r.e.orderId : null,
     });
@@ -454,6 +460,8 @@ export async function switchMembership(db: DB, userId: string, entitlementId: st
         name: offer.name,
         monthlyFee: offer.price,
         monthlyFeeUntil: null,
+        // the months until the switch (presale: it starts in January) stay at the old fee
+        monthlyFeeBefore: e.monthlyFeeUntil && shiftPeriod(currentPeriod(now), 1) > e.monthlyFeeUntil ? null : e.monthlyFee,
         includedClassTypeId: offer.includedClassTypeId,
         includedPerMonth: offer.includedPerMonth,
         includedFrom: period,
