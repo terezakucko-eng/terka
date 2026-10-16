@@ -17,9 +17,15 @@ export function AdminTitle({ title, children }: { title: string; children?: Reac
 export function Table({ head, children, className }: { head: ReactNode[]; children: ReactNode; className?: string }) {
   const rows = Children.map(children, (row) => {
     if (!isValidElement<{ children?: ReactNode }>(row) || row.type !== "tr") return row;
-    const cells = Children.toArray(row.props.children).map((cell, i) =>
-      isValidElement(cell) && cell.type === Td ? cloneElement(cell as ReactElement<TdProps>, { label: head[i] }) : cell,
-    );
+    // a cell spanning more columns takes the first one's name; the next cell's name skips them
+    let col = 0;
+    const cells = Children.toArray(row.props.children).map((cell) => {
+      if (!isValidElement(cell) || cell.type !== Td) return cell;
+      const td = cell as ReactElement<TdProps>;
+      const label = head[col];
+      col += td.props.colSpan ?? 1;
+      return cloneElement(td, { label });
+    });
     return cloneElement(row, {}, cells);
   });
   return (

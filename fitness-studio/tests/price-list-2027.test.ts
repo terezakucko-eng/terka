@@ -67,7 +67,7 @@ describe("presale", () => {
     await fulfillOrder(h.db, { orderId: order.id, provider: "transfer" }, NOW);
     const [e] = await h.db.select().from(entitlements).where(eq(entitlements.userId, u.id));
     expect(e.validFrom).toEqual(JAN);
-    expect(e.validUntil).toEqual(new Date(JAN.getTime() + 365 * 86_400_000));
+    expect(e.validUntil).toEqual(pragueLocalToDate("2027-12-31T23:59")); // the whole commitment
     // not a member before January: no classes this year, no switching yet
     const soon = await makeSession(h.db, { startsAt: pragueLocalToDate("2026-10-07T17:00") });
     await expect(bookSession(h.db, { userId: u.id, sessionId: soon.id, method: "membership", entitlementId: e.id }, NOW)).rejects.toThrow(/Platí až od 1\.\s1\.\s2027/);
