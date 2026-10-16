@@ -624,6 +624,13 @@
       "when": 1792130336962,
       "tag": "0088_client_membership_2026",
       "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1792130793219,
+      "tag": "0089_membership_2026_to_year_end",
+      "breakpoints": true
     }
   ]
 }
