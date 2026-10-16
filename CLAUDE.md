@@ -231,7 +231,7 @@ Detail v `targito-rozuctovani.md`. Shrnutí: faktura 84 952 Kč/měs. (dodatek, 
 - Zpráva o Targito rozúčtování pro Kubu, Zuzku, Lenku, Gabriela (ukázat ke schválení).
 - Heureka Product Ads CZ – je v přehledu odečtů, nebo se platí zvlášť?
 - Plán marketingu 2027 přes stakeholdery (zápis s Karlem 21. 9. 2026): Majitel, Produkt, Finance, Sales (e-com + prodejny), HR, IT, Flagranti, privátní značka – vizualizovat.
-- Komentář PROJEKTY 2027 (privátka Q1–Q4, retence Q1–Q2 Jan Tříska, AI rádce Q3–Q4 Jan Tříska, mechanika eventů) – neodesláno.
+- **PROJEKTY 2027** (Basecamp 36422922/todos/10332138109): Terezin komentář odeslán 7. 10. (1 Privátní značka Q1–Q4 ~800 tis., 2 Retence Q1–Q2 100–250 tis., 3 AI rádce Q3–Q4). Harmonogram Gabriela 16. 10.: 19.–23. 10. tabulka „RS Projects Evaluation 2027“ k doplnění, 26.–30. 10. společný call → shortlist, 1.–15. 11. náklady, od 15. 11. do FP 2027. Kalendář: pá 23. 10. 11:00–12:30 doplnit tabulku; 2.–15. 11. celodenní (volno) připomínka nákladů.
 - Mirek: subtask grafika A5 do programu (todo 10313341463) – nepotvrzeno.
 - Report 09/2026 (dokument 10379527514) – rozpracováno.
 - Meat Design – odmítnutí (koncept), Angry Beards todo 10399020325 bez řešitele/termínu.
