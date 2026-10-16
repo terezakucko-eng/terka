@@ -1,3 +1,4 @@
+import { and, eq, isNull } from "drizzle-orm";
 import type { Executor } from "@/db";
 import { entitlements, type Product } from "@/db/schema";
 import { addDays, dateKey, pragueLocalToDate } from "@/lib/dates";
@@ -7,6 +8,8 @@ import { changeCredits, extendCreditValidity } from "./wallet";
 const DAY = 86_400_000;
 /** A membership paid once lasts a year. */
 export const MEMBERSHIP_DAYS = 365;
+/** Note on a membership ordered in presale and paid later, by the first monthly fee request. */
+export const PRESALE_RESERVED = "Předprodej – první měsíc zaplatí výzvou v prosinci";
 
 /**
  * Creates whatever the product grants – bought (the order) or received as a
@@ -14,7 +17,8 @@ export const MEMBERSHIP_DAYS = 365;
  */
 export async function grantProduct(
   tx: Executor,
-  to: { userId: string; orderId: string | null; subscriptionId?: string | null; note?: string },
+  /** reserved: ordered in presale, paid later by monthly fee requests (no order) */
+  to: { userId: string; orderId: string | null; subscriptionId?: string | null; note?: string; reserved?: boolean },
   p: Product,
   now: Date,
   periodEnd?: Date,
@@ -40,9 +44,18 @@ export async function grantProduct(
       // of the last one, with or without commitment (that one ends whenever she likes): the purchase pays the
       // first month, monthly fee requests the rest
       const yearEnd =
-        p.kind === "membership" && to.orderId && !to.subscriptionId && !periodEnd
+        p.kind === "membership" && (to.orderId || to.reserved) && !to.subscriptionId && !periodEnd
           ? new Date(pragueLocalToDate(`${addDays(dateKey(from), MEMBERSHIP_DAYS)}T00:00`).getTime() - 60_000)
           : null;
+      // paid now for a membership already reserved in presale: the payment covers its first month
+      if (p.kind === "membership" && to.orderId) {
+        const [reserved] = await tx
+          .update(entitlements)
+          .set({ orderId: to.orderId, subscriptionId: to.subscriptionId ?? null, note: null })
+          .where(and(eq(entitlements.userId, to.userId), eq(entitlements.productId, p.id), eq(entitlements.status, "active"), isNull(entitlements.orderId), eq(entitlements.note, PRESALE_RESERVED)))
+          .returning({ id: entitlements.id });
+        if (reserved) return;
+      }
       await tx.insert(entitlements).values({
         userId: to.userId,
         kind: p.kind,

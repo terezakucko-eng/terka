@@ -645,6 +645,13 @@
       "when": 1792152551308,
       "tag": "0091_reformer_places_left",
       "breakpoints": true
+    },
+    {
+      "idx": 92,
+      "version": "7",
+      "when": 1792164430104,
+      "tag": "0092_presale_orders_reserved",
+      "breakpoints": true
     }
   ]
 }
