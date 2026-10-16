@@ -176,16 +176,23 @@ export async function notifyWishReply(db: DB, w: Wish) {
   await pushQuietly(db, [u.id], { title: "💌 Odpověď na tvůj vzkaz", body: w.reply.slice(0, 140), url: odkaz });
 }
 
-/** Birthday (with the gift) and name-day greetings – e-mail and push, once a year each. */
+/**
+ * Birthday (with the gift) and name-day greetings – e-mail and push, once a
+ * year each – and a push to the studio with who celebrates today.
+ */
 export async function sendGreetings(db: DB, now = new Date()) {
   const cfg = await getSettings(db);
   if (!cfg.birthdayGreetings) return { birthdays: 0, nameDays: 0 };
   const { year, birthdays, nameDays } = await dueGreetings(db, now);
+  const today = new Map<string, { name: string; what: string[] }>();
+  const note = (u: { id: string; name: string }, what: string) =>
+    today.set(u.id, { name: u.name, what: [...(today.get(u.id)?.what ?? []), what] });
   let sentBirthdays = 0;
   let sentNameDays = 0;
   for (const u of birthdays) {
     const gift = await greetBirthday(db, u.id, year, cfg, now);
     if (gift === false) continue;
+    note(u, "narozeniny");
     await sendEmail(u.email, "birthday", {
       osloveni: greetName(u.name),
       darek: gift ? `Na účtu máš od nás dárek – lekci zdarma, platí do ${formatDate(gift)}. Vyber si ji v rozvrhu: ${site.url}/rozvrh` : "",
@@ -199,11 +206,22 @@ export async function sendGreetings(db: DB, now = new Date()) {
   }
   const celebrating = new Set(birthdays.map((u) => u.id));
   for (const u of nameDays) {
+    if (!(await markNameDay(db, u.id, year))) continue;
+    note(u, "svátek");
     // on a birthday the birthday wishes are enough
-    if (!(await markNameDay(db, u.id, year)) || celebrating.has(u.id)) continue;
+    if (celebrating.has(u.id)) continue;
     await sendEmail(u.email, "nameDay", { osloveni: greetName(u.name) });
     await pushQuietly(db, [u.id], { title: "Krásný svátek! 🌷", body: "Přejeme ti krásný den.", url: `${site.url}/rozvrh` });
     sentNameDays++;
+  }
+  if (today.size) {
+    const admins = await db.select({ id: users.id }).from(users).where(eq(users.role, "admin"));
+    const list = [...today.entries()];
+    await pushQuietly(db, admins.map((a) => a.id), {
+      title: list.some(([, c]) => c.what.includes("narozeniny")) ? "🎂 Dnes slaví" : "🌷 Dnes má svátek",
+      body: list.map(([, c]) => `${c.name} – ${c.what.join(" a ")}`).join(", "),
+      url: list.length === 1 ? `${site.url}/admin/klienti/${list[0][0]}` : `${site.url}/admin`,
+    });
   }
   return { birthdays: sentBirthdays, nameDays: sentNameDays };
 }

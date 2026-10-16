@@ -24,7 +24,7 @@ import { recordPastFeesAction } from "@/app/admin/fee-actions";
 import { insuranceYears } from "@/domain/insurance";
 import { currentPeriod, periodStartLabel, shiftPeriod } from "@/domain/membership-fees";
 import { getSettings } from "@/lib/settings";
-import { AdminTitle, Stat, Table, Td } from "@/components/admin";
+import { AdminTitle, FoldedTable, Stat, Table, Td } from "@/components/admin";
 import { Avatar } from "@/components/avatar";
 import { MONTHS, formatDayMonth } from "@/lib/profile";
 import { ActionForm, SubmitButton } from "@/components/forms";
@@ -421,8 +421,9 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
       <div className="mt-10 grid gap-8 xl:grid-cols-2">
         <section>
           <h2 className="mb-3 text-lg font-semibold">Historie rezervací</h2>
-          <Table head={["Lekce", "Kdy", "Platba", "Stav"]}>
-            {past.map(({ b, s, ct }) => (
+          <FoldedTable
+            head={["Lekce", "Kdy", "Platba", "Stav"]}
+            rows={past.map(({ b, s, ct }) => (
               <tr key={b.id}>
                 <Td><Link href={`/admin/rozvrh/${s.id}`} className="underline-offset-4 hover:underline">{ct.name}</Link></Td>
                 <Td className="whitespace-nowrap">{formatDateTime(s.startsAt)}</Td>
@@ -435,13 +436,14 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
                 </Td>
               </tr>
             ))}
-          </Table>
+          />
         </section>
         <section className="space-y-8">
           <div>
             <h2 className="mb-3 text-lg font-semibold">Platby</h2>
-            <Table head={["Č.", "Položka", "Částka", "Stav"]}>
-              {orderList.map((o) => (
+            <FoldedTable
+              head={["Č.", "Položka", "Částka", "Stav"]}
+              rows={orderList.map((o) => (
                 <tr key={o.id}>
                   <Td>{o.number}</Td>
                   <Td>
@@ -471,12 +473,13 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
                   </Td>
                 </tr>
               ))}
-            </Table>
+            />
           </div>
           <div>
             <h2 className="mb-3 text-lg font-semibold">Pohyby kreditu</h2>
-            <Table head={["Kdy", "Důvod", "Změna", "Zůstatek"]}>
-              {ledger.map((t) => (
+            <FoldedTable
+              head={["Kdy", "Důvod", "Změna", "Zůstatek"]}
+              rows={ledger.map((t) => (
                 <tr key={t.id}>
                   <Td className="whitespace-nowrap">{formatDateTime(t.createdAt)}</Td>
                   <Td>{creditReasonLabel[t.reason]}{t.note && ` · ${t.note}`}</Td>
@@ -484,7 +487,7 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
                   <Td>{t.balanceAfter}</Td>
                 </tr>
               ))}
-            </Table>
+            />
           </div>
         </section>
       </div>

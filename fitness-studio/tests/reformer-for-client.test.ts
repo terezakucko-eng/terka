@@ -61,8 +61,8 @@ describe("switching to Členství Reformer in presale (from January)", () => {
 describe("migration 0085: Členství Reformer set up for one client", () => {
   // the client is found by a hash of her surname – the tests put in their own
   const md5 = (s: string) => createHash("md5").update(s).digest("hex");
-  const run = async (surname: string) => {
-    const text = readFileSync("drizzle/0085_reformer_for_client.sql", "utf8")
+  const run = async (surname: string, file = "drizzle/0085_reformer_for_client.sql") => {
+    const text = readFileSync(file, "utf8")
       .replaceAll("750d082c1299ae67208f0d1e0a36c373", md5(surname))
       .replaceAll("cc8035ef80c65185d318f9583f1bf892", md5(surname));
     for (const statement of text.split("--> statement-breakpoint")) await h.db.execute(sql.raw(statement));
@@ -100,6 +100,19 @@ describe("migration 0085: Členství Reformer set up for one client", () => {
     const rows = await mine(u.id);
     expect(rows.find((r) => r.id === flex.id)).toMatchObject({ validUntil: JAN, renewalCancelled: true });
     expect(rows.find((r) => r.id !== flex.id)).toMatchObject({ productId: tier.id, validFrom: JAN });
+  });
+
+  it("migration 0088: her cancelled Členství 2026 is valid again until the end of 2026", async () => {
+    const u = await client("Fiona Šestá");
+    const end = pragueLocalToDate("2026-12-31T23:59");
+    const old = await membership(u.id, end);
+    await h.db.update(entitlements).set({ name: "Členství 2026", status: "cancelled" }).where(eq(entitlements.id, old.id));
+    const other = await membership(u.id, end); // another one cancelled on purpose stays cancelled
+    await h.db.update(entitlements).set({ name: "Permanentka", status: "cancelled" }).where(eq(entitlements.id, other.id));
+    await run("šestá", "drizzle/0088_client_membership_2026.sql");
+    const rows = await mine(u.id);
+    expect(rows.find((r) => r.id === old.id)?.status).toBe("active");
+    expect(rows.find((r) => r.id === other.id)?.status).toBe("cancelled");
   });
 
   it("does nothing while she pays her own order, or when the surname matches two clients", async () => {
