@@ -8,6 +8,7 @@ import { credits, entries, formatPrice } from "@/lib/money";
 import { cardPayments } from "@/lib/payments";
 import { nbsp } from "@/lib/typography";
 import { STUDENT_CONFIRM } from "@/lib/student";
+import { placesLeftLabel } from "@/lib/price-list";
 
 const weeks = (n: number) => (n === 1 ? "týden" : n < 5 ? `${n} týdny` : `${n} týdnů`);
 
@@ -117,7 +118,7 @@ export function ProductCard({
                     {p.maxActive !== null && placesLeft !== null && (
                       <p className={cx("mt-3 text-sm font-semibold", p.highlight ? "text-zlato-light" : "text-zeme")}>
                         {placesLeft > 0
-                          ? `Omezený počet členství: ${p.maxActive} · volná: ${placesLeft}`
+                          ? placesLeftLabel(placesLeft)
                           : "Teď obsazeno"}
                       </p>
                     )}

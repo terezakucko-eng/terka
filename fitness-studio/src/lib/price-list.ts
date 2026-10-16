@@ -20,6 +20,13 @@ export const onSale = (p: Pick<Product, "isActive" | "saleFrom" | "saleUntil" | 
 export const saleStartsLater = (p: Pick<Product, "saleFrom" | "presaleFrom">, at = new Date()) =>
   !!p.saleFrom && p.saleFrom > at && !inPresale(p, at);
 
+/** A limited membership's places left, said so it moves people: „Zbývají už jen 3 volná členství“. */
+export function placesLeftLabel(n: number) {
+  if (n === 1) return "Zbývá už jen 1 volné členství";
+  if (n >= 2 && n <= 4) return `Zbývají už jen ${n} volná členství`;
+  return `Zbývá ještě ${n} volných členství`;
+}
+
 /** When what the product gives starts: now, or the start of its price list when bought in presale. */
 export const startsAt = (p: Pick<Product, "saleFrom">, now = new Date()) => (p.saleFrom && p.saleFrom > now ? p.saleFrom : now);
 

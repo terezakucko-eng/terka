@@ -12,7 +12,8 @@ import { requireUser } from "@/lib/auth";
 import { formatDate, formatDay, formatRange, formatTime } from "@/lib/dates";
 import { credits, formatPrice } from "@/lib/money";
 import { SurchargePay } from "@/components/surcharge-pay";
-import { flexibleMemberships, membershipSwitches, openFees, periodStartLabel } from "@/domain/membership-fees";
+import { flexibleMemberships, membershipPlacesTaken, membershipSwitches, openFees, periodStartLabel } from "@/domain/membership-fees";
+import { placesLeftLabel } from "@/lib/price-list";
 import { includedSummary } from "@/domain/booking";
 import { endMembershipAction, switchMembershipAction } from "@/app/actions/membership";
 import { insuranceYears } from "@/domain/insurance";
@@ -75,6 +76,9 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
     membershipSwitches(db, user.id, ents),
     includedSummary(db, ents),
   ]);
+  // a limited one (Členství Reformer) says how many places are left
+  const limited = [...switches.values()].flatMap(({ offer }) => (offer.maxActive !== null ? [offer.id] : []));
+  const taken = limited.length ? await membershipPlacesTaken(db, limited) : new Map<string, number>();
   const offerClasses = switches.size
     ? await db
         .select({ id: classTypes.id, name: classTypes.name })
@@ -205,7 +209,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
                         <p className="mt-2 text-les/70">
                           {offer.includedPerMonth}× {cls} měsíčně bez doplatku
                           {cfg.includedPriorityWeeks > 0 && `, přednostní rezervace na ${cls}`} a všechno, co máš teď.
-                          {offer.maxActive !== null && " Počet těchto členství je omezený."} Od {from} platíš {formatPrice(offer.price)}{" "}
+                          {offer.maxActive !== null && ` ${placesLeftLabel(Math.max(0, offer.maxActive - (taken.get(offer.id) ?? 0)))}.`} Od {from} platíš {formatPrice(offer.price)}{" "}
                           měsíčně, {offer.commitmentMonths > 0 ? "závazek se nemění – platí do stejného data jako dosud." : "dál bez závazku."}
                         </p>
                         <ActionForm action={switchMembershipAction} className="mt-3 space-y-3">
