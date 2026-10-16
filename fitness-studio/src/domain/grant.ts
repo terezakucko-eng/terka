@@ -1,6 +1,8 @@
 import type { Executor } from "@/db";
 import { entitlements, type Product } from "@/db/schema";
+import { dateKey, pragueLocalToDate } from "@/lib/dates";
 import { startsAt } from "@/lib/price-list";
+import { shiftPeriod } from "./membership-fees";
 import { changeCredits, extendCreditValidity } from "./wallet";
 
 const DAY = 86_400_000;
@@ -33,6 +35,12 @@ export async function grantProduct(
     case "massage_pass": {
       // bought in presale (Členství 2027 in December) it starts on 1 January
       const from = startsAt(p, now);
+      // a membership with commitment paid once (transfer, presale – not a card subscription) runs for the
+      // whole commitment: the purchase pays its first month, monthly fee requests the rest (to 23:59 of the last day)
+      const commitmentEnd =
+        p.kind === "membership" && p.commitmentMonths > 0 && to.orderId && !to.subscriptionId && !periodEnd
+          ? new Date(pragueLocalToDate(`${shiftPeriod(dateKey(from).slice(0, 7), p.commitmentMonths)}-01T00:00`).getTime() - 60_000)
+          : null;
       await tx.insert(entitlements).values({
         userId: to.userId,
         kind: p.kind,
@@ -43,7 +51,7 @@ export async function grantProduct(
         weeklyLimit: p.kind === "membership" ? p.weeklyLimit : null,
         massageServiceId: p.kind === "massage_pass" ? p.massageServiceId : null,
         validFrom: from,
-        validUntil: periodEnd ?? new Date(from.getTime() + (p.validityDays ?? 30) * DAY),
+        validUntil: periodEnd ?? commitmentEnd ?? new Date(from.getTime() + (p.validityDays ?? 30) * DAY),
         subscriptionId: to.subscriptionId ?? null,
         // a membership without commitment or with lessons included is billed at its own monthly price
         monthlyFee: p.kind === "membership" && (p.commitmentMonths === 0 || p.includedPerMonth > 0) ? p.price : null,

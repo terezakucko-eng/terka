@@ -230,3 +230,21 @@
     font-size: 16px !important;
   }
 }
+
+/*
+ * iPhone gives date and month fields a minimum width of their own – in a
+ * narrow column they stick out of the card. Without the native look they fit.
+ */
+@media (max-width: 767px) {
+  input[type="date"],
+  input[type="month"],
+  input[type="time"],
+  input[type="datetime-local"] {
+    min-width: 0;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  input::-webkit-date-and-time-value {
+    text-align: left;
+  }
+}
