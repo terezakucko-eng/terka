@@ -1,6 +1,6 @@
 import { isMember } from "./massages";
 import { sessionNameSql } from "@/lib/session-name";
-import { and, desc, eq, inArray, ne } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, ne } from "drizzle-orm";
 import type { DB, Executor } from "@/db";
 import {
   bookings,
@@ -16,22 +16,20 @@ import {
 import { UserError } from "@/lib/errors";
 import { isStudent } from "@/lib/student";
 import { formatDate, formatDay, formatTime } from "@/lib/dates";
-import { onSale, saleStartsLater } from "@/lib/price-list";
+import { inPresale, onSale, saleStartsLater } from "@/lib/price-list";
 import { membershipFull, switchableTo } from "./membership-fees";
 import { occupancy } from "./booking";
 import { changeCredits } from "./wallet";
 import { rewardReferral } from "./referrals";
-import { grantProduct } from "./grant";
+import { PRESALE_RESERVED, grantProduct } from "./grant";
 import { activateVoucher } from "./vouchers";
 
 const DAY = 86_400_000;
 
-export async function createProductOrder(
-  db: Executor,
-  /** commitmentAccepted: false = the client didn't tick the commitment box online (reception sales leave it out) */
-  input: { userId: string; productId: string; commitmentAccepted?: boolean; studentConfirmed?: boolean },
-  now = new Date(),
-) {
+type PurchaseInput = { userId: string; productId: string; commitmentAccepted?: boolean; studentConfirmed?: boolean };
+
+/** Whether the client can buy the product now; returns it. */
+async function purchasable(db: Executor, input: PurchaseInput, now: Date) {
   const [p] = await db
     .select()
     .from(products)
@@ -55,6 +53,16 @@ export async function createProductOrder(
     if (!isStudent(u, now))
       throw new UserError("Tohle je studentská cena – potvrď prosím, že studuješ. ISIC nebo potvrzení o studiu pak ukážeš ve studiu.");
   }
+  return p;
+}
+
+export async function createProductOrder(
+  db: Executor,
+  /** commitmentAccepted: false = the client didn't tick the commitment box online (reception sales leave it out) */
+  input: PurchaseInput,
+  now = new Date(),
+) {
+  const p = await purchasable(db, input, now);
   const [order] = await db
     .insert(orders)
     .values({
@@ -68,6 +76,27 @@ export async function createProductOrder(
     })
     .returning();
   return { order, product: p };
+}
+
+/**
+ * A membership from next year's price list ordered in presale to be paid by
+ * transfer: it's in her card right away (and takes its place) and paid with
+ * the first monthly fee request, sent in December with everyone else's.
+ */
+export async function reservePresaleMembership(db: DB, input: PurchaseInput, now = new Date()) {
+  return db.transaction(async (tx) => {
+    // one place at a time for a limited membership
+    await tx.select({ id: products.id }).from(products).where(eq(products.id, input.productId)).for("update");
+    const p = await purchasable(tx, input, now);
+    if (p.kind !== "membership" || !inPresale(p, now)) throw new UserError("Tohle jde zaplatit jen hned.");
+    const [had] = await tx
+      .select({ id: entitlements.id })
+      .from(entitlements)
+      .where(and(eq(entitlements.userId, input.userId), eq(entitlements.productId, p.id), eq(entitlements.status, "active"), gt(entitlements.validUntil, now)));
+    if (had) throw new UserError(`${p.name} už máš – najdeš ho v Můj účet.`);
+    await grantProduct(tx, { userId: input.userId, orderId: null, note: PRESALE_RESERVED, reserved: true }, p, now);
+    return p;
+  });
 }
 
 /**

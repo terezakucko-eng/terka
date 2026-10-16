@@ -8,6 +8,7 @@ import { credits, entries, formatPrice } from "@/lib/money";
 import { cardPayments } from "@/lib/payments";
 import { nbsp } from "@/lib/typography";
 import { STUDENT_CONFIRM } from "@/lib/student";
+import { placesLeftLabel } from "@/lib/price-list";
 
 const weeks = (n: number) => (n === 1 ? "týden" : n < 5 ? `${n} týdny` : `${n} týdnů`);
 
@@ -117,7 +118,7 @@ export function ProductCard({
                     {p.maxActive !== null && placesLeft !== null && (
                       <p className={cx("mt-3 text-sm font-semibold", p.highlight ? "text-zlato-light" : "text-zeme")}>
                         {placesLeft > 0
-                          ? `Omezený počet členství: ${p.maxActive} · volná: ${placesLeft}`
+                          ? placesLeftLabel(placesLeft)
                           : "Teď obsazeno"}
                       </p>
                     )}
@@ -179,6 +180,13 @@ export function ProductCard({
                             </span>
                           </label>
                         )}
+                        {/* next year's membership in presale: ordered now, paid with the first monthly fee request in December */}
+                        {startsOn && p.kind === "membership" ? (
+                          <SubmitButton name="pay" value="reserve" variant={p.highlight ? "gold" : "dark"} className="w-full" pendingText="Moment…">
+                            Objednat – platíš až v prosinci
+                          </SubmitButton>
+                        ) : (
+                          <>
                         {card && (
                           <SubmitButton name="pay" value="card" variant={p.highlight ? "gold" : "dark"} className="w-full" pendingText="Moment…">
                             {p.kind === "membership" && p.recurring && !startsOn ? "Platit kartou měsíčně" : "Koupit – kartou"}
@@ -188,6 +196,8 @@ export function ProductCard({
                         <SubmitButton name="pay" value="transfer" variant={card ? (p.highlight ? "outline-light" : "outline") : p.highlight ? "gold" : "dark"} className="w-full" pendingText="Moment…">
                           {card ? "Převodem (QR)" : "Koupit – platba převodem"}
                         </SubmitButton>
+                          </>
+                        )}
                       </ActionForm>
                     ) : (
                       <div className="mt-6 space-y-2">
@@ -205,8 +215,10 @@ export function ProductCard({
 function PresaleNote({ p, startsOn }: { p: Product; startsOn: string }) {
   return (
     <p className={cx("mb-3 rounded-xl px-4 py-3 text-center text-sm", p.highlight ? "bg-papir/10" : "bg-krem/60")}>
-      <span className="font-semibold">Platí od {startsOn}</span> – koupit můžeš už teď.
-      {p.kind === "membership" && <span className="mt-1 block text-xs">Platbou při koupi máš zaplacený první měsíc členství.</span>}
+      <span className="font-semibold">Platí od {startsOn}</span> – {p.kind === "membership" ? "objednej si ho už teď" : "koupit můžeš už teď"}.
+      {p.kind === "membership" && (
+        <span className="mt-1 block text-xs">Teď nic neplatíš – výzvu k platbě za první měsíc ti pošleme v prosinci, zaplatíš kartou nebo převodem.</span>
+      )}
       {p.kind === "membership" && p.includedPerMonth > 0 && (
         <span className="mt-1 block text-xs">Máš už členství se závazkem? Přechod si zamluvíš v Můj účet.</span>
       )}

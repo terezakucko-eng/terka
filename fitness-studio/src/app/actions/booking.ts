@@ -11,7 +11,8 @@ import {
   joinWaitlist,
   type Method,
 } from "@/domain/booking";
-import { abandonOrder, createProductOrder, createSurchargeOrder, fulfillOrder } from "@/domain/orders";
+import { formatDate } from "@/lib/dates";
+import { abandonOrder, createProductOrder, createSurchargeOrder, fulfillOrder, reservePresaleMembership } from "@/domain/orders";
 import { requireUser } from "@/lib/auth";
 import { UserError } from "@/lib/errors";
 import { attempt, field, type FormState } from "@/lib/form";
@@ -107,12 +108,18 @@ export async function buyProductAction(_: FormState, fd: FormData): Promise<Form
   let url: string | null = null;
   const res = await attempt(async () => {
     const db = await getDb();
-    const { order, product } = await createProductOrder(db, {
+    const input = {
       userId: user.id,
       productId: field.str(fd, "productId"),
       commitmentAccepted: fd.get("commitment") === "on",
       studentConfirmed: fd.get("student") === "on",
-    });
+    };
+    // a membership in presale is ordered now and paid with the first monthly fee request in December
+    if (field.str(fd, "pay") === "reserve") {
+      const p = await reservePresaleMembership(db, input);
+      return `Hotovo – ${p.name} máš objednané, platí od ${formatDate(p.saleFrom!)}. Najdeš ho v Můj účet. Výzvu k platbě za první měsíc ti pošleme e-mailem v prosinci.`;
+    }
+    const { order, product } = await createProductOrder(db, input);
     url = await startCheckout(db, order, user, product, field.str(fd, "pay") === "card" && cardPayments() ? "card" : "transfer");
   });
   if (url) redirect(url);
