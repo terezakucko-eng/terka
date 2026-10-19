@@ -235,5 +235,6 @@ Detail v `targito-rozuctovani.md`. Shrnutí: faktura 84 952 Kč/měs. (dodatek, 
 - **PROJEKTY 2027** (Basecamp 36422922/todos/10332138109): Terezin komentář odeslán 7. 10. (1 Privátní značka Q1–Q4 ~800 tis., 2 Retence Q1–Q2 100–250 tis., 3 AI rádce Q3–Q4). Harmonogram Gabriela 16. 10.: 19.–23. 10. tabulka „RS Projects Evaluation 2027“ k doplnění, 26.–30. 10. společný call → shortlist, 1.–15. 11. náklady, od 15. 11. do FP 2027. Kalendář: pá 23. 10. 11:00–12:30 doplnit tabulku; 2.–15. 11. celodenní (volno) připomínka nákladů.
 - Mirek: subtask grafika A5 do programu (todo 10313341463) – nepotvrzeno.
 - Report 09/2026 (dokument 10379527514) – rozpracováno.
-- Meat Design – odmítnutí (koncept), Angry Beards todo 10399020325 bez řešitele/termínu.
+- Meat Design – odmítnutí (koncept).
+- **Angry Beards × RS – Valentýn 2027 DROP** (todo 45674654/todos/10399020325, „[MKT] - Požadavky na MKT“, Tereza, do 26. 10.): 19. 10. komentář s updatem z mailu Ladislava (100 svíček k nám, masky 150 AB + 100 RS, víčko Pantone 213 C odvozené z CMYK – náš brand manuál 1925 C → ověřit; kontakt AB Jitka Štěpánová jitka.stepanova@angrybeards.cz +420 774 978 377; maska ~270 Kč, svíčka ~110 Kč bez DPH), PDF víčka v příloze, FYI Jan Bezecný. PDF (1 MB) nešlo nahrát na Disk přes MCP – Tereza má uložit z Gmailu, pak doplnit odkaz.
 - Doporučení týmu: nasadit konverzní kód Heureky na Kondomshop, GA4 u Srovname, auto-dobíjení Arukereso, přemapovat zahraniční srovnávače v BI.
