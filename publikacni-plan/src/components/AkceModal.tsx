@@ -1,12 +1,12 @@
 import { Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { deleteAkce, saveAkce } from '../data/store'
-import { swatch } from '../lib/colors'
+import { hue } from '../lib/colors'
 import { formatRange } from '../lib/dates'
 import { personLine } from '../lib/format'
 import { type AkceInput, type Links, LINK_LABELS, type Lists, type Person, type Publikace, SIGNIFICANT_DAY, uniq } from '../lib/model'
 import { DomainPicker } from './pickers'
-import { Badge, Button, Field, inputClass, Modal, useConfirm, useToast } from './ui'
+import { Button, Field, inputClass, Sheet, Tag, useConfirm, useToast } from './ui'
 
 export interface AkceDraft extends AkceInput {
   id: string | null
@@ -104,8 +104,9 @@ export function AkceModal({ draft, lists, publikace, person, onClose, onOpenPubl
   const meta = [personLine('Vytvořil(a)', d.createdBy, d.createdAt), personLine('Upravil(a)', d.updatedBy, d.updatedAt)].filter(Boolean)
 
   return (
-    <Modal
+    <Sheet
       title={d.id ? (isDay ? 'Významný den' : 'Akce z ročního plánu') : 'Nová akce do ročního plánu'}
+      subtitle={d.id && d.dateFrom && d.dateTo ? <span className="flex items-center gap-2"><Tag hue={hue(d.type)}>{d.type}</Tag> · {formatRange(d.dateFrom, d.dateTo)}</span> : undefined}
       onClose={close}
       footer={
         <>
@@ -116,10 +117,10 @@ export function AkceModal({ draft, lists, publikace, person, onClose, onOpenPubl
         </>
       }
     >
-      <form className="space-y-4" onSubmit={(e) => (e.preventDefault(), void save())}>
-        <div className="grid gap-3 sm:grid-cols-[1fr_200px]">
+      <form className="space-y-5" onSubmit={(e) => (e.preventDefault(), void save())}>
+        <div className="grid gap-3 sm:grid-cols-[1fr_190px]">
           <Field label="Název" required>
-            <input className={inputClass} value={d.name} onChange={(e) => set('name', e.target.value)} placeholder="např. Black Friday 2027" autoFocus />
+            <input className={inputClass} value={d.name} onChange={(e) => set('name', e.target.value)} placeholder="např. Black Friday 2027" autoFocus={!d.id} />
           </Field>
           <Field label="Typ" required>
             <select className={inputClass} value={d.type} onChange={(e) => set('type', e.target.value)}>
@@ -147,32 +148,34 @@ export function AkceModal({ draft, lists, publikace, person, onClose, onOpenPubl
           <textarea className={`${inputClass} min-h-20`} value={d.info} onChange={(e) => set('info', e.target.value)} />
         </Field>
         {!isDay && (
-          <fieldset className="space-y-2 rounded-xl bg-slate-50 p-3">
-            <legend className="sr-only">Odkazy</legend>
+          <fieldset className="space-y-2 rounded-xl bg-raised p-3">
+            <legend className="mb-1 text-xs font-semibold tracking-wide text-muted uppercase">Odkazy</legend>
             {(Object.keys(LINK_LABELS) as (keyof Links)[]).map((k) => (
-              <label key={k} className="grid grid-cols-[140px_1fr] items-center gap-2">
-                <span className="text-sm text-slate-600">{LINK_LABELS[k]}</span>
+              <label key={k} className="grid items-center gap-1 sm:grid-cols-[130px_1fr] sm:gap-2">
+                <span className="text-[13px] text-muted">{LINK_LABELS[k]}</span>
                 <input type="url" className={inputClass} value={d.links[k]} onChange={(e) => setLink(k, e.target.value)} placeholder="https://…" />
               </label>
             ))}
           </fieldset>
         )}
 
-        <section className="rounded-xl ring-1 ring-slate-200">
-          <header className="flex items-center justify-between gap-2 border-b border-slate-200 px-3 py-2">
-            <h3 className="text-sm font-semibold text-slate-800">Publikace k akci <span className="font-normal text-slate-500">{linked.length}</span></h3>
-            <Button onClick={addPublikace} disabled={saving}><Plus className="size-4" /> Přidat publikaci</Button>
+        <section className="rounded-xl ring-1 ring-line">
+          <header className="flex items-center justify-between gap-2 border-b border-line px-3 py-2.5">
+            <h3 className="text-sm font-bold text-ink">Publikace k akci <span className="font-medium text-faint">{linked.length}</span></h3>
+            <Button onClick={addPublikace} disabled={saving}><Plus className="size-4" /> Přidat</Button>
           </header>
           {linked.length === 0 ? (
-            <p className="px-3 py-3 text-sm text-slate-500">Zatím žádné. Přidej newsletter, posty, banner…</p>
+            <p className="px-3 py-3 text-sm text-muted">Zatím žádné. Přidej newsletter, posty, banner…</p>
           ) : (
-            <ul className="divide-y divide-slate-100">
+            <ul className="divide-y divide-line/70">
               {linked.map((p) => (
                 <li key={p.id}>
-                  <button type="button" onClick={() => leaveTo(() => onOpenPublikace(p.id))} className="flex w-full flex-wrap items-center gap-2 px-3 py-2 text-left hover:bg-slate-50">
-                    <span className="w-36 text-xs text-slate-500 tabular-nums">{formatRange(p.dateFrom, p.dateTo)}</span>
-                    <span className="flex-1 text-sm font-medium text-slate-800">{p.name}</span>
-                    <span className="flex flex-wrap gap-1">{p.channels.map((c) => <Badge key={c} swatch={swatch(c)}>{c}</Badge>)}</span>
+                  <button type="button" onClick={() => leaveTo(() => onOpenPublikace(p.id))} className="grid w-full gap-1 px-3 py-2 text-left hover:bg-raised/60 sm:grid-cols-[120px_1fr]">
+                    <span className="text-xs font-semibold text-muted tabular-nums">{formatRange(p.dateFrom, p.dateTo)}</span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium text-ink">{p.name}</span>
+                      <span className="mt-0.5 flex flex-wrap gap-x-3">{p.channels.map((c) => <Tag key={c} hue={hue(c)}>{c}</Tag>)}</span>
+                    </span>
                   </button>
                 </li>
               ))}
@@ -180,10 +183,10 @@ export function AkceModal({ draft, lists, publikace, person, onClose, onOpenPubl
           )}
         </section>
 
-        {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{error}</p>}
-        {meta.length > 0 && <p className="text-xs text-slate-500">{meta.join(' · ')}</p>}
+        {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">{error}</p>}
+        {meta.length > 0 && <p className="text-xs text-faint">{meta.join(' · ')}</p>}
         <button type="submit" className="hidden" />
       </form>
-    </Modal>
+    </Sheet>
   )
 }

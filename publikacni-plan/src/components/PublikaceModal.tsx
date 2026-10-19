@@ -4,9 +4,9 @@ import { isDemo } from '../config'
 import { deletePublikace, savePublikace } from '../data/store'
 import { formatRange, overlaps, yearOf } from '../lib/dates'
 import { personLine } from '../lib/format'
-import { type Akce, type Links, LINK_LABELS, type Lists, type Person, type PublikaceInput, STATUS, statusOf } from '../lib/model'
+import { type Akce, type Links, LINK_LABELS, type Lists, type Person, type PublikaceInput, statusOf } from '../lib/model'
 import { ChannelPicker, DomainPicker } from './pickers'
-import { Button, Field, inputClass, Modal, useConfirm, useToast } from './ui'
+import { Button, Field, inputClass, Sheet, StatusPill, useConfirm, useToast } from './ui'
 
 export interface PublikaceDraft extends PublikaceInput {
   id: string | null
@@ -99,8 +99,9 @@ export function PublikaceModal({ draft, lists, akce, person, today, onClose, onD
   const meta = [personLine('Vytvořil(a)', d.createdBy, d.createdAt), personLine('Upravil(a)', d.updatedBy, d.updatedAt)].filter(Boolean)
 
   return (
-    <Modal
-      title={d.id ? 'Upravit publikaci' : 'Nová publikace'}
+    <Sheet
+      title={d.id ? 'Publikace' : 'Nová publikace'}
+      subtitle={status && d.id ? <span className="flex items-center gap-2"><StatusPill status={status} /> {formatRange(d.dateFrom, d.dateTo)}</span> : undefined}
       onClose={close}
       footer={
         <>
@@ -119,9 +120,9 @@ export function PublikaceModal({ draft, lists, akce, person, today, onClose, onD
         </>
       }
     >
-      <form className="space-y-4" onSubmit={(e) => (e.preventDefault(), void save())}>
+      <form className="space-y-5" onSubmit={(e) => (e.preventDefault(), void save())}>
         <Field label="Název" required>
-          <input className={inputClass} value={d.name} onChange={(e) => set('name', e.target.value)} placeholder="např. Newsletter – Valentýn pro páry" autoFocus />
+          <input className={inputClass} value={d.name} onChange={(e) => set('name', e.target.value)} placeholder="např. Newsletter – Valentýn pro páry" autoFocus={!d.id} />
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Od" required>
@@ -158,27 +159,30 @@ export function PublikaceModal({ draft, lists, akce, person, today, onClose, onD
         <Field label="Popis / poznámky">
           <textarea className={`${inputClass} min-h-28`} value={d.description} onChange={(e) => set('description', e.target.value)} placeholder="Co, pro koho, kupon, produkty, claim…" />
         </Field>
-        <fieldset className="space-y-2 rounded-xl bg-slate-50 p-3">
-          <legend className="sr-only">Odkazy</legend>
+        <fieldset className="space-y-2 rounded-xl bg-raised p-3">
+          <legend className="mb-1 text-xs font-semibold tracking-wide text-muted uppercase">Odkazy</legend>
           {(Object.keys(LINK_LABELS) as (keyof Links)[]).map((k) => (
-            <label key={k} className="grid grid-cols-[140px_1fr] items-center gap-2">
-              <span className="text-sm text-slate-600">{LINK_LABELS[k]}</span>
+            <label key={k} className="grid items-center gap-1 sm:grid-cols-[130px_1fr] sm:gap-2">
+              <span className="text-[13px] text-muted">{LINK_LABELS[k]}</span>
               <span className="flex gap-1">
                 <input type="url" className={inputClass} value={d.links[k]} onChange={(e) => setLink(k, e.target.value)} placeholder="https://…" />
-                {d.links[k] && <a href={d.links[k]} target="_blank" rel="noreferrer" className="rounded-lg px-2 py-2 text-sm text-pink-700 hover:bg-pink-50">Otevřít</a>}
+                {d.links[k] && <a href={d.links[k]} target="_blank" rel="noreferrer" className="rounded-lg px-2 py-2 text-sm font-semibold text-accent hover:bg-accent-soft">Otevřít</a>}
               </span>
             </label>
           ))}
         </fieldset>
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" className="size-4 accent-pink-600" checked={d.ready} onChange={(e) => set('ready', e.target.checked)} />
-          Vše připraveno (stav „Ke spuštění“)
-          {status && <span className={`ml-auto rounded-md px-1.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${STATUS[status].className}`}>{STATUS[status].label}</span>}
+        <label className="flex cursor-pointer items-center gap-3 rounded-xl p-3 ring-1 ring-line hover:bg-raised/60">
+          <input type="checkbox" className="size-4 accent-accent" checked={d.ready} onChange={(e) => set('ready', e.target.checked)} />
+          <span className="flex-1 text-sm">
+            <span className="block font-semibold text-ink">Vše připraveno</span>
+            <span className="block text-xs text-muted">Texty, grafika i nastavení jsou hotové. Před startem pak stav ukazuje „Ke spuštění“.</span>
+          </span>
+          {status && <StatusPill status={status} />}
         </label>
-        {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{error}</p>}
-        {meta.length > 0 && <p className="text-xs text-slate-500">{meta.join(' · ')}</p>}
+        {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">{error}</p>}
+        {meta.length > 0 && <p className="text-xs text-faint">{meta.join(' · ')}</p>}
         <button type="submit" className="hidden" />
       </form>
-    </Modal>
+    </Sheet>
   )
 }

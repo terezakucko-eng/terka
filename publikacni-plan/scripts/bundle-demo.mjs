@@ -18,8 +18,12 @@ if (!js || !css) throw new Error('dist-demo/index.html: script or stylesheet tag
 // Keep "</script" sequences from closing the inline tags early.
 const safe = (s) => s.replace(/<\/(script)/gi, '<\\/$1')
 
+// Web fonts come from Google Fonts, the one stylesheet host allowed in embedded views.
+const fonts = html.match(/<link rel="(?:preconnect|stylesheet)" href="https:\/\/fonts\.(?:googleapis|gstatic)\.com[^>]*>/g) ?? []
+
 const parts = [
   '<title>Publikační plán</title>',
+  ...fonts,
   `<style>${readFileSync(join(dist, css), 'utf8')}</style>`,
   '<div id="root"></div>',
 ]

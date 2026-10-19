@@ -1,23 +1,24 @@
-import { CalendarDays, ChevronLeft, ChevronRight, Download, GanttChart, List, LogOut, Plus, Settings } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download, Menu, Plus, Search } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Agenda } from './components/Agenda'
 import { AkceModal, type AkceDraft } from './components/AkceModal'
-import { FilterBar } from './components/FilterBar'
 import { groupByMonth, ListView, type Row } from './components/ListView'
 import { Login } from './components/Login'
-import { MonthCalendar, pubSwatch } from './components/MonthCalendar'
+import { MonthCalendar, pubHue } from './components/MonthCalendar'
 import { PublikaceModal, type PublikaceDraft } from './components/PublikaceModal'
 import { SettingsView } from './components/SettingsView'
-import { Button, cx, Segmented, Spinner, useToast } from './components/ui'
+import { Logo, Sidebar } from './components/Sidebar'
+import { Button, cx, inputClass, Segmented, Spinner, toggle, useToast } from './components/ui'
 import { type TimelineItem, YearTimeline } from './components/YearTimeline'
 import { isDemo } from './config'
-import { logOut, movePublikace, resetDemo, useAkce, useAuth, useLists, usePublikace } from './data/store'
-import { swatch } from './lib/colors'
+import { movePublikace, resetDemo, useAkce, useAuth, useLists, usePublikace } from './data/store'
+import { hue } from './lib/colors'
 import { download, toCsv } from './lib/csv'
-import { formatDate, formatRange, iso, monthOf, monthTitle, todayISO, yearOf, type ISODate } from './lib/dates'
-import { matchAkce, matchPublikace } from './lib/filters'
+import { addDays, daysInMonth, formatDate, formatRange, iso, monthOf, monthTitle, todayISO, yearOf, type ISODate } from './lib/dates'
+import { isFiltered, matchAkce, matchPublikace } from './lib/filters'
 import { domainSummary } from './lib/format'
-import { type Akce, brandsOf, emptyLinks, type Lists, type Person, type Publikace, SIGNIFICANT_DAY, STATUS, statusOf, uniq } from './lib/model'
-import { type Mode, useUrlState, type View } from './lib/urlState'
+import { type Akce, brandsOf, emptyLinks, type Lists, type Person, type Publikace, SIGNIFICANT_DAY, splitDomain, STATUS, statusOf, uniq } from './lib/model'
+import { type Mode, useUrlState } from './lib/urlState'
 
 export default function App() {
   const auth = useAuth()
@@ -30,15 +31,8 @@ type Dialog =
   | { kind: 'p'; draft: PublikaceDraft; key: number }
   | { kind: 'a'; draft: AkceDraft; key: number }
 
-const TABS: [View, string, typeof CalendarDays][] = [
-  ['kalendar', 'Kalendář', CalendarDays],
-  ['rok', 'Rok', GanttChart],
-  ['seznam', 'Seznam', List],
-  ['nastaveni', 'Nastavení', Settings],
-]
-
 const GROUPS: Record<'akce' | 'publikace', [string, string][]> = {
-  akce: [['typ', 'Typ akce'], ['znacka', 'Značka'], ['domena', 'Doména']],
+  akce: [['typ', 'Typ'], ['znacka', 'Značka'], ['domena', 'Doména']],
   publikace: [['kanal', 'Kanál'], ['znacka', 'Značka'], ['domena', 'Doména'], ['akce', 'Akce']],
 }
 
@@ -47,6 +41,8 @@ const ALL_DOMAINS = 'Všechny domény'
 const NO_AKCE = 'Bez akce'
 
 let dialogKey = 0
+
+const plural = (n: number, one: string, few: string, many: string) => `${n} ${n === 1 ? one : n >= 2 && n <= 4 ? few : many}`
 
 function Planner({ person, photo }: { person: Person; photo: string | null }) {
   const [state, update] = useUrlState()
@@ -57,17 +53,41 @@ function Planner({ person, photo }: { person: Person; photo: string | null }) {
   const akceLive = useAkce(true)
   const lists = useLists(true)
   const [dialog, setDialog] = useState<Dialog | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  // "What goes out next" always looks at today, whatever month is on screen.
+  const agendaYears = [yearOf(today), yearOf(addDays(today, 13))]
+  const agendaA = usePublikace(agendaYears[0], view === 'kalendar')
+  const agendaB = usePublikace(agendaYears[1], view === 'kalendar' && agendaYears[1] !== agendaYears[0])
 
   const allAkce = useMemo(() => akceLive.data ?? [], [akceLive.data])
   const allPubs = useMemo(() => pubs.data ?? [], [pubs.data])
   const akceById = useMemo(() => new Map(allAkce.map((a) => [a.id, a])), [allAkce])
   const fa = useMemo(() => allAkce.filter((a) => matchAkce(a, filters)), [allAkce, filters])
   const fp = useMemo(() => allPubs.filter((p) => matchPublikace(p, filters)), [allPubs, filters])
+  const agendaPubs = useMemo(() => {
+    const byId = new Map([...(agendaA.data ?? []), ...(agendaB.data ?? [])].map((p) => [p.id, p]))
+    return [...byId.values()].filter((p) => matchPublikace(p, filters))
+  }, [agendaA.data, agendaB.data, filters])
   const loading = pubs.data === null || akceLive.data === null
   const error = pubs.error || akceLive.error
 
+  const periodFrom = view === 'kalendar' ? iso(year, month0, 1) : iso(year, 0, 1)
+  const periodTo = view === 'kalendar' ? iso(year, month0, daysInMonth(year, month0)) : iso(year, 11, 31)
+  const inPeriod = (x: { dateFrom: string; dateTo: string }) => x.dateFrom <= periodTo && x.dateTo >= periodFrom
+  const pubCount = fp.filter(inPeriod).length
+  const akceCount = fa.filter((a) => a.type !== SIGNIFICANT_DAY && inPeriod(a)).length
+  const brandCounts = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const p of allPubs) {
+      if (p.dateFrom > periodTo || p.dateTo < periodFrom) continue
+      for (const b of brandsOf(p.domains)) counts.set(b, (counts.get(b) ?? 0) + 1)
+    }
+    return counts
+  }, [allPubs, periodFrom, periodTo])
+
   const openPublikace = (id: string) => {
-    const p = allPubs.find((x) => x.id === id)
+    const p = allPubs.find((x) => x.id === id) ?? agendaPubs.find((x) => x.id === id)
     if (!p) return toast('Publikace nebyla nalezena (možná je v jiném roce).', 'error')
     setDialog({ kind: 'p', draft: { ...p }, key: ++dialogKey })
     update({ open: `p:${id}` })
@@ -133,137 +153,168 @@ function Planner({ person, photo }: { person: Person; photo: string | null }) {
   const mode: Mode = view === 'rok' && state.mode === 'vse' ? 'akce' : state.mode
   const groupKey = view === 'rok' && mode !== 'vse' ? (GROUPS[mode].some(([g]) => g === state.group) ? state.group : GROUPS[mode][0][0]) : ''
 
+  const legendClick = state.colors === 'kanal'
+    ? (k: string) => update({ filters: { ...filters, channels: toggle(filters.channels, k) } })
+    : state.colors === 'znacka'
+      ? (k: string) => update({ filters: { ...filters, brands: toggle(filters.brands, k) } })
+      : undefined
+
+  const sidebar = (onClose?: () => void) => (
+    <Sidebar
+      view={view}
+      onView={(v) => update({ view: v })}
+      lists={lists}
+      filters={filters}
+      onFilters={(f) => update({ filters: f })}
+      showChannels={view === 'kalendar' || mode !== 'akce'}
+      brandCounts={brandCounts}
+      person={person}
+      photo={photo}
+      onNewPublikace={() => { onClose?.(); newPublikace() }}
+      onNewAkce={() => { onClose?.(); newAkce() }}
+      onClose={onClose}
+    />
+  )
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800">
-      {isDemo && (
-        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-slate-900 px-4 py-2 text-center text-xs text-white">
-          <span><strong>Ukázka</strong> s daty ze staré appky. Změny se ukládají jen v tomto prohlížeči, ostatní je neuvidí.</span>
-          <button type="button" className="rounded-md bg-white/15 px-2 py-0.5 font-semibold hover:bg-white/25" onClick={() => { resetDemo(); toast('Ukázka je zase na začátku') }}>
-            Začít znovu
-          </button>
+    <div className="min-h-screen bg-canvas text-ink lg:grid lg:grid-cols-[272px_minmax(0,1fr)]">
+      <div className="hidden border-r border-line lg:sticky lg:top-0 lg:block lg:h-screen">{sidebar()}</div>
+
+      {menuOpen && (
+        <div className="fade-in fixed inset-0 z-40 bg-ink/30 lg:hidden" onMouseDown={(e) => e.target === e.currentTarget && setMenuOpen(false)}>
+          <div className="h-full w-[296px] max-w-[88vw] border-r border-line shadow-panel">{sidebar(() => setMenuOpen(false))}</div>
         </div>
       )}
-      <header className="sticky top-[env(safe-area-inset-top,0px)] z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2.5">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl" aria-hidden>🐘</span>
-            <div className="leading-tight">
-              <h1 className="text-base font-bold text-slate-900">Publikační plán</h1>
-              <p className="text-[11px] text-slate-500">Růžový Slon · Kondomshop · Flagranti</p>
-            </div>
-          </div>
-          <nav className="order-last flex w-full gap-1 overflow-x-auto md:order-none md:w-auto" aria-label="Pohledy">
-            {TABS.map(([v, label, Icon]) => (
-              <button
-                key={v}
-                type="button"
-                onClick={() => update({ view: v })}
-                aria-current={view === v ? 'page' : undefined}
-                className={cx('inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap', view === v ? 'bg-pink-50 text-pink-700' : 'text-slate-600 hover:bg-slate-100')}
-              >
-                <Icon className="size-4" /> {label}
-              </button>
-            ))}
-          </nav>
-          <div className="ml-auto flex items-center gap-2">
-            <Button variant="primary" onClick={() => newPublikace()}><Plus className="size-4" /> Publikace</Button>
-            <Button onClick={newAkce}><Plus className="size-4" /> Akce</Button>
-            <div className="flex items-center gap-2 border-l border-slate-200 pl-3" title={person.email}>
-              {photo ? <img src={photo} alt="" className="size-7 rounded-full" referrerPolicy="no-referrer" /> : <span className="flex size-7 items-center justify-center rounded-full bg-pink-100 text-xs font-bold text-pink-700">{person.name.slice(0, 1)}</span>}
-              <span className="hidden text-sm text-slate-700 lg:inline">{person.name}</span>
-              {!isDemo && (
-                <button type="button" onClick={() => void logOut()} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100" title="Odhlásit" aria-label="Odhlásit">
-                  <LogOut className="size-4" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
 
-      <main className="mx-auto max-w-[1600px] space-y-4 px-4 py-4">
-        {error && (
-          <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-red-200" role="alert">
-            Nemám přístup k datům: {error}. Pokud se to děje všem, zkontroluj, že jsou ve Firebase nasazená pravidla z <code>firestore.rules</code>.
+      <div className="min-w-0">
+        {isDemo && (
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-accent-soft px-4 py-2 text-center text-xs text-ink">
+            <span><strong>Ukázka</strong> s daty ze staré appky. Změny se ukládají jen v tomto prohlížeči, ostatní je neuvidí.</span>
+            <button type="button" className="rounded-md px-2 py-0.5 font-bold text-accent ring-1 ring-accent/40 hover:bg-accent/10" onClick={() => { resetDemo(); toast('Ukázka je zase na začátku') }}>
+              Začít znovu
+            </button>
           </div>
         )}
 
-        {view !== 'nastaveni' && (
-          <div className="space-y-3 rounded-xl bg-white p-3 ring-1 ring-slate-200">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-1">
-                <Button variant="ghost" onClick={() => shift(-1)} aria-label="Předchozí"><ChevronLeft className="size-5" /></Button>
-                <h2 className="min-w-40 text-center text-lg font-semibold text-slate-900 tabular-nums">{view === 'kalendar' ? monthTitle(year, month0) : year}</h2>
-                <Button variant="ghost" onClick={() => shift(1)} aria-label="Další"><ChevronRight className="size-5" /></Button>
-                <Button variant="ghost" onClick={goToday} className="text-xs">Dnes</Button>
+        <div className="sticky top-[env(safe-area-inset-top,0px)] z-30 flex items-center gap-3 border-b border-line bg-surface/90 px-4 py-2.5 backdrop-blur lg:hidden">
+          <button type="button" onClick={() => setMenuOpen(true)} className="rounded-lg p-1.5 text-muted hover:bg-raised" aria-label="Menu a filtry">
+            <Menu className="size-5" />
+          </button>
+          <span className="font-display font-semibold text-ink">Publikační plán</span>
+          {isFiltered(filters) && <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-bold text-accent">filtr</span>}
+          <Button variant="primary" className="ml-auto px-2.5" onClick={() => newPublikace()} aria-label="Nová publikace"><Plus className="size-4" /></Button>
+        </div>
+
+        <main className="space-y-6 px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+          {view === 'nastaveni' ? (
+            <h1 className="font-display text-3xl font-semibold tracking-tight text-ink">Nastavení</h1>
+          ) : (
+            <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+              <div className="min-w-0">
+                <h1 className="font-display text-3xl leading-tight font-semibold tracking-tight text-ink tabular-nums sm:text-4xl">
+                  {view === 'kalendar' ? monthTitle(year, month0) : year}
+                </h1>
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <div className="flex items-center rounded-lg bg-surface ring-1 ring-line">
+                    <button type="button" onClick={() => shift(-1)} className="rounded-l-lg p-1.5 text-muted hover:bg-raised hover:text-ink" aria-label="Předchozí"><ChevronLeft className="size-5" /></button>
+                    <button type="button" onClick={goToday} className="border-x border-line px-2.5 py-1 text-xs font-bold text-muted hover:bg-raised hover:text-ink">Dnes</button>
+                    <button type="button" onClick={() => shift(1)} className="rounded-r-lg p-1.5 text-muted hover:bg-raised hover:text-ink" aria-label="Další"><ChevronRight className="size-5" /></button>
+                  </div>
+                  <p className="text-sm text-muted">
+                    {plural(pubCount, 'publikace', 'publikace', 'publikací')} · {plural(akceCount, 'akce', 'akce', 'akcí')} v plánu
+                    {isFiltered(filters) && <span className="font-semibold text-accent"> · filtrováno</span>}
+                  </p>
+                </div>
               </div>
-              {view === 'kalendar' && (
-                <label className="flex items-center gap-2 text-sm text-slate-600">
-                  Barvy podle
-                  <Segmented value={state.colors} onChange={(colors) => update({ colors })} options={[['kanal', 'kanálu'], ['akce', 'akce'], ['znacka', 'značky']]} />
+              <div className="flex flex-wrap items-center gap-2">
+                {view === 'kalendar' && (
+                  <Segmented label="Barvy podle" value={state.colors} onChange={(colors) => update({ colors })} options={[['kanal', 'Kanály'], ['znacka', 'Značky'], ['akce', 'Akce']]} />
+                )}
+                {view === 'rok' && (
+                  <>
+                    <Segmented label="Co zobrazit" value={mode} onChange={(m) => update({ mode: m, group: '' })} options={[['akce', 'Roční plán'], ['publikace', 'Publikace']]} />
+                    <Segmented label="Řádky podle" value={groupKey} onChange={(group) => update({ group })} options={GROUPS[mode as 'akce' | 'publikace']} />
+                  </>
+                )}
+                {view === 'seznam' && (
+                  <>
+                    <Segmented label="Co zobrazit" value={mode} onChange={(m) => update({ mode: m })} options={[['akce', 'Roční plán'], ['publikace', 'Publikace'], ['vse', 'Vše']]} />
+                    <Button variant="ghost" onClick={() => (isDemo ? toast('V ukázce se soubory nestahují, v ostré verzi ano.') : exportCsv(listRows(mode, fa, fp), year, akceById, lists, today))}>
+                      <Download className="size-4" /> Excel
+                    </Button>
+                  </>
+                )}
+                <label className="relative w-full sm:w-56">
+                  <Search className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-faint" />
+                  <input className={cx(inputClass, 'pl-8')} type="search" value={filters.q} onChange={(e) => update({ filters: { ...filters, q: e.target.value } })} placeholder="Hledat…" aria-label="Hledat" />
                 </label>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="rounded-xl bg-danger/10 px-4 py-3 text-sm text-danger" role="alert">
+              Nemám přístup k datům: {error}. Pokud se to děje všem, zkontroluj, že jsou ve Firebase nasazená pravidla z <code>firestore.rules</code>.
+            </div>
+          )}
+
+          {view === 'nastaveni' ? (
+            <SettingsView key={JSON.stringify(lists)} lists={lists} akce={allAkce} person={person} year={year} />
+          ) : loading && !error ? (
+            <Spinner />
+          ) : (
+            <>
+              {allPubs.length === 0 && allAkce.length === 0 && !error && (
+                <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-accent-soft px-5 py-4 text-sm text-ink">
+                  <Logo />
+                  <span className="flex-1">Plán je zatím prázdný. Začni importem dat ze staré appky a doplněním významných dnů.</span>
+                  <Button variant="primary" onClick={() => update({ view: 'nastaveni' })}>Otevřít nastavení</Button>
+                </div>
+              )}
+              {view === 'kalendar' && (
+                <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 2xl:grid-cols-[minmax(0,1fr)_300px]">
+                  <MonthCalendar
+                    year={year}
+                    month0={month0}
+                    today={today}
+                    publikace={fp}
+                    akce={fa}
+                    allDomains={lists.domains}
+                    colorBy={state.colors}
+                    onOpenPublikace={openPublikace}
+                    onOpenAkce={openAkce}
+                    onNew={(d) => newPublikace(d)}
+                    onMove={move}
+                    onLegend={legendClick}
+                    activeLegend={state.colors === 'kanal' ? filters.channels : state.colors === 'znacka' ? filters.brands : []}
+                  />
+                  <Agenda
+                    className="max-md:order-first 2xl:sticky 2xl:top-6 2xl:max-h-[calc(100vh-3rem)] 2xl:overflow-y-auto 2xl:pr-1"
+                    today={today}
+                    publikace={agendaPubs}
+                    akce={fa}
+                    allDomains={lists.domains}
+                    onOpen={open}
+                  />
+                </div>
               )}
               {view === 'rok' && (
-                <>
-                  <Segmented value={mode} onChange={(m) => update({ mode: m, group: '' })} options={[['akce', 'Roční plán'], ['publikace', 'Publikace']]} />
-                  <label className="flex items-center gap-2 text-sm text-slate-600">
-                    Řádky podle
-                    <Segmented value={groupKey} onChange={(group) => update({ group })} options={GROUPS[mode as 'akce' | 'publikace']} />
-                  </label>
-                </>
+                <YearTimeline
+                  year={year}
+                  today={today}
+                  items={timelineItems(mode === 'publikace' ? 'publikace' : 'akce', groupKey, fa, fp, akceById, today, lists)}
+                  groupOrder={groupOrder(mode === 'publikace' ? 'publikace' : 'akce', groupKey, fa, fp, lists, akceById)}
+                  groupHue={(g) => groupHue(groupKey, g)}
+                  significant={fa.filter((a) => a.type === SIGNIFICANT_DAY)}
+                  compact={mode === 'publikace'}
+                  onOpen={open}
+                />
               )}
-              {view === 'seznam' && (
-                <>
-                  <Segmented value={mode} onChange={(m) => update({ mode: m })} options={[['akce', 'Roční plán'], ['publikace', 'Publikace'], ['vse', 'Vše']]} />
-                  <Button variant="ghost" onClick={() => (isDemo ? toast('V ukázce se soubory nestahují, v ostré verzi ano.') : exportCsv(listRows(mode, fa, fp), year, akceById, lists, today))}><Download className="size-4" /> Export pro Excel</Button>
-                </>
-              )}
-            </div>
-            <FilterBar lists={lists} filters={filters} onChange={(f) => update({ filters: f })} showChannels={view === 'kalendar' || mode !== 'akce'} />
-          </div>
-        )}
-
-        {view === 'nastaveni' ? (
-          <SettingsView key={JSON.stringify(lists)} lists={lists} akce={allAkce} person={person} year={year} />
-        ) : loading && !error ? (
-          <Spinner />
-        ) : (
-          <>
-            {allPubs.length === 0 && allAkce.length === 0 && !error && (
-              <div className="rounded-xl bg-pink-50 px-4 py-3 text-sm text-pink-900 ring-1 ring-pink-200">
-                Plán je zatím prázdný. V <button type="button" className="font-semibold underline" onClick={() => update({ view: 'nastaveni' })}>Nastavení</button> můžeš naimportovat data ze staré appky a doplnit významné dny.
-              </div>
-            )}
-            {view === 'kalendar' && (
-              <MonthCalendar
-                year={year}
-                month0={month0}
-                today={today}
-                publikace={fp}
-                akce={fa}
-                allDomains={lists.domains}
-                colorBy={state.colors}
-                onOpenPublikace={openPublikace}
-                onOpenAkce={openAkce}
-                onNew={(d) => newPublikace(d)}
-                onMove={move}
-              />
-            )}
-            {view === 'rok' && (
-              <YearTimeline
-                year={year}
-                today={today}
-                items={timelineItems(mode === 'publikace' ? 'publikace' : 'akce', groupKey, fa, fp, akceById, today, lists)}
-                groupOrder={groupOrder(mode === 'publikace' ? 'publikace' : 'akce', groupKey, fa, fp, lists, akceById)}
-                significant={fa.filter((a) => a.type === SIGNIFICANT_DAY)}
-                compact={mode === 'publikace'}
-                onOpen={open}
-              />
-            )}
-            {view === 'seznam' && <ListView year={year} today={today} rows={listRows(mode, fa, fp)} akceById={akceById} allDomains={lists.domains} onOpen={open} />}
-          </>
-        )}
-      </main>
+              {view === 'seznam' && <ListView year={year} today={today} rows={listRows(mode, fa, fp)} akceById={akceById} allDomains={lists.domains} onOpen={open} />}
+            </>
+          )}
+        </main>
+      </div>
 
       {dialog?.kind === 'p' && (
         <PublikaceModal
@@ -313,11 +364,16 @@ function groupsOf(kind: 'akce' | 'publikace', group: string, item: Akce | Publik
   return []
 }
 
+function groupHue(group: string, name: string): string | undefined {
+  if (name === ALL_BRANDS || name === ALL_DOMAINS || name === NO_AKCE || group === 'akce') return undefined
+  return hue(group === 'domena' ? splitDomain(name).brand : name)
+}
+
 function timelineItems(kind: 'akce' | 'publikace', group: string, akce: Akce[], pubs: Publikace[], akceById: Map<string, Akce>, today: ISODate, lists: Lists): TimelineItem[] {
   if (kind === 'akce') {
     return akce.filter((a) => a.type !== SIGNIFICANT_DAY).map((a) => ({
       id: a.id, kind: 'akce', name: a.name, dateFrom: a.dateFrom, dateTo: a.dateTo,
-      swatch: swatch(group === 'typ' ? brandsOf(a.domains)[0] ?? a.type : a.type),
+      hue: hue(group === 'typ' ? brandsOf(a.domains)[0] ?? a.type : a.type),
       faded: statusOf(a, today) === 'ukoncena',
       groups: groupsOf(kind, group, a, akceById),
       title: [`${a.type}: ${a.name}`, formatRange(a.dateFrom, a.dateTo), a.benefit, domainSummary(a.domains, lists.domains)].filter(Boolean).join('\n'),
@@ -325,7 +381,7 @@ function timelineItems(kind: 'akce' | 'publikace', group: string, akce: Akce[], 
   }
   return pubs.map((p) => ({
     id: p.id, kind: 'publikace', name: p.name, dateFrom: p.dateFrom, dateTo: p.dateTo,
-    swatch: pubSwatch(p, group === 'kanal' ? 'znacka' : 'kanal', akceById),
+    hue: pubHue(p, group === 'kanal' ? 'znacka' : 'kanal', akceById),
     faded: statusOf(p, today) === 'ukoncena',
     groups: groupsOf(kind, group, p, akceById),
     title: [p.name, formatRange(p.dateFrom, p.dateTo), p.channels.join(', '), domainSummary(p.domains, lists.domains)].filter(Boolean).join('\n'),

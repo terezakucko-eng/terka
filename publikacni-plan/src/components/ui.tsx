@@ -1,16 +1,17 @@
 import { X } from 'lucide-react'
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from 'react'
-import { type Swatch } from '../lib/colors'
+import { tint } from '../lib/colors'
+import { STATUS, type Status } from '../lib/model'
 
 const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ')
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
 
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-pink-600 text-white hover:bg-pink-700 shadow-sm',
-  secondary: 'bg-white text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50',
-  ghost: 'text-slate-600 hover:bg-slate-100',
-  danger: 'bg-white text-red-700 ring-1 ring-red-200 hover:bg-red-50',
+  primary: 'bg-accent text-accent-ink hover:brightness-110 shadow-sm',
+  secondary: 'bg-surface text-ink ring-1 ring-line-strong hover:bg-raised',
+  ghost: 'text-muted hover:bg-raised hover:text-ink',
+  danger: 'text-danger ring-1 ring-danger/30 hover:bg-danger/10',
 }
 
 export function Button({ variant = 'secondary', className, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
@@ -19,7 +20,7 @@ export function Button({ variant = 'secondary', className, ...props }: ButtonHTM
       type="button"
       {...props}
       className={cx(
-        'inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50',
+        'inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50',
         VARIANTS[variant],
         className,
       )}
@@ -27,8 +28,9 @@ export function Button({ variant = 'secondary', className, ...props }: ButtonHTM
   )
 }
 
-export function Chip({ active, onClick, children, swatch, title }: { active: boolean; onClick: () => void; children: ReactNode; swatch?: Swatch; title?: string }) {
-  const style = active && swatch ? { background: swatch.bg, color: swatch.fg, boxShadow: `inset 0 0 0 1px ${swatch.border}` } : undefined
+/** Toggle chip; with a hue it shows a colored dot and a tinted fill when on. */
+export function Chip({ active, onClick, children, hue, title }: { active: boolean; onClick: () => void; children: ReactNode; hue?: string; title?: string }) {
+  const style = active ? (hue ? { background: tint(hue, 16), boxShadow: `inset 0 0 0 1px ${tint(hue, 55)}` } : undefined) : undefined
   return (
     <button
       type="button"
@@ -37,11 +39,11 @@ export function Chip({ active, onClick, children, swatch, title }: { active: boo
       onClick={onClick}
       style={style}
       className={cx(
-        'rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset transition',
-        active ? (swatch ? '' : 'bg-pink-600 text-white ring-pink-600') : 'bg-white text-slate-600 ring-slate-300 hover:bg-slate-50',
+        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition',
+        active ? (hue ? 'text-ink' : 'bg-accent text-accent-ink') : 'text-muted ring-1 ring-line ring-inset hover:bg-raised hover:text-ink',
       )}
     >
-      {active && <span aria-hidden>✓ </span>}
+      {hue && <span className="size-2 shrink-0 rounded-full" style={{ background: hue, opacity: active ? 1 : 0.55 }} aria-hidden />}
       {children}
     </button>
   )
@@ -51,18 +53,18 @@ export function toggle<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value]
 }
 
-export function Segmented<T extends string>({ value, options, onChange }: { value: T; options: [T, string][]; onChange: (v: T) => void }) {
+export function Segmented<T extends string>({ value, options, onChange, label }: { value: T; options: [T, string][]; onChange: (v: T) => void; label?: string }) {
   return (
-    <div className="inline-flex rounded-lg bg-slate-100 p-0.5">
-      {options.map(([v, label]) => (
+    <div className="inline-flex rounded-lg bg-raised p-0.5" role="group" aria-label={label}>
+      {options.map(([v, text]) => (
         <button
           key={v}
           type="button"
           aria-pressed={value === v}
           onClick={() => onChange(v)}
-          className={cx('rounded-md px-3 py-1.5 text-sm font-medium transition', value === v ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900')}
+          className={cx('rounded-md px-2.5 py-1 text-[13px] font-semibold transition', value === v ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:text-ink')}
         >
-          {label}
+          {text}
         </button>
       ))}
     </div>
@@ -72,12 +74,12 @@ export function Segmented<T extends string>({ value, options, onChange }: { valu
 /** A labelled form row. Groups of buttons (chips) get a group role instead of a <label>, so clicking the caption toggles nothing. */
 export function Field({ label, children, hint, required, group }: { label: string; children: ReactNode; hint?: ReactNode; required?: boolean; group?: boolean }) {
   const caption = (
-    <span className="mb-1 block text-sm font-medium text-slate-700">
+    <span className="mb-1.5 block text-xs font-semibold tracking-wide text-muted uppercase">
       {label}
-      {required && <span className="text-pink-600"> *</span>}
+      {required && <span className="text-accent"> *</span>}
     </span>
   )
-  const note = hint && <span className="mt-1 block text-xs text-slate-500">{hint}</span>
+  const note = hint && <span className="mt-1.5 block text-xs text-faint">{hint}</span>
   if (group) {
     return (
       <div role="group" aria-label={label}>
@@ -97,9 +99,10 @@ export function Field({ label, children, hint, required, group }: { label: strin
 }
 
 export const inputClass =
-  'block w-full rounded-lg border-0 bg-white px-3 py-2 text-sm text-slate-900 ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-pink-500 focus:outline-none'
+  'block w-full rounded-lg border-0 bg-surface px-3 py-2 text-sm text-ink ring-1 ring-line-strong ring-inset placeholder:text-faint focus:ring-2 focus:ring-accent focus:outline-none'
 
-export function Modal({ title, onClose, children, footer, wide }: { title: ReactNode; onClose: () => void; children: ReactNode; footer?: ReactNode; wide?: boolean }) {
+/** Side sheet for editing: the plan stays visible next to it. Full screen on phones. */
+export function Sheet({ title, subtitle, onClose, children, footer }: { title: ReactNode; subtitle?: ReactNode; onClose: () => void; children: ReactNode; footer?: ReactNode }) {
   const close = useRef(onClose)
   useEffect(() => {
     close.current = onClose
@@ -110,24 +113,39 @@ export function Modal({ title, onClose, children, footer, wide }: { title: React
     return () => window.removeEventListener('keydown', onKey)
   }, [])
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 p-0 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div role="dialog" aria-modal="true" className={cx('flex max-h-[95vh] w-full flex-col rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl', wide ? 'sm:max-w-3xl' : 'sm:max-w-2xl')}>
-        <header className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
-          <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-          <button type="button" onClick={onClose} className="rounded-lg p-1 text-slate-500 hover:bg-slate-100" aria-label="Zavřít">
+    <div className="fade-in fixed inset-0 z-50 flex justify-end bg-ink/25" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div role="dialog" aria-modal="true" className="sheet-in flex h-full w-full flex-col bg-surface shadow-panel sm:max-w-[560px] sm:border-l sm:border-line">
+        <header className="flex items-start justify-between gap-4 border-b border-line px-5 pt-[max(1rem,env(safe-area-inset-top,0px))] pb-4">
+          <div className="min-w-0">
+            <h2 className="font-display text-xl font-semibold text-ink">{title}</h2>
+            {subtitle && <div className="mt-1 text-sm text-muted">{subtitle}</div>}
+          </div>
+          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-muted hover:bg-raised hover:text-ink" aria-label="Zavřít">
             <X className="size-5" />
           </button>
         </header>
-        <div className="overflow-y-auto px-5 py-4">{children}</div>
-        {footer && <footer className="flex flex-wrap items-center gap-2 border-t border-slate-200 px-5 py-3">{footer}</footer>}
+        <div className="flex-1 overflow-y-auto px-5 py-5">{children}</div>
+        {footer && <footer className="flex flex-wrap items-center gap-2 border-t border-line bg-surface px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">{footer}</footer>}
       </div>
     </div>
   )
 }
 
-export function Badge({ swatch, children, className }: { swatch: Swatch; children: ReactNode; className?: string }) {
+export function StatusPill({ status, className }: { status: Status; className?: string }) {
+  const { label, tone } = STATUS[status]
   return (
-    <span className={cx('inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium whitespace-nowrap', className)} style={{ background: swatch.bg, color: swatch.fg }}>
+    <span className={cx('inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap', className)} style={{ color: tone, background: `color-mix(in oklab, ${tone} 13%, var(--surface))` }}>
+      <span className="size-1.5 rounded-full" style={{ background: tone }} aria-hidden />
+      {label}
+    </span>
+  )
+}
+
+/** A colored dot with a label, used for channels, brands and plan types. */
+export function Tag({ hue, children, className }: { hue: string; children: ReactNode; className?: string }) {
+  return (
+    <span className={cx('inline-flex items-center gap-1.5 text-xs whitespace-nowrap text-muted', className)}>
+      <span className="size-2 shrink-0 rounded-full" style={{ background: hue }} aria-hidden />
       {children}
     </span>
   )
@@ -135,8 +153,8 @@ export function Badge({ swatch, children, className }: { swatch: Swatch; childre
 
 export function Spinner({ label = 'Načítám…' }: { label?: string }) {
   return (
-    <div className="flex items-center justify-center gap-3 py-16 text-slate-500">
-      <span className="size-5 animate-spin rounded-full border-2 border-slate-300 border-t-pink-600" />
+    <div className="flex items-center justify-center gap-3 py-16 text-muted">
+      <span className="size-5 animate-spin rounded-full border-2 border-line border-t-accent" />
       {label}
     </div>
   )
@@ -170,14 +188,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={push}>
       {children}
-      <div className="pointer-events-none fixed inset-x-0 bottom-4 z-[60] flex flex-col items-center gap-2 px-4" aria-live="polite">
+      <div className="pointer-events-none fixed inset-x-0 bottom-[max(1rem,env(safe-area-inset-bottom,0px))] z-[60] flex flex-col items-center gap-2 px-4" aria-live="polite">
         {toasts.map((t) => (
-          <div key={t.id} className={cx('pointer-events-auto flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-lg', t.kind === 'error' ? 'bg-red-600' : 'bg-slate-900')}>
+          <div key={t.id} className={cx('fade-in pointer-events-auto flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium shadow-panel', t.kind === 'error' ? 'bg-danger text-white' : 'bg-ink text-surface')}>
             {t.text}
             {t.action && (
               <button
                 type="button"
-                className="rounded-md bg-white/15 px-2 py-0.5 text-xs font-semibold hover:bg-white/25"
+                className="rounded-md px-2 py-0.5 text-xs font-bold ring-1 ring-current/40 hover:bg-white/10"
                 onClick={() => {
                   t.action!.run()
                   setToasts((all) => all.filter((x) => x.id !== t.id))
@@ -223,7 +241,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   }, [])
   useEffect(() => {
     if (!ask) return
-    // Capture phase, so Escape closes this question and not the dialog underneath.
+    // Capture phase, so Escape closes this question and not the sheet underneath.
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
       e.stopPropagation()
@@ -236,9 +254,9 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     <ConfirmContext.Provider value={confirm}>
       {children}
       {ask && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/40 p-4" onMouseDown={(e) => e.target === e.currentTarget && answer(false)}>
-          <div role="alertdialog" aria-modal="true" aria-labelledby="confirm-message" className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl">
-            <p id="confirm-message" className="text-sm text-slate-800">{ask.message}</p>
+        <div className="fade-in fixed inset-0 z-[70] flex items-center justify-center bg-ink/30 p-4" onMouseDown={(e) => e.target === e.currentTarget && answer(false)}>
+          <div role="alertdialog" aria-modal="true" aria-labelledby="confirm-message" className="w-full max-w-sm rounded-2xl bg-surface p-5 shadow-panel ring-1 ring-line">
+            <p id="confirm-message" className="text-[15px] text-ink">{ask.message}</p>
             <div className="mt-5 flex justify-end gap-2">
               <Button onClick={() => answer(false)}>Zpět</Button>
               <Button variant={ask.danger ? 'danger' : 'primary'} onClick={() => answer(true)} autoFocus>{ask.ok}</Button>

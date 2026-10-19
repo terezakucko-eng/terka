@@ -1,33 +1,30 @@
-export interface Swatch {
-  bg: string
-  fg: string
-  border: string
-}
+/**
+ * Every brand, channel and plan type has one hue. Tints are mixed with the current surface,
+ * so the same hue reads well in the light and the dark theme.
+ */
+const HUES = ['#4f46e5', '#0891b2', '#059669', '#65a30d', '#d97706', '#ea580c', '#dc2626', '#db2777', '#9333ea', '#0d9488', '#2563eb', '#a16207']
 
-const PALETTE: Swatch[] = [
-  { bg: '#fce7f3', fg: '#9d174d', border: '#f9a8d4' },
-  { bg: '#e0e7ff', fg: '#3730a3', border: '#a5b4fc' },
-  { bg: '#dcfce7', fg: '#166534', border: '#86efac' },
-  { bg: '#fef3c7', fg: '#92400e', border: '#fcd34d' },
-  { bg: '#cffafe', fg: '#155e75', border: '#67e8f9' },
-  { bg: '#f3e8ff', fg: '#6b21a8', border: '#d8b4fe' },
-  { bg: '#ffedd5', fg: '#9a3412', border: '#fdba74' },
-  { bg: '#e0f2fe', fg: '#075985', border: '#7dd3fc' },
-  { bg: '#ecfccb', fg: '#3f6212', border: '#bef264' },
-  { bg: '#fee2e2', fg: '#991b1b', border: '#fca5a5' },
-  { bg: '#ccfbf1', fg: '#115e59', border: '#5eead4' },
-  { bg: '#fae8ff', fg: '#86198f', border: '#f0abfc' },
-]
-
-const FIXED: Record<string, Swatch> = {
-  'Růžový Slon': { bg: '#fbcfe8', fg: '#831843', border: '#ec4899' },
-  Kondomshop: { bg: '#dbeafe', fg: '#1e3a8a', border: '#60a5fa' },
-  Flagranti: { bg: '#e5e7eb', fg: '#111827', border: '#6b7280' },
-  'Hlavní kampaň': { bg: '#fbcfe8', fg: '#831843', border: '#ec4899' },
-  'Sekundární kampaň': { bg: '#ede9fe', fg: '#4c1d95', border: '#a78bfa' },
-  Vendor: { bg: '#fef3c7', fg: '#78350f', border: '#f59e0b' },
-  'Kupon do objednávek': { bg: '#d1fae5', fg: '#064e3b', border: '#34d399' },
-  'Významný den': { bg: '#e0f2fe', fg: '#0c4a6e', border: '#38bdf8' },
+const FIXED: Record<string, string> = {
+  // značky
+  'Růžový Slon': '#e0077d',
+  Kondomshop: '#2563eb',
+  Flagranti: '#8a817d',
+  // typy akcí
+  'Hlavní kampaň': '#e0077d',
+  'Sekundární kampaň': '#8b5cf6',
+  Vendor: '#d97706',
+  'Kupon do objednávek': '#059669',
+  'Významný den': '#0284c7',
+  // nejčastější kanály
+  Newsletter: '#4f46e5',
+  'HP Banner': '#ea580c',
+  SMS: '#059669',
+  'Doprava zdarma': '#65a30d',
+  'IG - post': '#db2777',
+  'IG - reels': '#9333ea',
+  'IG - stories': '#c026d3',
+  'IG - Influenceři': '#e11d48',
+  'Magazín - články': '#0891b2',
 }
 
 function hash(s: string): number {
@@ -36,6 +33,12 @@ function hash(s: string): number {
   return h >>> 0
 }
 
-export const swatch = (key: string): Swatch => FIXED[key] ?? PALETTE[hash(key) % PALETTE.length]
+/** Lightened in the dark theme (--lift) so dots and rails stay visible on a dark surface. */
+const vivid = (h: string): string => `color-mix(in oklab, ${h}, #fff var(--lift))`
 
-export const NEUTRAL: Swatch = { bg: '#f1f5f9', fg: '#334155', border: '#cbd5e1' }
+export const NEUTRAL_HUE = vivid('#8a817d')
+
+export const hue = (key: string): string => (key ? vivid(FIXED[key] ?? HUES[hash(key) % HUES.length]) : NEUTRAL_HUE)
+
+/** The hue mixed into the surface; 100 is the pure hue. */
+export const tint = (h: string, pct: number): string => `color-mix(in oklab, ${h} ${pct}%, var(--surface))`

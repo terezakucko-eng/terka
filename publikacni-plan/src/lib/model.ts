@@ -101,11 +101,12 @@ export const countriesOf = (domains: string[]): string[] => uniq(domains.map((d)
 
 export type Status = 'priprava' | 'kespusteni' | 'aktivni' | 'ukoncena'
 
-export const STATUS: Record<Status, { label: string; className: string }> = {
-  priprava: { label: 'V přípravě', className: 'bg-amber-100 text-amber-900 ring-amber-300' },
-  kespusteni: { label: 'Ke spuštění', className: 'bg-sky-100 text-sky-900 ring-sky-300' },
-  aktivni: { label: 'Aktivní', className: 'bg-emerald-100 text-emerald-900 ring-emerald-300' },
-  ukoncena: { label: 'Ukončená', className: 'bg-slate-100 text-slate-600 ring-slate-300' },
+/** Tone is a CSS color; status pills tint it into the surface. */
+export const STATUS: Record<Status, { label: string; tone: string }> = {
+  priprava: { label: 'V přípravě', tone: 'var(--warn)' },
+  kespusteni: { label: 'Ke spuštění', tone: 'var(--info)' },
+  aktivni: { label: 'Aktivní', tone: 'var(--ok)' },
+  ukoncena: { label: 'Ukončená', tone: 'var(--faint)' },
 }
 
 /** The status follows from the dates; only "ready" is set by hand. */

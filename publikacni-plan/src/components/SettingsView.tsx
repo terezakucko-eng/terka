@@ -10,9 +10,9 @@ import { Button, inputClass, useToast } from './ui'
 
 function Card({ title, children, description }: { title: string; description?: ReactNode; children: ReactNode }) {
   return (
-    <section className="rounded-xl bg-white p-5 ring-1 ring-slate-200">
-      <h2 className="text-base font-semibold text-slate-900">{title}</h2>
-      {description && <p className="mt-1 text-sm text-slate-600">{description}</p>}
+    <section className="rounded-2xl bg-surface p-5 ring-1 ring-line sm:p-6">
+      <h2 className="font-display text-lg font-semibold text-ink">{title}</h2>
+      {description && <p className="mt-1 max-w-prose text-sm text-muted">{description}</p>}
       <div className="mt-4">{children}</div>
     </section>
   )
@@ -27,13 +27,13 @@ function ListEditor({ label, items, locked = [], onChange }: { label: string; it
   }
   return (
     <div>
-      <h3 className="mb-2 text-sm font-medium text-slate-700">{label} <span className="font-normal text-slate-500">{items.length}</span></h3>
+      <h3 className="mb-2 text-xs font-semibold tracking-wide text-muted uppercase">{label} <span className="font-medium text-faint">{items.length}</span></h3>
       <div className="flex flex-wrap gap-1.5">
         {items.map((it) => (
-          <span key={it} className="inline-flex items-center gap-1 rounded-full bg-slate-100 py-1 pr-1 pl-2.5 text-xs font-medium text-slate-700">
+          <span key={it} className="inline-flex items-center gap-1 rounded-full bg-raised py-1 pr-1 pl-2.5 text-xs font-medium text-ink">
             {it}
             {!locked.includes(it) && (
-              <button type="button" onClick={() => onChange(items.filter((x) => x !== it))} className="rounded-full p-0.5 text-slate-500 hover:bg-slate-200 hover:text-slate-800" aria-label={`Odebrat ${it}`}>
+              <button type="button" onClick={() => onChange(items.filter((x) => x !== it))} className="rounded-full p-0.5 text-faint hover:bg-line hover:text-ink" aria-label={`Odebrat ${it}`}>
                 <X className="size-3" />
               </button>
             )}
@@ -160,11 +160,11 @@ export function SettingsView({ lists, akce, person, year }: { lists: Lists; akce
             <Button onClick={loadOld} disabled={!!busy}><Upload className="size-4" /> {busy === 'Načtení staré appky' ? 'Načítám…' : 'Načíst data ze staré appky'}</Button>
           ) : (
             <div className="space-y-3">
-              <ul className="list-inside list-disc text-sm text-slate-700">
+              <ul className="list-inside list-disc space-y-0.5 text-sm text-ink">
                 <li><strong>{preview.publikace.length}</strong> publikací (kampaní z kalendáře)</li>
                 <li><strong>{preview.akce.length}</strong> položek ročního plánu, z toho {preview.akce.filter((a) => a.data.type === SIGNIFICANT_DAY).length} významných dnů</li>
-                {preview.skipped > 0 && <li className="text-amber-700">{preview.skipped} kampaní bez názvu nebo data přeskočím</li>}
-                {preview.unknown.length > 0 && <li className="text-amber-700">Neznámé domény (u kampaní zůstanou bez nich): {preview.unknown.join(', ')}</li>}
+                {preview.skipped > 0 && <li className="text-warn">{preview.skipped} kampaní bez názvu nebo data přeskočím</li>}
+                {preview.unknown.length > 0 && <li className="text-warn">Neznámé domény (u kampaní zůstanou bez nich): {preview.unknown.join(', ')}</li>}
               </ul>
               <div className="flex gap-2">
                 <Button variant="primary" onClick={importOld} disabled={!!busy}>{busy === 'Import' ? 'Importuji…' : 'Importovat'}</Button>
