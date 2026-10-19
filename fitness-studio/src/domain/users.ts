@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import type { DB } from "@/db";
 import { entitlements, users } from "@/db/schema";
+import { claimPassCard } from "@/domain/pass-cards";
 import { UserError } from "@/lib/errors";
 import { normalizePhone } from "@/lib/phone";
 import { cleanBirthDate } from "@/lib/profile";
@@ -10,7 +11,7 @@ const DAY = 86_400_000;
 
 export const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
-/** Creates a client account including the welcome free entry. */
+/** Creates a client account including the welcome free entry (more of them with a Pošli to dál card). */
 export async function registerUser(
   db: DB,
   input: {
@@ -23,6 +24,8 @@ export async function registerUser(
     whatsappConsent?: boolean;
     healthConfirmed?: boolean;
     remindersOptIn?: boolean;
+    /** code of a Pošli to dál card she came with */
+    passCard?: string;
   },
   now = new Date(),
 ) {
@@ -57,15 +60,17 @@ export async function registerUser(
       .returning();
 
     const cfg = await getSettings(tx);
-    if (cfg.welcomeFreeEntries > 0) {
+    const card = input.passCard ? await claimPassCard(tx, input.passCard, user.id) : null;
+    const entries = card ? Math.max(cfg.welcomeFreeEntries, cfg.passCardFreeEntries) : cfg.welcomeFreeEntries;
+    if (entries > 0) {
       await tx.insert(entitlements).values({
         userId: user.id,
         kind: "free",
-        name: "Úvodní lekce zdarma",
-        entriesTotal: cfg.welcomeFreeEntries,
+        name: card ? "Lekce zdarma – Pošli to dál 💛" : "Úvodní lekce zdarma",
+        entriesTotal: entries,
         validFrom: now,
         validUntil: new Date(now.getTime() + cfg.welcomeFreeValidityDays * DAY),
-        note: "Uvítací dárek při registraci",
+        note: card ? `Přišla s kartičkou Pošli to dál (${card.label})` : "Uvítací dárek při registraci",
       });
     }
     return user;

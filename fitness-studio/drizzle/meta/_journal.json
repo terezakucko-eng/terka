@@ -652,6 +652,20 @@
       "when": 1792164430104,
       "tag": "0092_presale_orders_reserved",
       "breakpoints": true
+    },
+    {
+      "idx": 93,
+      "version": "7",
+      "when": 1792440341599,
+      "tag": "0093_pass_cards",
+      "breakpoints": true
+    },
+    {
+      "idx": 94,
+      "version": "7",
+      "when": 1792440343060,
+      "tag": "0094_pass_cards_seed",
+      "breakpoints": true
     }
   ]
 }

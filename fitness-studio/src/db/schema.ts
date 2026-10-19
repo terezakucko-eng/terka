@@ -565,6 +565,40 @@ export const referrals = pgTable(
   (t) => [index("referrals_referrer_idx").on(t.referrerId)],
 );
 
+/** Pošli to dál: vytištěné kartičky s QR, které putují od člověka k člověku. */
+export const passCards = pgTable("pass_cards", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  /** v QR kódu: octopush.fit/karta/7F3A9C */
+  code: text("code").notNull().unique(),
+  /** „Kartička 1“ */
+  label: text("label").notNull(),
+  /** u koho kartička teď je – kdo ji má poslat dál */
+  holderId: uuid("holder_id").references(() => users.id, { onDelete: "set null" }),
+  /** ztracená nebo stažená kartička – registrace přes ni už nic nedá */
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: createdAt(),
+});
+
+/** Kdo přišel na kterou kartičku a od koho ji dostal. */
+export const passCardUses = pgTable(
+  "pass_card_uses",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    cardId: uuid("card_id")
+      .notNull()
+      .references(() => passCards.id, { onDelete: "cascade" }),
+    /** nová klientka – na kartičku jen jednou */
+    userId: uuid("user_id")
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** kdo jí kartičku předal (držitel v tu chvíli) */
+    fromUserId: uuid("from_user_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("pass_card_uses_card_idx").on(t.cardId)],
+);
+
 export const announcements = pgTable("announcements", {
   id: uuid("id").primaryKey().defaultRandom(),
   title: text("title").notNull(),

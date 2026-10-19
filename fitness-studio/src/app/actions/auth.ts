@@ -101,6 +101,7 @@ export async function registerAction(_: FormState, fd: FormData): Promise<FormSt
       marketingConsent: field.bool(fd, "marketing"),
       smsConsent: field.bool(fd, "sms"),
       whatsappConsent: field.bool(fd, "whatsapp"),
+      passCard: field.str(fd, "karta"),
     });
     await linkReferral(db, user.id, field.str(fd, "pozvanka"));
     await startSession(user.id);

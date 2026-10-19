@@ -14,6 +14,7 @@ import {
   LayoutDashboard,
   Megaphone,
   MessageSquare,
+  QrCode,
   Receipt,
   Sparkles,
   Star,
@@ -53,6 +54,7 @@ const groups: { title: string; items: Item[] }[] = [
       { href: "/admin/zpravy", label: "Zprávy", icon: MessageSquare },
       { href: "/admin/aktuality", label: "Aktuality", icon: Megaphone },
       { href: "/admin/recenze", label: "Recenze", icon: Star },
+      { href: "/admin/karticky", label: "Pošli to dál", icon: QrCode },
     ],
   },
   {

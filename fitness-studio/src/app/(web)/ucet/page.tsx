@@ -10,7 +10,7 @@ import { getDb } from "@/db";
 import { userBookings, userEntitlements } from "@/lib/account";
 import { requireUser } from "@/lib/auth";
 import { formatDate, formatDay, formatRange, formatTime } from "@/lib/dates";
-import { credits, formatPrice } from "@/lib/money";
+import { credits, formatPrice, pluralCs } from "@/lib/money";
 import { SurchargePay } from "@/components/surcharge-pay";
 import { flexibleMemberships, membershipPlacesTaken, membershipSwitches, openFees, periodStartLabel } from "@/domain/membership-fees";
 import { placesLeftLabel } from "@/lib/price-list";
@@ -28,6 +28,7 @@ import { getContent } from "@/content";
 import { feedLinks } from "@/lib/ics";
 import { CopyButton, ShareButton } from "@/components/copy-button";
 import { myReferrals } from "@/domain/referrals";
+import { cardHeldBy, lessonsFree } from "@/domain/pass-cards";
 import { VOUCHER_STATUS, boughtVouchers, formatVoucherCode, voucherStatus } from "@/domain/vouchers";
 import { redeemVoucherAction } from "@/app/actions/vouchers";
 import { getSettings } from "@/lib/settings";
@@ -67,7 +68,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
     getContent(),
     insuranceYears(db, user.id),
   ]);
-  const [cfg, invited, gifts, flexible, switches, included] = await Promise.all([
+  const [cfg, invited, gifts, flexible, switches, included, passCard] = await Promise.all([
     getSettings(db),
     myReferrals(db, user.id),
     boughtVouchers(db, user.id),
@@ -75,6 +76,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
     // a switch to a higher membership (e.g. Členství Reformer) starts with the next unpaid month
     membershipSwitches(db, user.id, ents),
     includedSummary(db, ents),
+    cardHeldBy(db, user.id),
   ]);
   // a limited one (Členství Reformer) says how many places are left
   const limited = [...switches.values()].flatMap(({ offer }) => (offer.maxActive !== null ? [offer.id] : []));
@@ -127,7 +129,16 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
         <p className="rounded-2xl bg-forest p-6 text-papir">
           <span className="text-gold text-xl font-semibold">Vítej v OCTOPUSH!</span>
           <br />
-          Na účtu máš připravenou úvodní lekci zdarma. <Link href="/rozvrh" className="underline">Vyber si ji v rozvrhu →</Link>
+          {passCard && cfg.passCardFreeEntries > 1 ? (
+            <>
+              Díky kartičce Pošli to dál máš na účtu {lessonsFree(Math.max(cfg.welcomeFreeEntries, cfg.passCardFreeEntries))}.{" "}
+              <Link href="/rozvrh" className="underline">Vyber si lekci v rozvrhu →</Link>
+            </>
+          ) : (
+            <>
+              Na účtu máš připravenou úvodní lekci zdarma. <Link href="/rozvrh" className="underline">Vyber si ji v rozvrhu →</Link>
+            </>
+          )}
         </p>
       )}
 
@@ -390,6 +401,19 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
           </ActionForm>
         </details>
       </section>
+
+      {passCard && (
+        <section id="posli-to-dal" className="rounded-2xl border border-zlato/50 bg-zlato/10 p-5">
+          <p className="font-semibold">💛 Kartička Pošli to dál je teď u tebe</p>
+          <p className="mt-1 max-w-2xl text-sm text-les/70">
+            Předej ji někomu, kdo u nás ještě nebyl a komu pohyb udělá radost. Naskenuje QR kód, zaregistruje se a dostane{" "}
+            {lessonsFree(Math.max(cfg.welcomeFreeEntries, cfg.passCardFreeEntries))}. Pak ji zase pošle dál.
+          </p>
+          <p className="mt-2 text-xs text-les/60">
+            {passCard.label} už přivedla {pluralCs(passCard.people, "člověka", "lidi", "lidí")} 🐙
+          </p>
+        </section>
+      )}
 
       {cfg.referralGiftEntries > 0 && user.role === "client" && (
         <section id="pozvi" className="rounded-2xl border border-zlato/50 bg-zlato/10 p-5">

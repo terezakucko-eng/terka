@@ -40,6 +40,7 @@ const fields: { key: keyof Settings; label: string; hint: string; section?: stri
   { key: "birthdayGiftValidityDays", label: "Platnost dárku k narozeninám (dní)", hint: "" },
   { key: "referralGiftEntries", label: "Pozvi kamarádku – lekcí zdarma za pozvání", hint: "Dostane ten, kdo pozval, po prvním nákupu kamarádky. 0 = vypnuto (sekce v účtu se skryje)." },
   { key: "referralGiftValidityDays", label: "Platnost lekce za pozvání (dní)", hint: "" },
+  { key: "passCardFreeEntries", label: "Pošli to dál – lekcí zdarma s kartičkou", hint: "Dostane nová klientka, která se zaregistruje přes kartičku (místo úvodních vstupů). Platnost jako úvodní vstup." },
   { key: "voucherValidityDays", label: "Dárkové poukazy – platnost (dní)", hint: "Od zaplacení. 365 = rok. Stejně dlouho pak platí i kredit z poukazu na částku." },
   { key: "voucherCreditsPer100Kc", label: "Poukaz na částku – kreditů za 100 Kč", hint: "100 = 1 kredit za 1 Kč. Kolik kreditů dostane obdarovaný." },
   { key: "winbackDays", label: "„Chybíš nám“ po kolika dnech bez lekce", hint: "Jen klientům se souhlasem s novinkami, kteří nic nemají rezervováno – jednou za každou pauzu. 0 = vypnuto." },
