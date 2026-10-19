@@ -1,11 +1,12 @@
 import { Copy, Link2, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import { isDemo } from '../config'
 import { deletePublikace, savePublikace } from '../data/store'
 import { formatRange, overlaps, yearOf } from '../lib/dates'
 import { personLine } from '../lib/format'
 import { type Akce, type Links, LINK_LABELS, type Lists, type Person, type PublikaceInput, STATUS, statusOf } from '../lib/model'
 import { ChannelPicker, DomainPicker } from './pickers'
-import { Button, Field, inputClass, Modal, useToast } from './ui'
+import { Button, Field, inputClass, Modal, useConfirm, useToast } from './ui'
 
 export interface PublikaceDraft extends PublikaceInput {
   id: string | null
@@ -39,12 +40,17 @@ export function PublikaceModal({ draft, lists, akce, person, today, onClose, onD
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const toast = useToast()
+  const ask = useConfirm()
   const set = <K extends keyof PublikaceDraft>(k: K, v: PublikaceDraft[K]) => setD((x) => ({ ...x, [k]: v }))
   const setLink = (k: keyof Links, v: string) => setD((x) => ({ ...x, links: { ...x.links, [k]: v } }))
   const dirty = JSON.stringify(d) !== JSON.stringify(draft)
 
-  const close = () => {
-    if (!dirty || confirm('Zavřít bez uložení změn?')) onClose()
+  const close = async () => {
+    if (!dirty || (await ask('Zavřít bez uložení změn?', { ok: 'Zavřít' }))) onClose()
+  }
+
+  const leaveTo = async (go: () => void) => {
+    if (!dirty || (await ask('Zahodit neuložené změny publikace?', { ok: 'Zahodit' }))) go()
   }
 
   const nearby = akce
@@ -72,7 +78,7 @@ export function PublikaceModal({ draft, lists, akce, person, today, onClose, onD
   }
 
   const remove = async () => {
-    if (!d.id || !confirm(`Opravdu smazat „${d.name}“?`)) return
+    if (!d.id || !(await ask(`Opravdu smazat „${d.name}“?`, { ok: 'Smazat', danger: true }))) return
     await deletePublikace(d.id)
     toast('Publikace smazána')
     onClose()
@@ -81,8 +87,12 @@ export function PublikaceModal({ draft, lists, akce, person, today, onClose, onD
   const copyLink = async () => {
     const url = new URL(location.href)
     url.searchParams.set('open', `p:${d.id}`)
-    await navigator.clipboard.writeText(url.toString())
-    toast('Odkaz zkopírován')
+    try {
+      await navigator.clipboard.writeText(url.toString())
+      toast('Odkaz zkopírován')
+    } catch {
+      toast('Odkaz se nepodařilo zkopírovat, zkopíruj adresu z prohlížeče.', 'error')
+    }
   }
 
   const status = d.dateFrom && d.dateTo ? statusOf(d, today) : null
@@ -100,7 +110,7 @@ export function PublikaceModal({ draft, lists, akce, person, today, onClose, onD
               <Button variant="ghost" onClick={() => onDuplicate({ ...d, id: null, ready: false, createdAt: undefined, createdBy: undefined, updatedAt: undefined, updatedBy: undefined, legacyId: undefined })}>
                 <Copy className="size-4" /> Duplikovat
               </Button>
-              <Button variant="ghost" onClick={copyLink} title="Zkopírovat odkaz na tuto publikaci"><Link2 className="size-4" /></Button>
+              {!isDemo && <Button variant="ghost" onClick={copyLink} title="Zkopírovat odkaz na tuto publikaci"><Link2 className="size-4" /></Button>}
             </>
           )}
           <span className="flex-1" />
@@ -142,7 +152,7 @@ export function PublikaceModal({ draft, lists, akce, person, today, onClose, onD
                 </optgroup>
               )}
             </select>
-            {d.akceId && <Button onClick={() => (!dirty || confirm('Zahodit neuložené změny publikace?')) && onOpenAkce(d.akceId!)}>Otevřít</Button>}
+            {d.akceId && <Button onClick={() => leaveTo(() => onOpenAkce(d.akceId!))}>Otevřít</Button>}
           </div>
         </Field>
         <Field label="Popis / poznámky">

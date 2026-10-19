@@ -9,7 +9,8 @@ import { PublikaceModal, type PublikaceDraft } from './components/PublikaceModal
 import { SettingsView } from './components/SettingsView'
 import { Button, cx, Segmented, Spinner, useToast } from './components/ui'
 import { type TimelineItem, YearTimeline } from './components/YearTimeline'
-import { logOut, movePublikace, useAkce, useAuth, useLists, usePublikace } from './data/store'
+import { isDemo } from './config'
+import { logOut, movePublikace, resetDemo, useAkce, useAuth, useLists, usePublikace } from './data/store'
 import { swatch } from './lib/colors'
 import { download, toCsv } from './lib/csv'
 import { formatDate, formatRange, iso, monthOf, monthTitle, todayISO, yearOf, type ISODate } from './lib/dates'
@@ -134,7 +135,15 @@ function Planner({ person, photo }: { person: Person; photo: string | null }) {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
+      {isDemo && (
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-slate-900 px-4 py-2 text-center text-xs text-white">
+          <span><strong>Ukázka</strong> s daty ze staré appky. Změny se ukládají jen v tomto prohlížeči, ostatní je neuvidí.</span>
+          <button type="button" className="rounded-md bg-white/15 px-2 py-0.5 font-semibold hover:bg-white/25" onClick={() => { resetDemo(); toast('Ukázka je zase na začátku') }}>
+            Začít znovu
+          </button>
+        </div>
+      )}
+      <header className="sticky top-[env(safe-area-inset-top,0px)] z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2.5">
           <div className="flex items-center gap-2">
             <span className="text-2xl" aria-hidden>🐘</span>
@@ -162,9 +171,11 @@ function Planner({ person, photo }: { person: Person; photo: string | null }) {
             <div className="flex items-center gap-2 border-l border-slate-200 pl-3" title={person.email}>
               {photo ? <img src={photo} alt="" className="size-7 rounded-full" referrerPolicy="no-referrer" /> : <span className="flex size-7 items-center justify-center rounded-full bg-pink-100 text-xs font-bold text-pink-700">{person.name.slice(0, 1)}</span>}
               <span className="hidden text-sm text-slate-700 lg:inline">{person.name}</span>
-              <button type="button" onClick={() => void logOut()} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100" title="Odhlásit" aria-label="Odhlásit">
-                <LogOut className="size-4" />
-              </button>
+              {!isDemo && (
+                <button type="button" onClick={() => void logOut()} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100" title="Odhlásit" aria-label="Odhlásit">
+                  <LogOut className="size-4" />
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -204,7 +215,7 @@ function Planner({ person, photo }: { person: Person; photo: string | null }) {
               {view === 'seznam' && (
                 <>
                   <Segmented value={mode} onChange={(m) => update({ mode: m })} options={[['akce', 'Roční plán'], ['publikace', 'Publikace'], ['vse', 'Vše']]} />
-                  <Button variant="ghost" onClick={() => exportCsv(listRows(mode, fa, fp), year, akceById, lists, today)}><Download className="size-4" /> Export pro Excel</Button>
+                  <Button variant="ghost" onClick={() => (isDemo ? toast('V ukázce se soubory nestahují, v ostré verzi ano.') : exportCsv(listRows(mode, fa, fp), year, akceById, lists, today))}><Download className="size-4" /> Export pro Excel</Button>
                 </>
               )}
             </div>

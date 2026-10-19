@@ -62,3 +62,9 @@ export function significantDays(year: number): AkceInput[] {
     links: emptyLinks(),
   }))
 }
+
+/** Stable document id, so adding the same day twice finds the existing one. */
+export function significantDayId(d: { name: string; dateFrom: ISODate }): string {
+  const slug = d.name.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').replace(/[^a-z0-9]+/g, '-')
+  return `den-${d.dateFrom}-${slug}`
+}

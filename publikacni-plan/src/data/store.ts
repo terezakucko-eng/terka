@@ -166,6 +166,9 @@ export async function readOldApp() {
   }
 }
 
+/** Only the preview build (demoStore) has demo data to reset. */
+export function resetDemo() {}
+
 export async function readEverything() {
   const [akce, publikace, settings] = await Promise.all([
     getDocs(collection(db, COL.akce)), getDocs(collection(db, COL.publikace)), getDocs(collection(db, COL.settings)),

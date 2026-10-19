@@ -9,6 +9,9 @@ export const firebaseConfig = {
 
 export const useEmulators = env.VITE_USE_EMULATORS === 'true'
 
+/** Preview build without Firebase: no sign-in, data kept in this browser only (npm run build:demo). */
+export const isDemo = env.VITE_DEMO === 'true'
+
 export const allowedDomains: string[] = (env.VITE_ALLOWED_DOMAINS ?? 'ruzovyslon.cz')
   .split(',')
   .map((d: string) => d.trim().toLowerCase())

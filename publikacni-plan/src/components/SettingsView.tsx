@@ -1,8 +1,9 @@
 import { Download, Plus, Upload, X } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
+import { isDemo } from '../config'
 import { createMissing, readEverything, readOldApp, saveLists } from '../data/store'
 import { download } from '../lib/csv'
-import { significantDays } from '../lib/holidays'
+import { significantDayId, significantDays } from '../lib/holidays'
 import { type Migrated, migrateCampaign, migrateYearly, type OldCampaign, type OldYearDoc, unknownDomains } from '../lib/migrate'
 import { type Akce, type AkceInput, type Lists, type Person, type PublikaceInput, SIGNIFICANT_DAY } from '../lib/model'
 import { Button, inputClass, useToast } from './ui'
@@ -77,7 +78,7 @@ export function SettingsView({ lists, akce, person, year }: { lists: Lists; akce
   const newDays = significantDays(daysYear).filter((n) => !akce.some((a) => a.type === SIGNIFICANT_DAY && a.name === n.name && a.dateFrom === n.dateFrom))
 
   const addDays = () => run('Přidání významných dnů', async () => {
-    const items = newDays.map((d) => ({ id: `den-${d.dateFrom}-${d.name.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').replace(/[^a-z0-9]+/g, '-')}`, data: d }))
+    const items = newDays.map((d) => ({ id: significantDayId(d), data: d }))
     const n = await createMissing('akce', items, person)
     toast(`Přidáno ${n} významných dnů pro rok ${daysYear}`)
   })
@@ -102,6 +103,7 @@ export function SettingsView({ lists, akce, person, year }: { lists: Lists; akce
   })
 
   const backup = () => run('Záloha', async () => {
+    if (isDemo) return toast('V ukázce se soubory nestahují, v ostré verzi ano.')
     const data = await readEverything()
     download(`publikacni-plan-zaloha-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(data, null, 1), 'application/json')
   })

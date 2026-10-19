@@ -58,5 +58,12 @@ npm run emulators        # Firebase emulátory (potřebuje Javu)
 npm run dev:emulators    # appka proti emulátorům, s testovacím přihlášením
 ```
 
+Ukázka bez Firebase (bez přihlášení, data jen v prohlížeči) jako jeden HTML soubor:
+
+```
+npm run build:demo                                        # prázdná ukázka
+npx vite build --mode demo --outDir dist-demo && node scripts/bundle-demo.mjs export-stare-appky.json
+```
+
 Kontroly: `npm run lint`, `npm run typecheck`, `npm test` (logika: data, stavy, převod starých dat,
 významné dny) a `npm run test:rules` (pravidla ve Firestore proti emulátoru).

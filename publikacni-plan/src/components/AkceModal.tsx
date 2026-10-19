@@ -6,7 +6,7 @@ import { formatRange } from '../lib/dates'
 import { personLine } from '../lib/format'
 import { type AkceInput, type Links, LINK_LABELS, type Lists, type Person, type Publikace, SIGNIFICANT_DAY, uniq } from '../lib/model'
 import { DomainPicker } from './pickers'
-import { Badge, Button, Field, inputClass, Modal, useToast } from './ui'
+import { Badge, Button, Field, inputClass, Modal, useConfirm, useToast } from './ui'
 
 export interface AkceDraft extends AkceInput {
   id: string | null
@@ -39,14 +39,19 @@ export function AkceModal({ draft, lists, publikace, person, onClose, onOpenPubl
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const toast = useToast()
+  const ask = useConfirm()
   const set = <K extends keyof AkceDraft>(k: K, v: AkceDraft[K]) => setD((x) => ({ ...x, [k]: v }))
   const setLink = (k: keyof Links, v: string) => setD((x) => ({ ...x, links: { ...x.links, [k]: v } }))
   const dirty = JSON.stringify(d) !== JSON.stringify(draft)
   const linked = d.id ? publikace.filter((p) => p.akceId === d.id).sort((a, b) => a.dateFrom.localeCompare(b.dateFrom)) : []
   const isDay = d.type === SIGNIFICANT_DAY
 
-  const close = () => {
-    if (!dirty || confirm('Zavřít bez uložení změn?')) onClose()
+  const close = async () => {
+    if (!dirty || (await ask('Zavřít bez uložení změn?', { ok: 'Zavřít' }))) onClose()
+  }
+
+  const leaveTo = async (go: () => void) => {
+    if (!dirty || (await ask('Zahodit neuložené změny akce?', { ok: 'Zahodit' }))) go()
   }
 
   const validate = () =>
@@ -90,7 +95,7 @@ export function AkceModal({ draft, lists, publikace, person, onClose, onOpenPubl
   const remove = async () => {
     if (!d.id) return
     const msg = linked.length ? `Smazat „${d.name}“? ${linked.length} navázaných publikací zůstane, jen bez akce.` : `Opravdu smazat „${d.name}“?`
-    if (!confirm(msg)) return
+    if (!(await ask(msg, { ok: 'Smazat', danger: true }))) return
     await deleteAkce(d.id, person)
     toast('Akce smazána')
     onClose()
@@ -164,7 +169,7 @@ export function AkceModal({ draft, lists, publikace, person, onClose, onOpenPubl
             <ul className="divide-y divide-slate-100">
               {linked.map((p) => (
                 <li key={p.id}>
-                  <button type="button" onClick={() => (!dirty || confirm('Zahodit neuložené změny akce?')) && onOpenPublikace(p.id)} className="flex w-full flex-wrap items-center gap-2 px-3 py-2 text-left hover:bg-slate-50">
+                  <button type="button" onClick={() => leaveTo(() => onOpenPublikace(p.id))} className="flex w-full flex-wrap items-center gap-2 px-3 py-2 text-left hover:bg-slate-50">
                     <span className="w-36 text-xs text-slate-500 tabular-nums">{formatRange(p.dateFrom, p.dateTo)}</span>
                     <span className="flex-1 text-sm font-medium text-slate-800">{p.name}</span>
                     <span className="flex flex-wrap gap-1">{p.channels.map((c) => <Badge key={c} swatch={swatch(c)}>{c}</Badge>)}</span>

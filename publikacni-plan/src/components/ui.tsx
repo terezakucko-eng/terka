@@ -193,4 +193,61 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// ---------- potvrzení ----------
+
+interface Ask {
+  message: string
+  ok: string
+  danger: boolean
+  resolve: (v: boolean) => void
+}
+
+type ConfirmFn = (message: string, opts?: { ok?: string; danger?: boolean }) => Promise<boolean>
+
+const ConfirmContext = createContext<ConfirmFn>(async () => false)
+
+/** In-page yes/no question; the browser's own confirm() is blocked in embedded views. */
+export const useConfirm = () => useContext(ConfirmContext)
+
+export function ConfirmProvider({ children }: { children: ReactNode }) {
+  const [ask, setAsk] = useState<Ask | null>(null)
+  const confirm = useCallback<ConfirmFn>(
+    (message, opts = {}) => new Promise((resolve) => setAsk({ message, ok: opts.ok ?? 'Ano', danger: opts.danger ?? false, resolve })),
+    [],
+  )
+  const answer = useCallback((v: boolean) => {
+    setAsk((a) => {
+      a?.resolve(v)
+      return null
+    })
+  }, [])
+  useEffect(() => {
+    if (!ask) return
+    // Capture phase, so Escape closes this question and not the dialog underneath.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      e.stopPropagation()
+      answer(false)
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [ask, answer])
+  return (
+    <ConfirmContext.Provider value={confirm}>
+      {children}
+      {ask && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/40 p-4" onMouseDown={(e) => e.target === e.currentTarget && answer(false)}>
+          <div role="alertdialog" aria-modal="true" aria-labelledby="confirm-message" className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl">
+            <p id="confirm-message" className="text-sm text-slate-800">{ask.message}</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button onClick={() => answer(false)}>Zpět</Button>
+              <Button variant={ask.danger ? 'danger' : 'primary'} onClick={() => answer(true)} autoFocus>{ask.ok}</Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </ConfirmContext.Provider>
+  )
+}
+
 export { cx }

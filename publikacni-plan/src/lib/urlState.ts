@@ -58,7 +58,11 @@ export function useUrlState(): [ViewState, (patch: Partial<ViewState>) => void] 
   const [state, setState] = useState(() => parse(location.search))
   useEffect(() => {
     const next = serialize(state)
-    if (next !== location.search) history.replaceState(null, '', next)
+    try {
+      if (next !== location.search) history.replaceState(null, '', next)
+    } catch {
+      // sandboxed frames may refuse history changes; the app works without the address sync
+    }
   }, [state])
   const update = useCallback((patch: Partial<ViewState>) => setState((s) => ({ ...s, ...patch })), [])
   return [state, update]
