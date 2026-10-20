@@ -36,6 +36,7 @@ import { getContent } from "@/content";
 import { sendMail } from "@/lib/mail";
 import { birthDateLocked, hasConfirmation } from "@/domain/insurance";
 import { linkReferral } from "@/domain/referrals";
+import { passCardOf } from "@/domain/pass-cards";
 
 /** Only allow local redirects after login. */
 function safeNext(v: string) {
@@ -105,7 +106,8 @@ export async function registerAction(_: FormState, fd: FormData): Promise<FormSt
     });
     await linkReferral(db, user.id, field.str(fd, "pozvanka"));
     await startSession(user.id);
-    await sendEmail(user.email, "welcome", { osloveni: greetName(user.name), odkaz: `${site.url}/rozvrh`, karta: `${site.url}/ucet/karta` });
+    const welcome = (await passCardOf(db, user.id)) ? "welcomePassCard" : "welcome";
+    await sendEmail(user.email, welcome, { osloveni: greetName(user.name), odkaz: `${site.url}/rozvrh`, karta: `${site.url}/ucet/karta` });
     target = safeNext(field.str(fd, "next")) ?? "/ucet?vitej=1";
   });
   if (target) redirect(target);

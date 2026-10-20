@@ -36,6 +36,17 @@ export const EMAILS = {
       karta: { label: "odkaz na členskou kartu", sample: `${site.url}/ucet/karta` },
     },
   },
+  welcomePassCard: {
+    title: "Vítej po registraci s kartičkou Pošli to dál",
+    when: "Hned po založení účtu přes kartičku Pošli to dál (místo běžného uvítání).",
+    subject: "Vítej v OCTOPUSH! Lekce zdarma je tvoje 💛",
+    body: "Ahoj {{osloveni}},\n\ndíky za registraci – k nám tě přivedla kartička Pošli to dál 💛\nNa účtu tě čeká lekce zdarma. Vyber si ji v rozvrhu a u rezervace zaplať „Kartičkou Pošli to dál“: {{odkaz}}\n\nPo lekci se kartička sama znovu nabije a dáme ti vědět – pak ji předejte někomu, kdo u nás ještě nebyl.\n\nUlož si do mobilu členskou kartu – na recepci pak stačí ukázat QR kód: {{karta}}",
+    vars: {
+      osloveni,
+      odkaz: { label: "odkaz na rozvrh", sample: `${site.url}/rozvrh` },
+      karta: { label: "odkaz na členskou kartu", sample: `${site.url}/ucet/karta` },
+    },
+  },
   passwordReset: {
     title: "Obnovení hesla",
     when: "Když klient klikne na „Zapomenuté heslo“.",
