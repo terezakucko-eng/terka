@@ -27,8 +27,8 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registr
     code ? referrerByCode(db, code) : null,
     cardCode ? passCardByCode(db, cardCode) : null,
   ]);
-  // a charged Pošli to dál card that is still in the game
-  const card = found?.isActive && found.charged ? found : null;
+  // a Pošli to dál card in the game with a place left
+  const card = found?.isActive && found.placesLeft > 0 ? found : null;
   const turnstileKey = turnstileSiteKey();
   return (
     <>
@@ -44,8 +44,8 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registr
       )}
       {card && (
         <p className="mt-4 rounded-2xl bg-zlato/15 p-4 text-sm">
-          💛 Přicházíš s kartičkou <strong>Pošli to dál</strong>
-          {card.holder && <> od <strong>{card.holder}</strong></>}. Po registraci máš u nás <strong>lekci zdarma pro sebe a kamarádku</strong> – jednu, kartička se dá využít jen jednou.
+          💛 Přicházíš s kartičkou <strong>Pošli to dál</strong>. Po registraci máš u nás <strong>lekci zdarma</strong> – u rezervace ji zaplatíš
+          Kartičkou Pošli to dál. Každý ji může využít jen jednou.
         </p>
       )}
       <ActionForm action={registerAction} className="mt-8 space-y-4">

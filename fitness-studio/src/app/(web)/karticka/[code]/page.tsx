@@ -8,7 +8,7 @@ import { getSettings } from "@/lib/settings";
 
 export const metadata: Metadata = {
   title: "Pošli to dál",
-  description: "Kartička, která putuje od člověka k člověku – s ní máš v OCTOPUSH lekci zdarma pro sebe a kamarádku.",
+  description: "Kartička, která putuje od člověka k člověku – s ní máš v OCTOPUSH lekci zdarma ty i kamarádka.",
   robots: { index: false },
 };
 
@@ -17,8 +17,8 @@ export default async function PassCardPage({ params }: PageProps<"/karticka/[cod
   const { code } = await params;
   const db = await getDb();
   const [card, user, cfg] = await Promise.all([passCardByCode(db, code), getCurrentUser(), getSettings(db)]);
-  if (card?.isActive && !card.charged) {
-    // somebody signed up with it and hasn't been to the lesson yet – a shared photo of the QR gets nobody anything
+  if (card?.isActive && card.placesLeft === 0) {
+    // both places taken until their lessons are over – a shared photo of the QR gets nobody anything
     return (
       <section className="bg-forest text-papir">
         <Container className="max-w-2xl py-20 text-center">
@@ -26,7 +26,7 @@ export default async function PassCardPage({ params }: PageProps<"/karticka/[cod
           <Eyebrow className="mt-6 text-zlato">Pošli to dál</Eyebrow>
           <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">Kartička se právě nabíjí</h1>
           <p className="mx-auto mt-6 max-w-lg text-lg text-papir/80">
-            {card.holder ? `Teď ji má ${card.holder} a` : "Někdo ji právě využil a"} nabije se, až bude po lekci. Pak ji můžeš dostat ty 💛
+            Obě místa na ní právě využívají dva noví lidé. Kartička se sama nabije, až budou po lekci – pak ji můžeš dostat ty 💛
           </p>
           <p className="mx-auto mt-4 max-w-lg text-papir/70">
             {cfg.welcomeFreeEntries > 0 ? "Nechceš čekat? První lekce je u nás pro nové zdarma i bez kartičky." : "Nechceš čekat? Stačí se zaregistrovat a vybrat si lekci."}
@@ -65,17 +65,19 @@ export default async function PassCardPage({ params }: PageProps<"/karticka/[cod
         <img src="/brand/symbol-gold.svg" alt="" className="mx-auto h-24 w-24" />
         <Eyebrow className="mt-6 text-zlato">Pošli to dál 💛</Eyebrow>
         <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-6xl">
-          {card.holder ? (
-            <>
-              Kartičku ti posílá <span className="text-gold">{card.holder}</span>
-            </>
-          ) : (
-            "Tahle kartička doputovala k tobě"
-          )}
+          {card.placesLeft === 1 ? "Zbývá jedno místo – je tvoje" : "Tahle kartička doputovala k tobě"}
         </h1>
         <p className="mx-auto mt-6 max-w-lg text-lg text-papir/80">
-          🔋 Kartička je nabitá: máš s ní v OCTOPUSH <strong className="text-zlato-light">lekci zdarma pro sebe a kamarádku</strong>. Zaregistruj
-          se, vyber si lekci v rozvrhu a přidej kamarádku (+1).
+          {card.placesLeft === 1 ? (
+            <>
+              Zaregistruj se a máš v OCTOPUSH <strong className="text-zlato-light">lekci zdarma</strong>. Domluv se s tím, kdo ti kartičku dal, a přijďte spolu.
+            </>
+          ) : (
+            <>
+              🔋 Kartička je nabitá a má <strong className="text-zlato-light">2 místa – lekci zdarma pro tebe i kamarádku</strong>. Zaregistruj se a ať
+              se kamarádka zaregistruje taky: naskenuje kartičku, nebo jí pošleš odkaz z účtu.
+            </>
+          )}
         </p>
         {card.people > 0 && (
           <p className="mt-4 text-sm text-papir/60">
@@ -84,7 +86,7 @@ export default async function PassCardPage({ params }: PageProps<"/karticka/[cod
         )}
 
         <ol className="mx-auto mt-10 grid max-w-xl gap-3 text-left sm:grid-cols-3">
-          {["Zaregistruj se – lekci pro dva máš hned na účtu", "Vyber si lekci a vezmi kamarádku (+1)", "Po lekci se kartička nabije – předej ji dál"].map((s, i) => (
+          {["Zaregistruj se – lekci zdarma máš hned na účtu", "Rezervuj si lekci a zaplať Kartičkou Pošli to dál", "Po lekci se kartička nabije – předej ji dál"].map((s, i) => (
             <li key={s} className="rounded-2xl border border-zlato/30 p-4 text-sm text-papir/80">
               <span className="block font-serif text-2xl text-zlato">{i + 1}.</span>
               {s}

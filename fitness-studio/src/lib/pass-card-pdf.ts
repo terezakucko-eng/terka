@@ -125,7 +125,7 @@ export async function passCardsPdf(cards: PassCardDoc[], footer: string) {
     const lx = BLEED + 16;
     const lw = qrX - lx - 10;
     spaced(back, "JAK NA TO", { x: lx, y: BLEED + TH - 24, size: 6.5, font: bold, color: GOLD, spacing: 1.4 });
-    const steps = ["Naskenuj QR kód a zaregistruj se.", "Máš lekci zdarma pro sebe a kamarádku.", "Přijďte si spolu zacvičit.", "Kartičku pak předej dál."];
+    const steps = ["Naskenuj QR kód a zaregistruj se.", "Kamarádka taky – kartička má 2 místa.", "Zaplaťte lekci Kartičkou Pošli\u00a0to\u00a0dál.", "Po lekci kartičku předej dál."];
     y = BLEED + TH - 37;
     steps.forEach((s, i) => {
       back.drawText(`${i + 1}`, { x: lx, y, size: 7.4, font: bold, color: GOLD });
@@ -136,7 +136,7 @@ export async function passCardsPdf(cards: PassCardDoc[], footer: string) {
       y -= 2.5;
     });
     // the rules, right above the address
-    const rules = wrap(clean("Jen pro nové klienty – každý ji využije jen jednou. Po lekci se kartička sama znovu nabije."), regular, 6, lw);
+    const rules = wrap(clean("Jen pro nové klienty – každý ji využije jen jednou. Po lekcích se kartička sama znovu nabije."), regular, 6, lw);
     rules.forEach((l, i) => back.drawText(l, { x: lx, y: BLEED + 33 + 7.4 * (rules.length - 1 - i), size: 6, font: regular, color: MUTED }));
     const web = card.url.replace(/^https?:\/\/(www\.)?/, "");
     back.drawText(web, { x: lx, y: BLEED + 22, size: 6, font: bold, color: INK });

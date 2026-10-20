@@ -1,0 +1,1 @@
+ALTER TABLE "pass_cards" DROP COLUMN "charged";

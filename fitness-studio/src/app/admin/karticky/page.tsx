@@ -32,9 +32,10 @@ export default async function AdminPassCards() {
         </ActionForm>
       </AdminTitle>
       <p className="-mt-4 mb-8 max-w-3xl text-sm text-les/70">
-        Plastové kartičky s QR kódem putují od člověka k člověku. 🔋 Nabitá kartička dá novému klientovi místo úvodní lekce{" "}
-        <strong>lekci zdarma pro dva</strong> (on + kamarádka jako +1). Registrací se vybije ⚡ a po lekci se sama znovu nabije – pak ji
-        předá dál. Když vstup do 30 dní nevyužije, nabije se taky. O registraci, rezervaci i nabití ti přijde upozornění do mobilu.
+        Plastové kartičky s QR kódem putují od člověka k člověku. 🔋 Nabitá kartička má <strong>2 místa</strong> – pro dva nové klienty
+        (typicky kamarádky). Každý se přes ni zaregistruje, dostane místo úvodní lekce lekci zdarma a u rezervace ji zaplatí „Kartičkou Pošli
+        to dál“ (stávající klienti tu možnost nevidí). Když jsou obě místa obsazená, kartička se nabíjí ⚡ a po lekcích obou (nebo když jim
+        vstup propadne) se sama znovu nabije. O registraci, rezervaci i nabití ti přijde upozornění do mobilu.
         Zatím přes kartičky přišlo {pluralCs(people, "člověk", "lidi", "lidí")}. PDF je ve formátu platební karty 85,6 × 54 mm se spadávkou 3 mm.
       </p>
 
@@ -51,20 +52,16 @@ export default async function AdminPassCards() {
                 </a>
                 <p className="mt-2 flex flex-wrap gap-2">
                   {c.isActive ? <Badge tone="green">Ve hře</Badge> : <Badge tone="red">Mimo hru</Badge>}
-                  {c.charged ? <Badge tone="gold">🔋 Nabitá</Badge> : <Badge tone="neutral">⚡ Nabíjí se – čeká na lekci</Badge>}
+                  {c.placesLeft === 0 ? (
+                    <Badge tone="neutral">⚡ Nabíjí se – čeká na lekce</Badge>
+                  ) : (
+                    <Badge tone="gold">{c.placesLeft === 1 ? "🔋 Zbývá 1 místo" : "🔋 Nabitá – 2 místa"}</Badge>
+                  )}
                 </p>
               </div>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={dataUri(qrs[i])} alt={`QR kód ${c.label}`} className="h-24 w-24 shrink-0 rounded-lg" />
             </div>
-            <p className="text-sm">
-              Teď je u:{" "}
-              {c.holderId ? (
-                <Link href={`/admin/klienti/${c.holderId}`} className="font-semibold underline">{c.holderName}</Link>
-              ) : (
-                <span className="text-les/60">zatím ji nikdo nepoužil (u tebe nebo u prvního držitele)</span>
-              )}
-            </p>
             {c.chain.length > 0 && (
               <ol className="space-y-1 border-l-2 border-zlato/50 pl-4 text-sm">
                 {c.chain.map((u) => (
@@ -74,9 +71,9 @@ export default async function AdminPassCards() {
                     {u.fromName && <span className="text-les/60"> od {u.fromName}</span>}
                     <span className="block text-xs text-les/60">
                       {u.lesson
-                        ? `${u.lesson.endsAt <= now ? (u.lesson.status === "no_show" ? "nepřišla na" : "byla na") : "jde na"} ${u.lesson.name} ${formatDay(u.lesson.startsAt)} ${formatTime(u.lesson.startsAt)}${u.lesson.guestName ? ` + ${u.lesson.guestName}` : ""}`
+                        ? `${u.lesson.endsAt <= now ? (u.lesson.status === "no_show" ? "nedorazil/a na" : "byl/a na") : "jde na"} ${u.lesson.name} ${formatDay(u.lesson.startsAt)} ${formatTime(u.lesson.startsAt)}`
                         : u.rechargedAt
-                          ? "vstup nevyužila"
+                          ? "vstup nevyužil/a"
                           : "zatím bez rezervace"}
                       {u.rechargedAt && ` · kartička nabitá ${formatDate(u.rechargedAt)}`}
                     </span>
@@ -86,8 +83,8 @@ export default async function AdminPassCards() {
             )}
             <div className="mt-auto flex flex-wrap items-center gap-2">
               <a href={`/api/karticky?id=${c.id}`} className="text-xs font-semibold text-zeme underline">PDF k tisku</a>
-              {!c.charged && (
-                <ActionForm action={chargePassCardAction} confirm="Nabít kartičku hned? Normálně se nabije sama po lekci.">
+              {c.placesLeft < 2 && (
+                <ActionForm action={chargePassCardAction} confirm="Nabít kartičku hned na 2 místa? Normálně se nabije sama po lekcích.">
                   <input type="hidden" name="id" value={c.id} />
                   <SubmitButton variant="ghost" className="px-3 py-1.5 text-[0.65rem]">Nabít ručně</SubmitButton>
                 </ActionForm>

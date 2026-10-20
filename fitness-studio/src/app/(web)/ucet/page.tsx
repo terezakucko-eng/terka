@@ -28,7 +28,7 @@ import { getContent } from "@/content";
 import { feedLinks } from "@/lib/ics";
 import { CopyButton, ShareButton } from "@/components/copy-button";
 import { myReferrals } from "@/domain/referrals";
-import { cardHeldBy } from "@/domain/pass-cards";
+import { myPassCard } from "@/domain/pass-cards";
 import { VOUCHER_STATUS, boughtVouchers, formatVoucherCode, voucherStatus } from "@/domain/vouchers";
 import { redeemVoucherAction } from "@/app/actions/vouchers";
 import { getSettings } from "@/lib/settings";
@@ -76,7 +76,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
     // a switch to a higher membership (e.g. Členství Reformer) starts with the next unpaid month
     membershipSwitches(db, user.id, ents),
     includedSummary(db, ents),
-    cardHeldBy(db, user.id),
+    myPassCard(db, user.id),
   ]);
   // a limited one (Členství Reformer) says how many places are left
   const limited = [...switches.values()].flatMap(({ offer }) => (offer.maxActive !== null ? [offer.id] : []));
@@ -129,10 +129,10 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
         <p className="rounded-2xl bg-forest p-6 text-papir">
           <span className="text-gold text-xl font-semibold">Vítej v OCTOPUSH!</span>
           <br />
-          {passCard && !passCard.charged ? (
+          {passCard?.open ? (
             <>
-              Díky kartičce Pošli to dál máš na účtu lekci zdarma pro sebe a kamarádku – při rezervaci zvol +1.{" "}
-              <Link href="/rozvrh" className="underline">Vyber si lekci v rozvrhu →</Link>
+              Díky kartičce Pošli to dál máš na účtu lekci zdarma. Vyber si lekci a u rezervace zaplať <strong>Kartičkou Pošli to dál</strong>.{" "}
+              <Link href="/rozvrh" className="underline">Vybrat lekci v rozvrhu →</Link>
             </>
           ) : (
             <>
@@ -177,11 +177,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
                   <div>
                     <p className="font-semibold">{e.name} <Badge tone={e.kind === "free" ? "gold" : "green"}>{entitlementKindLabel[e.kind]}</Badge></p>
                     <p className="text-sm text-les/60">
-                      {e.pair
-                        ? "1 lekce pro tebe a kamarádku (při rezervaci zvol +1)"
-                        : e.entriesTotal === null
-                          ? "Neomezeně"
-                          : `Zbývá ${e.entriesTotal - e.entriesUsed} z ${e.entriesTotal}${e.kind === "solarium" ? " min" : ""}`}
+                      {e.entriesTotal === null ? "Neomezeně" : `Zbývá ${e.entriesTotal - e.entriesUsed} z ${e.entriesTotal}${e.kind === "solarium" ? " min" : ""}`}
                       {e.weeklyLimit ? ` · max ${e.weeklyLimit}× týdně` : ""}
                       {flexible.has(e.id)
                         ? e.renewalCancelled
@@ -408,12 +404,27 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
 
       {passCard && (
         <section id="posli-to-dal" className="rounded-2xl border border-zlato/50 bg-zlato/10 p-5">
-          <p className="font-semibold">💛 Kartička Pošli to dál je teď u tebe {passCard.charged ? "· 🔋 nabitá" : "· ⚡ nabíjí se"}</p>
-          <p className="mt-1 max-w-2xl text-sm text-les/70">
-            {passCard.charged
-              ? "Předej ji někomu, kdo u nás ještě nebyl a komu pohyb udělá radost. Naskenuje QR kód, zaregistruje se a přijde si zacvičit i s kamarádkou – zdarma. Pak ji zase pošle dál."
-              : "Nejdřív si ji užij ty: rezervuj si lekci a vezmi kamarádku (+1). Po lekci se kartička znovu nabije a předáš ji dál někomu dalšímu."}
+          <p className="font-semibold">
+            💛 Kartička Pošli to dál ·{" "}
+            {passCard.placesLeft === 0 ? "⚡ nabíjí se" : passCard.placesLeft === 1 ? "zbývá na ní 1 místo" : "🔋 nabitá"}
           </p>
+          <p className="mt-1 max-w-2xl text-sm text-les/70">
+            {passCard.placesLeft === 0
+              ? "Obě místa na kartičce jsou obsazená. Až budou obě lekce za vámi, kartička se sama znovu nabije a předáš ji dál."
+              : passCard.placesLeft === 1 && passCard.open
+                ? "Druhé místo je pro kamarádku: ať naskenuje kartičku, nebo jí pošli odkaz. Po registraci má lekci zdarma i ona – přijďte spolu. Když nikoho nemáš, předej kartičku dál někomu novému."
+                : "Kartička je nabitá – předej ji někomu, kdo u nás ještě nebyl. Naskenuje QR kód, zaregistruje se a lekci má zdarma, klidně i s kamarádkou."}
+          </p>
+          {passCard.placesLeft > 0 && (
+            <span className="mt-3 flex flex-wrap gap-2">
+              <ShareButton
+                url={`${site.url}/karticka/${passCard.code}`}
+                text="Pojď se mnou do OCTOPUSH – s kartičkou Pošli to dál máš lekci zdarma 🐙"
+                className="px-5 py-2.5"
+              />
+              <CopyButton text={`${site.url}/karticka/${passCard.code}`} className="px-5 py-2.5" />
+            </span>
+          )}
           <p className="mt-2 text-xs text-les/60">
             {passCard.label} už přivedla {pluralCs(passCard.people, "člověka", "lidi", "lidí")} 🐙
           </p>

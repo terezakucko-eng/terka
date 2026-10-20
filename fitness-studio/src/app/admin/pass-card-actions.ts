@@ -34,7 +34,7 @@ export async function chargePassCardAction(_: FormState, fd: FormData): Promise<
   await requireAdmin();
   const res = await attempt(async () => {
     await chargePassCard(await getDb(), field.str(fd, "id"));
-    return "Kartička je nabitá 🔋 – další člověk s ní dostane lekci pro dva.";
+    return "Kartička je nabitá 🔋 – zase má 2 místa.";
   });
   revalidatePath("/admin/karticky");
   return res;

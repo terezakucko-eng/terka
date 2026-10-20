@@ -277,7 +277,7 @@ export async function sendPassCardNotices(db: DB, now = new Date()) {
     await markSignUpAnnounced(db, r.use.id, now);
     await pushQuietly(db, admins, {
       title: `💛 ${r.label}: nová registrace`,
-      body: `${r.userName}${r.fromName ? ` (od ${r.fromName})` : ""} – kartička je vybitá, nabije se po lekci.`,
+      body: `${r.userName}${r.fromName ? ` (po ${r.fromName})` : ""} – ${r.placesLeft === 0 ? "kartička je plná, nabije se po lekcích" : "na kartičce zbývá 1 místo"}.`,
       url: `${site.url}/admin/klienti/${r.use.userId}`,
     });
     sent++;
@@ -286,23 +286,20 @@ export async function sendPassCardNotices(db: DB, now = new Date()) {
     await markBookingAnnounced(db, r.use.id, now);
     await pushQuietly(db, admins, {
       title: `📅 ${r.label}: rezervace přes kartičku`,
-      body: `${r.userName}${r.lesson.guestName ? ` + ${r.lesson.guestName}` : ""} – ${r.lesson.name} ${formatDay(r.lesson.startsAt)} v ${formatTime(r.lesson.startsAt)}`,
+      body: `${r.userName} – ${r.lesson.name} ${formatDay(r.lesson.startsAt)} v ${formatTime(r.lesson.startsAt)}`,
       url: `${site.url}/admin/rozvrh/${r.lesson.sessionId}`,
     });
     sent++;
   }
   for (const r of await dueRecharges(db, now)) {
     if (!(await recharge(db, r, now))) continue;
-    const what =
-      r.outcome === "came"
-        ? `${r.userName}${r.lesson?.guestName ? ` + ${r.lesson.guestName}` : ""} – po lekci`
-        : r.outcome === "no_show"
-          ? `${r.userName} na lekci nedorazil/a`
-          : `${r.userName} vstup pro dva nevyužil/a`;
-    await pushQuietly(db, admins, { title: `🔋 ${r.label} je zase nabitá`, body: `${what}. Kartička může putovat dál.`, url: `${site.url}/admin/karticky` });
-    if (!r.deletedAt) {
-      await sendEmail(r.email, "passCardCharged", { osloveni: greetName(r.userName), odkaz: `${site.url}/ucet#posli-to-dal` });
-      await pushQuietly(db, [r.use.userId], { title: "Kartička je zase nabitá 🔋", body: "Předej ji dál někomu, kdo u nás ještě nebyl 💛", url: `${site.url}/ucet#posli-to-dal` });
+    const who = r.uses
+      .map((u) => (u.outcome === "came" ? u.userName : u.outcome === "no_show" ? `${u.userName} (nedorazil/a)` : `${u.userName} (nevyužil/a)`))
+      .join(" a ");
+    await pushQuietly(db, admins, { title: `🔋 ${r.label} je zase nabitá`, body: `${who} – kartička má zase 2 místa a může putovat dál.`, url: `${site.url}/admin/karticky` });
+    for (const u of r.uses.filter((x) => !x.deletedAt)) {
+      await sendEmail(u.email, "passCardCharged", { osloveni: greetName(u.userName), odkaz: `${site.url}/ucet#posli-to-dal` });
+      await pushQuietly(db, [u.use.userId], { title: "Kartička je zase nabitá 🔋", body: "Kdo ji máte u sebe, předejte ji dál někomu novému 💛", url: `${site.url}/ucet#posli-to-dal` });
     }
     sent++;
   }

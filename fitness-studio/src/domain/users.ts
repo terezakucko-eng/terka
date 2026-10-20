@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import type { DB } from "@/db";
 import { entitlements, users } from "@/db/schema";
-import { PAIR_NAME, claimPassCard, linkPassEntitlement } from "@/domain/pass-cards";
+import { CARD_ENTRY_NAME, claimPassCard, linkPassEntitlement } from "@/domain/pass-cards";
 import { UserError } from "@/lib/errors";
 import { normalizePhone } from "@/lib/phone";
 import { cleanBirthDate } from "@/lib/profile";
@@ -11,7 +11,7 @@ const DAY = 86_400_000;
 
 export const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
-/** Creates a client account including the welcome free entry (a lesson for two with a Pošli to dál card). */
+/** Creates a client account including the welcome free entry (paid „Kartičkou Pošli to dál“ when she came with one). */
 export async function registerUser(
   db: DB,
   input: {
@@ -63,21 +63,20 @@ export async function registerUser(
     const validUntil = new Date(now.getTime() + cfg.welcomeFreeValidityDays * DAY);
     const card = input.passCard ? await claimPassCard(tx, input.passCard, user.id) : null;
     if (card) {
-      // instead of the welcome lesson: one lesson for her and a friend (+1)
-      const [pair] = await tx
+      // instead of the welcome lesson – the card's own, so its lesson charges the card again
+      const [free] = await tx
         .insert(entitlements)
         .values({
           userId: user.id,
           kind: "free",
-          name: PAIR_NAME,
-          entriesTotal: 2,
-          pair: true,
+          name: CARD_ENTRY_NAME,
+          entriesTotal: 1,
           validFrom: now,
           validUntil,
           note: `Přišla s kartičkou Pošli to dál (${card.label})`,
         })
         .returning();
-      await linkPassEntitlement(tx, card.useId, pair.id);
+      await linkPassEntitlement(tx, card.useId, free.id);
     } else if (cfg.welcomeFreeEntries > 0) {
       await tx.insert(entitlements).values({
         userId: user.id,

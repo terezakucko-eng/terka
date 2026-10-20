@@ -442,8 +442,6 @@ export const entitlements = pgTable(
     sameDayOnly: boolean("same_day_only").notNull().default(false),
     /** Jen na lekce začínající před touto hodinou (12 = ranní); null = kdykoli */
     beforeHour: integer("before_hour"),
-    /** Vstup pro 2 (Pošli to dál): jedna lekce pro klientku a kamarádku (+1), ne dva vstupy */
-    pair: boolean("pair").notNull().default(false),
     note: text("note"),
     createdAt: createdAt(),
   },
@@ -578,8 +576,9 @@ export const passCards = pgTable("pass_cards", {
   holderId: uuid("holder_id").references(() => users.id, { onDelete: "set null" }),
   /** ztracená nebo stažená kartička – registrace přes ni už nic nedá */
   isActive: boolean("is_active").notNull().default(true),
-  /** nabitá = dá vstup pro 2; vybije se registrací, znovu se nabije po lekci (nebo když vstup propadne) */
-  charged: boolean("charged").notNull().default(true),
+  /** volná místa: nabitá kartička má 2 (pro dva nové lidi), každá registrace jedno zabere;
+   *  prázdná se znovu nabije, až mají oba po lekci (nebo jim vstup propadne) */
+  placesLeft: integer("places_left").notNull().default(2),
   createdAt: createdAt(),
 });
 
@@ -598,7 +597,7 @@ export const passCardUses = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     /** kdo jí kartičku předal (držitel v tu chvíli) */
     fromUserId: uuid("from_user_id").references(() => users.id, { onDelete: "set null" }),
-    /** vstup pro 2, který s kartičkou dostala */
+    /** lekce zdarma, kterou s kartičkou dostala (platí „Kartičkou Pošli to dál“) */
     entitlementId: uuid("entitlement_id").references(() => entitlements.id, { onDelete: "set null" }),
     /** studio dostalo upozornění na registraci / na rezervaci lekce */
     registeredNotifiedAt: timestamp("registered_notified_at", { withTimezone: true }),

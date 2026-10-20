@@ -263,9 +263,9 @@ export const EMAILS = {
   },
   passCardCharged: {
     title: "Pošli to dál – kartička je zase nabitá",
-    when: "Po lekci, na kterou šel nový klient s kartičkou Pošli to dál (nebo když vstup propadl) – jemu, ať kartičku předá dál.",
+    when: "Když mají oba noví klienti z kartičky Pošli to dál lekci za sebou (nebo jim vstup propadl) – oběma, ať kartičku předají dál.",
     subject: "Kartička Pošli to dál je zase nabitá 🔋",
-    body: "Ahoj {{osloveni}},\n\nkartička Pošli to dál, kterou máš u sebe, je zase nabitá 🔋\nPředej ji někomu, kdo u nás ještě nebyl a komu pohyb udělá radost. Po naskenování QR kódu dostane lekci zdarma pro sebe a kamarádku.\n\nKolik lidí už kartička přivedla, uvidíš v účtu: {{odkaz}}\n\nDíky, že posíláš pohyb dál! 💛\nTvoje OCTOPUSH 🐙",
+    body: "Ahoj {{osloveni}},\n\nkartička Pošli to dál, se kterou jsi k nám přišel/přišla, je zase nabitá 🔋\nKdo z vás ji má u sebe, předejte ji někomu, kdo u nás ještě nebyl a komu pohyb udělá radost. Má na ní 2 místa – lekci zdarma pro sebe i kamarádku.\n\nKolik lidí už kartička přivedla, uvidíš v účtu: {{odkaz}}\n\nDíky, že posíláš pohyb dál! 💛\nTvoje OCTOPUSH 🐙",
     vars: {
       osloveni,
       odkaz: { label: "odkaz na účet", sample: `${site.url}/ucet#posli-to-dal` },
