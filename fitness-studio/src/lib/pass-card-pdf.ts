@@ -4,10 +4,9 @@ import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, rgb, setCharacterSpacing, type PDFFont, type PDFPage } from "pdf-lib";
 import QRCode from "qrcode";
 import sharp from "sharp";
-import { pluralCs } from "@/lib/money";
 import { nbsp } from "@/lib/typography";
 
-/** One printed Pošli to dál card: front with the octopus, back with the QR code. */
+/** One plastic Pošli to dál card: front with the octopus, back with the QR code. */
 export type PassCardDoc = { label: string; code: string; url: string };
 
 const png = (width: number) => (svg: Buffer) => sharp(svg, { density: 600 }).resize({ width }).png().toBuffer();
@@ -27,11 +26,11 @@ const MUTED = rgb(0.42, 0.435, 0.37);
 const GOLD = rgb(0.757, 0.6, 0.4);
 const GOLD_LIGHT = rgb(0.91, 0.78, 0.6);
 
-// a business card, 85 × 55 mm, with 3 mm bleed on every side for the print shop
+// a plastic card the size of a payment card (CR80, 85.6 × 54 mm) with 3 mm bleed on every side for the print shop
 const MM = 72 / 25.4;
 const BLEED = 3 * MM;
-const TW = 85 * MM;
-const TH = 55 * MM;
+const TW = 85.6 * MM;
+const TH = 54 * MM;
 const W = TW + 2 * BLEED;
 const H = TH + 2 * BLEED;
 
@@ -59,7 +58,7 @@ function wrap(text: string, font: PDFFont, size: number, width: number) {
 }
 
 /** All the cards in one PDF – front and back of each, in order. */
-export async function passCardsPdf(cards: PassCardDoc[], freeLessons: number, footer: string) {
+export async function passCardsPdf(cards: PassCardDoc[], footer: string) {
   const [regularBytes, boldBytes, scriptBytes, symbolPng, wordmarkPng] = await assets();
   const pdf = await PDFDocument.create();
   pdf.registerFontkit(fontkit);
@@ -92,8 +91,9 @@ export async function passCardsPdf(cards: PassCardDoc[], freeLessons: number, fo
     const title = "Pošli to dál";
     const titleSize = Math.min(32, (32 * room) / script.widthOfTextAtSize(title, 32));
     front.drawText(title, { x, y: H / 2 + 10, size: titleSize, font: script, color: GOLD });
-    const offer = `${pluralCs(freeLessons, "lekce", "lekce", "lekcí")} zdarma`.toUpperCase();
-    spaced(front, clean(offer), { x, y: H / 2 - 8, size: 9.5, font: bold, color: CREAM, spacing: 1.2 });
+    const offer = "LEKCE PRO DVA ZDARMA";
+    const offerSize = Math.min(9.5, (9.5 * room) / spacedWidth(offer, bold, 9.5, 1));
+    spaced(front, offer, { x, y: H / 2 - 8, size: offerSize, font: bold, color: CREAM, spacing: (1 * offerSize) / 9.5 });
     let y = H / 2 - 21;
     for (const l of wrap(clean("Kartička, která putuje od člověka k člověku."), regular, 7, room)) {
       front.drawText(l, { x, y, size: 7, font: regular, color: GOLD_LIGHT });
@@ -125,13 +125,7 @@ export async function passCardsPdf(cards: PassCardDoc[], freeLessons: number, fo
     const lx = BLEED + 16;
     const lw = qrX - lx - 10;
     spaced(back, "JAK NA TO", { x: lx, y: BLEED + TH - 24, size: 6.5, font: bold, color: GOLD, spacing: 1.4 });
-    const steps = [
-      "Naskenuj QR kód.",
-      // the offer stays on one line
-      `Zaregistruj se – ${`máš ${pluralCs(freeLessons, "lekci", "lekce", "lekcí")} zdarma.`.replace(/ /g, "\u00a0")}`,
-      "Přijď si zacvičit.",
-      "Kartičku pak předej dál.",
-    ];
+    const steps = ["Naskenuj QR kód a zaregistruj se.", "Máš lekci zdarma pro sebe a kamarádku.", "Přijďte si spolu zacvičit.", "Kartičku pak předej dál."];
     y = BLEED + TH - 37;
     steps.forEach((s, i) => {
       back.drawText(`${i + 1}`, { x: lx, y, size: 7.4, font: bold, color: GOLD });

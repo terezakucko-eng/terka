@@ -666,6 +666,13 @@
       "when": 1792440343060,
       "tag": "0094_pass_cards_seed",
       "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "7",
+      "when": 1792466822271,
+      "tag": "0095_pass_card_charge",
+      "breakpoints": true
     }
   ]
 }

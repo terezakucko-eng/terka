@@ -1,26 +1,25 @@
 import Link from "next/link";
-import { addPassCardAction, togglePassCardAction } from "@/app/admin/pass-card-actions";
+import { addPassCardAction, chargePassCardAction, togglePassCardAction } from "@/app/admin/pass-card-actions";
 import { AdminTitle } from "@/components/admin";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { Badge, Card } from "@/components/ui";
 import { site } from "@/config/site";
 import { getDb } from "@/db";
-import { lessonsFree, listPassCards } from "@/domain/pass-cards";
+import { listPassCards } from "@/domain/pass-cards";
 import { requireAdmin } from "@/lib/auth";
-import { formatDate } from "@/lib/dates";
+import { formatDate, formatDay, formatTime } from "@/lib/dates";
 import { pluralCs } from "@/lib/money";
 import { qrSvg } from "@/lib/qr-payment";
-import { getSettings } from "@/lib/settings";
 
 const dataUri = (svg: string) => `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 
 export default async function AdminPassCards() {
   await requireAdmin();
   const db = await getDb();
-  const [cards, cfg] = await Promise.all([listPassCards(db), getSettings(db)]);
+  const cards = await listPassCards(db);
+  const now = new Date();
   const qrs = await Promise.all(cards.map((c) => qrSvg(`${site.url}/karticka/${c.code}`)));
   const people = cards.reduce((n, c) => n + c.chain.length, 0);
-  const free = lessonsFree(Math.max(cfg.welcomeFreeEntries, cfg.passCardFreeEntries));
 
   return (
     <>
@@ -33,9 +32,10 @@ export default async function AdminPassCards() {
         </ActionForm>
       </AdminTitle>
       <p className="-mt-4 mb-8 max-w-3xl text-sm text-les/70">
-        Vytištěné kartičky s QR kódem putují od člověka k člověku. Kdo se přes kartičku zaregistruje, dostane {free} (počet změníš v{" "}
-        <Link href="/admin/nastaveni" className="underline">Nastavení</Link>) a kartička je pak u něj – předá ji dál. Zatím přes kartičky
-        přišlo {pluralCs(people, "člověk", "lidi", "lidí")}. PDF má spadávku 3 mm (vizitka 85 × 55 mm) – rovnou pro tiskárnu.
+        Plastové kartičky s QR kódem putují od člověka k člověku. 🔋 Nabitá kartička dá novému klientovi místo úvodní lekce{" "}
+        <strong>lekci zdarma pro dva</strong> (on + kamarádka jako +1). Registrací se vybije ⚡ a po lekci se sama znovu nabije – pak ji
+        předá dál. Když vstup do 30 dní nevyužije, nabije se taky. O registraci, rezervaci i nabití ti přijde upozornění do mobilu.
+        Zatím přes kartičky přišlo {pluralCs(people, "člověk", "lidi", "lidí")}. PDF je ve formátu platební karty 85,6 × 54 mm se spadávkou 3 mm.
       </p>
 
       <div className="grid gap-5 lg:grid-cols-2">
@@ -49,7 +49,10 @@ export default async function AdminPassCards() {
                 <a href={`/karticka/${c.code}`} target="_blank" className="break-all text-xs text-zeme underline">
                   {site.url.replace(/^https?:\/\//, "")}/karticka/{c.code}
                 </a>
-                <p className="mt-2">{c.isActive ? <Badge tone="green">Ve hře</Badge> : <Badge tone="red">Mimo hru</Badge>}</p>
+                <p className="mt-2 flex flex-wrap gap-2">
+                  {c.isActive ? <Badge tone="green">Ve hře</Badge> : <Badge tone="red">Mimo hru</Badge>}
+                  {c.charged ? <Badge tone="gold">🔋 Nabitá</Badge> : <Badge tone="neutral">⚡ Nabíjí se – čeká na lekci</Badge>}
+                </p>
               </div>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={dataUri(qrs[i])} alt={`QR kód ${c.label}`} className="h-24 w-24 shrink-0 rounded-lg" />
@@ -69,12 +72,26 @@ export default async function AdminPassCards() {
                     <span className="text-les/50">{formatDate(u.at)}</span>{" "}
                     <Link href={`/admin/klienti/${u.userId}`} className="font-semibold underline">{u.name}</Link>
                     {u.fromName && <span className="text-les/60"> od {u.fromName}</span>}
+                    <span className="block text-xs text-les/60">
+                      {u.lesson
+                        ? `${u.lesson.endsAt <= now ? (u.lesson.status === "no_show" ? "nepřišla na" : "byla na") : "jde na"} ${u.lesson.name} ${formatDay(u.lesson.startsAt)} ${formatTime(u.lesson.startsAt)}${u.lesson.guestName ? ` + ${u.lesson.guestName}` : ""}`
+                        : u.rechargedAt
+                          ? "vstup nevyužila"
+                          : "zatím bez rezervace"}
+                      {u.rechargedAt && ` · kartička nabitá ${formatDate(u.rechargedAt)}`}
+                    </span>
                   </li>
                 ))}
               </ol>
             )}
             <div className="mt-auto flex flex-wrap items-center gap-2">
               <a href={`/api/karticky?id=${c.id}`} className="text-xs font-semibold text-zeme underline">PDF k tisku</a>
+              {!c.charged && (
+                <ActionForm action={chargePassCardAction} confirm="Nabít kartičku hned? Normálně se nabije sama po lekci.">
+                  <input type="hidden" name="id" value={c.id} />
+                  <SubmitButton variant="ghost" className="px-3 py-1.5 text-[0.65rem]">Nabít ručně</SubmitButton>
+                </ActionForm>
+              )}
               <ActionForm
                 action={togglePassCardAction}
                 confirm={c.isActive ? "Vyřadit kartičku ze hry? Registrace přes ni pak lekce navíc nedá." : undefined}

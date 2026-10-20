@@ -5,7 +5,7 @@ import { formatDay, formatTime } from "@/lib/dates";
 import { sendEmail } from "@/lib/email-templates";
 import { greetName } from "@/lib/vocative";
 import { pushQuietly } from "@/lib/push";
-import { fillReleasedPlaces, sendGreetings, sendReferralThanks, sendVoucherReady, sendWinbacks } from "@/lib/notify";
+import { fillReleasedPlaces, sendGreetings, sendPassCardNotices, sendReferralThanks, sendVoucherReady, sendWinbacks } from "@/lib/notify";
 import { pragueHour } from "@/lib/dates";
 
 export const maxDuration = 60;
@@ -15,7 +15,8 @@ export const maxDuration = 60;
  * or massage starting within the next REMINDER_HOURS. Each booking is reminded only once.
  * From 9:00 (Prague) it also sends the birthday / name-day wishes, from 10:00 „Chybíš nám“ –
  * each once, so the first run of the day does it and the later ones find nothing. Places held
- * for non-members go to the waitlist once they're released.
+ * for non-members go to the waitlist once they're released. Pošli to dál cards charge again after
+ * their lesson, and the studio hears about sign-ups and bookings with them (not at night).
  */
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
@@ -63,5 +64,6 @@ export async function GET(req: Request) {
   const referralThanks = hour >= 8 && hour < 21 ? await sendReferralThanks(db, now) : 0;
   const vouchersReady = await sendVoucherReady(db, now);
   const releasedPlaces = await fillReleasedPlaces(db, now);
-  return Response.json({ classes: done.classes.length, massages: done.massages.length, greetings, winbacks, referralThanks, vouchersReady, releasedPlaces });
+  const passCards = hour >= 7 && hour < 22 ? await sendPassCardNotices(db, now) : 0;
+  return Response.json({ classes: done.classes.length, massages: done.massages.length, greetings, winbacks, referralThanks, vouchersReady, releasedPlaces, passCards });
 }

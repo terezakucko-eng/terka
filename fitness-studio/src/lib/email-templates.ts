@@ -261,6 +261,16 @@ export const EMAILS = {
       odkaz: { label: "odkaz na rozvrh", sample: `${site.url}/rozvrh` },
     },
   },
+  passCardCharged: {
+    title: "Pošli to dál – kartička je zase nabitá",
+    when: "Po lekci, na kterou šel nový klient s kartičkou Pošli to dál (nebo když vstup propadl) – jemu, ať kartičku předá dál.",
+    subject: "Kartička Pošli to dál je zase nabitá 🔋",
+    body: "Ahoj {{osloveni}},\n\nkartička Pošli to dál, kterou máš u sebe, je zase nabitá 🔋\nPředej ji někomu, kdo u nás ještě nebyl a komu pohyb udělá radost. Po naskenování QR kódu dostane lekci zdarma pro sebe a kamarádku.\n\nKolik lidí už kartička přivedla, uvidíš v účtu: {{odkaz}}\n\nDíky, že posíláš pohyb dál! 💛\nTvoje OCTOPUSH 🐙",
+    vars: {
+      osloveni,
+      odkaz: { label: "odkaz na účet", sample: `${site.url}/ucet#posli-to-dal` },
+    },
+  },
   voucherReady: {
     title: "Dárkový poukaz zaplacen",
     when: "Když je dárkový poukaz koupený na webu zaplacený (do čtvrt hodiny).",

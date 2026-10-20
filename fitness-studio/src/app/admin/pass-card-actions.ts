@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
-import { addPassCard, setPassCardActive } from "@/domain/pass-cards";
+import { addPassCard, chargePassCard, setPassCardActive } from "@/domain/pass-cards";
 import { requireAdmin } from "@/lib/auth";
 import { attempt, field, type FormState } from "@/lib/form";
 
@@ -24,6 +24,17 @@ export async function togglePassCardAction(_: FormState, fd: FormData): Promise<
   const res = await attempt(async () => {
     await setPassCardActive(await getDb(), field.str(fd, "id"), active);
     return active ? "Kartička je zase ve hře." : "Kartička je mimo hru – registrace přes ni už lekce navíc nedá.";
+  });
+  revalidatePath("/admin/karticky");
+  return res;
+}
+
+/** Charge a card by hand (normally it charges itself after the lesson). */
+export async function chargePassCardAction(_: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  const res = await attempt(async () => {
+    await chargePassCard(await getDb(), field.str(fd, "id"));
+    return "Kartička je nabitá 🔋 – další člověk s ní dostane lekci pro dva.";
   });
   revalidatePath("/admin/karticky");
   return res;

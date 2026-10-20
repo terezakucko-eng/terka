@@ -12,7 +12,7 @@ import { HONEYPOT, STAMP, formStamp } from "@/lib/bot-guard";
 import { turnstileSiteKey } from "@/lib/turnstile";
 import { TurnstileWidget } from "@/components/turnstile";
 import { referrerByCode } from "@/domain/referrals";
-import { lessonsFree, passCardByCode } from "@/domain/pass-cards";
+import { passCardByCode } from "@/domain/pass-cards";
 
 export const metadata: Metadata = { title: "Registrace" };
 
@@ -27,8 +27,8 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registr
     code ? referrerByCode(db, code) : null,
     cardCode ? passCardByCode(db, cardCode) : null,
   ]);
-  // a Pošli to dál card that is still in the game
-  const card = found?.isActive ? found : null;
+  // a charged Pošli to dál card that is still in the game
+  const card = found?.isActive && found.charged ? found : null;
   const turnstileKey = turnstileSiteKey();
   return (
     <>
@@ -45,8 +45,7 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registr
       {card && (
         <p className="mt-4 rounded-2xl bg-zlato/15 p-4 text-sm">
           💛 Přicházíš s kartičkou <strong>Pošli to dál</strong>
-          {card.holder && <> od <strong>{card.holder}</strong></>}. Po registraci máš u nás{" "}
-          <strong>{lessonsFree(Math.max(cfg.welcomeFreeEntries, cfg.passCardFreeEntries))}</strong>.
+          {card.holder && <> od <strong>{card.holder}</strong></>}. Po registraci máš u nás <strong>lekci zdarma pro sebe a kamarádku</strong>.
         </p>
       )}
       <ActionForm action={registerAction} className="mt-8 space-y-4">

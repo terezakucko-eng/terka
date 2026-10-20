@@ -15,6 +15,7 @@ import { sendMail } from "./mail";
 import { WISH_KINDS } from "@/domain/wishes";
 import { dueGreetings, dueWinbacks, greetBirthday, markNameDay, markWinback } from "@/domain/greetings";
 import { markAnnounced, unannouncedRewards } from "@/domain/referrals";
+import { dueRecharges, markBookingAnnounced, markSignUpAnnounced, recharge, unannouncedBookings, unannouncedSignUps } from "@/domain/pass-cards";
 import { formatVoucherCode, markVoucherNotified, unnotifiedVouchers } from "@/domain/vouchers";
 import { displayName } from "./profile";
 import { fillFromWaitlist, releasedHoldsWithWaitlist } from "@/domain/booking";
@@ -260,6 +261,49 @@ export async function sendReferralThanks(db: DB, now = new Date()) {
       odkaz: `${site.url}/rozvrh`,
     });
     await pushQuietly(db, [who.id], { title: "Díky za pozvání! 💛", body: "Na účtu máš lekci zdarma.", url: `${site.url}/ucet` });
+    sent++;
+  }
+  return sent;
+}
+
+/**
+ * Pošli to dál: the studio hears about every sign-up and every lesson booked with a card, and the
+ * cards charge again once the lesson is over (or the entry ran out) – the holder is told to pass it on.
+ */
+export async function sendPassCardNotices(db: DB, now = new Date()) {
+  const admins = (await db.select({ id: users.id }).from(users).where(eq(users.role, "admin"))).map((a) => a.id);
+  let sent = 0;
+  for (const r of await unannouncedSignUps(db)) {
+    await markSignUpAnnounced(db, r.use.id, now);
+    await pushQuietly(db, admins, {
+      title: `💛 ${r.label}: nová registrace`,
+      body: `${r.userName}${r.fromName ? ` (od ${r.fromName})` : ""} – kartička je vybitá, nabije se po lekci.`,
+      url: `${site.url}/admin/klienti/${r.use.userId}`,
+    });
+    sent++;
+  }
+  for (const r of await unannouncedBookings(db)) {
+    await markBookingAnnounced(db, r.use.id, now);
+    await pushQuietly(db, admins, {
+      title: `📅 ${r.label}: rezervace přes kartičku`,
+      body: `${r.userName}${r.lesson.guestName ? ` + ${r.lesson.guestName}` : ""} – ${r.lesson.name} ${formatDay(r.lesson.startsAt)} v ${formatTime(r.lesson.startsAt)}`,
+      url: `${site.url}/admin/rozvrh/${r.lesson.sessionId}`,
+    });
+    sent++;
+  }
+  for (const r of await dueRecharges(db, now)) {
+    if (!(await recharge(db, r, now))) continue;
+    const what =
+      r.outcome === "came"
+        ? `${r.userName}${r.lesson?.guestName ? ` + ${r.lesson.guestName}` : ""} – po lekci`
+        : r.outcome === "no_show"
+          ? `${r.userName} na lekci nedorazil/a`
+          : `${r.userName} vstup pro dva nevyužil/a`;
+    await pushQuietly(db, admins, { title: `🔋 ${r.label} je zase nabitá`, body: `${what}. Kartička může putovat dál.`, url: `${site.url}/admin/karticky` });
+    if (!r.deletedAt) {
+      await sendEmail(r.email, "passCardCharged", { osloveni: greetName(r.userName), odkaz: `${site.url}/ucet#posli-to-dal` });
+      await pushQuietly(db, [r.use.userId], { title: "Kartička je zase nabitá 🔋", body: "Předej ji dál někomu, kdo u nás ještě nebyl 💛", url: `${site.url}/ucet#posli-to-dal` });
+    }
     sent++;
   }
   return sent;

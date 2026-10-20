@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import { ButtonLink, Container, Eyebrow } from "@/components/ui";
 import { getDb } from "@/db";
-import { lessonsFree, passCardByCode } from "@/domain/pass-cards";
+import { passCardByCode } from "@/domain/pass-cards";
 import { getCurrentUser } from "@/lib/auth";
 import { pluralCs } from "@/lib/money";
 import { getSettings } from "@/lib/settings";
 
 export const metadata: Metadata = {
   title: "Pošli to dál",
-  description: "Kartička, která putuje od člověka k člověku – s ní máš v OCTOPUSH lekce zdarma.",
+  description: "Kartička, která putuje od člověka k člověku – s ní máš v OCTOPUSH lekci zdarma pro sebe a kamarádku.",
   robots: { index: false },
 };
 
@@ -17,7 +17,27 @@ export default async function PassCardPage({ params }: PageProps<"/karticka/[cod
   const { code } = await params;
   const db = await getDb();
   const [card, user, cfg] = await Promise.all([passCardByCode(db, code), getCurrentUser(), getSettings(db)]);
-  const free = lessonsFree(Math.max(cfg.welcomeFreeEntries, cfg.passCardFreeEntries));
+  if (card?.isActive && !card.charged) {
+    // somebody signed up with it and hasn't been to the lesson yet – a shared photo of the QR gets nobody anything
+    return (
+      <section className="bg-forest text-papir">
+        <Container className="max-w-2xl py-20 text-center">
+          <p className="text-6xl">⚡</p>
+          <Eyebrow className="mt-6 text-zlato">Pošli to dál</Eyebrow>
+          <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">Kartička se právě nabíjí</h1>
+          <p className="mx-auto mt-6 max-w-lg text-lg text-papir/80">
+            {card.holder ? `Teď ji má ${card.holder} a` : "Někdo ji právě využil a"} nabije se, až bude po lekci. Pak ji můžeš dostat ty 💛
+          </p>
+          <p className="mx-auto mt-4 max-w-lg text-papir/70">
+            {cfg.welcomeFreeEntries > 0 ? "Nechceš čekat? První lekce je u nás pro nové zdarma i bez kartičky." : "Nechceš čekat? Stačí se zaregistrovat a vybrat si lekci."}
+          </p>
+          <div className="mt-10 flex flex-wrap justify-center gap-3">
+            <ButtonLink href={user ? "/rozvrh" : "/registrace"} variant="gold">{user ? "Vybrat lekci" : "Zaregistrovat se"}</ButtonLink>
+          </div>
+        </Container>
+      </section>
+    );
+  }
 
   if (!card?.isActive) {
     return (
@@ -54,7 +74,8 @@ export default async function PassCardPage({ params }: PageProps<"/karticka/[cod
           )}
         </h1>
         <p className="mx-auto mt-6 max-w-lg text-lg text-papir/80">
-          S ní máš v OCTOPUSH <strong className="text-zlato-light">{free}</strong>. Zaregistruj se, vyber si lekci v rozvrhu a přijď si zacvičit.
+          🔋 Kartička je nabitá: máš s ní v OCTOPUSH <strong className="text-zlato-light">lekci zdarma pro sebe a kamarádku</strong>. Zaregistruj
+          se, vyber si lekci v rozvrhu a přidej kamarádku (+1).
         </p>
         {card.people > 0 && (
           <p className="mt-4 text-sm text-papir/60">
@@ -63,7 +84,7 @@ export default async function PassCardPage({ params }: PageProps<"/karticka/[cod
         )}
 
         <ol className="mx-auto mt-10 grid max-w-xl gap-3 text-left sm:grid-cols-3">
-          {["Zaregistruj se – lekce zdarma máš hned na účtu", "Vyber si lekci v rozvrhu a přijď", "Kartičku pak předej někomu dalšímu"].map((s, i) => (
+          {["Zaregistruj se – lekci pro dva máš hned na účtu", "Vyber si lekci a vezmi kamarádku (+1)", "Po lekci se kartička nabije – předej ji dál"].map((s, i) => (
             <li key={s} className="rounded-2xl border border-zlato/30 p-4 text-sm text-papir/80">
               <span className="block font-serif text-2xl text-zlato">{i + 1}.</span>
               {s}

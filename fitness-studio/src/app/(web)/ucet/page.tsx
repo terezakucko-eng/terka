@@ -28,7 +28,7 @@ import { getContent } from "@/content";
 import { feedLinks } from "@/lib/ics";
 import { CopyButton, ShareButton } from "@/components/copy-button";
 import { myReferrals } from "@/domain/referrals";
-import { cardHeldBy, lessonsFree } from "@/domain/pass-cards";
+import { cardHeldBy } from "@/domain/pass-cards";
 import { VOUCHER_STATUS, boughtVouchers, formatVoucherCode, voucherStatus } from "@/domain/vouchers";
 import { redeemVoucherAction } from "@/app/actions/vouchers";
 import { getSettings } from "@/lib/settings";
@@ -129,9 +129,9 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
         <p className="rounded-2xl bg-forest p-6 text-papir">
           <span className="text-gold text-xl font-semibold">Vítej v OCTOPUSH!</span>
           <br />
-          {passCard && cfg.passCardFreeEntries > 1 ? (
+          {passCard && !passCard.charged ? (
             <>
-              Díky kartičce Pošli to dál máš na účtu {lessonsFree(Math.max(cfg.welcomeFreeEntries, cfg.passCardFreeEntries))}.{" "}
+              Díky kartičce Pošli to dál máš na účtu lekci zdarma pro sebe a kamarádku – při rezervaci zvol +1.{" "}
               <Link href="/rozvrh" className="underline">Vyber si lekci v rozvrhu →</Link>
             </>
           ) : (
@@ -177,7 +177,11 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
                   <div>
                     <p className="font-semibold">{e.name} <Badge tone={e.kind === "free" ? "gold" : "green"}>{entitlementKindLabel[e.kind]}</Badge></p>
                     <p className="text-sm text-les/60">
-                      {e.entriesTotal === null ? "Neomezeně" : `Zbývá ${e.entriesTotal - e.entriesUsed} z ${e.entriesTotal}${e.kind === "solarium" ? " min" : ""}`}
+                      {e.pair
+                        ? "1 lekce pro tebe a kamarádku (při rezervaci zvol +1)"
+                        : e.entriesTotal === null
+                          ? "Neomezeně"
+                          : `Zbývá ${e.entriesTotal - e.entriesUsed} z ${e.entriesTotal}${e.kind === "solarium" ? " min" : ""}`}
                       {e.weeklyLimit ? ` · max ${e.weeklyLimit}× týdně` : ""}
                       {flexible.has(e.id)
                         ? e.renewalCancelled
@@ -404,10 +408,11 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
 
       {passCard && (
         <section id="posli-to-dal" className="rounded-2xl border border-zlato/50 bg-zlato/10 p-5">
-          <p className="font-semibold">💛 Kartička Pošli to dál je teď u tebe</p>
+          <p className="font-semibold">💛 Kartička Pošli to dál je teď u tebe {passCard.charged ? "· 🔋 nabitá" : "· ⚡ nabíjí se"}</p>
           <p className="mt-1 max-w-2xl text-sm text-les/70">
-            Předej ji někomu, kdo u nás ještě nebyl a komu pohyb udělá radost. Naskenuje QR kód, zaregistruje se a dostane{" "}
-            {lessonsFree(Math.max(cfg.welcomeFreeEntries, cfg.passCardFreeEntries))}. Pak ji zase pošle dál.
+            {passCard.charged
+              ? "Předej ji někomu, kdo u nás ještě nebyl a komu pohyb udělá radost. Naskenuje QR kód, zaregistruje se a přijde si zacvičit i s kamarádkou – zdarma. Pak ji zase pošle dál."
+              : "Nejdřív si ji užij ty: rezervuj si lekci a vezmi kamarádku (+1). Po lekci se kartička znovu nabije a předáš ji dál někomu dalšímu."}
           </p>
           <p className="mt-2 text-xs text-les/60">
             {passCard.label} už přivedla {pluralCs(passCard.people, "člověka", "lidi", "lidí")} 🐙

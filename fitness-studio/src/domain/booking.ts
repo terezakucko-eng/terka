@@ -498,8 +498,12 @@ function surchargeFor(method: Method, rules: ClassRules, s: Pick<ClassSession, "
   return 0;
 }
 
-/** Entries a booking takes from this entitlement: passes may cost more (Reformer = 2), a friend doubles it (free entries too). */
-function entriesFor(e: Pick<Entitlement, "kind">, rules: Pick<ClassRules, "passEntries">, seats = 1) {
+/**
+ * Entries a booking takes from this entitlement: passes may cost more (Reformer = 2), a friend doubles it (free entries too).
+ * An entry for two (Pošli to dál) is one lesson: it's used up whole, with the friend or without.
+ */
+function entriesFor(e: Pick<Entitlement, "kind" | "pair">, rules: Pick<ClassRules, "passEntries">, seats = 1) {
+  if (e.pair) return 2;
   return (e.kind === "pass" ? Math.max(1, rules.passEntries) : 1) * seats;
 }
 
@@ -621,8 +625,11 @@ export async function bookingOptions(
   for (const e of classEnts) {
     const problem = await entitlementProblem(tx, e, s, seats, now);
     const need = entriesFor(e, rules, seats);
-    const left =
-      e.entriesTotal === null
+    const left = e.pair
+      ? seats > 1
+        ? "lekce zdarma pro tebe i kamarádku"
+        : "lekce pro dva – vezmi kamarádku (volba +1), jinak se vstup využije jen pro tebe"
+      : e.entriesTotal === null
         ? "neomezeně"
         : `zbývá ${e.entriesTotal - e.entriesUsed} z ${e.entriesTotal}` +
           (need > 1 ? ` · strhnou se ${need} vstupy` : "");
