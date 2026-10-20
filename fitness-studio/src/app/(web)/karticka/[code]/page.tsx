@@ -91,6 +91,7 @@ export default async function PassCardPage({ params }: PageProps<"/karticka/[cod
             </li>
           ))}
         </ol>
+        <p className="mt-4 text-xs text-papir/60">Kartička platí jen pro nové klienty – každý ji může využít jen jednou.</p>
 
         {user ? (
           <div className="mt-10">

@@ -45,7 +45,7 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registr
       {card && (
         <p className="mt-4 rounded-2xl bg-zlato/15 p-4 text-sm">
           💛 Přicházíš s kartičkou <strong>Pošli to dál</strong>
-          {card.holder && <> od <strong>{card.holder}</strong></>}. Po registraci máš u nás <strong>lekci zdarma pro sebe a kamarádku</strong>.
+          {card.holder && <> od <strong>{card.holder}</strong></>}. Po registraci máš u nás <strong>lekci zdarma pro sebe a kamarádku</strong> – jednu, kartička se dá využít jen jednou.
         </p>
       )}
       <ActionForm action={registerAction} className="mt-8 space-y-4">

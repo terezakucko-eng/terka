@@ -135,6 +135,9 @@ export async function passCardsPdf(cards: PassCardDoc[], footer: string) {
       }
       y -= 2.5;
     });
+    // the rules, right above the address
+    const rules = wrap(clean("Jen pro nové klienty – každý ji využije jen jednou. Po lekci se kartička sama znovu nabije."), regular, 6, lw);
+    rules.forEach((l, i) => back.drawText(l, { x: lx, y: BLEED + 33 + 7.4 * (rules.length - 1 - i), size: 6, font: regular, color: MUTED }));
     const web = card.url.replace(/^https?:\/\/(www\.)?/, "");
     back.drawText(web, { x: lx, y: BLEED + 22, size: 6, font: bold, color: INK });
     back.drawText(clean(footer), { x: lx, y: BLEED + 13, size: 5.2, font: regular, color: MUTED });

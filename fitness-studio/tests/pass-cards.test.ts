@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { eq, sql } from "drizzle-orm";
 import { PDFDocument } from "pdf-lib";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { bookings, entitlements, passCards } from "@/db/schema";
+import { bookings, entitlements, passCardUses, passCards } from "@/db/schema";
 import { bookSession, cancelBooking } from "@/domain/booking";
 import {
   PAIR_NAME,
@@ -109,6 +109,20 @@ describe("Pošli to dál – a plastic card that charges itself again", () => {
     const later = new Date(pair.validUntil.getTime() + 60_000);
     const due = (await dueRecharges(h.db, later)).filter((r) => r.use.userId === alone.id);
     expect(due.map((r) => r.outcome)).toEqual(["unused"]);
+  });
+
+  it("in the account it's one lesson only – a second booking with it is refused, and nobody comes on a card twice", async () => {
+    const c = await addPassCard(h.db);
+    const u = await signUp("Hana Jednou", c.code);
+    const [pair] = await mine(u.id);
+    const s1 = await makeSession(h.db, { capacity: 10, startsAt: hours(26) });
+    const s2 = await makeSession(h.db, { capacity: 10, startsAt: hours(28) });
+    await bookSession(h.db, { userId: u.id, sessionId: s1.id, method: "free", entitlementId: pair.id, guestName: "Petra" }, NOW);
+    for (const guestName of [undefined, "Jana"])
+      await expect(bookSession(h.db, { userId: u.id, sessionId: s2.id, method: "free", entitlementId: pair.id, guestName }, NOW)).rejects.toThrow(
+        "Vyčerpané vstupy",
+      );
+    await expect(h.db.insert(passCardUses).values({ cardId: c.id, userId: u.id })).rejects.toThrow();
   });
 
   it("a card out of the game or a made-up code is an ordinary sign-up; the studio can charge a card by hand", async () => {
