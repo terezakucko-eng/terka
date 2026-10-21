@@ -125,18 +125,18 @@ export async function passCardsPdf(cards: PassCardDoc[], footer: string) {
     const lx = BLEED + 16;
     const lw = qrX - lx - 10;
     spaced(back, "JAK NA TO", { x: lx, y: BLEED + TH - 24, size: 6.5, font: bold, color: GOLD, spacing: 1.4 });
-    const steps = ["Naskenuj QR kód a zaregistruj se.", "Kamarádka taky – kartička má 2 místa.", "Zaplaťte lekci Kartičkou Pošli\u00a0to\u00a0dál.", "Kartičku hned předej dál."];
+    const steps = ["Naskenuj QR kód a zaregistruj se.", "Kartička má 2 místa – udělej někomu radost a vezmi ho s sebou.", "Lekci si rezervuješ online, web tě povede.", "Kartičku hned předej dál."];
     y = BLEED + TH - 37;
     steps.forEach((s, i) => {
-      back.drawText(`${i + 1}`, { x: lx, y, size: 7.4, font: bold, color: GOLD });
-      for (const l of wrap(clean(s), i === 3 ? bold : regular, 7.4, lw - 9)) {
-        back.drawText(l, { x: lx + 9, y, size: 7.4, font: i === 3 ? bold : regular, color: INK });
-        y -= 9.5;
+      back.drawText(`${i + 1}`, { x: lx, y, size: 7, font: bold, color: GOLD });
+      for (const l of wrap(clean(s), i === 3 ? bold : regular, 7, lw - 9)) {
+        back.drawText(l, { x: lx + 9, y, size: 7, font: i === 3 ? bold : regular, color: INK });
+        y -= 8.8;
       }
-      y -= 2.5;
+      y -= 2;
     });
     // the rules, right above the address
-    const rules = wrap(clean("Jen pro nové klienty – každý ji využije jen jednou. Lekce zdarma platí 14 dní od registrace."), regular, 6, lw);
+    const rules = wrap(clean("Jen pro nové klienty, každý jen jednou. Lekce platí 14 dní od registrace."), regular, 6, lw);
     rules.forEach((l, i) => back.drawText(l, { x: lx, y: BLEED + 33 + 7.4 * (rules.length - 1 - i), size: 6, font: regular, color: MUTED }));
     const web = card.url.replace(/^https?:\/\/(www\.)?/, "");
     back.drawText(web, { x: lx, y: BLEED + 22, size: 6, font: bold, color: INK });
