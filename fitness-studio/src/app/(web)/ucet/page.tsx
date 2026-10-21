@@ -405,25 +405,32 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
 
       {passCard && (
         <section id="posli-to-dal" className="rounded-2xl border border-zlato/50 bg-zlato/10 p-5">
-          <p className="font-semibold">💛 Kartička Pošli to dál · {passCard.canComeAlone ? "zbývá na ní 1 místo" : "🔋 nabitá"}</p>
-          <p className="mt-1 max-w-2xl text-sm text-les/70">
-            {passCard.canComeAlone
-              ? "Druhé místo je pro kamarádku: ať naskenuje kartičku, nebo jí pošli odkaz. Po registraci má lekci zdarma i ona – přijďte spolu. Jdeš sama? Klikni na Přijdu sama a kartičku předej dál – další ji dostane i s oběma místy."
-              : "Kartička je nabitá – předej ji někomu, kdo u nás ještě nebyl. Naskenuje QR kód, zaregistruje se a lekci má zdarma, klidně i s kamarádkou."}
+          <p className="font-semibold">
+            💛 Kartička Pošli to dál · {passCard.expired ? "⌛ propadla" : passCard.canComeAlone ? "zbývá na ní 1 místo" : "🔋 nabitá"}
           </p>
-          <span className="mt-3 flex flex-wrap gap-2">
-            <ShareButton
-              url={`${site.url}/karticka/${passCard.code}`}
-              text="Pojď se mnou do OCTOPUSH – s kartičkou Pošli to dál máš lekci zdarma 🐙"
-              className="px-5 py-2.5"
-            />
-            <CopyButton text={`${site.url}/karticka/${passCard.code}`} className="px-5 py-2.5" />
-            {passCard.canComeAlone && (
-              <ActionForm action={comeAloneAction}>
-                <SubmitButton variant="outline" className="px-5 py-2.5">Přijdu sama</SubmitButton>
-              </ActionForm>
-            )}
-          </span>
+          <p className="mt-1 max-w-2xl text-sm text-les/70">
+            {passCard.expired
+              ? "Měsíc ji nikdo nevyužil, tak propadla. Díky, že pomáháš posílat pohyb dál 💛"
+              : passCard.canComeAlone
+                ? "Druhé místo je pro kamarádku: ať naskenuje kartičku, nebo jí pošli odkaz. Po registraci má lekci zdarma i ona – přijďte spolu. Jdeš sama? Klikni na Přijdu sama a kartičku předej dál – další ji dostane i s oběma místy."
+                : "Kartička je nabitá – předej ji někomu, kdo u nás ještě nebyl. Naskenuje QR kód, zaregistruje se a lekci má zdarma, klidně i s kamarádkou."}
+            {!passCard.expired && passCard.validUntil && ` Platí do ${formatDate(passCard.validUntil)}, pak propadne.`}
+          </p>
+          {!passCard.expired && (
+            <span className="mt-3 flex flex-wrap gap-2">
+              <ShareButton
+                url={`${site.url}/karticka/${passCard.code}`}
+                text="Pojď se mnou do OCTOPUSH – s kartičkou Pošli to dál máš lekci zdarma 🐙"
+                className="px-5 py-2.5"
+              />
+              <CopyButton text={`${site.url}/karticka/${passCard.code}`} className="px-5 py-2.5" />
+              {passCard.canComeAlone && (
+                <ActionForm action={comeAloneAction}>
+                  <SubmitButton variant="outline" className="px-5 py-2.5">Přijdu sama</SubmitButton>
+                </ActionForm>
+              )}
+            </span>
+          )}
           <p className="mt-2 text-xs text-les/60">
             {passCard.label} už rozhýbala {pluralCs(passCard.people, "chobotničku", "chobotničky", "chobotniček")} 🐙
           </p>

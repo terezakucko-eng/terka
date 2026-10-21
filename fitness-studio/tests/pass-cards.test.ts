@@ -7,6 +7,7 @@ import { bookSession, bookingOptions } from "@/domain/booking";
 import {
   CARD_ENTRY_DAYS,
   CARD_ENTRY_NAME,
+  CARD_VALID_DAYS,
   addPassCard,
   chargePassCard,
   comeAlone,
@@ -16,8 +17,11 @@ import {
   myPassCard,
   passCardByCode,
   passCardOf,
+  renewPassCard,
   setPassCardActive,
+  startPassCardClock,
   unannouncedBookings,
+  unannouncedExpiries,
   unannouncedSignUps,
 } from "@/domain/pass-cards";
 import { registerUser } from "@/domain/users";
@@ -145,6 +149,37 @@ describe("Pošli to dál – a plastic card with two places that goes on right a
     await book(u.id, s1.id, free.id);
     await expect(book(u.id, s2.id, free.id)).rejects.toThrow("Vyčerpané vstupy");
     await expect(h.db.insert(passCardUses).values({ cardId: c.id, userId: u.id })).rejects.toThrow();
+  });
+
+  it("a card left unused for a month expires – the studio hears about it and can renew it", async () => {
+    const days = (n: number) => hours(24 * n);
+    const c = await addPassCard(h.db);
+    // printed and handed out: its month starts with the first scan, not before
+    expect((await card(c.id)).validUntil).toBeNull();
+    const until = await startPassCardClock(h.db, c.id, NOW);
+    expect(until!.getTime() - NOW.getTime()).toBe(CARD_VALID_DAYS * 86_400_000);
+    expect(await startPassCardClock(h.db, c.id, days(5))).toBeNull(); // already running
+
+    // a sign-up gives the card another month
+    const a = await signUp("Adéla Včasná", c.code, days(20));
+    expect((await card(c.id)).validUntil!.getTime()).toBe(days(20 + CARD_VALID_DAYS).getTime());
+    expect(await passCardByCode(h.db, c.code, days(49))).toMatchObject({ expired: false });
+
+    // nobody for a month: the card is out, a late scan gets the ordinary welcome lesson
+    const late = days(20 + CARD_VALID_DAYS + 1);
+    expect(await passCardByCode(h.db, c.code, late)).toMatchObject({ expired: true });
+    expect(await comeAlone(h.db, a.id, late)).toBe(false);
+    expect(await myPassCard(h.db, a.id, late)).toMatchObject({ expired: true, canComeAlone: false });
+    const b = await signUp("Bára Pozdní", c.code, late);
+    expect((await mine(b.id)).map((e) => e.name)).toEqual(["Úvodní lekce zdarma"]);
+    expect((await unannouncedExpiries(h.db, late)).map((x) => x.label)).toContain(c.label);
+
+    // renewed: the next scan starts a new month and the card works again
+    await renewPassCard(h.db, c.id);
+    expect(await passCardByCode(h.db, c.code, late)).toMatchObject({ expired: false, validUntil: null });
+    expect((await unannouncedExpiries(h.db, late)).map((x) => x.label)).not.toContain(c.label);
+    const d = await signUp("Dana Obnovená", c.code, late);
+    expect((await mine(d.id)).map((e) => e.name)).toEqual([CARD_ENTRY_NAME]);
   });
 
   it("a card out of the game or a made-up code is an ordinary sign-up; the studio can charge a card by hand", async () => {

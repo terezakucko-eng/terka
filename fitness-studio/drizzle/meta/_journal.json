@@ -694,6 +694,13 @@
       "when": 1792572039505,
       "tag": "0098_pass_cards_round_over",
       "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1792590020109,
+      "tag": "0099_pass_card_valid_until",
+      "breakpoints": true
     }
   ]
 }

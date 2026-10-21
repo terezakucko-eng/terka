@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
-import { addPassCard, chargePassCard, setPassCardActive } from "@/domain/pass-cards";
+import { addPassCard, chargePassCard, renewPassCard, setPassCardActive } from "@/domain/pass-cards";
 import { requireAdmin } from "@/lib/auth";
 import { attempt, field, type FormState } from "@/lib/form";
 
@@ -35,6 +35,17 @@ export async function chargePassCardAction(_: FormState, fd: FormData): Promise<
   const res = await attempt(async () => {
     await chargePassCard(await getDb(), field.str(fd, "id"));
     return "Kartička je nabitá 🔋 – zase má 2 místa.";
+  });
+  revalidatePath("/admin/karticky");
+  return res;
+}
+
+/** An expired card back in the game – its month starts again at the next scan. */
+export async function renewPassCardAction(_: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  const res = await attempt(async () => {
+    await renewPassCard(await getDb(), field.str(fd, "id"));
+    return "Kartička je zase ve hře – měsíc se začne počítat, až ji někdo naskenuje.";
   });
   revalidatePath("/admin/karticky");
   return res;

@@ -3,8 +3,9 @@ import Link from "next/link";
 import { ButtonLink, Container, Eyebrow } from "@/components/ui";
 import { getContent } from "@/content";
 import { getDb } from "@/db";
-import { passCardByCode } from "@/domain/pass-cards";
+import { passCardByCode, startPassCardClock } from "@/domain/pass-cards";
 import { getCurrentUser } from "@/lib/auth";
+import { formatDate } from "@/lib/dates";
 import { pluralCs } from "@/lib/money";
 import { getSettings } from "@/lib/settings";
 
@@ -19,12 +20,17 @@ export default async function PassCardPage({ params, searchParams }: PageProps<"
   const [{ code }, { ne }] = await Promise.all([params, searchParams]);
   const db = await getDb();
   const [card, user, cfg, c] = await Promise.all([passCardByCode(db, code), getCurrentUser(), getSettings(db), getContent()]);
-  if (!card?.isActive || card.placesLeft === 0) {
+  if (!card?.isActive || card.placesLeft === 0 || card.expired) {
     return (
       <section className="bg-forest text-papir">
         <Container className="max-w-2xl py-20 text-center">
           <Eyebrow className="text-zlato">Pošli to dál</Eyebrow>
-          <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">Tahle kartička už je mimo hru</h1>
+          <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">
+            {card?.isActive && card.expired ? "Tahle kartička propadla" : "Tahle kartička už je mimo hru"}
+          </h1>
+          {card?.isActive && card.expired && (
+            <p className="mx-auto mt-6 max-w-lg text-lg text-papir/80">Měsíc ji nikdo nevyužil, tak se jí vybila baterka ⌛</p>
+          )}
           <p className="mx-auto mt-6 max-w-lg text-lg text-papir/80">
             {cfg.welcomeFreeEntries > 0
               ? "Nevadí – první lekce je u nás pro nové stejně zdarma. Stačí se zaregistrovat a vybrat si lekci v rozvrhu."
@@ -38,6 +44,9 @@ export default async function PassCardPage({ params, searchParams }: PageProps<"
     );
   }
 
+  // a new card's month starts with its first scan
+  const validUntil = card.validUntil ?? (await startPassCardClock(db, card.id));
+
   if (ne !== undefined) {
     // scanned it, not for her – nothing taken, the card just goes on
     return (
@@ -47,7 +56,8 @@ export default async function PassCardPage({ params, searchParams }: PageProps<"
           <Eyebrow className="mt-6 text-zlato">Pošli to dál</Eyebrow>
           <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">Nevadí, díky!</h1>
           <p className="mx-auto mt-6 max-w-lg text-lg text-papir/80">
-            Kartičku pošli dál někomu, koho by pohyb potěšil – nebo ji vrať tomu, od koho ji máš. Na kartičce se nic nezměnilo, místa na ní zůstávají.
+            Kartičku pošli dál někomu, koho by pohyb potěšil – nebo ji vrať tomu, od koho ji máš. Na kartičce se nic nezměnilo, místa na ní zůstávají
+            {validUntil && <> – jen ať ji někdo využije do {formatDate(validUntil)}, pak propadne</>}.
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
             <ButtonLink href={`/karticka/${card.code}`} variant="outline-light">Vlastně mě to zajímá</ButtonLink>
@@ -110,7 +120,10 @@ export default async function PassCardPage({ params, searchParams }: PageProps<"
             </li>
           ))}
         </ol>
-        <p className="mt-4 text-xs text-papir/60">Kartička platí jen pro nové klienty – každý ji může využít jen jednou.</p>
+        <p className="mt-4 text-xs text-papir/60">
+          Kartička platí jen pro nové klienty – každý ji může využít jen jednou.
+          {validUntil && <> Tahle platí do {formatDate(validUntil)}, pak propadne.</>}
+        </p>
 
         {user ? (
           <div className="mt-10">
