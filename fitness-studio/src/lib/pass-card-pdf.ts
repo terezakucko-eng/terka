@@ -95,7 +95,7 @@ export async function passCardsPdf(cards: PassCardDoc[], footer: string) {
     const offerSize = Math.min(9.5, (9.5 * room) / spacedWidth(offer, bold, 9.5, 1));
     spaced(front, offer, { x, y: H / 2 - 8, size: offerSize, font: bold, color: CREAM, spacing: (1 * offerSize) / 9.5 });
     let y = H / 2 - 21;
-    for (const l of wrap(clean("Kartička, která putuje od člověka k člověku."), regular, 7, room)) {
+    for (const l of wrap(clean("Díky, že pomáháš rozhýbat svět – jednoho člověka po druhém."), regular, 7, room)) {
       front.drawText(l, { x, y, size: 7, font: regular, color: GOLD_LIGHT });
       y -= 9;
     }
