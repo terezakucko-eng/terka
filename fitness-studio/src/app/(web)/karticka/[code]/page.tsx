@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ButtonLink, Container, Eyebrow } from "@/components/ui";
+import { getContent } from "@/content";
 import { getDb } from "@/db";
 import { passCardByCode } from "@/domain/pass-cards";
 import { getCurrentUser } from "@/lib/auth";
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
 export default async function PassCardPage({ params, searchParams }: PageProps<"/karticka/[code]">) {
   const [{ code }, { ne }] = await Promise.all([params, searchParams]);
   const db = await getDb();
-  const [card, user, cfg] = await Promise.all([passCardByCode(db, code), getCurrentUser(), getSettings(db)]);
+  const [card, user, cfg, c] = await Promise.all([passCardByCode(db, code), getCurrentUser(), getSettings(db), getContent()]);
   if (!card?.isActive || card.placesLeft === 0) {
     return (
       <section className="bg-forest text-papir">
@@ -84,6 +85,17 @@ export default async function PassCardPage({ params, searchParams }: PageProps<"
             z účtu.
           </p>
         )}
+        <div className="mx-auto mt-8 max-w-lg rounded-2xl border border-zlato/30 bg-papir/5 p-5 text-left text-sm text-papir/80">
+          <p className="font-semibold text-zlato-light">Co je OCTOPUSH?</p>
+          <p className="mt-1">
+            Studio pohybu – tanec, pilates, silový trénink a další lekce v malých skupinách, kde se ti lektoři opravdu věnují. Najdeš nás na adrese{" "}
+            {c.raw("site.street")}, {c.raw("site.city")}.
+          </p>
+          <p className="mt-3 font-semibold text-zlato-light">Co získáš?</p>
+          <p className="mt-1">
+            Jednu lekci zdarma podle sebe – vybereš si v rozvrhu a rezervuješ online. Bez závazku, nic neplatíš.
+          </p>
+        </div>
         {card.people > 0 && (
           <p className="mt-4 text-sm text-papir/60">
             Kartička už k nám přivedla {pluralCs(card.people, "člověka", "lidi", "lidí")} 🐙
@@ -91,7 +103,7 @@ export default async function PassCardPage({ params, searchParams }: PageProps<"
         )}
 
         <ol className="mx-auto mt-10 grid max-w-xl gap-3 text-left sm:grid-cols-3">
-          {["Zaregistruj se – lekci zdarma máš hned na účtu", "Do 14 dní si rezervuj lekci a zaplať Kartičkou Pošli to dál", "Kartičku hned předej dál někomu novému"].map((s, i) => (
+          {["Zaregistruj se – lekci zdarma máš hned na účtu", "Do 14 dní si rezervuj lekci a zaplať Kartičkou Pošli to dál", "Po rezervaci můžeš kartičku hned poslat dál"].map((s, i) => (
             <li key={s} className="rounded-2xl border border-zlato/30 p-4 text-sm text-papir/80">
               <span className="block font-serif text-2xl text-zlato">{i + 1}.</span>
               {s}
