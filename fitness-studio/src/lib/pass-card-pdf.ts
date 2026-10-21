@@ -95,7 +95,7 @@ export async function passCardsPdf(cards: PassCardDoc[], footer: string) {
     const offerSize = Math.min(9.5, (9.5 * room) / spacedWidth(offer, bold, 9.5, 1));
     spaced(front, offer, { x, y: H / 2 - 8, size: offerSize, font: bold, color: CREAM, spacing: (1 * offerSize) / 9.5 });
     let y = H / 2 - 21;
-    for (const l of wrap(clean("Kartička, která putuje od člověka k člověku."), regular, 7, room)) {
+    for (const l of wrap(clean("Díky, že pomáháš rozhýbat svět – jednoho člověka po druhém."), regular, 7, room)) {
       front.drawText(l, { x, y, size: 7, font: regular, color: GOLD_LIGHT });
       y -= 9;
     }
@@ -125,18 +125,18 @@ export async function passCardsPdf(cards: PassCardDoc[], footer: string) {
     const lx = BLEED + 16;
     const lw = qrX - lx - 10;
     spaced(back, "JAK NA TO", { x: lx, y: BLEED + TH - 24, size: 6.5, font: bold, color: GOLD, spacing: 1.4 });
-    const steps = ["Naskenuj QR kód a zaregistruj se.", "Kamarádka taky – kartička má 2 místa.", "Zaplaťte lekci Kartičkou Pošli\u00a0to\u00a0dál.", "Kartičku hned předej dál."];
-    y = BLEED + TH - 37;
+    const steps = ["Naskenuj QR kód a zaregistruj se.", "Kartička má 2 místa – udělej někomu radost a vezmi ho s sebou.", "Lekci si rezervuješ online, web tě povede.", "Po rezervaci můžeš kartičku hned poslat dál."];
+    y = BLEED + TH - 36;
     steps.forEach((s, i) => {
-      back.drawText(`${i + 1}`, { x: lx, y, size: 7.4, font: bold, color: GOLD });
-      for (const l of wrap(clean(s), i === 3 ? bold : regular, 7.4, lw - 9)) {
-        back.drawText(l, { x: lx + 9, y, size: 7.4, font: i === 3 ? bold : regular, color: INK });
-        y -= 9.5;
+      back.drawText(`${i + 1}`, { x: lx, y, size: 7, font: bold, color: GOLD });
+      for (const l of wrap(clean(s), i === 3 ? bold : regular, 7, lw - 9)) {
+        back.drawText(l, { x: lx + 9, y, size: 7, font: i === 3 ? bold : regular, color: INK });
+        y -= 8.4;
       }
-      y -= 2.5;
+      y -= 1.8;
     });
     // the rules, right above the address
-    const rules = wrap(clean("Jen pro nové klienty – každý ji využije jen jednou. Lekce zdarma platí 14 dní od registrace."), regular, 6, lw);
+    const rules = wrap(clean("Jen pro nové klienty, každý jen jednou. Lekce platí 14 dní od registrace."), regular, 6, lw);
     rules.forEach((l, i) => back.drawText(l, { x: lx, y: BLEED + 33 + 7.4 * (rules.length - 1 - i), size: 6, font: regular, color: MUTED }));
     const web = card.url.replace(/^https?:\/\/(www\.)?/, "");
     back.drawText(web, { x: lx, y: BLEED + 22, size: 6, font: bold, color: INK });

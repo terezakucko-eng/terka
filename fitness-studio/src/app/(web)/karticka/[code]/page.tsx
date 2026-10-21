@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ButtonLink, Container, Eyebrow } from "@/components/ui";
+import { getContent } from "@/content";
 import { getDb } from "@/db";
 import { passCardByCode } from "@/domain/pass-cards";
 import { getCurrentUser } from "@/lib/auth";
@@ -9,7 +10,7 @@ import { getSettings } from "@/lib/settings";
 
 export const metadata: Metadata = {
   title: "Pošli to dál",
-  description: "Kartička, která putuje od člověka k člověku – s ní máš v OCTOPUSH lekci zdarma ty i kamarádka.",
+  description: "Někdo na tebe myslí 💛 S kartičkou Pošli to dál si v OCTOPUSH dobiješ baterky na lekci zdarma – klidně i s kamarádkou.",
   robots: { index: false },
 };
 
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
 export default async function PassCardPage({ params, searchParams }: PageProps<"/karticka/[code]">) {
   const [{ code }, { ne }] = await Promise.all([params, searchParams]);
   const db = await getDb();
-  const [card, user, cfg] = await Promise.all([passCardByCode(db, code), getCurrentUser(), getSettings(db)]);
+  const [card, user, cfg, c] = await Promise.all([passCardByCode(db, code), getCurrentUser(), getSettings(db), getContent()]);
   if (!card?.isActive || card.placesLeft === 0) {
     return (
       <section className="bg-forest text-papir">
@@ -63,28 +64,46 @@ export default async function PassCardPage({ params, searchParams }: PageProps<"
         <img src="/brand/symbol-gold.svg" alt="" className="mx-auto h-24 w-24" />
         <Eyebrow className="mt-6 text-zlato">Pošli to dál 💛</Eyebrow>
         <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-6xl">
-          {card.placesLeft === 1 ? "Zbývá jedno místo – je tvoje" : "Tahle kartička doputovala k tobě"}
+          {card.placesLeft === 1 ? "Máš štěstí – poslední místo je tvoje" : "Máš štěstí – dobij si baterky zdarma"}
         </h1>
         <p className="mx-auto mt-6 max-w-lg text-lg text-papir/80">
           {card.placesLeft === 1 ? (
             <>
-              Zaregistruj se a máš v OCTOPUSH <strong className="text-zlato-light">lekci zdarma</strong>. Domluv se s tím, kdo ti kartičku dal, a přijďte spolu.
+              Někdo na tebe myslel a nechal ti místo 💛 A my v OCTOPUSH myslíme na tvoje zdraví a pohodu, takže tě u nás čeká{" "}
+              <strong className="text-zlato-light">lekce zdarma</strong>. Domluv se s tím, kdo ti kartičku dal, a přijďte spolu.
             </>
           ) : (
             <>
-              🔋 Kartička je nabitá a má <strong className="text-zlato-light">2 místa – lekci zdarma pro tebe i kamarádku</strong>. Zaregistruj se a ať
-              se kamarádka zaregistruje taky: naskenuje kartičku, nebo jí pošleš odkaz z účtu.
+              Tuhle kartičku ti dal někdo, kdo na tebe myslí 💛 A my v OCTOPUSH myslíme na tvoje zdraví a pohodu, takže tě u nás čeká{" "}
+              <strong className="text-zlato-light">lekce zdarma</strong>.
             </>
           )}
         </p>
+        {card.placesLeft !== 1 && (
+          <p className="mx-auto mt-4 max-w-lg text-papir/70">
+            🔋 Kartička má 2 místa – vezmi s sebou někoho, komu chceš udělat radost. Zaregistruje se taky: naskenuje kartičku, nebo mu pošleš odkaz
+            z účtu.
+          </p>
+        )}
+        <div className="mx-auto mt-8 max-w-lg rounded-2xl border border-zlato/30 bg-papir/5 p-5 text-left text-sm text-papir/80">
+          <p className="font-semibold text-zlato-light">Co je OCTOPUSH?</p>
+          <p className="mt-1">
+            Studio pohybu – tanec, pilates, silový trénink a další lekce v malých skupinách, kde se ti lektoři opravdu věnují. Najdeš nás na adrese{" "}
+            {c.raw("site.street")}, {c.raw("site.city")}.
+          </p>
+          <p className="mt-3 font-semibold text-zlato-light">Co získáš?</p>
+          <p className="mt-1">
+            Jednu lekci zdarma podle sebe – vybereš si v rozvrhu a rezervuješ online. Bez závazku, nic neplatíš.
+          </p>
+        </div>
         {card.people > 0 && (
           <p className="mt-4 text-sm text-papir/60">
-            Kartička už k nám přivedla {pluralCs(card.people, "člověka", "lidi", "lidí")} 🐙
+            Kartička už rozhýbala {pluralCs(card.people, "chobotničku", "chobotničky", "chobotniček")} 🐙
           </p>
         )}
 
         <ol className="mx-auto mt-10 grid max-w-xl gap-3 text-left sm:grid-cols-3">
-          {["Zaregistruj se – lekci zdarma máš hned na účtu", "Do 14 dní si rezervuj lekci a zaplať Kartičkou Pošli to dál", "Kartičku hned předej dál někomu novému"].map((s, i) => (
+          {["Zaregistruj se – lekci zdarma máš hned na účtu", "Do 14 dní si rezervuj lekci a zaplať Kartičkou Pošli to dál", "Po rezervaci můžeš kartičku hned poslat dál"].map((s, i) => (
             <li key={s} className="rounded-2xl border border-zlato/30 p-4 text-sm text-papir/80">
               <span className="block font-serif text-2xl text-zlato">{i + 1}.</span>
               {s}
