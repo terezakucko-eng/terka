@@ -28,7 +28,7 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registr
     cardCode ? passCardByCode(db, cardCode) : null,
   ]);
   // a Pošli to dál card in the game with a place left
-  const card = found?.isActive && found.placesLeft > 0 ? found : null;
+  const card = found?.isActive && !found.expired && found.placesLeft > 0 ? found : null;
   const turnstileKey = turnstileSiteKey();
   return (
     <>

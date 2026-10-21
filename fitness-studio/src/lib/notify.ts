@@ -15,7 +15,7 @@ import { sendMail } from "./mail";
 import { WISH_KINDS } from "@/domain/wishes";
 import { dueGreetings, dueWinbacks, greetBirthday, markNameDay, markWinback } from "@/domain/greetings";
 import { markAnnounced, unannouncedRewards } from "@/domain/referrals";
-import { markBookingAnnounced, markSignUpAnnounced, unannouncedBookings, unannouncedSignUps } from "@/domain/pass-cards";
+import { markBookingAnnounced, markExpiryAnnounced, markSignUpAnnounced, unannouncedBookings, unannouncedExpiries, unannouncedSignUps } from "@/domain/pass-cards";
 import { formatVoucherCode, markVoucherNotified, unnotifiedVouchers } from "@/domain/vouchers";
 import { displayName } from "./profile";
 import { fillFromWaitlist, releasedHoldsWithWaitlist } from "@/domain/booking";
@@ -266,7 +266,7 @@ export async function sendReferralThanks(db: DB, now = new Date()) {
   return sent;
 }
 
-/** Pošli to dál: the studio hears about every sign-up and every lesson booked with a card. */
+/** Pošli to dál: the studio hears about every sign-up and every lesson booked with a card, and about cards that expired. */
 export async function sendPassCardNotices(db: DB, now = new Date()) {
   const admins = (await db.select({ id: users.id }).from(users).where(eq(users.role, "admin"))).map((a) => a.id);
   let sent = 0;
@@ -285,6 +285,15 @@ export async function sendPassCardNotices(db: DB, now = new Date()) {
       title: `📅 ${r.label}: rezervace přes kartičku`,
       body: `${r.userName} – ${r.lesson.name} ${formatDay(r.lesson.startsAt)} v ${formatTime(r.lesson.startsAt)}`,
       url: `${site.url}/admin/rozvrh/${r.lesson.sessionId}`,
+    });
+    sent++;
+  }
+  for (const c of await unannouncedExpiries(db, now)) {
+    await markExpiryAnnounced(db, c.id, now);
+    await pushQuietly(db, admins, {
+      title: `⌛ ${c.label} propadla`,
+      body: "Měsíc ji nikdo nevyužil. V adminu ji můžeš obnovit, nebo vyřadit.",
+      url: `${site.url}/admin/karticky`,
     });
     sent++;
   }

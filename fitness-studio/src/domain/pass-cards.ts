@@ -13,24 +13,50 @@ import { sessionNameSql } from "@/lib/session-name";
  * for two weeks, and pays for it at booking with „Kartička Pošli to dál“ –
  * existing clients never see it. Once both places are taken – or the first one
  * says she comes alone – the round is over: the card has two places again and
- * goes on right away, no waiting for the lessons.
+ * goes on right away, no waiting for the lessons. A card left lying around
+ * expires: it has to be used within a month of its last use (a new one, of its
+ * first scan), else it's out until the studio renews it.
  */
 
 export const CARD_PLACES = 2;
 export const CARD_ENTRY_NAME = "Kartička Pošli to dál – lekce zdarma 💛";
 /** How long the card's free lesson can be booked, from the sign-up. */
 export const CARD_ENTRY_DAYS = 14;
+/** How long a card may lie unused before it expires. */
+export const CARD_VALID_DAYS = 30;
+const DAY = 86_400_000;
+const validFrom = (now: Date) => new Date(now.getTime() + CARD_VALID_DAYS * DAY);
+const expired = (card: { validUntil: Date | null }, now: Date) => !!card.validUntil && card.validUntil <= now;
 
 export const isCardCode = (code: string) => /^[0-9A-F]{6}$/i.test(code.trim());
 const norm = (code: string) => code.trim().toUpperCase();
 
-/** The card behind a QR code, for its landing page. */
-export async function passCardByCode(db: Executor, code: string) {
+/** The card behind a QR code, for its landing page and the sign-up. */
+export async function passCardByCode(db: Executor, code: string, now = new Date()) {
   if (!isCardCode(code)) return null;
   const [card] = await db.select().from(passCards).where(eq(passCards.code, norm(code)));
   if (!card) return null;
   const [{ n }] = await db.select({ n: count() }).from(passCardUses).where(eq(passCardUses.cardId, card.id));
-  return { id: card.id, code: card.code, label: card.label, isActive: card.isActive, placesLeft: card.placesLeft, people: n };
+  return {
+    id: card.id,
+    code: card.code,
+    label: card.label,
+    isActive: card.isActive,
+    expired: expired(card, now),
+    validUntil: card.validUntil,
+    placesLeft: card.placesLeft,
+    people: n,
+  };
+}
+
+/** A new card's month starts when someone first scans it (not when it's printed). */
+export async function startPassCardClock(db: Executor, id: string, now = new Date()) {
+  const [card] = await db
+    .update(passCards)
+    .set({ validUntil: validFrom(now) })
+    .where(and(eq(passCards.id, id), eq(passCards.isActive, true), isNull(passCards.validUntil)))
+    .returning({ validUntil: passCards.validUntil });
+  return card?.validUntil ?? null;
 }
 
 /**
@@ -46,9 +72,10 @@ export async function claimPassCard(tx: Executor, code: string, userId: string, 
     .from(passCards)
     .where(and(eq(passCards.code, norm(code)), eq(passCards.isActive, true), sql`${passCards.placesLeft} > 0`))
     .for("update");
-  if (!card) return null;
+  if (!card || expired(card, now)) return null;
   const [use] = await tx.insert(passCardUses).values({ cardId: card.id, userId, fromUserId: card.holderId, createdAt: now }).returning();
-  await tx.update(passCards).set({ holderId: userId, placesLeft: card.placesLeft - 1 }).where(eq(passCards.id, card.id));
+  // a use gives the card another month
+  await tx.update(passCards).set({ holderId: userId, placesLeft: card.placesLeft - 1, validUntil: validFrom(now) }).where(eq(passCards.id, card.id));
   const roundOver = card.placesLeft === 1;
   if (roundOver) await chargePassCard(tx, card.id, now);
   return { ...card, placesLeft: roundOver ? CARD_PLACES : card.placesLeft - 1, roundOver, useId: use.id };
@@ -61,12 +88,13 @@ export async function claimPassCard(tx: Executor, code: string, userId: string, 
  */
 export async function comeAlone(db: Executor, userId: string, now = new Date()) {
   const [card] = await db
-    .select({ id: passCards.id })
+    .select({ id: passCards.id, validUntil: passCards.validUntil })
     .from(passCards)
     .innerJoin(passCardUses, and(eq(passCardUses.cardId, passCards.id), eq(passCardUses.userId, userId)))
     .where(and(eq(passCards.holderId, userId), eq(passCards.isActive, true), eq(passCards.placesLeft, CARD_PLACES - 1), isNull(passCardUses.rechargedAt)));
-  if (!card) return false;
+  if (!card || expired(card, now)) return false;
   await chargePassCard(db, card.id, now);
+  await db.update(passCards).set({ validUntil: validFrom(now) }).where(eq(passCards.id, card.id));
   return true;
 }
 
@@ -79,7 +107,7 @@ export const linkPassEntitlement = (tx: Executor, useId: string, entitlementId: 
  * round is open (a place left for a friend), or it's over and nobody has signed
  * up with the card since.
  */
-export async function myPassCard(db: Executor, userId: string) {
+export async function myPassCard(db: Executor, userId: string, now = new Date()) {
   const [row] = await db
     .select({ use: passCardUses, card: passCards })
     .from(passCardUses)
@@ -97,9 +125,10 @@ export async function myPassCard(db: Executor, userId: string) {
     if (since.length) return null;
   }
   const [{ n }] = await db.select({ n: count() }).from(passCardUses).where(eq(passCardUses.cardId, row.card.id));
+  const isExpired = expired(row.card, now);
   // her place taken, the friend's still free – she may let it go („Přijdu sama“)
-  const canComeAlone = open && row.card.holderId === userId && row.card.placesLeft === CARD_PLACES - 1;
-  return { ...row.card, open, canComeAlone, people: n };
+  const canComeAlone = open && !isExpired && row.card.holderId === userId && row.card.placesLeft === CARD_PLACES - 1;
+  return { ...row.card, open, expired: isExpired, canComeAlone, people: n };
 }
 
 /** For the admin's client card: which card she came with and from whom. */
@@ -180,8 +209,16 @@ export async function addPassCard(db: Executor) {
   }
 }
 
+/** Out of the game (lost) or back in; back in, its month starts again at the next scan. */
 export const setPassCardActive = (db: Executor, id: string, isActive: boolean) =>
-  db.update(passCards).set({ isActive }).where(eq(passCards.id, id));
+  db
+    .update(passCards)
+    .set(isActive ? { isActive, validUntil: null, expiredNotifiedAt: null } : { isActive })
+    .where(eq(passCards.id, id));
+
+/** An expired card back in the game – its month starts again at the next scan. */
+export const renewPassCard = (db: Executor, id: string) =>
+  db.update(passCards).set({ validUntil: null, expiredNotifiedAt: null }).where(eq(passCards.id, id));
 
 /** Closes the card's open round – two places again (the round is full, „Přijdu sama“, or by hand in the admin). */
 export async function chargePassCard(db: Executor, id: string, now = new Date()) {
@@ -223,6 +260,16 @@ export async function unannouncedBookings(db: Executor) {
     return lesson ? [{ ...r, lesson }] : [];
   });
 }
+
+/** Cards that ran out of their month the studio hasn't heard about yet. */
+export const unannouncedExpiries = (db: Executor, now = new Date()) =>
+  db
+    .select({ id: passCards.id, label: passCards.label, validUntil: passCards.validUntil })
+    .from(passCards)
+    .where(and(eq(passCards.isActive, true), sql`${passCards.validUntil} <= ${now}`, isNull(passCards.expiredNotifiedAt)));
+
+export const markExpiryAnnounced = (db: Executor, id: string, now = new Date()) =>
+  db.update(passCards).set({ expiredNotifiedAt: now }).where(eq(passCards.id, id));
 
 export const markSignUpAnnounced = (db: Executor, useId: string, now = new Date()) =>
   db.update(passCardUses).set({ registeredNotifiedAt: now }).where(eq(passCardUses.id, useId));

@@ -579,6 +579,11 @@ export const passCards = pgTable("pass_cards", {
   /** volná místa: nabitá kartička má 2 (pro dva nové lidi), každá registrace jedno zabere;
    *  po druhé registraci (nebo „Přijdu sama“) se hned znovu nabije */
   placesLeft: integer("places_left").notNull().default(2),
+  /** do kdy ji musí někdo využít, jinak propadne – měsíc od posledního použití
+   *  (u nové kartičky od prvního naskenování); null = ještě se nepočítá */
+  validUntil: timestamp("valid_until", { withTimezone: true }),
+  /** studio dostalo upozornění, že kartička propadla */
+  expiredNotifiedAt: timestamp("expired_notified_at", { withTimezone: true }),
   createdAt: createdAt(),
 });
 

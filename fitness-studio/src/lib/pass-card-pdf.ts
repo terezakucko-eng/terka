@@ -136,7 +136,7 @@ export async function passCardsPdf(cards: PassCardDoc[], footer: string) {
       y -= 1.8;
     });
     // the rules, right above the address
-    const rules = wrap(clean("Jen pro nové klienty, každý jen jednou. Lekce platí 14 dní od registrace."), regular, 6, lw);
+    const rules = wrap(clean("Jen pro nové klienty, každý jednou. Kartička platí měsíc, lekce 14 dní."), regular, 6, lw);
     rules.forEach((l, i) => back.drawText(l, { x: lx, y: BLEED + 33 + 7.4 * (rules.length - 1 - i), size: 6, font: regular, color: MUTED }));
     const web = card.url.replace(/^https?:\/\/(www\.)?/, "");
     back.drawText(web, { x: lx, y: BLEED + 22, size: 6, font: bold, color: INK });
