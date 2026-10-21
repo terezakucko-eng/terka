@@ -565,6 +565,50 @@ export const referrals = pgTable(
   (t) => [index("referrals_referrer_idx").on(t.referrerId)],
 );
 
+/** Pošli to dál: vytištěné kartičky s QR, které putují od člověka k člověku. */
+export const passCards = pgTable("pass_cards", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  /** v QR kódu: octopush.fit/karta/7F3A9C */
+  code: text("code").notNull().unique(),
+  /** „Kartička 1“ */
+  label: text("label").notNull(),
+  /** u koho kartička teď je – kdo ji má poslat dál */
+  holderId: uuid("holder_id").references(() => users.id, { onDelete: "set null" }),
+  /** ztracená nebo stažená kartička – registrace přes ni už nic nedá */
+  isActive: boolean("is_active").notNull().default(true),
+  /** volná místa: nabitá kartička má 2 (pro dva nové lidi), každá registrace jedno zabere;
+   *  po druhé registraci (nebo „Přijdu sama“) se hned znovu nabije */
+  placesLeft: integer("places_left").notNull().default(2),
+  createdAt: createdAt(),
+});
+
+/** Kdo přišel na kterou kartičku a od koho ji dostal. */
+export const passCardUses = pgTable(
+  "pass_card_uses",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    cardId: uuid("card_id")
+      .notNull()
+      .references(() => passCards.id, { onDelete: "cascade" }),
+    /** nová klientka – na kartičku jen jednou */
+    userId: uuid("user_id")
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** kdo jí kartičku předal (držitel v tu chvíli) */
+    fromUserId: uuid("from_user_id").references(() => users.id, { onDelete: "set null" }),
+    /** lekce zdarma, kterou s kartičkou dostala (platí „Kartičkou Pošli to dál“) */
+    entitlementId: uuid("entitlement_id").references(() => entitlements.id, { onDelete: "set null" }),
+    /** studio dostalo upozornění na registraci / na rezervaci lekce */
+    registeredNotifiedAt: timestamp("registered_notified_at", { withTimezone: true }),
+    bookedNotifiedAt: timestamp("booked_notified_at", { withTimezone: true }),
+    /** kolo skončilo (obsazená obě místa nebo „Přijdu sama“) – kartička je zase nabitá */
+    rechargedAt: timestamp("recharged_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("pass_card_uses_card_idx").on(t.cardId)],
+);
+
 export const announcements = pgTable("announcements", {
   id: uuid("id").primaryKey().defaultRandom(),
   title: text("title").notNull(),

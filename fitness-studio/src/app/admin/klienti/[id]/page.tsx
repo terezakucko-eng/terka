@@ -42,6 +42,7 @@ import { recentSolariumUses, solariumPasses } from "@/domain/solarium";
 import { greetName } from "@/lib/vocative";
 import { memberStrikes } from "@/domain/strikes";
 import { referralInfo } from "@/domain/referrals";
+import { passCardOf } from "@/domain/pass-cards";
 
 const providerLabel: Record<string, string> = {
   stripe: "kartou online",
@@ -70,7 +71,7 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
     sellableProducts(db),
     activeClassTypes(db),
   ]);
-  const [[{ n: pushDevices }], sunPasses, sunUses, massages, insuranceYrs, cfg, refs] = await Promise.all([
+  const [[{ n: pushDevices }], sunPasses, sunUses, massages, insuranceYrs, cfg, refs, cameWithCard] = await Promise.all([
     db.select({ n: count() }).from(pushSubscriptions).where(eq(pushSubscriptions.userId, u.id)),
     solariumPasses(db, u.id),
     recentSolariumUses(db, u.id, 5),
@@ -82,6 +83,7 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
     insuranceYears(db, u.id),
     getSettings(db),
     referralInfo(db, u.id),
+    passCardOf(db, u.id),
   ]);
   const sunLeft = sunPasses.reduce((s, p) => s + p.left, 0);
   const now = new Date();
@@ -115,6 +117,16 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
           {refs.invitedBy && (
             <p>
               💛 Na pozvání od: <Link href={`/admin/klienti/${refs.invitedBy.id}`} className="font-semibold underline">{refs.invitedBy.name}</Link>
+            </p>
+          )}
+          {cameWithCard && (
+            <p>
+              💛 Přišla s kartičkou <Link href="/admin/karticky" className="underline">Pošli to dál</Link> ({cameWithCard.label})
+              {cameWithCard.fromId && (
+                <>
+                  {" "}od <Link href={`/admin/klienti/${cameWithCard.fromId}`} className="font-semibold underline">{cameWithCard.fromName}</Link>
+                </>
+              )}
             </p>
           )}
           {refs.invited.length > 0 && (

@@ -30,12 +30,14 @@ import { deleteImage, storeImage, uploadedFile } from "@/lib/media";
 import { normalizePhone } from "@/lib/phone";
 import { AVATAR_EMOJI, OCTO_AVATARS, cleanBirthDate, cleanNameDay } from "@/lib/profile";
 import { greetName } from "@/lib/vocative";
+import { formatDate } from "@/lib/dates";
 import { deleteOwnAccount } from "@/domain/account-deletion";
 import { notifyPromoted } from "@/lib/notify";
 import { getContent } from "@/content";
 import { sendMail } from "@/lib/mail";
 import { birthDateLocked, hasConfirmation } from "@/domain/insurance";
 import { linkReferral } from "@/domain/referrals";
+import { CARD_ENTRY_DAYS, passCardOf } from "@/domain/pass-cards";
 
 /** Only allow local redirects after login. */
 function safeNext(v: string) {
@@ -101,10 +103,19 @@ export async function registerAction(_: FormState, fd: FormData): Promise<FormSt
       marketingConsent: field.bool(fd, "marketing"),
       smsConsent: field.bool(fd, "sms"),
       whatsappConsent: field.bool(fd, "whatsapp"),
+      passCard: field.str(fd, "karta"),
     });
     await linkReferral(db, user.id, field.str(fd, "pozvanka"));
     await startSession(user.id);
-    await sendEmail(user.email, "welcome", { osloveni: greetName(user.name), odkaz: `${site.url}/rozvrh`, karta: `${site.url}/ucet/karta` });
+    const vars = { osloveni: greetName(user.name), odkaz: `${site.url}/rozvrh`, karta: `${site.url}/ucet/karta` };
+    const card = await passCardOf(db, user.id);
+    if (card)
+      await sendEmail(user.email, "welcomePassCard", {
+        ...vars,
+        platnost: formatDate(new Date(card.at.getTime() + CARD_ENTRY_DAYS * 86_400_000)),
+        ucet: `${site.url}/ucet#posli-to-dal`,
+      });
+    else await sendEmail(user.email, "welcome", vars);
     target = safeNext(field.str(fd, "next")) ?? "/ucet?vitej=1";
   });
   if (target) redirect(target);

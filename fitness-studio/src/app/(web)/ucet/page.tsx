@@ -10,7 +10,7 @@ import { getDb } from "@/db";
 import { userBookings, userEntitlements } from "@/lib/account";
 import { requireUser } from "@/lib/auth";
 import { formatDate, formatDay, formatRange, formatTime } from "@/lib/dates";
-import { credits, formatPrice } from "@/lib/money";
+import { credits, formatPrice, pluralCs } from "@/lib/money";
 import { SurchargePay } from "@/components/surcharge-pay";
 import { flexibleMemberships, membershipPlacesTaken, membershipSwitches, openFees, periodStartLabel } from "@/domain/membership-fees";
 import { placesLeftLabel } from "@/lib/price-list";
@@ -28,11 +28,13 @@ import { getContent } from "@/content";
 import { feedLinks } from "@/lib/ics";
 import { CopyButton, ShareButton } from "@/components/copy-button";
 import { myReferrals } from "@/domain/referrals";
+import { myPassCard } from "@/domain/pass-cards";
 import { VOUCHER_STATUS, boughtVouchers, formatVoucherCode, voucherStatus } from "@/domain/vouchers";
 import { redeemVoucherAction } from "@/app/actions/vouchers";
 import { getSettings } from "@/lib/settings";
 import { site } from "@/config/site";
 import { resetCalendarAction } from "@/app/actions/calendar";
+import { comeAloneAction } from "@/app/actions/pass-card";
 
 export default async function AccountPage({ searchParams }: PageProps<"/ucet">) {
   const { vitej, clenstvi } = await searchParams;
@@ -67,7 +69,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
     getContent(),
     insuranceYears(db, user.id),
   ]);
-  const [cfg, invited, gifts, flexible, switches, included] = await Promise.all([
+  const [cfg, invited, gifts, flexible, switches, included, passCard] = await Promise.all([
     getSettings(db),
     myReferrals(db, user.id),
     boughtVouchers(db, user.id),
@@ -75,6 +77,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
     // a switch to a higher membership (e.g. Členství Reformer) starts with the next unpaid month
     membershipSwitches(db, user.id, ents),
     includedSummary(db, ents),
+    myPassCard(db, user.id),
   ]);
   // a limited one (Členství Reformer) says how many places are left
   const limited = [...switches.values()].flatMap(({ offer }) => (offer.maxActive !== null ? [offer.id] : []));
@@ -127,7 +130,16 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
         <p className="rounded-2xl bg-forest p-6 text-papir">
           <span className="text-gold text-xl font-semibold">Vítej v OCTOPUSH!</span>
           <br />
-          Na účtu máš připravenou úvodní lekci zdarma. <Link href="/rozvrh" className="underline">Vyber si ji v rozvrhu →</Link>
+          {passCard?.open ? (
+            <>
+              Díky kartičce Pošli to dál máš na účtu lekci zdarma. Vyber si lekci a u rezervace zaplať <strong>Kartičkou Pošli to dál</strong>.{" "}
+              <Link href="/rozvrh" className="underline">Vybrat lekci v rozvrhu →</Link>
+            </>
+          ) : (
+            <>
+              Na účtu máš připravenou úvodní lekci zdarma. <Link href="/rozvrh" className="underline">Vyber si ji v rozvrhu →</Link>
+            </>
+          )}
         </p>
       )}
 
@@ -390,6 +402,33 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
           </ActionForm>
         </details>
       </section>
+
+      {passCard && (
+        <section id="posli-to-dal" className="rounded-2xl border border-zlato/50 bg-zlato/10 p-5">
+          <p className="font-semibold">💛 Kartička Pošli to dál · {passCard.canComeAlone ? "zbývá na ní 1 místo" : "🔋 nabitá"}</p>
+          <p className="mt-1 max-w-2xl text-sm text-les/70">
+            {passCard.canComeAlone
+              ? "Druhé místo je pro kamarádku: ať naskenuje kartičku, nebo jí pošli odkaz. Po registraci má lekci zdarma i ona – přijďte spolu. Jdeš sama? Klikni na Přijdu sama a kartičku předej dál – další ji dostane i s oběma místy."
+              : "Kartička je nabitá – předej ji někomu, kdo u nás ještě nebyl. Naskenuje QR kód, zaregistruje se a lekci má zdarma, klidně i s kamarádkou."}
+          </p>
+          <span className="mt-3 flex flex-wrap gap-2">
+            <ShareButton
+              url={`${site.url}/karticka/${passCard.code}`}
+              text="Pojď se mnou do OCTOPUSH – s kartičkou Pošli to dál máš lekci zdarma 🐙"
+              className="px-5 py-2.5"
+            />
+            <CopyButton text={`${site.url}/karticka/${passCard.code}`} className="px-5 py-2.5" />
+            {passCard.canComeAlone && (
+              <ActionForm action={comeAloneAction} confirm="Přijdeš sama? Druhé místo pak dostane ten, komu kartičku předáš.">
+                <SubmitButton variant="outline" className="px-5 py-2.5">Přijdu sama</SubmitButton>
+              </ActionForm>
+            )}
+          </span>
+          <p className="mt-2 text-xs text-les/60">
+            {passCard.label} už přivedla {pluralCs(passCard.people, "člověka", "lidi", "lidí")} 🐙
+          </p>
+        </section>
+      )}
 
       {cfg.referralGiftEntries > 0 && user.role === "client" && (
         <section id="pozvi" className="rounded-2xl border border-zlato/50 bg-zlato/10 p-5">

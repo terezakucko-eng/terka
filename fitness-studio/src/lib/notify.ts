@@ -15,6 +15,7 @@ import { sendMail } from "./mail";
 import { WISH_KINDS } from "@/domain/wishes";
 import { dueGreetings, dueWinbacks, greetBirthday, markNameDay, markWinback } from "@/domain/greetings";
 import { markAnnounced, unannouncedRewards } from "@/domain/referrals";
+import { markBookingAnnounced, markSignUpAnnounced, unannouncedBookings, unannouncedSignUps } from "@/domain/pass-cards";
 import { formatVoucherCode, markVoucherNotified, unnotifiedVouchers } from "@/domain/vouchers";
 import { displayName } from "./profile";
 import { fillFromWaitlist, releasedHoldsWithWaitlist } from "@/domain/booking";
@@ -260,6 +261,31 @@ export async function sendReferralThanks(db: DB, now = new Date()) {
       odkaz: `${site.url}/rozvrh`,
     });
     await pushQuietly(db, [who.id], { title: "Díky za pozvání! 💛", body: "Na účtu máš lekci zdarma.", url: `${site.url}/ucet` });
+    sent++;
+  }
+  return sent;
+}
+
+/** Pošli to dál: the studio hears about every sign-up and every lesson booked with a card. */
+export async function sendPassCardNotices(db: DB, now = new Date()) {
+  const admins = (await db.select({ id: users.id }).from(users).where(eq(users.role, "admin"))).map((a) => a.id);
+  let sent = 0;
+  for (const r of await unannouncedSignUps(db)) {
+    await markSignUpAnnounced(db, r.use.id, now);
+    await pushQuietly(db, admins, {
+      title: `💛 ${r.label}: nová registrace`,
+      body: `${r.userName}${r.fromName ? ` (po ${r.fromName})` : ""} – ${r.use.rechargedAt ? "kartička jde dál, má zase 2 místa" : "na kartičce zbývá 1 místo"}.`,
+      url: `${site.url}/admin/klienti/${r.use.userId}`,
+    });
+    sent++;
+  }
+  for (const r of await unannouncedBookings(db)) {
+    await markBookingAnnounced(db, r.use.id, now);
+    await pushQuietly(db, admins, {
+      title: `📅 ${r.label}: rezervace přes kartičku`,
+      body: `${r.userName} – ${r.lesson.name} ${formatDay(r.lesson.startsAt)} v ${formatTime(r.lesson.startsAt)}`,
+      url: `${site.url}/admin/rozvrh/${r.lesson.sessionId}`,
+    });
     sent++;
   }
   return sent;
