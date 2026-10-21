@@ -232,16 +232,22 @@
 }
 
 /*
- * iPhone gives date and month fields a minimum width of their own – in a
- * narrow column they stick out of the card. Without the native look they fit.
+ * iPhone and iPad give date and time fields a minimum width of their own – in
+ * a grid column they stick out over the next field or out of the card. Without
+ * the native look (Safari on iOS/iPadOS only) they fit their column.
  */
-@media (max-width: 767px) {
+input[type="date"],
+input[type="month"],
+input[type="time"],
+input[type="datetime-local"] {
+  min-width: 0;
+  max-width: 100%;
+}
+@supports (-webkit-touch-callout: none) {
   input[type="date"],
   input[type="month"],
   input[type="time"],
   input[type="datetime-local"] {
-    min-width: 0;
-    max-width: 100%;
     -webkit-appearance: none;
     appearance: none;
   }
