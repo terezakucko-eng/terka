@@ -419,7 +419,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
             />
             <CopyButton text={`${site.url}/karticka/${passCard.code}`} className="px-5 py-2.5" />
             {passCard.canComeAlone && (
-              <ActionForm action={comeAloneAction} confirm="Přijdeš sama? Druhé místo pak dostane ten, komu kartičku předáš.">
+              <ActionForm action={comeAloneAction}>
                 <SubmitButton variant="outline" className="px-5 py-2.5">Přijdu sama</SubmitButton>
               </ActionForm>
             )}
