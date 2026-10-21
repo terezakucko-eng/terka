@@ -125,15 +125,15 @@ export async function passCardsPdf(cards: PassCardDoc[], footer: string) {
     const lx = BLEED + 16;
     const lw = qrX - lx - 10;
     spaced(back, "JAK NA TO", { x: lx, y: BLEED + TH - 24, size: 6.5, font: bold, color: GOLD, spacing: 1.4 });
-    const steps = ["Naskenuj QR kód a zaregistruj se.", "Kartička má 2 místa – udělej někomu radost a vezmi ho s sebou.", "Lekci si rezervuješ online, web tě povede.", "Kartičku hned předej dál."];
-    y = BLEED + TH - 37;
+    const steps = ["Naskenuj QR kód a zaregistruj se.", "Kartička má 2 místa – udělej někomu radost a vezmi ho s sebou.", "Lekci si rezervuješ online, web tě povede.", "Po rezervaci můžeš kartičku hned poslat dál."];
+    y = BLEED + TH - 36;
     steps.forEach((s, i) => {
       back.drawText(`${i + 1}`, { x: lx, y, size: 7, font: bold, color: GOLD });
       for (const l of wrap(clean(s), i === 3 ? bold : regular, 7, lw - 9)) {
         back.drawText(l, { x: lx + 9, y, size: 7, font: i === 3 ? bold : regular, color: INK });
-        y -= 8.8;
+        y -= 8.4;
       }
-      y -= 2;
+      y -= 1.8;
     });
     // the rules, right above the address
     const rules = wrap(clean("Jen pro nové klienty, každý jen jednou. Lekce platí 14 dní od registrace."), regular, 6, lw);
