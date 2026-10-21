@@ -98,7 +98,7 @@ export default async function PassCardPage({ params, searchParams }: PageProps<"
         </div>
         {card.people > 0 && (
           <p className="mt-4 text-sm text-papir/60">
-            Kartička už k nám přivedla {pluralCs(card.people, "člověka", "lidi", "lidí")} 🐙
+            Kartička už rozhýbala {pluralCs(card.people, "chobotničku", "chobotničky", "chobotniček")} – budeš další? 🐙
           </p>
         )}
 

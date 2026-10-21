@@ -425,7 +425,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
             )}
           </span>
           <p className="mt-2 text-xs text-les/60">
-            {passCard.label} už přivedla {pluralCs(passCard.people, "člověka", "lidi", "lidí")} 🐙
+            {passCard.label} už rozhýbala {pluralCs(passCard.people, "chobotničku", "chobotničky", "chobotniček")} 🐙
           </p>
         </section>
       )}
