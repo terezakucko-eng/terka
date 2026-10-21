@@ -33,9 +33,9 @@ export default async function AdminPassCards() {
       </AdminTitle>
       <p className="-mt-4 mb-8 max-w-3xl text-sm text-les/70">
         Plastové kartičky s QR kódem putují od člověka k člověku. 🔋 Nabitá kartička má <strong>2 místa</strong> – pro dva nové klienty
-        (typicky kamarádky). Každý se přes ni zaregistruje, dostane místo úvodní lekce lekci zdarma a u rezervace ji zaplatí „Kartičkou Pošli
-        to dál“ (stávající klienti tu možnost nevidí). Když jsou obě místa obsazená, kartička se nabíjí ⚡ a po lekcích obou (nebo když jim
-        vstup propadne) se sama znovu nabije. O registraci, rezervaci i nabití ti přijde upozornění do mobilu.
+        (typicky kamarádky). Každý se přes ni zaregistruje, dostane místo úvodní lekce lekci zdarma na 14 dní a u rezervace ji zaplatí
+        „Kartičkou Pošli to dál“ (stávající klienti tu možnost nevidí). Jakmile jsou obě místa obsazená – nebo první klikne v účtu „Přijdu
+        sama“ – kartička má hned zase 2 místa a putuje dál. O registraci i rezervaci ti přijde upozornění do mobilu.
         Zatím přes kartičky přišlo {pluralCs(people, "člověk", "lidi", "lidí")}. PDF je ve formátu platební karty 85,6 × 54 mm se spadávkou 3 mm.
       </p>
 
@@ -52,11 +52,7 @@ export default async function AdminPassCards() {
                 </a>
                 <p className="mt-2 flex flex-wrap gap-2">
                   {c.isActive ? <Badge tone="green">Ve hře</Badge> : <Badge tone="red">Mimo hru</Badge>}
-                  {c.placesLeft === 0 ? (
-                    <Badge tone="neutral">⚡ Nabíjí se – čeká na lekce</Badge>
-                  ) : (
-                    <Badge tone="gold">{c.placesLeft === 1 ? "🔋 Zbývá 1 místo" : "🔋 Nabitá – 2 místa"}</Badge>
-                  )}
+                  <Badge tone="gold">{c.placesLeft === 1 ? "🔋 Zbývá 1 místo" : "🔋 Nabitá – 2 místa"}</Badge>
                 </p>
               </div>
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -72,10 +68,9 @@ export default async function AdminPassCards() {
                     <span className="block text-xs text-les/60">
                       {u.lesson
                         ? `${u.lesson.endsAt <= now ? (u.lesson.status === "no_show" ? "nedorazil/a na" : "byl/a na") : "jde na"} ${u.lesson.name} ${formatDay(u.lesson.startsAt)} ${formatTime(u.lesson.startsAt)}`
-                        : u.rechargedAt
-                          ? "vstup nevyužil/a"
-                          : "zatím bez rezervace"}
-                      {u.rechargedAt && ` · kartička nabitá ${formatDate(u.rechargedAt)}`}
+                        : u.validUntil && u.validUntil <= now
+                          ? "vstup propadl"
+                          : `zatím bez rezervace${u.validUntil ? ` (platí do ${formatDate(u.validUntil)})` : ""}`}
                     </span>
                   </li>
                 ))}
@@ -84,7 +79,7 @@ export default async function AdminPassCards() {
             <div className="mt-auto flex flex-wrap items-center gap-2">
               <a href={`/api/karticky?id=${c.id}`} className="text-xs font-semibold text-zeme underline">PDF k tisku</a>
               {c.placesLeft < 2 && (
-                <ActionForm action={chargePassCardAction} confirm="Nabít kartičku hned na 2 místa? Normálně se nabije sama po lekcích.">
+                <ActionForm action={chargePassCardAction} confirm="Uvolnit druhé místo a nabít kartičku hned na 2 místa? Normálně se nabije sama, jakmile se zaregistruje kamarádka.">
                   <input type="hidden" name="id" value={c.id} />
                   <SubmitButton variant="ghost" className="px-3 py-1.5 text-[0.65rem]">Nabít ručně</SubmitButton>
                 </ActionForm>

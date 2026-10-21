@@ -34,6 +34,7 @@ import { redeemVoucherAction } from "@/app/actions/vouchers";
 import { getSettings } from "@/lib/settings";
 import { site } from "@/config/site";
 import { resetCalendarAction } from "@/app/actions/calendar";
+import { comeAloneAction } from "@/app/actions/pass-card";
 
 export default async function AccountPage({ searchParams }: PageProps<"/ucet">) {
   const { vitej, clenstvi } = await searchParams;
@@ -404,27 +405,25 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
 
       {passCard && (
         <section id="posli-to-dal" className="rounded-2xl border border-zlato/50 bg-zlato/10 p-5">
-          <p className="font-semibold">
-            💛 Kartička Pošli to dál ·{" "}
-            {passCard.placesLeft === 0 ? "⚡ nabíjí se" : passCard.placesLeft === 1 ? "zbývá na ní 1 místo" : "🔋 nabitá"}
-          </p>
+          <p className="font-semibold">💛 Kartička Pošli to dál · {passCard.canComeAlone ? "zbývá na ní 1 místo" : "🔋 nabitá"}</p>
           <p className="mt-1 max-w-2xl text-sm text-les/70">
-            {passCard.placesLeft === 0
-              ? "Obě místa na kartičce jsou obsazená. Až budou obě lekce za vámi, kartička se sama znovu nabije a předáš ji dál."
-              : passCard.placesLeft === 1 && passCard.open
-                ? "Druhé místo je pro kamarádku: ať naskenuje kartičku, nebo jí pošli odkaz. Po registraci má lekci zdarma i ona – přijďte spolu. Když nikoho nemáš, předej kartičku dál někomu novému."
-                : "Kartička je nabitá – předej ji někomu, kdo u nás ještě nebyl. Naskenuje QR kód, zaregistruje se a lekci má zdarma, klidně i s kamarádkou."}
+            {passCard.canComeAlone
+              ? "Druhé místo je pro kamarádku: ať naskenuje kartičku, nebo jí pošli odkaz. Po registraci má lekci zdarma i ona – přijďte spolu. Jdeš sama? Klikni na Přijdu sama a kartičku předej dál – další ji dostane i s oběma místy."
+              : "Kartička je nabitá – předej ji někomu, kdo u nás ještě nebyl. Naskenuje QR kód, zaregistruje se a lekci má zdarma, klidně i s kamarádkou."}
           </p>
-          {passCard.placesLeft > 0 && (
-            <span className="mt-3 flex flex-wrap gap-2">
-              <ShareButton
-                url={`${site.url}/karticka/${passCard.code}`}
-                text="Pojď se mnou do OCTOPUSH – s kartičkou Pošli to dál máš lekci zdarma 🐙"
-                className="px-5 py-2.5"
-              />
-              <CopyButton text={`${site.url}/karticka/${passCard.code}`} className="px-5 py-2.5" />
-            </span>
-          )}
+          <span className="mt-3 flex flex-wrap gap-2">
+            <ShareButton
+              url={`${site.url}/karticka/${passCard.code}`}
+              text="Pojď se mnou do OCTOPUSH – s kartičkou Pošli to dál máš lekci zdarma 🐙"
+              className="px-5 py-2.5"
+            />
+            <CopyButton text={`${site.url}/karticka/${passCard.code}`} className="px-5 py-2.5" />
+            {passCard.canComeAlone && (
+              <ActionForm action={comeAloneAction} confirm="Přijdeš sama? Druhé místo pak dostane ten, komu kartičku předáš.">
+                <SubmitButton variant="outline" className="px-5 py-2.5">Přijdu sama</SubmitButton>
+              </ActionForm>
+            )}
+          </span>
           <p className="mt-2 text-xs text-les/60">
             {passCard.label} už přivedla {pluralCs(passCard.people, "člověka", "lidi", "lidí")} 🐙
           </p>

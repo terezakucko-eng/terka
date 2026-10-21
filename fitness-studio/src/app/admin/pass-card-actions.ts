@@ -29,7 +29,7 @@ export async function togglePassCardAction(_: FormState, fd: FormData): Promise<
   return res;
 }
 
-/** Charge a card by hand (normally it charges itself after the lesson). */
+/** Charge a card by hand (normally it charges itself once the second one signs up). */
 export async function chargePassCardAction(_: FormState, fd: FormData): Promise<FormState> {
   await requireAdmin();
   const res = await attempt(async () => {

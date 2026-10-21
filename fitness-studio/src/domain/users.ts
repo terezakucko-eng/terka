@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import type { DB } from "@/db";
 import { entitlements, users } from "@/db/schema";
-import { CARD_ENTRY_NAME, claimPassCard, linkPassEntitlement } from "@/domain/pass-cards";
+import { CARD_ENTRY_DAYS, CARD_ENTRY_NAME, claimPassCard, linkPassEntitlement } from "@/domain/pass-cards";
 import { UserError } from "@/lib/errors";
 import { normalizePhone } from "@/lib/phone";
 import { cleanBirthDate } from "@/lib/profile";
@@ -61,9 +61,9 @@ export async function registerUser(
 
     const cfg = await getSettings(tx);
     const validUntil = new Date(now.getTime() + cfg.welcomeFreeValidityDays * DAY);
-    const card = input.passCard ? await claimPassCard(tx, input.passCard, user.id) : null;
+    const card = input.passCard ? await claimPassCard(tx, input.passCard, user.id, now) : null;
     if (card) {
-      // instead of the welcome lesson – the card's own, so its lesson charges the card again
+      // instead of the welcome lesson – the card's own, two weeks to use it
       const [free] = await tx
         .insert(entitlements)
         .values({
@@ -72,7 +72,7 @@ export async function registerUser(
           name: CARD_ENTRY_NAME,
           entriesTotal: 1,
           validFrom: now,
-          validUntil,
+          validUntil: new Date(now.getTime() + CARD_ENTRY_DAYS * DAY),
           note: `Přišla s kartičkou Pošli to dál (${card.label})`,
         })
         .returning();

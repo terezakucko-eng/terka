@@ -577,7 +577,7 @@ export const passCards = pgTable("pass_cards", {
   /** ztracená nebo stažená kartička – registrace přes ni už nic nedá */
   isActive: boolean("is_active").notNull().default(true),
   /** volná místa: nabitá kartička má 2 (pro dva nové lidi), každá registrace jedno zabere;
-   *  prázdná se znovu nabije, až mají oba po lekci (nebo jim vstup propadne) */
+   *  po druhé registraci (nebo „Přijdu sama“) se hned znovu nabije */
   placesLeft: integer("places_left").notNull().default(2),
   createdAt: createdAt(),
 });
@@ -602,7 +602,7 @@ export const passCardUses = pgTable(
     /** studio dostalo upozornění na registraci / na rezervaci lekce */
     registeredNotifiedAt: timestamp("registered_notified_at", { withTimezone: true }),
     bookedNotifiedAt: timestamp("booked_notified_at", { withTimezone: true }),
-    /** po lekci (nebo když vstup propadl) se kartička znovu nabila */
+    /** kolo skončilo (obsazená obě místa nebo „Přijdu sama“) – kartička je zase nabitá */
     rechargedAt: timestamp("recharged_at", { withTimezone: true }),
     createdAt: createdAt(),
   },

@@ -5,17 +5,17 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { entitlements, passCardUses, passCards } from "@/db/schema";
 import { bookSession, bookingOptions } from "@/domain/booking";
 import {
+  CARD_ENTRY_DAYS,
   CARD_ENTRY_NAME,
   addPassCard,
   chargePassCard,
-  dueRecharges,
+  comeAlone,
   listPassCards,
   markBookingAnnounced,
   markSignUpAnnounced,
   myPassCard,
   passCardByCode,
   passCardOf,
-  recharge,
   setPassCardActive,
   unannouncedBookings,
   unannouncedSignUps,
@@ -38,7 +38,7 @@ const card = async (id: string) => (await h.db.select().from(passCards).where(eq
 const book = (userId: string, sessionId: string, entitlementId: string, guestName?: string) =>
   bookSession(h.db, { userId, sessionId, method: "free", entitlementId, guestName }, NOW);
 
-describe("Pošli to dál – a plastic card with two places that charges itself again", () => {
+describe("Pošli to dál – a plastic card with two places that goes on right after the sign-ups", () => {
   it("the migration puts four cards with two places each into the game, and only once", async () => {
     await h.db.execute(sql.raw(readFileSync("drizzle/0094_pass_cards_seed.sql", "utf8")));
     const cards = await h.db.select().from(passCards);
@@ -46,23 +46,56 @@ describe("Pošli to dál – a plastic card with two places that charges itself 
     expect(cards.every((c) => /^[0-9A-F]{6}$/.test(c.code) && c.isActive && c.placesLeft === 2)).toBe(true);
   });
 
-  it("two newcomers take the two places, each with a lesson of her own instead of the welcome one; then it's empty", async () => {
+  it("two newcomers take the two places, each with a two-week lesson instead of the welcome one; then the card goes on at once", async () => {
     const c = await addPassCard(h.db);
     const jana = await signUp("Jana Nováková", c.code.toLowerCase());
-    expect((await mine(jana.id)).map((e) => [e.name, e.entriesTotal])).toEqual([[CARD_ENTRY_NAME, 1]]);
+    const [free] = await mine(jana.id);
+    expect([free.name, free.entriesTotal]).toEqual([CARD_ENTRY_NAME, 1]);
+    expect(free.validUntil.getTime() - NOW.getTime()).toBe(CARD_ENTRY_DAYS * 86_400_000);
     expect(await card(c.id)).toMatchObject({ placesLeft: 1, holderId: jana.id });
     expect(await passCardByCode(h.db, c.code)).toMatchObject({ placesLeft: 1, people: 1 });
-    expect(await myPassCard(h.db, jana.id)).toMatchObject({ id: c.id, open: true, placesLeft: 1 });
+    expect(await myPassCard(h.db, jana.id)).toMatchObject({ id: c.id, open: true, canComeAlone: true, placesLeft: 1 });
 
-    const petra = await signUp("Petra Malá", c.code);
+    // the friend takes the second place – the round is over, both places are back for the next one
+    const petra = await signUp("Petra Malá", c.code, hours(0.5));
     expect((await mine(petra.id)).map((e) => e.name)).toEqual([CARD_ENTRY_NAME]);
     expect(await passCardOf(h.db, petra.id)).toMatchObject({ fromName: "Jana Nováková" });
-    expect(await card(c.id)).toMatchObject({ placesLeft: 0 });
+    expect(await card(c.id)).toMatchObject({ placesLeft: 2, holderId: petra.id });
+    expect(await myPassCard(h.db, jana.id)).toMatchObject({ open: false, canComeAlone: false, placesLeft: 2 });
+    expect(await myPassCard(h.db, petra.id)).toMatchObject({ open: false, canComeAlone: false, placesLeft: 2 });
 
-    // a photo of the QR code passed around gets nobody anything more
-    const eva = await signUp("Eva Třetí", c.code);
-    expect((await mine(eva.id)).map((e) => [e.name, e.entriesTotal])).toEqual([["Úvodní lekce zdarma", 1]]);
-    expect(await passCardOf(h.db, eva.id)).toBeNull();
+    // whoever has it passes it on – the next newcomer starts a new round
+    const eva = await signUp("Eva Třetí", c.code, hours(1));
+    expect((await mine(eva.id)).map((e) => e.name)).toEqual([CARD_ENTRY_NAME]);
+    expect(await card(c.id)).toMatchObject({ placesLeft: 1, holderId: eva.id });
+    expect(await myPassCard(h.db, jana.id)).toBeNull();
+    expect(await myPassCard(h.db, eva.id)).toMatchObject({ open: true, canComeAlone: true });
+  });
+
+  it("„Přijdu sama“: the friend's place goes to the next one, and only the holder can let it go", async () => {
+    const c = await addPassCard(h.db);
+    const alone = await signUp("Alena Sama", c.code);
+    const other = await signUp("Olga Jinde");
+    expect(await comeAlone(h.db, other.id)).toBe(false);
+    expect(await comeAlone(h.db, alone.id, hours(1))).toBe(true);
+    expect(await card(c.id)).toMatchObject({ placesLeft: 2 });
+    expect(await myPassCard(h.db, alone.id)).toMatchObject({ open: false, canComeAlone: false, placesLeft: 2 });
+    expect(await comeAlone(h.db, alone.id)).toBe(false); // nothing left to let go
+    // her free lesson stays hers
+    expect((await mine(alone.id)).map((e) => [e.name, e.status])).toEqual([[CARD_ENTRY_NAME, "active"]]);
+    const next = await signUp("Nela Další", c.code, hours(2));
+    expect(await passCardOf(h.db, next.id)).toMatchObject({ fromName: "Alena Sama" });
+    expect(await card(c.id)).toMatchObject({ placesLeft: 1 });
+  });
+
+  it("waiting cards from before get both places back (migration)", async () => {
+    const c = await addPassCard(h.db);
+    const a = await signUp("Lada Čekající", c.code);
+    await h.db.update(passCards).set({ placesLeft: 0 }).where(eq(passCards.id, c.id));
+    for (const stmt of readFileSync("drizzle/0098_pass_cards_round_over.sql", "utf8").split("--> statement-breakpoint"))
+      await h.db.execute(sql.raw(stmt));
+    expect(await card(c.id)).toMatchObject({ placesLeft: 2 });
+    expect(await myPassCard(h.db, a.id)).toMatchObject({ open: false, placesLeft: 2 });
   });
 
   it("at payment only those who came with the card see it – never an existing client", async () => {
@@ -75,14 +108,16 @@ describe("Pošli to dál – a plastic card with two places that charges itself 
     expect(await labels(regular.id)).not.toContain(CARD_ENTRY_NAME);
   });
 
-  it("the studio hears about sign-ups and bookings; after both lessons the card has two places again", async () => {
+  it("the studio hears about sign-ups (and whether the card went on) and about lessons booked with it", async () => {
     for (const r of await unannouncedSignUps(h.db)) await markSignUpAnnounced(h.db, r.use.id, NOW);
+    for (const r of await unannouncedBookings(h.db)) await markBookingAnnounced(h.db, r.use.id, NOW);
     const c = await addPassCard(h.db);
     const a = await signUp("Alena Dvořáková", c.code);
-    const b = await signUp("Bára Dvořáková", c.code);
-    expect((await unannouncedSignUps(h.db)).map((r) => [r.userName, r.placesLeft])).toEqual([
-      ["Alena Dvořáková", 0],
-      ["Bára Dvořáková", 0],
+    expect((await unannouncedSignUps(h.db)).map((r) => [r.userName, !!r.use.rechargedAt])).toEqual([["Alena Dvořáková", false]]);
+    const b = await signUp("Bára Dvořáková", c.code, hours(1));
+    expect((await unannouncedSignUps(h.db)).map((r) => [r.userName, !!r.use.rechargedAt])).toEqual([
+      ["Alena Dvořáková", true],
+      ["Bára Dvořáková", true],
     ]);
 
     const s = await makeSession(h.db, { capacity: 10, startsAt: hours(48) });
@@ -91,42 +126,13 @@ describe("Pošli to dál – a plastic card with two places that charges itself 
     const booked = await unannouncedBookings(h.db);
     expect(booked.map((r) => r.userName).sort()).toEqual(["Alena Dvořáková", "Bára Dvořáková"]);
     for (const r of booked) await markBookingAnnounced(h.db, r.use.id, NOW);
+    expect(await unannouncedBookings(h.db)).toHaveLength(0);
 
-    expect((await dueRecharges(h.db, hours(48.5))).filter((r) => r.cardId === c.id)).toHaveLength(0); // still in the lesson
-    const [due] = (await dueRecharges(h.db, hours(49.1))).filter((r) => r.cardId === c.id);
-    expect(due.uses.map((u) => [u.userName, u.outcome])).toEqual([
-      ["Alena Dvořáková", "came"],
-      ["Bára Dvořáková", "came"],
-    ]);
-    expect(await recharge(h.db, due, hours(49.1))).toBe(true);
-    expect(await recharge(h.db, due, hours(49.2))).toBe(false);
-    expect(await card(c.id)).toMatchObject({ placesLeft: 2 });
-    // both may pass it on…
-    expect(await myPassCard(h.db, a.id)).toMatchObject({ open: false, placesLeft: 2 });
-    expect(await myPassCard(h.db, b.id)).toMatchObject({ open: false, placesLeft: 2 });
-
-    // …until somebody new signs up with it
-    const ola = await signUp("Ola Další", c.code, hours(50));
-    expect(await myPassCard(h.db, a.id)).toBeNull();
-    expect(await myPassCard(h.db, ola.id)).toMatchObject({ open: true, placesLeft: 1 });
     const listed = (await listPassCards(h.db)).find((x) => x.id === c.id)!;
-    expect(listed.chain.map((u) => [u.name, !!u.lesson, !!u.rechargedAt])).toEqual([
-      ["Alena Dvořáková", true, true],
-      ["Bára Dvořáková", true, true],
-      ["Ola Další", false, false],
+    expect(listed.chain.map((u) => [u.name, !!u.lesson, !!u.rechargedAt, !!u.validUntil])).toEqual([
+      ["Alena Dvořáková", true, true, true],
+      ["Bára Dvořáková", true, true, true],
     ]);
-  });
-
-  it("when the second one never books, the card charges once her entry has run out", async () => {
-    const c = await addPassCard(h.db);
-    const a = await signUp("Cecílie Prvá", c.code);
-    const b = await signUp("Dita Druhá", c.code);
-    const s = await makeSession(h.db, { capacity: 10, startsAt: hours(30) });
-    await book(a.id, s.id, (await mine(a.id))[0].id);
-    expect((await dueRecharges(h.db, hours(32))).filter((r) => r.cardId === c.id)).toHaveLength(0);
-    const later = new Date((await mine(b.id))[0].validUntil.getTime() + 60_000);
-    const [due] = (await dueRecharges(h.db, later)).filter((r) => r.cardId === c.id);
-    expect(due.uses.map((u) => u.outcome)).toEqual(["came", "unused"]);
   });
 
   it("in the account it's one lesson only – no second booking, no friend (+1) on it, nobody on a card twice", async () => {
@@ -149,11 +155,10 @@ describe("Pošli to dál – a plastic card with two places that charges itself 
     expect([(await mine(a.id))[0].name, (await mine(b.id))[0].name]).toEqual(["Úvodní lekce zdarma", "Úvodní lekce zdarma"]);
 
     const d = await addPassCard(h.db);
-    await signUp("Dana Ruční", d.code);
-    await signUp("Ema Ruční", d.code);
+    const dana = await signUp("Dana Ruční", d.code);
     await chargePassCard(h.db, d.id, NOW);
     expect(await card(d.id)).toMatchObject({ placesLeft: 2 });
-    expect((await dueRecharges(h.db, hours(24 * 60))).filter((r) => r.cardId === d.id)).toHaveLength(0);
+    expect(await myPassCard(h.db, dana.id)).toMatchObject({ open: false, canComeAlone: false });
   });
 
   it("prints front and back of every card in the payment-card size", async () => {

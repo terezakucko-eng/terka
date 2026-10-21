@@ -15,8 +15,8 @@ export const maxDuration = 60;
  * or massage starting within the next REMINDER_HOURS. Each booking is reminded only once.
  * From 9:00 (Prague) it also sends the birthday / name-day wishes, from 10:00 „Chybíš nám“ –
  * each once, so the first run of the day does it and the later ones find nothing. Places held
- * for non-members go to the waitlist once they're released. Pošli to dál cards charge again after
- * their lesson, and the studio hears about sign-ups and bookings with them (not at night).
+ * for non-members go to the waitlist once they're released. The studio hears about sign-ups and
+ * lessons booked with a Pošli to dál card (not at night).
  */
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;

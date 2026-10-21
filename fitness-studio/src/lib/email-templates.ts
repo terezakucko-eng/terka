@@ -40,10 +40,12 @@ export const EMAILS = {
     title: "Vítej po registraci s kartičkou Pošli to dál",
     when: "Hned po založení účtu přes kartičku Pošli to dál (místo běžného uvítání).",
     subject: "Vítej v OCTOPUSH! Lekce zdarma je tvoje 💛",
-    body: "Ahoj {{osloveni}},\n\ndíky za registraci – k nám tě přivedla kartička Pošli to dál 💛\nNa účtu tě čeká lekce zdarma. Vyber si ji v rozvrhu a u rezervace zaplať „Kartičkou Pošli to dál“: {{odkaz}}\n\nPo lekci se kartička sama znovu nabije a dáme ti vědět – pak ji předejte někomu, kdo u nás ještě nebyl.\n\nUlož si do mobilu členskou kartu – na recepci pak stačí ukázat QR kód: {{karta}}",
+    body: "Ahoj {{osloveni}},\n\ndíky za registraci – k nám tě přivedla kartička Pošli to dál 💛\nNa účtu tě čeká lekce zdarma, platí do {{platnost}}. Vyber si ji v rozvrhu a u rezervace zaplať „Kartičkou Pošli to dál“: {{odkaz}}\n\nKartičku můžeš předat dál hned – jestli na ní zbývá místo pro kamarádku, uvidíš v účtu: {{ucet}}\n\nUlož si do mobilu členskou kartu – na recepci pak stačí ukázat QR kód: {{karta}}",
     vars: {
       osloveni,
+      platnost: { label: "do kdy lekce zdarma platí", sample: "4. 11. 2026" },
       odkaz: { label: "odkaz na rozvrh", sample: `${site.url}/rozvrh` },
+      ucet: { label: "odkaz na kartičku v účtu", sample: `${site.url}/ucet#posli-to-dal` },
       karta: { label: "odkaz na členskou kartu", sample: `${site.url}/ucet/karta` },
     },
   },
@@ -270,16 +272,6 @@ export const EMAILS = {
       kamaradka: { label: "jméno pozvané kamarádky", sample: "Jana" },
       platnost: { label: "do kdy platí lekce zdarma", sample: "12. 12. 2026" },
       odkaz: { label: "odkaz na rozvrh", sample: `${site.url}/rozvrh` },
-    },
-  },
-  passCardCharged: {
-    title: "Pošli to dál – kartička je zase nabitá",
-    when: "Když mají oba noví klienti z kartičky Pošli to dál lekci za sebou (nebo jim vstup propadl) – oběma, ať kartičku předají dál.",
-    subject: "Kartička Pošli to dál je zase nabitá 🔋",
-    body: "Ahoj {{osloveni}},\n\nkartička Pošli to dál, se kterou jsi k nám přišel/přišla, je zase nabitá 🔋\nKdo z vás ji má u sebe, předejte ji někomu, kdo u nás ještě nebyl a komu pohyb udělá radost. Má na ní 2 místa – lekci zdarma pro sebe i kamarádku.\n\nKolik lidí už kartička přivedla, uvidíš v účtu: {{odkaz}}\n\nDíky, že posíláš pohyb dál! 💛\nTvoje OCTOPUSH 🐙",
-    vars: {
-      osloveni,
-      odkaz: { label: "odkaz na účet", sample: `${site.url}/ucet#posli-to-dal` },
     },
   },
   voucherReady: {

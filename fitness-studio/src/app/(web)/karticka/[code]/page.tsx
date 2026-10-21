@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { ButtonLink, Container, Eyebrow } from "@/components/ui";
 import { getDb } from "@/db";
 import { passCardByCode } from "@/domain/pass-cards";
@@ -13,33 +14,11 @@ export const metadata: Metadata = {
 };
 
 /** Where the QR code of a printed Pošli to dál card leads. */
-export default async function PassCardPage({ params }: PageProps<"/karticka/[code]">) {
-  const { code } = await params;
+export default async function PassCardPage({ params, searchParams }: PageProps<"/karticka/[code]">) {
+  const [{ code }, { ne }] = await Promise.all([params, searchParams]);
   const db = await getDb();
   const [card, user, cfg] = await Promise.all([passCardByCode(db, code), getCurrentUser(), getSettings(db)]);
-  if (card?.isActive && card.placesLeft === 0) {
-    // both places taken until their lessons are over – a shared photo of the QR gets nobody anything
-    return (
-      <section className="bg-forest text-papir">
-        <Container className="max-w-2xl py-20 text-center">
-          <p className="text-6xl">⚡</p>
-          <Eyebrow className="mt-6 text-zlato">Pošli to dál</Eyebrow>
-          <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">Kartička se právě nabíjí</h1>
-          <p className="mx-auto mt-6 max-w-lg text-lg text-papir/80">
-            Obě místa na ní právě využívají dva noví lidé. Kartička se sama nabije, až budou po lekci – pak ji můžeš dostat ty 💛
-          </p>
-          <p className="mx-auto mt-4 max-w-lg text-papir/70">
-            {cfg.welcomeFreeEntries > 0 ? "Nechceš čekat? První lekce je u nás pro nové zdarma i bez kartičky." : "Nechceš čekat? Stačí se zaregistrovat a vybrat si lekci."}
-          </p>
-          <div className="mt-10 flex flex-wrap justify-center gap-3">
-            <ButtonLink href={user ? "/rozvrh" : "/registrace"} variant="gold">{user ? "Vybrat lekci" : "Zaregistrovat se"}</ButtonLink>
-          </div>
-        </Container>
-      </section>
-    );
-  }
-
-  if (!card?.isActive) {
+  if (!card?.isActive || card.placesLeft === 0) {
     return (
       <section className="bg-forest text-papir">
         <Container className="max-w-2xl py-20 text-center">
@@ -52,6 +31,25 @@ export default async function PassCardPage({ params }: PageProps<"/karticka/[cod
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
             <ButtonLink href={user ? "/rozvrh" : "/registrace"} variant="gold">{user ? "Vybrat lekci" : "Zaregistrovat se"}</ButtonLink>
+          </div>
+        </Container>
+      </section>
+    );
+  }
+
+  if (ne !== undefined) {
+    // scanned it, not for her – nothing taken, the card just goes on
+    return (
+      <section className="bg-forest text-papir">
+        <Container className="max-w-2xl py-20 text-center">
+          <p className="text-6xl">💛</p>
+          <Eyebrow className="mt-6 text-zlato">Pošli to dál</Eyebrow>
+          <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">Nevadí, díky!</h1>
+          <p className="mx-auto mt-6 max-w-lg text-lg text-papir/80">
+            Kartičku pošli dál někomu, koho by pohyb potěšil – nebo ji vrať tomu, od koho ji máš. Na kartičce se nic nezměnilo, místa na ní zůstávají.
+          </p>
+          <div className="mt-10 flex flex-wrap justify-center gap-3">
+            <ButtonLink href={`/karticka/${card.code}`} variant="outline-light">Vlastně mě to zajímá</ButtonLink>
           </div>
         </Container>
       </section>
@@ -86,7 +84,7 @@ export default async function PassCardPage({ params }: PageProps<"/karticka/[cod
         )}
 
         <ol className="mx-auto mt-10 grid max-w-xl gap-3 text-left sm:grid-cols-3">
-          {["Zaregistruj se – lekci zdarma máš hned na účtu", "Rezervuj si lekci a zaplať Kartičkou Pošli to dál", "Po lekci se kartička nabije – předej ji dál"].map((s, i) => (
+          {["Zaregistruj se – lekci zdarma máš hned na účtu", "Do 14 dní si rezervuj lekci a zaplať Kartičkou Pošli to dál", "Kartičku hned předej dál někomu novému"].map((s, i) => (
             <li key={s} className="rounded-2xl border border-zlato/30 p-4 text-sm text-papir/80">
               <span className="block font-serif text-2xl text-zlato">{i + 1}.</span>
               {s}
@@ -101,9 +99,12 @@ export default async function PassCardPage({ params }: PageProps<"/karticka/[cod
             <ButtonLink href="/rozvrh" variant="gold" className="mt-4">Vybrat lekci</ButtonLink>
           </div>
         ) : (
-          <div className="mt-10 flex flex-wrap justify-center gap-3">
-            <ButtonLink href={`/registrace?karta=${card.code}`} variant="gold">Zaregistrovat se</ButtonLink>
-            <ButtonLink href="/lekce" variant="outline-light">Prohlédnout lekce</ButtonLink>
+          <div className="mt-10">
+            <div className="flex flex-wrap justify-center gap-3">
+              <ButtonLink href={`/registrace?karta=${card.code}`} variant="gold">Zajímá mě – chci lekci zdarma</ButtonLink>
+              <ButtonLink href={`/karticka/${card.code}?ne`} variant="outline-light">Nezajímá mě</ButtonLink>
+            </div>
+            <Link href="/lekce" className="mt-5 inline-block text-sm text-papir/70 underline">Nejdřív se podívám na lekce</Link>
           </div>
         )}
       </Container>
