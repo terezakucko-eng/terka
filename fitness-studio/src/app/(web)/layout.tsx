@@ -1,4 +1,5 @@
 import { EditPageButton } from "@/components/edit-page-button";
+import { AdminAppStart } from "@/components/admin-app-start";
 import { AppOpenTracker } from "@/components/app-open-tracker";
 import { InstallCatcher } from "@/components/install-catcher";
 import { Popup } from "@/components/popup";
@@ -25,6 +26,7 @@ export default async function WebLayout({ children }: LayoutProps<"/">) {
       <Popup />
       <InstallCatcher />
       {user?.role === "admin" && <EditPageButton />}
+      {user && user.role !== "client" && <AdminAppStart />}
       {user && !user.appInstalledAt && <AppOpenTracker />}
       {push && <PushNudge publicKey={push.publicKey} />}
     </>

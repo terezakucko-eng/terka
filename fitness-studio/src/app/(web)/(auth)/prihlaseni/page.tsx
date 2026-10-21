@@ -12,7 +12,8 @@ export const metadata: Metadata = { title: "Přihlášení", robots: { index: fa
 
 export default async function LoginPage({ searchParams }: PageProps<"/prihlaseni">) {
   const { next } = await searchParams;
-  if (await getCurrentUser()) redirect(typeof next === "string" && next.startsWith("/") ? next : "/ucet");
+  const user = await getCurrentUser();
+  if (user) redirect(typeof next === "string" && next.startsWith("/") ? next : user.role === "client" ? "/ucet" : "/admin");
   const nextQ = typeof next === "string" ? `?next=${encodeURIComponent(next)}` : "";
   return (
     <>
