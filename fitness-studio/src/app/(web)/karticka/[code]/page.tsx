@@ -9,7 +9,7 @@ import { getSettings } from "@/lib/settings";
 
 export const metadata: Metadata = {
   title: "Pošli to dál",
-  description: "Kartička, která putuje od člověka k člověku – s ní máš v OCTOPUSH lekci zdarma ty i kamarádka.",
+  description: "Někdo na tebe myslí 💛 S kartičkou Pošli to dál si v OCTOPUSH dobiješ baterky na lekci zdarma – klidně i s kamarádkou.",
   robots: { index: false },
 };
 
@@ -63,20 +63,27 @@ export default async function PassCardPage({ params, searchParams }: PageProps<"
         <img src="/brand/symbol-gold.svg" alt="" className="mx-auto h-24 w-24" />
         <Eyebrow className="mt-6 text-zlato">Pošli to dál 💛</Eyebrow>
         <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-6xl">
-          {card.placesLeft === 1 ? "Zbývá jedno místo – je tvoje" : "Tahle kartička doputovala k tobě"}
+          {card.placesLeft === 1 ? "Máš štěstí – poslední místo je tvoje" : "Máš štěstí – dobij si baterky zdarma"}
         </h1>
         <p className="mx-auto mt-6 max-w-lg text-lg text-papir/80">
           {card.placesLeft === 1 ? (
             <>
-              Zaregistruj se a máš v OCTOPUSH <strong className="text-zlato-light">lekci zdarma</strong>. Domluv se s tím, kdo ti kartičku dal, a přijďte spolu.
+              Někdo na tebe myslel a nechal ti místo 💛 A my v OCTOPUSH myslíme na tvoje zdraví a pohodu, takže tě u nás čeká{" "}
+              <strong className="text-zlato-light">lekce zdarma</strong>. Domluv se s tím, kdo ti kartičku dal, a přijďte spolu.
             </>
           ) : (
             <>
-              🔋 Kartička je nabitá a má <strong className="text-zlato-light">2 místa – lekci zdarma pro tebe i kamarádku</strong>. Zaregistruj se a ať
-              se kamarádka zaregistruje taky: naskenuje kartičku, nebo jí pošleš odkaz z účtu.
+              Tuhle kartičku ti dal někdo, kdo na tebe myslí 💛 A my v OCTOPUSH myslíme na tvoje zdraví a pohodu, takže tě u nás čeká{" "}
+              <strong className="text-zlato-light">lekce zdarma</strong>.
             </>
           )}
         </p>
+        {card.placesLeft !== 1 && (
+          <p className="mx-auto mt-4 max-w-lg text-papir/70">
+            🔋 Kartička má 2 místa – vezmi s sebou někoho, komu chceš udělat radost. Zaregistruje se taky: naskenuje kartičku, nebo mu pošleš odkaz
+            z účtu.
+          </p>
+        )}
         {card.people > 0 && (
           <p className="mt-4 text-sm text-papir/60">
             Kartička už k nám přivedla {pluralCs(card.people, "člověka", "lidi", "lidí")} 🐙
