@@ -359,6 +359,12 @@ function opensAtFrom(fd: FormData) {
   return pragueLocalToDate(local);
 }
 
+/** Booking that "opens" at or after the start would never open – refuse it. */
+function checkOpensBefore(opensAt: Date | null, starts: Date[]) {
+  if (opensAt && starts.some((s) => opensAt >= s))
+    throw new UserError("„Rezervace otevřít od“ musí být před začátkem lekce. Když ho nepotřebuješ, nech ho prázdné.");
+}
+
 export async function createSessionsAction(_: FormState, fd: FormData): Promise<FormState> {
   await requireAdmin();
   return attempt(async () => {
@@ -389,9 +395,9 @@ export async function createSessionsAction(_: FormState, fd: FormData): Promise<
       const own = field.str(fd, `time_${weekdayOf(d)}`);
       return until && /^\d{2}:\d{2}$/.test(own) ? own : time;
     };
-    await (await getDb()).insert(classSessions).values(
-      dates.map((d) => ({ ...values, seriesId, startsAt: pragueLocalToDate(`${d}T${timeFor(d)}`) })),
-    );
+    const rows = dates.map((d) => ({ ...values, seriesId, startsAt: pragueLocalToDate(`${d}T${timeFor(d)}`) }));
+    checkOpensBefore(values.bookingOpensAt, rows.map((r) => r.startsAt));
+    await (await getDb()).insert(classSessions).values(rows);
     return done(`Vytvořeno termínů: ${dates.length}.`);
   });
 }
@@ -405,6 +411,7 @@ export async function updateSessionAction(_: FormState, fd: FormData): Promise<F
     const db = await getDb();
     const id = field.str(fd, "id");
     if (field.str(fd, "scope") !== "series") {
+      checkOpensBefore(values.bookingOpensAt, [pragueLocalToDate(local)]);
       await db.update(classSessions).set({ ...values, startsAt: pragueLocalToDate(local) }).where(eq(classSessions.id, id));
       return done("Termín uložen.");
     }
@@ -415,12 +422,11 @@ export async function updateSessionAction(_: FormState, fd: FormData): Promise<F
     if (!me) throw new UserError("Termín nenalezen.");
     const [newDay, newTime] = local.split("T");
     const shift = Math.round((Date.parse(newDay) - Date.parse(dateKey(me.startsAt))) / 86_400_000);
+    const moved = list.map((s) => ({ id: s.id, startsAt: pragueLocalToDate(`${addDays(dateKey(s.startsAt), shift)}T${newTime}`) }));
+    checkOpensBefore(values.bookingOpensAt, moved.map((s) => s.startsAt));
     await db.transaction(async (tx) => {
-      for (const s of list)
-        await tx
-          .update(classSessions)
-          .set({ ...values, startsAt: pragueLocalToDate(`${addDays(dateKey(s.startsAt), shift)}T${newTime}`) })
-          .where(eq(classSessions.id, s.id));
+      for (const s of moved)
+        await tx.update(classSessions).set({ ...values, startsAt: s.startsAt }).where(eq(classSessions.id, s.id));
     });
     return done(`Uloženo pro ${list.length} ${list.length === 1 ? "termín" : list.length < 5 ? "termíny" : "termínů"}.`);
   });
