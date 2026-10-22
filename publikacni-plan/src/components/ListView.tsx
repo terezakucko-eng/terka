@@ -1,7 +1,7 @@
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink, Store } from 'lucide-react'
 import { hue } from '../lib/colors'
 import { formatRange, iso, monthOf, monthTitle, type ISODate } from '../lib/dates'
-import { domainSummary } from '../lib/format'
+import { domainSummary, storeSummary } from '../lib/format'
 import { type Akce, type Links, LINK_LABELS, type Publikace, statusOf } from '../lib/model'
 import { cx, StatusPill, Tag } from './ui'
 
@@ -15,6 +15,7 @@ interface Props {
   rows: Row[]
   akceById: Map<string, Akce>
   allDomains: string[]
+  allStores: string[]
   onOpen: (kind: Row['kind'], id: string) => void
 }
 
@@ -49,7 +50,7 @@ function LinkIcons({ links }: { links: Links }) {
   )
 }
 
-export function ListView({ year, today, rows, akceById, allDomains, onOpen }: Props) {
+export function ListView({ year, today, rows, akceById, allDomains, allStores, onOpen }: Props) {
   const months = groupByMonth(rows, year)
   if (months.length === 0) {
     return <p className="rounded-2xl bg-surface px-4 py-14 text-center text-sm text-muted ring-1 ring-line">Pro rok {year} tu nic není. Zkus jiný rok nebo zruš filtry.</p>
@@ -88,6 +89,9 @@ export function ListView({ year, today, rows, akceById, allDomains, onOpen }: Pr
                     </span>
                     <span className="min-w-0 space-y-1.5 text-xs text-muted">
                       <span className="block">{domainSummary(r.item.domains, allDomains)}</span>
+                      {r.item.stores.length > 0 && (
+                        <span className="flex items-start gap-1"><Store className="mt-px size-3.5 shrink-0" aria-hidden />{storeSummary(r.item.stores, allStores)}</span>
+                      )}
                       <LinkIcons links={r.item.links} />
                     </span>
                     <span className="md:text-right"><StatusPill status={statusOf(r.item, today)} /></span>

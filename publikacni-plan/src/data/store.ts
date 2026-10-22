@@ -52,8 +52,8 @@ function withDefaults<T extends { links?: unknown }>(raw: DocumentData, id: stri
   return { ...base, ...raw, links: { ...emptyLinks(), ...(raw.links ?? {}) }, id } as T & { id: string }
 }
 
-const PUB_BASE = { name: '', dateFrom: '', dateTo: '', channels: [], domains: [], akceId: null, description: '', ready: false, links: emptyLinks() }
-const AKCE_BASE = { name: '', type: '', dateFrom: '', dateTo: '', domains: [], benefit: '', info: '', links: emptyLinks() }
+const PUB_BASE = { name: '', dateFrom: '', dateTo: '', channels: [], domains: [], stores: [], akceId: null, description: '', ready: false, links: emptyLinks() }
+const AKCE_BASE = { name: '', type: '', dateFrom: '', dateTo: '', domains: [], stores: [], benefit: '', info: '', links: emptyLinks() }
 
 const toPublikace = (snap: QuerySnapshot) => snap.docs.map((d) => withDefaults(d.data(), d.id, PUB_BASE) as Publikace)
 const toAkce = (snap: QuerySnapshot) => snap.docs.map((d) => withDefaults(d.data(), d.id, AKCE_BASE) as Akce)

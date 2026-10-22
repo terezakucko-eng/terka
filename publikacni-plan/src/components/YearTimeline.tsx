@@ -27,6 +27,7 @@ interface Props {
   significant: Akce[]
   /** Many short items (publications): lanes ignore label width, so a row shows the rhythm and labels fit inside the bar. */
   compact?: boolean
+  emptyText?: string
   onOpen: (kind: TimelineItem['kind'], id: string) => void
 }
 
@@ -55,7 +56,7 @@ function monthEdges(year: number): number[] {
   return edges
 }
 
-export function YearTimeline({ year, today, items, groupOrder, groupHue, significant, compact = false, onOpen }: Props) {
+export function YearTimeline({ year, today, items, groupOrder, groupHue, significant, compact = false, emptyText = 'V tomto roce tu nic není. Zkus jiný rok nebo zruš filtry.', onOpen }: Props) {
   const [ref, areaWidth] = useAreaWidth()
   const start = iso(year, 0, 1)
   const total = diffDays(start, iso(year, 11, 31)) + 1
@@ -104,7 +105,7 @@ export function YearTimeline({ year, today, items, groupOrder, groupHue, signifi
           ))}
         </Row>
 
-        {groups.length === 0 && <p className="px-4 py-12 text-center text-sm text-muted">V tomto roce tu nic není. Zkus jiný rok nebo zruš filtry.</p>}
+        {groups.length === 0 && <p className="px-4 py-12 text-center text-sm text-muted">{emptyText}</p>}
 
         {groups.map(({ name, layout }) => (
           <Row key={name} label={name} labelHue={groupHue?.(name)} height={layout.lanes * lane + 10} {...row}>

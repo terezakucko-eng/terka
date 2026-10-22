@@ -5,12 +5,12 @@ import { type Akce, type Publikace, SIGNIFICANT_DAY, brandsOf, emptyLinks, split
 
 const pub = (over: Partial<Publikace> = {}): Publikace => ({
   id: 'p', name: 'Newsletter Valentýn', dateFrom: '2027-02-01', dateTo: '2027-02-14', channels: ['Newsletter'],
-  domains: ['Růžový Slon CZ'], akceId: null, description: '', links: emptyLinks(), ready: false, ...over,
+  domains: ['Růžový Slon CZ'], stores: [], akceId: null, description: '', links: emptyLinks(), ready: false, ...over,
 })
 
 const akce = (over: Partial<Akce> = {}): Akce => ({
   id: 'a', name: 'Valentýn', type: 'Hlavní kampaň', dateFrom: '2027-02-01', dateTo: '2027-02-14',
-  domains: ['Kondomshop SK'], benefit: '', info: '', links: emptyLinks(), ...over,
+  domains: ['Kondomshop SK'], stores: [], benefit: '', info: '', links: emptyLinks(), ...over,
 })
 
 describe('status', () => {
@@ -42,6 +42,14 @@ describe('filters', () => {
   it('filters channels and searches without diacritics', () => {
     expect(matchPublikace(pub(), { ...EMPTY_FILTERS, channels: ['SMS'] })).toBe(false)
     expect(matchPublikace(pub(), { ...EMPTY_FILTERS, q: 'valentyn' })).toBe(true)
+  })
+
+  it('filters by store and keeps items for any of the chosen stores', () => {
+    const p = pub({ stores: ['Havířov', 'Praha – Quadrio'] })
+    expect(matchPublikace(p, { ...EMPTY_FILTERS, stores: ['Havířov'] })).toBe(true)
+    expect(matchPublikace(p, { ...EMPTY_FILTERS, stores: ['Brno – Melody Mall'] })).toBe(false)
+    expect(matchPublikace(pub(), { ...EMPTY_FILTERS, stores: ['Havířov'] })).toBe(false)
+    expect(matchAkce(akce({ type: SIGNIFICANT_DAY }), { ...EMPTY_FILTERS, stores: ['Havířov'] })).toBe(true)
   })
 
   it('keeps significant days under any domain filter', () => {

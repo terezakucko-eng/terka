@@ -7,8 +7,10 @@ rs-publikacni-plan.netlify.app.
   publikace jde přetáhnout na jiný den (a hned vrátit tlačítkem „Vrátit“).
 - **Rok**: roční timeline. Roční plán po typech akcí, značkách nebo doménách, publikace po kanálech.
 - **Seznam**: totéž jako tabulka po měsících, s exportem pro Excel.
-- **Nastavení**: seznamy domén, kanálů a typů akcí, významné dny na další rok, import ze staré
-  appky a záloha.
+- **Prodejny**: publikaci i akci jde přiřadit ke kamenným prodejnám Růžového slona; filtr v levém
+  panelu a v ročním přehledu řádky po prodejnách.
+- **Nastavení**: seznamy domén, kanálů, prodejen a typů akcí, významné dny na další rok, import ze
+  staré appky a záloha.
 
 Filtry (značka, země, kanál, hledání) i otevřený záznam jsou v adrese stránky, takže jde poslat
 odkaz třeba přímo na „Kondomshop, únor 2027“ nebo na konkrétní publikaci.

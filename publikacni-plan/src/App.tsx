@@ -16,7 +16,7 @@ import { hue } from './lib/colors'
 import { download, toCsv } from './lib/csv'
 import { addDays, daysInMonth, formatDate, formatRange, iso, monthOf, monthTitle, todayISO, yearOf, type ISODate } from './lib/dates'
 import { isFiltered, matchAkce, matchPublikace } from './lib/filters'
-import { domainSummary } from './lib/format'
+import { domainSummary, storeSummary } from './lib/format'
 import { type Akce, brandsOf, emptyLinks, type Lists, type Person, type Publikace, SIGNIFICANT_DAY, splitDomain, STATUS, statusOf, uniq } from './lib/model'
 import { type Mode, useUrlState } from './lib/urlState'
 
@@ -32,8 +32,8 @@ type Dialog =
   | { kind: 'a'; draft: AkceDraft; key: number }
 
 const GROUPS: Record<'akce' | 'publikace', [string, string][]> = {
-  akce: [['typ', 'Typ'], ['znacka', 'Značka'], ['domena', 'Doména']],
-  publikace: [['kanal', 'Kanál'], ['znacka', 'Značka'], ['domena', 'Doména'], ['akce', 'Akce']],
+  akce: [['typ', 'Typ'], ['znacka', 'Značka'], ['domena', 'Doména'], ['prodejna', 'Prodejna']],
+  publikace: [['kanal', 'Kanál'], ['znacka', 'Značka'], ['domena', 'Doména'], ['prodejna', 'Prodejna'], ['akce', 'Akce']],
 }
 
 const ALL_BRANDS = 'Všechny značky'
@@ -122,14 +122,14 @@ function Planner({ person, photo }: { person: Person; photo: string | null }) {
     setDialog({
       kind: 'p',
       key: ++dialogKey,
-      draft: { id: null, name: '', dateFrom: date, dateTo: date, channels: [], domains: [], akceId: null, description: '', links: emptyLinks(), ready: false, ...over },
+      draft: { id: null, name: '', dateFrom: date, dateTo: date, channels: [], domains: [], stores: [], akceId: null, description: '', links: emptyLinks(), ready: false, ...over },
     })
 
   const newAkce = () =>
     setDialog({
       kind: 'a',
       key: ++dialogKey,
-      draft: { id: null, name: '', type: lists.akceTypes[0] ?? 'Hlavní kampaň', dateFrom: defaultDate(), dateTo: defaultDate(), domains: [], benefit: '', info: '', links: emptyLinks() },
+      draft: { id: null, name: '', type: lists.akceTypes[0] ?? 'Hlavní kampaň', dateFrom: defaultDate(), dateTo: defaultDate(), domains: [], stores: [], benefit: '', info: '', links: emptyLinks() },
     })
 
   const move = async (p: Publikace, dateFrom: ISODate, dateTo: ISODate) => {
@@ -280,6 +280,7 @@ function Planner({ person, photo }: { person: Person; photo: string | null }) {
                     publikace={fp}
                     akce={fa}
                     allDomains={lists.domains}
+                    allStores={lists.stores}
                     colorBy={state.colors}
                     onOpenPublikace={openPublikace}
                     onOpenAkce={openAkce}
@@ -294,6 +295,7 @@ function Planner({ person, photo }: { person: Person; photo: string | null }) {
                     publikace={agendaPubs}
                     akce={fa}
                     allDomains={lists.domains}
+                    allStores={lists.stores}
                     onOpen={open}
                   />
                 </div>
@@ -307,10 +309,11 @@ function Planner({ person, photo }: { person: Person; photo: string | null }) {
                   groupHue={(g) => groupHue(groupKey, g)}
                   significant={fa.filter((a) => a.type === SIGNIFICANT_DAY)}
                   compact={mode === 'publikace'}
+                  emptyText={groupKey === 'prodejna' ? 'V tomto roce zatím nic není přiřazené ke konkrétní prodejně. Prodejny vybereš ve formuláři publikace nebo akce.' : undefined}
                   onOpen={open}
                 />
               )}
-              {view === 'seznam' && <ListView year={year} today={today} rows={listRows(mode, fa, fp)} akceById={akceById} allDomains={lists.domains} onOpen={open} />}
+              {view === 'seznam' && <ListView year={year} today={today} rows={listRows(mode, fa, fp)} akceById={akceById} allDomains={lists.domains} allStores={lists.stores} onOpen={open} />}
             </>
           )}
         </main>
@@ -338,7 +341,7 @@ function Planner({ person, photo }: { person: Person; photo: string | null }) {
           person={person}
           onClose={closeDialog}
           onOpenPublikace={openPublikace}
-          onAddPublikace={(akceId, a) => newPublikace(a.dateFrom, { dateTo: a.dateTo, domains: a.domains, akceId })}
+          onAddPublikace={(akceId, a) => newPublikace(a.dateFrom, { dateTo: a.dateTo, domains: a.domains, stores: a.stores, akceId })}
         />
       )}
     </div>
@@ -357,6 +360,8 @@ function groupsOf(kind: 'akce' | 'publikace', group: string, item: Akce | Publik
   if (group === 'kanal') return (item as Publikace).channels
   if (group === 'znacka') return item.domains.length ? brandsOf(item.domains) : [ALL_BRANDS]
   if (group === 'domena') return item.domains.length ? item.domains : [ALL_DOMAINS]
+  // Only store-specific items get a store row; the rest of the plan is e-shop wide.
+  if (group === 'prodejna') return item.stores
   if (group === 'akce' && kind === 'publikace') {
     const a = (item as Publikace).akceId ? akceById.get((item as Publikace).akceId!) : undefined
     return [a ? a.name : NO_AKCE]
@@ -365,7 +370,7 @@ function groupsOf(kind: 'akce' | 'publikace', group: string, item: Akce | Publik
 }
 
 function groupHue(group: string, name: string): string | undefined {
-  if (name === ALL_BRANDS || name === ALL_DOMAINS || name === NO_AKCE || group === 'akce') return undefined
+  if (name === ALL_BRANDS || name === ALL_DOMAINS || name === NO_AKCE || group === 'akce' || group === 'prodejna') return undefined
   return hue(group === 'domena' ? splitDomain(name).brand : name)
 }
 
@@ -376,7 +381,7 @@ function timelineItems(kind: 'akce' | 'publikace', group: string, akce: Akce[], 
       hue: hue(group === 'typ' ? brandsOf(a.domains)[0] ?? a.type : a.type),
       faded: statusOf(a, today) === 'ukoncena',
       groups: groupsOf(kind, group, a, akceById),
-      title: [`${a.type}: ${a.name}`, formatRange(a.dateFrom, a.dateTo), a.benefit, domainSummary(a.domains, lists.domains)].filter(Boolean).join('\n'),
+      title: [`${a.type}: ${a.name}`, formatRange(a.dateFrom, a.dateTo), a.benefit, domainSummary(a.domains, lists.domains), storeSummary(a.stores, lists.stores)].filter(Boolean).join('\n'),
     }))
   }
   return pubs.map((p) => ({
@@ -384,7 +389,7 @@ function timelineItems(kind: 'akce' | 'publikace', group: string, akce: Akce[], 
     hue: pubHue(p, group === 'kanal' ? 'znacka' : 'kanal', akceById),
     faded: statusOf(p, today) === 'ukoncena',
     groups: groupsOf(kind, group, p, akceById),
-    title: [p.name, formatRange(p.dateFrom, p.dateTo), p.channels.join(', '), domainSummary(p.domains, lists.domains)].filter(Boolean).join('\n'),
+    title: [p.name, formatRange(p.dateFrom, p.dateTo), p.channels.join(', '), domainSummary(p.domains, lists.domains), storeSummary(p.stores, lists.stores)].filter(Boolean).join('\n'),
   }))
 }
 
@@ -395,12 +400,13 @@ function groupOrder(kind: 'akce' | 'publikace', group: string, akce: Akce[], pub
       : group === 'kanal' ? lists.channels
       : group === 'znacka' ? [...brandsOf(lists.domains), ALL_BRANDS]
       : group === 'domena' ? [...lists.domains, ALL_DOMAINS]
+      : group === 'prodejna' ? lists.stores
       : [...akce].sort((a, b) => a.dateFrom.localeCompare(b.dateFrom)).map((a) => a.name).concat(NO_AKCE)
   return uniq([...base.filter((g) => used.includes(g)), ...used])
 }
 
 function exportCsv(rows: Row[], year: number, akceById: Map<string, Akce>, lists: Lists, today: ISODate) {
-  const header = ['Záznam', 'Stav', 'Název', 'Od', 'Do', 'Typ / kanály', 'Domény', 'Akce', 'Dárek / benefit', 'Popis / info', 'Basecamp', 'Soupis produktů', 'Rodný list', 'Grafika', 'SMS']
+  const header = ['Záznam', 'Stav', 'Název', 'Od', 'Do', 'Typ / kanály', 'Domény', 'Prodejny', 'Akce', 'Dárek / benefit', 'Popis / info', 'Basecamp', 'Soupis produktů', 'Rodný list', 'Grafika', 'SMS']
   const body = groupByMonth(rows, year).flatMap(([, rs]) => rs).map((r) => {
     const i = r.item
     return [
@@ -411,6 +417,7 @@ function exportCsv(rows: Row[], year: number, akceById: Map<string, Akce>, lists
       formatDate(i.dateTo),
       r.kind === 'akce' ? r.item.type : r.item.channels.join(', '),
       domainSummary(i.domains, lists.domains),
+      storeSummary(i.stores, lists.stores),
       r.kind === 'publikace' && r.item.akceId ? akceById.get(r.item.akceId)?.name ?? '' : '',
       r.kind === 'akce' ? r.item.benefit : '',
       r.kind === 'akce' ? r.item.info : r.item.description,

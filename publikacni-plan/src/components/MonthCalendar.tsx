@@ -1,8 +1,8 @@
-import { Check } from 'lucide-react'
+import { Check, Store } from 'lucide-react'
 import { useRef, useState, type DragEvent } from 'react'
 import { hue, NEUTRAL_HUE, tint } from '../lib/colors'
 import { addDays, diffDays, formatRange, monthOf, monthWeeks, WEEKDAYS, type ISODate } from '../lib/dates'
-import { domainSummary } from '../lib/format'
+import { domainSummary, storeSummary } from '../lib/format'
 import { layoutLanes } from '../lib/layout'
 import { type Akce, brandsOf, type Publikace, SIGNIFICANT_DAY, STATUS, statusOf } from '../lib/model'
 import { type ColorBy } from '../lib/urlState'
@@ -15,6 +15,7 @@ interface Props {
   publikace: Publikace[]
   akce: Akce[]
   allDomains: string[]
+  allStores: string[]
   colorBy: ColorBy
   onOpenPublikace: (id: string) => void
   onOpenAkce: (id: string) => void
@@ -41,7 +42,7 @@ function tracks(markers: number, bands: number, pubs: number): string {
   return ['30px', ...Array(markers).fill('18px'), ...Array(bands).fill('22px'), ...Array(pubs).fill('24px'), 'minmax(24px, 1fr)'].join(' ')
 }
 
-export function MonthCalendar({ year, month0, today, publikace, akce, allDomains, colorBy, onOpenPublikace, onOpenAkce, onNew, onMove, onLegend, activeLegend = [] }: Props) {
+export function MonthCalendar({ year, month0, today, publikace, akce, allDomains, allStores, colorBy, onOpenPublikace, onOpenAkce, onNew, onMove, onLegend, activeLegend = [] }: Props) {
   const weeks = monthWeeks(year, month0)
   const akceById = new Map(akce.map((a) => [a.id, a]))
   const dayMarkers = akce.filter((a) => a.type === SIGNIFICANT_DAY && a.dateFrom === a.dateTo)
@@ -179,7 +180,7 @@ export function MonthCalendar({ year, month0, today, publikace, akce, allDomains
                         dragging && 'pointer-events-none',
                       )}
                       style={{ gridColumn: `${start + 1} / ${end + 2}`, gridRow: headRows + 1 + lane, background: tint(h, 20), boxShadow: cutStart ? undefined : `inset 3px 0 0 ${h}` }}
-                      title={`${a.type}: ${a.name}${a.benefit ? `\n${a.benefit}` : ''}`}
+                      title={[`${a.type}: ${a.name}`, a.benefit, a.stores.length ? `Prodejny: ${storeSummary(a.stores, allStores)}` : ''].filter(Boolean).join('\n')}
                     >
                       {a.name}
                     </button>
@@ -216,10 +217,12 @@ export function MonthCalendar({ year, month0, today, publikace, akce, allDomains
                         `${STATUS[status].label} · ${formatRange(p.dateFrom, p.dateTo)}`,
                         p.channels.join(', '),
                         domainSummary(p.domains, allDomains),
+                        p.stores.length ? `Prodejny: ${storeSummary(p.stores, allStores)}` : '',
                       ].filter(Boolean).join('\n')}
                     >
                       <Dot hue={h} status={status} />
                       <span className="truncate">{p.name}</span>
+                      {p.stores.length > 0 && <Store className="size-3 shrink-0 text-faint" aria-label="pro prodejny" />}
                       {status === 'kespusteni' && <Check className="size-3 shrink-0 text-info" aria-label="připraveno" />}
                     </button>
                   )

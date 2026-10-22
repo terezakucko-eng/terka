@@ -1,7 +1,7 @@
 import { AlertTriangle } from 'lucide-react'
 import { hue } from '../lib/colors'
 import { addDays, diffDays, formatDate, formatRange, WEEKDAYS, weekday, type ISODate } from '../lib/dates'
-import { domainSummary } from '../lib/format'
+import { domainSummary, storeSummary } from '../lib/format'
 import { type Akce, type Publikace, SIGNIFICANT_DAY, statusOf } from '../lib/model'
 import { Dot } from './MonthCalendar'
 import { cx } from './ui'
@@ -15,6 +15,7 @@ interface Props {
   publikace: Publikace[]
   akce: Akce[]
   allDomains: string[]
+  allStores: string[]
   onOpen: (kind: 'akce' | 'publikace', id: string) => void
   className?: string
 }
@@ -26,14 +27,14 @@ function dayLabel(day: ISODate, today: ISODate): string {
   return `${WEEKDAYS[weekday(day)]} ${formatDate(day, false)}`
 }
 
-function Item({ p, allDomains, onOpen, today }: { p: Publikace; allDomains: string[]; onOpen: Props['onOpen']; today: ISODate }) {
+function Item({ p, allDomains, allStores, onOpen, today }: { p: Publikace; allDomains: string[]; allStores: string[]; onOpen: Props['onOpen']; today: ISODate }) {
   return (
     <button type="button" onClick={() => onOpen('publikace', p.id)} className="flex w-full items-start gap-2.5 rounded-lg px-2 py-1.5 text-left transition hover:bg-raised">
       <span className="mt-[5px]"><Dot hue={hue(p.channels[0] ?? '')} status={statusOf(p, today)} /></span>
       <span className="min-w-0 flex-1">
         <span className="line-clamp-2 text-[13px] leading-snug font-medium text-ink">{p.name}</span>
         <span className="mt-0.5 block truncate text-[11px] text-faint">
-          {[p.channels.join(', '), domainSummary(p.domains, allDomains)].filter(Boolean).join(' · ')}
+          {[p.channels.join(', '), domainSummary(p.domains, allDomains), storeSummary(p.stores, allStores)].filter(Boolean).join(' · ')}
         </span>
       </span>
     </button>
@@ -41,7 +42,7 @@ function Item({ p, allDomains, onOpen, today }: { p: Publikace; allDomains: stri
 }
 
 /** What goes out next, independent of the month on screen. */
-export function Agenda({ today, publikace, akce, allDomains, onOpen, className }: Props) {
+export function Agenda({ today, publikace, akce, allDomains, allStores, onOpen, className }: Props) {
   const end = addDays(today, DAYS - 1)
   const runningAkce = akce.filter((a) => a.type !== SIGNIFICANT_DAY && a.dateFrom <= today && a.dateTo >= today)
   const runningPubs = publikace.filter((p) => p.dateFrom < today && p.dateTo >= today)
@@ -68,7 +69,7 @@ export function Agenda({ today, publikace, akce, allDomains, onOpen, className }
             <AlertTriangle className="size-3.5" /> Do týdne a ještě nepřipraveno · {attention.length}
           </h3>
           <div className="-mx-1">
-            {attention.map((p) => <Item key={p.id} p={p} allDomains={allDomains} onOpen={onOpen} today={today} />)}
+            {attention.map((p) => <Item key={p.id} p={p} allDomains={allDomains} allStores={allStores} onOpen={onOpen} today={today} />)}
           </div>
         </section>
       )}
@@ -83,7 +84,7 @@ export function Agenda({ today, publikace, akce, allDomains, onOpen, className }
                 <span className="block text-[11px] text-muted">do {formatDate(a.dateTo, false)}{a.benefit ? ` · ${a.benefit}` : ''}</span>
               </button>
             ))}
-            {runningPubs.map((p) => <Item key={p.id} p={p} allDomains={allDomains} onOpen={onOpen} today={today} />)}
+            {runningPubs.map((p) => <Item key={p.id} p={p} allDomains={allDomains} allStores={allStores} onOpen={onOpen} today={today} />)}
           </div>
         </section>
       )}
@@ -100,7 +101,7 @@ export function Agenda({ today, publikace, akce, allDomains, onOpen, className }
                   <button key={m.id} type="button" onClick={() => onOpen('akce', m.id)} className="truncate font-semibold text-info hover:underline">✦ {m.name}</button>
                 ))}
               </h3>
-              {pubs.map((p) => <Item key={p.id} p={p} allDomains={allDomains} onOpen={onOpen} today={today} />)}
+              {pubs.map((p) => <Item key={p.id} p={p} allDomains={allDomains} allStores={allStores} onOpen={onOpen} today={today} />)}
             </section>
           ))}
         </div>

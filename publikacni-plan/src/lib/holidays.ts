@@ -57,6 +57,7 @@ export function significantDays(year: number): AkceInput[] {
     dateFrom: x.from,
     dateTo: x.to ?? x.from,
     domains: x.domains ?? [],
+    stores: [],
     benefit: '',
     info: x.info ?? '',
     links: emptyLinks(),

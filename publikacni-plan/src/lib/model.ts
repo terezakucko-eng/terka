@@ -39,6 +39,8 @@ export interface Publikace extends Tracked {
   dateTo: ISODate
   channels: string[]
   domains: string[]
+  /** Brick-and-mortar stores the publication is for (posters, in-store promo, events); empty = not store-specific. */
+  stores: string[]
   akceId: string | null
   description: string
   links: Links
@@ -55,6 +57,7 @@ export interface Akce extends Tracked {
   dateFrom: ISODate
   dateTo: ISODate
   domains: string[]
+  stores: string[]
   benefit: string
   info: string
   links: Links
@@ -66,6 +69,7 @@ export type AkceInput = Omit<Akce, 'id' | keyof Tracked>
 
 export interface Lists {
   domains: string[]
+  stores: string[]
   channels: string[]
   akceTypes: string[]
 }
@@ -85,6 +89,11 @@ export const DEFAULT_LISTS: Lists = {
     'WEB - A/B testy a změny', 'Prodejny', 'Eventy', 'Podcasty', 'Rádio', 'TV', 'Billboardy',
   ],
   akceTypes: ['Hlavní kampaň', 'Sekundární kampaň', 'Vendor', 'Kupon do objednávek', SIGNIFICANT_DAY],
+  // Prodejny Růžového slona podle ruzovyslon.cz/prodejny (10/2026)
+  stores: [
+    'Praha – Westfield Chodov', 'Praha – Quadrio', 'Praha – Štěrboholy', 'Praha – Krakov', 'Brno – Melody Mall', 'Havířov',
+    'Bratislava – Danubia', 'Bratislava – Nivy',
+  ],
 }
 
 /** 'Růžový Slon CZ' → { brand: 'Růžový Slon', country: 'CZ' } */

@@ -17,3 +17,10 @@ export function personLine(label: string, by?: { name: string }, at?: number): s
   if (!by || !at) return null
   return `${label} ${by.name}, ${new Date(at).toLocaleString('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`
 }
+
+/** 'Havířov, Praha – Quadrio' or 'všechny prodejny'; empty when the item is not store-specific. */
+export function storeSummary(stores: string[], allStores: string[]): string {
+  if (stores.length === 0) return ''
+  if (allStores.length > 1 && allStores.every((s) => stores.includes(s))) return 'všechny prodejny'
+  return stores.join(', ')
+}

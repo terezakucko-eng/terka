@@ -107,6 +107,7 @@ export function migrateCampaign(c: OldCampaign): Migrated<PublikaceInput> | null
       dateTo: c.dateFrom <= c.dateTo ? c.dateTo : c.dateFrom,
       channels: uniq((c.channels ?? []).map(normalizeChannel)).sort((a, b) => a.localeCompare(b, 'cs')),
       domains,
+      stores: [],
       akceId: null,
       description: htmlToText(c.description ?? ''),
       links: {
@@ -163,6 +164,7 @@ export function migrateYearly(years: Record<string, OldYearDoc>): Migrated<AkceI
             dateFrom: from <= to ? from : to,
             dateTo: from <= to ? to : from,
             domains: yearlyDomains(r.country ?? ''),
+            stores: [],
             benefit: (r.gift ?? '').trim(),
             info: (r.info ?? '').trim(),
             links: emptyLinks(),

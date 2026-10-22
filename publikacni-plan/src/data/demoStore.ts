@@ -52,7 +52,14 @@ function seed(): DB {
 function load(): DB | null {
   try {
     const raw = localStorage.getItem(KEY)
-    return raw ? (JSON.parse(raw) as DB) : null
+    if (!raw) return null
+    const saved = JSON.parse(raw) as DB
+    // Saved before stores existed: fill in the field, keep the viewer's edits.
+    return {
+      ...saved,
+      akce: saved.akce.map((a) => ({ ...a, stores: a.stores ?? [] })),
+      publikace: saved.publikace.map((p) => ({ ...p, stores: p.stores ?? [] })),
+    }
   } catch {
     return null
   }

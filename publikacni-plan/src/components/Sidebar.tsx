@@ -1,4 +1,4 @@
-import { CalendarDays, CalendarHeart, GanttChart, List, LogOut, Monitor, Moon, Plus, Settings, Sun, X } from 'lucide-react'
+import { CalendarDays, CalendarHeart, GanttChart, List, LogOut, Monitor, Moon, Plus, Settings, Store, Sun, X } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { isDemo } from '../config'
 import { logOut } from '../data/store'
@@ -148,6 +148,24 @@ export function Sidebar({ view, onView, lists, filters, onFilters, showChannels,
               })}
             </div>
           </section>
+
+          {lists.stores.length > 0 && (
+            <section>
+              <SectionTitle>Prodejny</SectionTitle>
+              <div className="space-y-0.5">
+                {lists.stores.map((st) => {
+                  const on = filters.stores.includes(st)
+                  return (
+                    <label key={st} className={cx('flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1 text-[13px] transition hover:bg-raised', on ? 'font-semibold text-ink' : 'text-muted')}>
+                      <input type="checkbox" className="size-3.5 accent-accent" checked={on} onChange={() => onFilters({ ...filters, stores: toggle(filters.stores, st) })} />
+                      <Store className="size-3.5 shrink-0 text-faint" aria-hidden />
+                      <span className="truncate">{st}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            </section>
+          )}
 
           {showChannels && (
             <section>

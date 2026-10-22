@@ -5,7 +5,7 @@ import { deletePublikace, savePublikace } from '../data/store'
 import { formatRange, overlaps, yearOf } from '../lib/dates'
 import { personLine } from '../lib/format'
 import { type Akce, type Links, LINK_LABELS, type Lists, type Person, type PublikaceInput, statusOf } from '../lib/model'
-import { ChannelPicker, DomainPicker } from './pickers'
+import { ChannelPicker, DomainPicker, StorePicker } from './pickers'
 import { Button, Field, inputClass, Sheet, StatusPill, useConfirm, useToast } from './ui'
 
 export interface PublikaceDraft extends PublikaceInput {
@@ -18,7 +18,7 @@ export interface PublikaceDraft extends PublikaceInput {
 
 function toInput(d: PublikaceDraft): PublikaceInput {
   const input: PublikaceInput = {
-    name: d.name.trim(), dateFrom: d.dateFrom, dateTo: d.dateTo, channels: d.channels, domains: d.domains,
+    name: d.name.trim(), dateFrom: d.dateFrom, dateTo: d.dateTo, channels: d.channels, domains: d.domains, stores: d.stores,
     akceId: d.akceId, description: d.description, links: d.links, ready: d.ready,
   }
   return d.legacyId ? { ...input, legacyId: d.legacyId } : input
@@ -137,6 +137,9 @@ export function PublikaceModal({ draft, lists, akce, person, today, onClose, onD
         </Field>
         <Field label="Domény" group hint="Klikni na název značky pro výběr všech jejích zemí.">
           <DomainPicker all={lists.domains} value={d.domains} onChange={(v) => set('domains', v)} />
+        </Field>
+        <Field label="Prodejny" group hint="Jen když se publikace týká kamenných prodejen (plakát, akce na prodejně, event).">
+          <StorePicker all={lists.stores} value={d.stores} onChange={(v) => set('stores', v)} />
         </Field>
         <Field label="Patří k akci z ročního plánu" group>
           <div className="flex gap-2">

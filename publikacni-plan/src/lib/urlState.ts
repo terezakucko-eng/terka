@@ -33,7 +33,7 @@ export function parse(search: string, now = new Date()): ViewState {
     mode: ['akce', 'publikace', 'vse'].includes(mode) ? mode : 'akce',
     group: p.get('skupiny') ?? '',
     colors: ['kanal', 'akce', 'znacka'].includes(colors) ? colors : 'kanal',
-    filters: { ...EMPTY_FILTERS, brands: list(p.get('znacka')), countries: list(p.get('zeme')), channels: list(p.get('kanal')), q: p.get('q') ?? '' },
+    filters: { ...EMPTY_FILTERS, brands: list(p.get('znacka')), countries: list(p.get('zeme')), channels: list(p.get('kanal')), stores: list(p.get('prodejna')), q: p.get('q') ?? '' },
     open: p.get('open'),
   }
 }
@@ -48,6 +48,7 @@ export function serialize(s: ViewState): string {
   if (s.filters.brands.length) p.set('znacka', s.filters.brands.join(','))
   if (s.filters.countries.length) p.set('zeme', s.filters.countries.join(','))
   if (s.filters.channels.length) p.set('kanal', s.filters.channels.join(','))
+  if (s.filters.stores.length) p.set('prodejna', s.filters.stores.join(','))
   if (s.filters.q) p.set('q', s.filters.q)
   if (s.open) p.set('open', s.open)
   return `?${p.toString()}`

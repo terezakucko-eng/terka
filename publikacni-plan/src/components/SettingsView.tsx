@@ -115,6 +115,7 @@ export function SettingsView({ lists, akce, person, year }: { lists: Lists; akce
           <div className="space-y-5">
             <ListEditor label="Domény (značka + země, např. „Kondomshop CZ“)" items={draft.domains} onChange={(domains) => setDraft({ ...draft, domains })} />
             <ListEditor label="Kanály" items={draft.channels} onChange={(channels) => setDraft({ ...draft, channels })} />
+            <ListEditor label="Prodejny" items={draft.stores} onChange={(stores) => setDraft({ ...draft, stores })} />
             <ListEditor label="Typy akcí v ročním plánu" items={draft.akceTypes} locked={[SIGNIFICANT_DAY]} onChange={(akceTypes) => setDraft({ ...draft, akceTypes })} />
           </div>
           <div className="mt-5 flex gap-2">

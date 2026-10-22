@@ -1,3 +1,4 @@
+import { Store } from 'lucide-react'
 import { hue } from '../lib/colors'
 import { domainsByBrand, splitDomain, uniq } from '../lib/model'
 import { Chip, toggle } from './ui'
@@ -38,6 +39,29 @@ export function ChannelPicker({ all, value, onChange }: { all: string[]; value: 
       {uniq([...all, ...value]).map((c) => (
         <Chip key={c} active={value.includes(c)} onClick={() => onChange(toggle(value, c))} hue={hue(c)}>
           {c}
+        </Chip>
+      ))}
+    </div>
+  )
+}
+
+/** Stores as toggle chips; "Všechny" selects or clears the whole list. */
+export function StorePicker({ all, value, onChange }: { all: string[]; value: string[]; onChange: (v: string[]) => void }) {
+  const stores = uniq([...all, ...value])
+  const allOn = stores.length > 0 && stores.every((s) => value.includes(s))
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <button
+        type="button"
+        onClick={() => onChange(allOn ? [] : stores)}
+        aria-pressed={allOn}
+        className="mr-1 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold text-ink ring-1 ring-line-strong ring-inset hover:bg-raised"
+      >
+        <Store className="size-3.5" aria-hidden /> {allOn ? 'Žádná' : 'Všechny'}
+      </button>
+      {stores.map((s) => (
+        <Chip key={s} active={value.includes(s)} onClick={() => onChange(toggle(value, s))} hue={hue('Růžový Slon')}>
+          {s}
         </Chip>
       ))}
     </div>

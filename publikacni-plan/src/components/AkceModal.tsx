@@ -5,7 +5,7 @@ import { hue } from '../lib/colors'
 import { formatRange } from '../lib/dates'
 import { personLine } from '../lib/format'
 import { type AkceInput, type Links, LINK_LABELS, type Lists, type Person, type Publikace, SIGNIFICANT_DAY, uniq } from '../lib/model'
-import { DomainPicker } from './pickers'
+import { DomainPicker, StorePicker } from './pickers'
 import { Button, Field, inputClass, Sheet, Tag, useConfirm, useToast } from './ui'
 
 export interface AkceDraft extends AkceInput {
@@ -18,7 +18,7 @@ export interface AkceDraft extends AkceInput {
 
 function toInput(d: AkceDraft): AkceInput {
   const input: AkceInput = {
-    name: d.name.trim(), type: d.type, dateFrom: d.dateFrom, dateTo: d.dateTo, domains: d.domains,
+    name: d.name.trim(), type: d.type, dateFrom: d.dateFrom, dateTo: d.dateTo, domains: d.domains, stores: d.stores,
     benefit: d.benefit, info: d.info, links: d.links,
   }
   return d.legacyKey ? { ...input, legacyKey: d.legacyKey } : input
@@ -139,6 +139,11 @@ export function AkceModal({ draft, lists, publikace, person, onClose, onOpenPubl
         <Field label="Domény" group hint={isDay ? 'U významného dne nech prázdné, pokud platí všude.' : 'Klikni na název značky pro výběr všech jejích zemí.'}>
           <DomainPicker all={lists.domains} value={d.domains} onChange={(v) => set('domains', v)} />
         </Field>
+        {!isDay && (
+          <Field label="Prodejny" group hint="Jen když akce probíhá i v kamenných prodejnách.">
+            <StorePicker all={lists.stores} value={d.stores} onChange={(v) => set('stores', v)} />
+          </Field>
+        )}
         {!isDay && (
           <Field label="Dárek / benefit">
             <input className={inputClass} value={d.benefit} onChange={(e) => set('benefit', e.target.value)} placeholder="např. Slevy až 70 %, doprava zdarma" />
