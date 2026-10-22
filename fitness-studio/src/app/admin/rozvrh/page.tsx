@@ -18,14 +18,22 @@ import { activeClassTypes, activeInstructors, listSessions } from "@/lib/queries
 export default async function AdminSchedule({ searchParams }: PageProps<"/admin/rozvrh">) {
   const user = await requireStaff();
   const sp = await searchParams;
-  const today = dateKey(new Date());
+  const now = new Date();
+  const today = dateKey(now);
   const monday = mondayOf(isDateKey(sp.tyden) ? sp.tyden : today);
   const db = await getDb();
-  const [sessions, types, instructorList] = await Promise.all([
+  const [weekSessions, types, instructorList] = await Promise.all([
     listSessions(db, pragueLocalToDate(monday), pragueLocalToDate(addDays(monday, 7))),
     activeClassTypes(db),
     activeInstructors(db),
   ]);
+  // this week opens on today: classes that are over stay hidden unless asked for
+  const ended = (s: (typeof weekSessions)[number]) => s.startsAt.getTime() + s.durationMin * 60_000 <= now.getTime();
+  const thisWeek = monday === mondayOf(today);
+  const showPast = sp.probehle === "1";
+  const endedCount = thisWeek ? weekSessions.filter(ended).length : 0;
+  const sessions = thisWeek && !showPast ? weekSessions.filter((s) => !ended(s)) : weekSessions;
+  const emptyText = endedCount && !showPast ? "Tento týden už všechny lekce proběhly." : "Tento týden nejsou žádné lekce.";
 
   // who's signed up, so the list can be read without opening each class
   const signups = sessions.length
@@ -107,7 +115,7 @@ export default async function AdminSchedule({ searchParams }: PageProps<"/admin/
           </ul>
         </section>
       ))}
-      {sessions.length === 0 && <p className="py-10 text-center text-les/50">Tento týden nejsou žádné lekce.</p>}
+      {sessions.length === 0 && <p className="py-10 text-center text-les/50">{emptyText}</p>}
     </div>
   );
   const table = (
@@ -135,7 +143,7 @@ export default async function AdminSchedule({ searchParams }: PageProps<"/admin/
         );
       })}
       {sessions.length === 0 && (
-        <tr><Td className="py-10 text-center text-les/50" >Tento týden nejsou žádné lekce.</Td></tr>
+        <tr><Td className="py-10 text-center text-les/50" >{emptyText}</Td></tr>
       )}
     </Table>
   );
@@ -203,6 +211,19 @@ export default async function AdminSchedule({ searchParams }: PageProps<"/admin/
             </ActionForm>
           </Panel>
         </div>
+      )}
+
+      {endedCount > 0 && (
+        <p className="mb-3 text-sm text-les/60">
+          {showPast ? (
+            <Link href="/admin/rozvrh" className="font-semibold text-zeme underline underline-offset-4">Skrýt proběhlé lekce</Link>
+          ) : (
+            <>
+              Proběhlé lekce jsou skryté ({endedCount}).{" "}
+              <Link href="/admin/rozvrh?probehle=1" className="font-semibold text-zeme underline underline-offset-4">Zobrazit</Link>
+            </>
+          )}
+        </p>
       )}
 
       {isAdmin && sessions.length > 0 ? (
