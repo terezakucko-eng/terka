@@ -368,6 +368,8 @@ export const orders = pgTable(
     providerRef: text("provider_ref"),
     subscriptionId: text("subscription_id"),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
+    /** an unpaid drop-in by transfer let go of its place – the client has been told */
+    expiryNotifiedAt: timestamp("expiry_notified_at", { withTimezone: true }),
     paidAt: timestamp("paid_at", { withTimezone: true }),
     createdAt: createdAt(),
   },

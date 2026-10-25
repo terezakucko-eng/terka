@@ -80,7 +80,7 @@ export const EMAILS = {
   },
   booked: {
     title: "Rezervace lekce potvrzena",
-    when: "Po rezervaci lekce (u platby převodem hned, u karty po zaplacení).",
+    when: "Po rezervaci lekce; u jednorázového vstupu až po zaplacení (kartou hned, převodem když ho v Platbách označíš jako zaplacený).",
     subject: "Rezervace potvrzena: {{lekce}}",
     body: "Ahoj {{osloveni}},\n\nmáš místo na lekci {{lekce}}.\n{{kamaradka}}\nDetail a případné storno: {{odkaz}}\nPřidat do kalendáře: {{kalendar}}\n\nTěšíme se!",
     vars: {
@@ -89,6 +89,45 @@ export const EMAILS = {
       kamaradka: { label: "řádek o kamarádce (+1), jinak prázdné", sample: "Rezervovali jsme i místo pro kamarádku: Jana." },
       odkaz: { label: "odkaz na lekci", sample: `${site.url}/rozvrh/…` },
       kalendar: { label: "odkaz na přidání lekce do kalendáře (.ics)", sample: `${site.url}/api/kalendar/lekce/…` },
+    },
+  },
+  bookedPending: {
+    title: "Jednorázový vstup čeká na platbu",
+    when: "Po rezervaci jednorázového vstupu s platbou převodem. Místo se potvrdí až po zaplacení.",
+    subject: "Dokonči platbu: {{lekce}}",
+    body: "Ahoj {{osloveni}},\n\nmísto na lekci {{lekce}} ti držíme do {{platnost}}. Potvrdíme ho, jakmile dorazí platba {{castka}}.\n\nÚčet: {{ucet}}\nVariabilní symbol: {{vs}}\nQR kód k platbě: {{odkaz}}\n\nKdyž platba do té doby nedorazí, místo se uvolní pro ostatní.",
+    vars: {
+      osloveni,
+      lekce,
+      platnost: { label: "do kdy místo držíme", sample: "středa 22. 10. v 15:00" },
+      castka: { label: "částka", sample: "250 Kč" },
+      ucet: { label: "číslo účtu", sample: "123456789/0800" },
+      vs: { label: "variabilní symbol", sample: "1042" },
+      odkaz: { label: "odkaz na QR platbu", sample: `${site.url}/platba/prevod?order=…` },
+    },
+  },
+  dropInLapsed: {
+    title: "Rezervace propadla – platba nedorazila",
+    when: "Když platba převodem za jednorázový vstup nedorazí včas a místo se uvolní.",
+    subject: "Rezervace propadla: {{lekce}}",
+    body: "Ahoj {{osloveni}},\n\nplatba za lekci {{lekce}} k nám do {{platnost}} nedorazila, takže jsme místo uvolnili pro ostatní.\n\nPokud je platba už na cestě, nevadí – když bude na lekci volno, místo ti vrátíme, jinak dostaneš částku jako kredit.\nRozvrh: {{odkaz}}",
+    vars: {
+      osloveni,
+      lekce,
+      platnost: { label: "do kdy jsme místo drželi", sample: "středa 22. 10. v 15:00" },
+      odkaz: { label: "odkaz na rozvrh", sample: `${site.url}/rozvrh` },
+    },
+  },
+  dropInLate: {
+    title: "Platba dorazila pozdě – vráceno jako kredit",
+    when: "Když platba za propadlou rezervaci dorazí, ale místo na lekci už není volné.",
+    subject: "Platba dorazila – vrátili jsme ji jako kredit",
+    body: "Ahoj {{osloveni}},\n\ntvoje platba za lekci {{lekce}} dorazila až po uvolnění místa a lekce je teď plná. Vrátili jsme ti ji jako kredit ({{kredit}}) – můžeš s ním zaplatit jinou lekci.\nRozvrh: {{odkaz}}",
+    vars: {
+      osloveni,
+      lekce,
+      kredit: { label: "vrácený kredit", sample: "250 kreditů" },
+      odkaz: { label: "odkaz na rozvrh", sample: `${site.url}/rozvrh` },
     },
   },
   cancelled: {

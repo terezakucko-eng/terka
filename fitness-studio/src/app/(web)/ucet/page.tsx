@@ -9,12 +9,12 @@ import { Badge, ButtonLink, Card, Empty, Eyebrow, Input } from "@/components/ui"
 import { getDb } from "@/db";
 import { userBookings, userEntitlements } from "@/lib/account";
 import { requireUser } from "@/lib/auth";
-import { formatDate, formatDay, formatRange, formatTime } from "@/lib/dates";
+import { formatDate, formatDateTime, formatDay, formatRange, formatTime } from "@/lib/dates";
 import { credits, formatPrice, pluralCs } from "@/lib/money";
 import { SurchargePay } from "@/components/surcharge-pay";
 import { flexibleMemberships, membershipPlacesTaken, membershipSwitches, openFees, periodStartLabel } from "@/domain/membership-fees";
 import { placesLeftLabel } from "@/lib/price-list";
-import { includedSummary } from "@/domain/booking";
+import { dropInNotices, includedSummary } from "@/domain/booking";
 import { endMembershipAction, switchMembershipAction } from "@/app/actions/membership";
 import { insuranceYears } from "@/domain/insurance";
 import { payOrderAction } from "@/app/actions/booking";
@@ -69,7 +69,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
     getContent(),
     insuranceYears(db, user.id),
   ]);
-  const [cfg, invited, gifts, flexible, switches, included, passCard] = await Promise.all([
+  const [cfg, invited, gifts, flexible, switches, included, passCard, dropIns] = await Promise.all([
     getSettings(db),
     myReferrals(db, user.id),
     boughtVouchers(db, user.id),
@@ -78,7 +78,11 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
     membershipSwitches(db, user.id, ents),
     includedSummary(db, ents),
     myPassCard(db, user.id),
+    dropInNotices(db, user.id, new Date()),
   ]);
+  // drop-ins waiting for their transfer have their own banner at the top
+  const waitingIds = new Set(dropIns.waiting.map((w) => w.orderId));
+  const otherUnpaid = unpaid.filter((o) => !waitingIds.has(o.id));
   // a limited one (Členství Reformer) says how many places are left
   const limited = [...switches.values()].flatMap(({ offer }) => (offer.maxActive !== null ? [offer.id] : []));
   const taken = limited.length ? await membershipPlacesTaken(db, limited) : new Map<string, number>();
@@ -96,6 +100,30 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
 
   return (
     <div className="space-y-12">
+      {dropIns.waiting.map((w) => (
+        <div key={w.orderId} className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border-2 border-zlato bg-zlato/15 p-5">
+          <p>
+            <Badge tone="gold">Čeká na platbu</Badge>
+            <span className="mt-2 block font-semibold">{w.name} – {formatDay(w.startsAt)} v {formatTime(w.startsAt)}</span>
+            <span className="block text-sm text-les/70">
+              Místo ti držíme do <strong>{formatDateTime(w.expiresAt!)}</strong> – potvrdíme ho, až dorazí platba {formatPrice(w.amount)} (VS {w.number}).
+              Když do té doby nedorazí, místo se uvolní.
+            </span>
+          </p>
+          <ButtonLink href={`/platba/prevod?order=${w.orderId}`} variant="gold">Zaplatit (QR)</ButtonLink>
+        </div>
+      ))}
+      {dropIns.lapsed.map((l) => (
+        <div key={l.orderId} className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-chyba/40 bg-chyba/10 p-5">
+          <p>
+            <span className="block font-semibold">Rezervace propadla: {l.name} – {formatDay(l.startsAt)} v {formatTime(l.startsAt)}</span>
+            <span className="block text-sm text-les/70">
+              Platba převodem nedorazila do {formatDateTime(l.expiresAt!)}, tak jsme místo uvolnili. Pokud je platba na cestě, nevadí – když bude volno, místo ti vrátíme, jinak ji dostaneš jako kredit.
+            </span>
+          </p>
+          <ButtonLink href={`/rozvrh/${l.sessionId}`} variant="outline">Zobrazit lekci</ButtonLink>
+        </div>
+      ))}
       {fees.map((o) => (
         <div key={o.id} className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-zlato bg-zlato/10 p-5">
           <p>
@@ -246,11 +274,11 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
         </Card>
       </div>
 
-      {unpaid.length > 0 && (
+      {otherUnpaid.length > 0 && (
         <section>
           <h2 className="text-2xl font-semibold">Čeká na platbu</h2>
           <ul className="mt-4 divide-y divide-linka/60 rounded-2xl border border-zlato/50 bg-white/60">
-            {unpaid.map((o) => (
+            {otherUnpaid.map((o) => (
               <li key={o.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
                 <span>
                   <span className="font-semibold">{o.description}</span>

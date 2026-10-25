@@ -7,6 +7,7 @@ import {
   holdSeatsAction,
   cancelSessionAction,
   deleteSessionAction,
+  markOrderPaidAction,
   setSurchargePaidAction,
   updateSessionAction,
 } from "@/app/admin/actions";
@@ -16,7 +17,7 @@ import { ActionForm, SubmitButton } from "@/components/forms";
 import { bookingStatusLabel, methodLabel } from "@/components/labels";
 import { Badge, Card, Field, Input, cx } from "@/components/ui";
 import { getDb } from "@/db";
-import { bookings, users } from "@/db/schema";
+import { bookings, orders, users } from "@/db/schema";
 import { formatPrice } from "@/lib/money";
 import { requireStaff } from "@/lib/auth";
 import { formatDateTime, formatDay, formatRange, toLocalInput } from "@/lib/dates";
@@ -49,9 +50,10 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
     .sort((a, b) => collator.compare(a.label, b.label));
   const [list, types, instructorList] = await Promise.all([
     db
-      .select({ b: bookings, u: users })
+      .select({ b: bookings, u: users, payUntil: orders.expiresAt })
       .from(bookings)
       .innerJoin(users, eq(bookings.userId, users.id))
+      .leftJoin(orders, eq(bookings.orderId, orders.id))
       .where(eq(bookings.sessionId, s.id))
       .orderBy(asc(bookings.createdAt)),
     activeClassTypes(db),
@@ -79,9 +81,18 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
       <br /><span className="break-all text-xs text-les/50">{u.phone ?? u.email}</span>
     </>
   );
-  const pay = (b: Row["b"]) => (
+  const pay = (b: Row["b"], payUntil?: Date | null) => (
     <>
       {b.method ? methodLabel[b.method] : "—"}
+      {/* a drop-in is confirmed once paid – reception can mark a transfer that arrived right here */}
+      {b.status === "pending_payment" && b.orderId && isAdmin && (
+        <ActionForm action={markOrderPaidAction} confirm="Platba dorazila? Místo se potvrdí a klientce přijde potvrzení." className="mt-1">
+          <input type="hidden" name="orderId" value={b.orderId} />
+          <button title="Označit jako zaplacené">
+            <Badge tone="gold">Nezaplaceno{payUntil ? ` · drží do ${formatDateTime(payUntil)}` : ""} – zaplaceno?</Badge>
+          </button>
+        </ActionForm>
+      )}
       {b.surcharge > 0 && (
         <ActionForm action={setSurchargePaidAction} className="mt-1">
           <input type="hidden" name="bookingId" value={b.id} />
@@ -141,13 +152,13 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
           <h2 className="text-lg font-semibold">Přihlášení klienti a docházka</h2>
           {/* phones: one card per client, big attendance buttons */}
           <ul className="space-y-3 md:hidden">
-            {active.map(({ b, u }) => (
+            {active.map(({ b, u, payUntil }) => (
               <li key={b.id} className="rounded-2xl border border-linka/60 bg-white/60 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">{who(b, u)}</div>
                   {statusBadge(b)}
                 </div>
-                <div className="mt-2 text-sm text-les/70">{pay(b)}</div>
+                <div className="mt-2 text-sm text-les/70">{pay(b, payUntil)}</div>
                 {attendance(b, "flex-1 py-2.5 text-sm")}
                 <div className="mt-3 border-t border-linka/40 pt-3">{cancel(b)}</div>
               </li>
@@ -155,10 +166,10 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
             {active.length === 0 && <li className="text-sm text-les/50">Zatím nikdo.</li>}
           </ul>
           <Table head={["Klient", "Platba", "Stav", "Docházka", ""]} className="max-md:hidden">
-            {active.map(({ b, u }) => (
+            {active.map(({ b, u, payUntil }) => (
               <tr key={b.id}>
                 <Td>{who(b, u)}</Td>
-                <Td>{pay(b)}</Td>
+                <Td>{pay(b, payUntil)}</Td>
                 <Td>{statusBadge(b)}</Td>
                 <Td>{attendance(b)}</Td>
                 <Td>{cancel(b)}</Td>

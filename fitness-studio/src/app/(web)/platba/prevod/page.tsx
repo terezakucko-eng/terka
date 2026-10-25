@@ -9,6 +9,7 @@ import { orders } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { bankTransfer } from "@/lib/massage-payment";
 import { formatPrice } from "@/lib/money";
+import { formatDateTime } from "@/lib/dates";
 import { cardPayments } from "@/lib/payments";
 import { payOrderAction } from "@/app/actions/booking";
 import { ActionForm, SubmitButton } from "@/components/forms";
@@ -29,16 +30,35 @@ export default async function TransferPage({ searchParams }: PageProps<"/platba/
 
   return (
     <Container className="max-w-3xl py-12 sm:py-16">
-      {o.kind === "drop_in" && !off && (
+      {o.kind === "drop_in" && paid && (
         <p className="mb-8 flex items-center gap-3 rounded-2xl bg-forest p-5 text-papir">
-          <CheckCircle2 className="size-6 shrink-0 text-zlato" /> Místo na lekci máš rezervované. Potvrzení ti přišlo e-mailem.
+          <CheckCircle2 className="size-6 shrink-0 text-zlato" /> Platba dorazila – místo na lekci je tvoje.
+        </p>
+      )}
+      {/* the place is the client's only once paid (older bookings had it right away – no deadline) */}
+      {o.kind === "drop_in" && !paid && !off && (
+        <p className="mb-8 rounded-2xl border-2 border-zlato bg-zlato/15 p-5">
+          {o.expiresAt ? (
+            <>
+              <strong>Místo ti držíme do {formatDateTime(o.expiresAt)}.</strong> Potvrdíme ho, jakmile platba dorazí – uvidíš to v Můj účet.
+              Když do té doby nedorazí, místo se uvolní pro ostatní.
+            </>
+          ) : (
+            <>Místo na lekci máš rezervované. Zaplať prosím co nejdřív.</>
+          )}
+        </p>
+      )}
+      {o.kind === "drop_in" && o.status === "expired" && (
+        <p className="mb-8 rounded-2xl border border-chyba/40 bg-chyba/10 p-5">
+          <strong>Rezervace propadla</strong> – platba nedorazila{o.expiresAt ? ` do ${formatDateTime(o.expiresAt)}` : ""}, tak jsme místo uvolnili.
+          Pokud je platba na cestě, nevadí – když bude volno, místo ti vrátíme, jinak ji dostaneš jako kredit.
         </p>
       )}
       <Eyebrow className="text-zeme">Platba převodem</Eyebrow>
       <h1 className="mt-4 text-4xl font-semibold tracking-tight">{o.description}</h1>
       <p className="mt-3 text-3xl font-light">{formatPrice(o.amount)}</p>
       <div className="mt-4">
-        {paid ? <Badge tone="green">Zaplaceno</Badge> : off ? <Badge tone="red">Zrušeno</Badge> : <Badge tone="gold">Čeká na platbu</Badge>}
+        {paid ? <Badge tone="green">Zaplaceno</Badge> : off ? <Badge tone="red">{o.status === "expired" ? "Propadlo" : "Zrušeno"}</Badge> : <Badge tone="gold">Čeká na platbu</Badge>}
       </div>
 
       {t && (
@@ -70,7 +90,7 @@ export default async function TransferPage({ searchParams }: PageProps<"/platba/
       {!paid && !off && (
         <p className="mt-6 max-w-xl text-sm text-les/70">
           {o.kind === "drop_in"
-            ? "Jakmile platba dorazí na účet, místo na lekci je tvoje. Pošli ji prosím co nejdřív."
+            ? "Pošli platbu prosím hned – rychlá (okamžitá) platba dorazí nejdřív."
             : o.kind === "membership_fee"
               ? "Jakmile platba dorazí, příspěvek označíme jako zaplacený – obvykle do 1–2 pracovních dnů."
               : o.kind === "voucher"

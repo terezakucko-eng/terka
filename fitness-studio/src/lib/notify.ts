@@ -1,12 +1,12 @@
 import { eq, inArray } from "drizzle-orm";
 import { sessionName } from "./session-name";
 import type { DB } from "@/db";
-import { classSessions, classTypes, users, type Booking, type Order, type Wish } from "@/db/schema";
+import { classSessions, classTypes, orders, users, type Booking, type Order, type Wish } from "@/db/schema";
 import { site } from "@/config/site";
 import type { StrikeOutcome } from "@/domain/strikes";
 import { periodLabel } from "@/domain/membership-fees";
 import { getContent } from "@/content";
-import { formatPrice } from "./money";
+import { credits, formatPrice } from "./money";
 import { formatDate, formatDay, formatTime } from "./dates";
 import { sendEmail } from "./email-templates";
 import { greetName } from "@/lib/vocative";
@@ -18,7 +18,8 @@ import { markAnnounced, unannouncedRewards } from "@/domain/referrals";
 import { markBookingAnnounced, markExpiryAnnounced, markSignUpAnnounced, unannouncedBookings, unannouncedExpiries, unannouncedSignUps } from "@/domain/pass-cards";
 import { formatVoucherCode, markVoucherNotified, unnotifiedVouchers } from "@/domain/vouchers";
 import { displayName } from "./profile";
-import { fillFromWaitlist, releasedHoldsWithWaitlist } from "@/domain/booking";
+import { expireStalePending, fillFromWaitlist, markLapseAnnounced, releasedHoldsWithWaitlist, unannouncedLapses } from "@/domain/booking";
+import type { fulfillOrder } from "@/domain/orders";
 import { getSettings } from "./settings";
 import { unsubscribeUrl } from "./links";
 
@@ -92,6 +93,69 @@ export async function notifyBooked(db: DB, b: Pick<Booking, "userId" | "sessionI
     odkaz: link(b.sessionId),
     kalendar: `${site.url}/api/kalendar/lekce/${b.sessionId}`,
   });
+}
+
+const when = (d: Date) => `${formatDay(d)} v ${formatTime(d)}`;
+
+/** A drop-in by transfer waits for its payment: bank details, QR link and until when the place is held. */
+export async function notifyAwaitingPayment(db: DB, o: Pick<Order, "id" | "userId" | "sessionId" | "amount" | "number" | "expiresAt">) {
+  const u = (await emails(db, [o.userId])).get(o.userId);
+  if (!u || !o.sessionId || !o.expiresAt) return;
+  await sendEmail(u.email, "bookedPending", {
+    osloveni: greetName(u.name),
+    lekce: await describe(db, o.sessionId),
+    platnost: when(o.expiresAt),
+    castka: formatPrice(o.amount),
+    ucet: (await getContent()).raw("massages.bankAccount").trim() || "viz odkaz",
+    vs: String(o.number ?? ""),
+    odkaz: `${site.url}/platba/prevod?order=${o.id}`,
+  });
+}
+
+/** After a payment: a drop-in's place is confirmed now – or came back as credit when it was gone. */
+export async function notifyPaid(db: DB, r: Awaited<ReturnType<typeof fulfillOrder>>) {
+  if (!r.dropIn) return;
+  const { booking: b, outcome } = r.dropIn;
+  const lekce = await describe(db, b.sessionId);
+  if (outcome === "confirmed") {
+    await notifyBooked(db, b, true);
+    await pushQuietly(db, [b.userId], { title: "Platba dorazila – místo je tvoje", body: lekce, url: link(b.sessionId) });
+    return;
+  }
+  const u = (await emails(db, [b.userId])).get(b.userId);
+  const [row] = await db.select({ cost: classSessions.creditCost }).from(classSessions).where(eq(classSessions.id, b.sessionId));
+  if (u)
+    await sendEmail(u.email, "dropInLate", {
+      osloveni: greetName(u.name),
+      lekce,
+      kredit: credits((row?.cost ?? 0) * b.seats),
+      odkaz: `${site.url}/rozvrh`,
+    });
+  await pushQuietly(db, [b.userId], { title: "Platba dorazila pozdě – máš ji jako kredit", body: lekce, url: `${site.url}/ucet` });
+}
+
+/**
+ * Drop-ins by transfer that weren't paid in time give their place up (run by
+ * the 15-minute cron): the client hears about it and the waitlist moves up.
+ */
+export async function releaseUnpaidDropIns(db: DB, now = new Date()) {
+  await db.transaction((tx) => expireStalePending(tx, now));
+  const lapses = await unannouncedLapses(db, now);
+  const map = await emails(db, lapses.map((l) => l.userId));
+  for (const l of lapses) {
+    try {
+      const lekce = await describe(db, l.sessionId!);
+      const u = map.get(l.userId);
+      const [o] = await db.select({ expiresAt: orders.expiresAt }).from(orders).where(eq(orders.id, l.orderId));
+      if (u) await sendEmail(u.email, "dropInLapsed", { osloveni: greetName(u.name), lekce, platnost: when(o.expiresAt!), odkaz: `${site.url}/rozvrh` });
+      await pushQuietly(db, [l.userId], { title: "Rezervace propadla – platba nedorazila", body: lekce, url: link(l.sessionId!) });
+      await markLapseAnnounced(db, l.orderId, now);
+      await notifyPromoted(db, await fillFromWaitlist(db, l.sessionId!, now));
+    } catch {
+      // the next run tries again
+    }
+  }
+  return lapses.length;
 }
 
 /** The client's own cancellation – skipped when they turned booking e-mails off. */

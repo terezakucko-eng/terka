@@ -1,5 +1,5 @@
 import { isStudent } from "@/lib/student";
-import { and, asc, count, eq, gte, inArray, isNull, lt, lte, ne, gt, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, isNull, lt, lte, ne, gt, or, sql } from "drizzle-orm";
 import type { DB, Executor } from "@/db";
 import {
   bookings,
@@ -20,6 +20,7 @@ import { getSettings, type Settings } from "@/lib/settings";
 import { changeCredits, creditExpired } from "./wallet";
 import { periodLabel, shiftPeriod } from "./membership-fees";
 import { surchargeOn } from "@/lib/price-list";
+import { sessionNameSql } from "@/lib/session-name";
 
 /** Statuses that take up a spot in the class. */
 export const OCCUPYING = [
@@ -329,6 +330,89 @@ async function activeBooking(tx: Executor, userId: string, sessionId: string) {
       ),
     );
   return b;
+}
+
+/**
+ * Until when a drop-in paid by bank transfer holds its place: N hours from
+ * booking, but at the latest X hours before the class (reception confirms the
+ * payment by hand). Null = too late for a transfer – card only.
+ */
+export function transferDeadline(cfg: Settings, s: Pick<ClassSession, "startsAt">, now: Date) {
+  const latest = s.startsAt.getTime() - cfg.transferCutoffHours * HOUR;
+  const until = cfg.transferHoldHours > 0 ? Math.min(now.getTime() + cfg.transferHoldHours * HOUR, latest) : latest;
+  return until - now.getTime() >= 15 * MIN ? new Date(until) : null;
+}
+
+/**
+ * Drop-ins by transfer whose payment didn't arrive in time: their place is
+ * gone and the client hasn't been told yet (recent ones only).
+ */
+export async function unannouncedLapses(db: Executor, now: Date) {
+  return db
+    .select({ orderId: orders.id, userId: orders.userId, sessionId: orders.sessionId, amount: orders.amount })
+    .from(orders)
+    .where(
+      and(
+        eq(orders.kind, "drop_in"),
+        eq(orders.provider, "transfer"),
+        eq(orders.status, "expired"),
+        isNull(orders.expiryNotifiedAt),
+        gt(orders.expiresAt, new Date(now.getTime() - 2 * DAY)),
+      ),
+    );
+}
+
+export async function markLapseAnnounced(db: Executor, orderId: string, now: Date) {
+  await db.update(orders).set({ expiryNotifiedAt: now }).where(eq(orders.id, orderId));
+}
+
+/**
+ * What Můj účet says about drop-ins by transfer, whatever happens to the
+ * e-mails: places waiting for payment (with the deadline) and places that
+ * lapsed unpaid in the last week (unless booked again since).
+ */
+export async function dropInNotices(db: Executor, userId: string, now: Date) {
+  const rows = await db
+    .select({
+      orderId: orders.id,
+      status: orders.status,
+      amount: orders.amount,
+      number: orders.number,
+      expiresAt: orders.expiresAt,
+      sessionId: classSessions.id,
+      startsAt: classSessions.startsAt,
+      name: sessionNameSql,
+    })
+    .from(orders)
+    .innerJoin(classSessions, eq(orders.sessionId, classSessions.id))
+    .innerJoin(classTypes, eq(classSessions.classTypeId, classTypes.id))
+    .where(
+      and(
+        eq(orders.userId, userId),
+        eq(orders.kind, "drop_in"),
+        eq(orders.provider, "transfer"),
+        or(
+          and(eq(orders.status, "pending"), gt(classSessions.startsAt, now)),
+          and(eq(orders.status, "expired"), gt(orders.expiresAt, new Date(now.getTime() - 7 * DAY))),
+        ),
+      ),
+    )
+    .orderBy(asc(classSessions.startsAt));
+  const lapsed = rows.filter((r) => r.status === "expired");
+  const booked = lapsed.length
+    ? new Set(
+        (
+          await db
+            .select({ sessionId: bookings.sessionId })
+            .from(bookings)
+            .where(and(eq(bookings.userId, userId), inArray(bookings.sessionId, lapsed.map((r) => r.sessionId)), inArray(bookings.status, [...OCCUPYING])))
+        ).map((b) => b.sessionId),
+      )
+    : new Set<string>();
+  return {
+    waiting: rows.filter((r) => r.status === "pending" && r.expiresAt),
+    lapsed: lapsed.filter((r) => !booked.has(r.sessionId)),
+  };
 }
 
 /** Releases spots held by unpaid drop-in orders whose time ran out. */
@@ -868,8 +952,10 @@ export type BookInput = {
   sessionId: string;
   method: Method;
   entitlementId?: string;
-  /** Drop-in paid later by bank transfer: the spot is booked right away. */
+  /** Drop-in paid by bank transfer: the place waits for the payment until transferDeadline. */
   payLater?: boolean;
+  /** Without a card gateway a last-minute transfer still holds the place until the class starts. */
+  cardAvailable?: boolean;
   /** A friend without an account coming along (+1) – takes a second spot. */
   guestName?: string;
   /** drop_in at the student price… */
@@ -928,6 +1014,16 @@ export async function bookSession(db: DB, input: BookInput, now = new Date()) {
           ? await duoDropInPriceFor(tx, input.userId, s, rules).then((price) => price === null ? null : { price, intro: false })
           : await dropInPriceFor(tx, input.userId, s, rules);
       if (!dropIn) throw new UserError("Na tuto lekci nelze koupit jednorázový vstup.");
+      // the place is the client's only once paid – until then it's held: a short while
+      // for a card, for a transfer until the deadline (reception confirms it by hand)
+      let expiresAt = new Date(now.getTime() + cfg.pendingPaymentMinutes * MIN);
+      if (input.payLater) {
+        const until = transferDeadline(cfg, s, now);
+        if (!until && input.cardAvailable !== false)
+          throw new UserError(`Lekce začíná za méně než ${cfg.transferCutoffHours} h – převod by nestihl dorazit. Zaplať prosím kartou.`);
+        expiresAt = until ?? s.startsAt;
+      }
+      const free = dropIn.price === 0;
       const [order] = await tx
         .insert(orders)
         .values({
@@ -936,8 +1032,7 @@ export async function bookSession(db: DB, input: BookInput, now = new Date()) {
           sessionId: s.id,
           description: guestName ? "Jednorázový vstup pro dva" : student ? "Studentský vstup" : dropIn.intro ? "První lekce" : "Jednorázový vstup",
           amount: dropIn.price,
-          provider: "pending",
-          expiresAt: input.payLater ? null : new Date(now.getTime() + cfg.pendingPaymentMinutes * MIN),
+          ...(free ? { status: "paid" as const, provider: "free", paidAt: now } : { provider: "pending", expiresAt }),
         })
         .returning();
       const [booking] = await tx
@@ -945,7 +1040,7 @@ export async function bookSession(db: DB, input: BookInput, now = new Date()) {
         .values({
           userId: input.userId,
           sessionId: s.id,
-          status: input.payLater ? "confirmed" : "pending_payment",
+          status: free ? "confirmed" : "pending_payment",
           method: "drop_in",
           orderId: order.id,
           guestName,
@@ -1317,6 +1412,8 @@ export async function sessionForUser(
   let myBooking: Booking | undefined;
   let waitlistPosition: number | null = null;
   let options: BookingOption[] = [];
+  let unpaid: { id: string; expiresAt: Date | null; provider: string } | undefined;
+  let lapsedAt: Date | null = null;
   if (userId) {
     myBooking = await activeBooking(db, userId, s.id);
     if (myBooking?.status === "waitlist") {
@@ -1325,6 +1422,21 @@ export async function sessionForUser(
     }
     if (state === "bookable" && (!myBooking || myBooking.status === "waitlist"))
       options = await bookingOptions(db, userId, s, withFriend ? 2 : 1);
+    if (myBooking?.status === "pending_payment" && myBooking.orderId)
+      [unpaid] = await db
+        .select({ id: orders.id, expiresAt: orders.expiresAt, provider: orders.provider })
+        .from(orders)
+        .where(and(eq(orders.id, myBooking.orderId), eq(orders.status, "pending")));
+    // an earlier drop-in here whose transfer didn't arrive in time – said on the page, not just by e-mail
+    if (!myBooking || myBooking.status === "waitlist") {
+      const [l] = await db
+        .select({ at: orders.expiresAt })
+        .from(orders)
+        .where(and(eq(orders.userId, userId), eq(orders.sessionId, s.id), eq(orders.kind, "drop_in"), eq(orders.provider, "transfer"), eq(orders.status, "expired")))
+        .orderBy(desc(orders.expiresAt))
+        .limit(1);
+      lapsedAt = l?.at ?? null;
+    }
   }
   return {
     session: s,
@@ -1333,8 +1445,14 @@ export async function sessionForUser(
     canBringFriend,
     withFriend,
     myBooking,
+    /** the drop-in this client hasn't paid yet – and until when its place is held */
+    unpaid,
+    /** this client's drop-in here lapsed unpaid at… (no booking now) */
+    lapsedAt,
     waitlistPosition,
     options,
+    /** a drop-in paid by transfer holds the place until then; null = card only now */
+    transferUntil: transferDeadline(cfg, s, now),
     lateCancel: isLateCancel(s, cancellationHours, now),
     cancellationHours,
     /** a member sees it full while the last place is kept for non-members – until then */

@@ -16,7 +16,7 @@ import { abandonOrder, createProductOrder, createSurchargeOrder, fulfillOrder, r
 import { requireUser } from "@/lib/auth";
 import { UserError } from "@/lib/errors";
 import { attempt, field, type FormState } from "@/lib/form";
-import { notifyBooked, notifyCancelled, notifyPromoted, notifyStrike } from "@/lib/notify";
+import { notifyAwaitingPayment, notifyBooked, notifyCancelled, notifyPaid, notifyPromoted, notifyStrike } from "@/lib/notify";
 import { afterMemberStrike, assertNotPaused } from "@/domain/strikes";
 import { cardPayments, paymentProvider, startCheckout, type PayMethod } from "@/lib/payments";
 
@@ -50,18 +50,20 @@ export async function bookAction(_: FormState, fd: FormData): Promise<FormState>
       method: method as Method,
       entitlementId: entitlementId || undefined,
       payLater: payMethod === "transfer",
+      cardAvailable: cardPayments(),
       guestName: field.str(fd, "guestName") || undefined,
       student,
       studentConfirmed: fd.get("student") === "on",
     });
-    if (order) {
-      if (booking.status === "confirmed") await notifyBooked(db, booking);
+    // a free first visit needs no payment, otherwise the place waits for it
+    if (order && order.status === "pending") {
       try {
         checkoutUrl = await startCheckout(db, order, user, null, payMethod);
       } catch (e) {
         await abandonOrder(db, order.id);
         throw e instanceof UserError ? e : new UserError("Platební brána teď není dostupná.");
       }
+      if (payMethod === "transfer") await notifyAwaitingPayment(db, order).catch(() => {});
       return;
     }
     await notifyBooked(db, booking);
@@ -176,7 +178,7 @@ export async function testPayAction(_: FormState, fd: FormData): Promise<FormSta
     await abandonOrder(db, o.id);
     redirect(`/platba/vysledek?order=${o.id}&stav=zruseno`);
   }
-  await fulfillOrder(db, { orderId: o.id, provider: "test", providerRef: `test_${o.id}` });
+  await notifyPaid(db, await fulfillOrder(db, { orderId: o.id, provider: "test", providerRef: `test_${o.id}` }));
   revalidatePath("/", "layout");
   redirect(`/platba/vysledek?order=${o.id}&stav=ok`);
 }

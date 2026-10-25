@@ -27,6 +27,8 @@ const fields: { key: keyof Settings; label: string; hint: string; section?: stri
   { key: "welcomeFreeEntries", label: "Vstupy zdarma pro nové klienty", hint: "0 = vypnuto." },
   { key: "welcomeFreeValidityDays", label: "Platnost úvodního vstupu (dní)", hint: "" },
   { key: "pendingPaymentMinutes", label: "Držení místa při platbě kartou (min)", hint: "Minimálně 30 (Stripe)." },
+  { key: "transferHoldHours", label: "Jednorázový vstup převodem: držet místo (h)", hint: "Místo se potvrdí až po zaplacení. Bez platby se po této době uvolní." },
+  { key: "transferCutoffHours", label: "…nejpozději do (h před lekcí)", hint: "Kdo se hlásí později, platí už jen kartou." },
   { key: "massageBufferMinutes", label: "Masáže – pauza mezi masážemi (min)", hint: "Čas na úklid a převlečení." },
   { key: "massageStepMinutes", label: "Masáže – začátky po (min)", hint: "30 = 9:00, 9:30, 10:00…" },
   { key: "memberStrikeLimit", label: "Členové – prohřešků do pauzy", hint: "Pozdní odhlášení nebo nepříchod. Varování přijde o jeden dřív. 0 = vypnuto." },
