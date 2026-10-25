@@ -5,7 +5,7 @@ import { formatDay, formatTime } from "@/lib/dates";
 import { sendEmail } from "@/lib/email-templates";
 import { greetName } from "@/lib/vocative";
 import { pushQuietly } from "@/lib/push";
-import { fillReleasedPlaces, sendGreetings, sendPassCardNotices, sendReferralThanks, sendVoucherReady, sendWinbacks } from "@/lib/notify";
+import { fillReleasedPlaces, releaseUnpaidDropIns, sendTransferChecks, sendGreetings, sendPassCardNotices, sendReferralThanks, sendVoucherReady, sendWinbacks } from "@/lib/notify";
 import { pragueHour } from "@/lib/dates";
 
 export const maxDuration = 60;
@@ -15,7 +15,8 @@ export const maxDuration = 60;
  * or massage starting within the next REMINDER_HOURS. Each booking is reminded only once.
  * From 9:00 (Prague) it also sends the birthday / name-day wishes, from 10:00 „Chybíš nám“ –
  * each once, so the first run of the day does it and the later ones find nothing. Places held
- * for non-members go to the waitlist once they're released. The studio hears about sign-ups and
+ * for non-members go to the waitlist once they're released, and so do places of drop-ins whose
+ * transfer didn't arrive in time (the client is told). The studio hears about sign-ups and
  * lessons booked with a Pošli to dál card (not at night).
  */
 export async function GET(req: Request) {
@@ -64,6 +65,8 @@ export async function GET(req: Request) {
   const referralThanks = hour >= 8 && hour < 21 ? await sendReferralThanks(db, now) : 0;
   const vouchersReady = await sendVoucherReady(db, now);
   const releasedPlaces = await fillReleasedPlaces(db, now);
+  const unpaidReleased = await releaseUnpaidDropIns(db, now);
+  const transferChecks = await sendTransferChecks(db, now);
   const passCards = hour >= 7 && hour < 22 ? await sendPassCardNotices(db, now) : 0;
-  return Response.json({ classes: done.classes.length, massages: done.massages.length, greetings, winbacks, referralThanks, vouchersReady, releasedPlaces, passCards });
+  return Response.json({ classes: done.classes.length, massages: done.massages.length, greetings, winbacks, referralThanks, vouchersReady, releasedPlaces, unpaidReleased, transferChecks, passCards });
 }

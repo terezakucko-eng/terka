@@ -11,6 +11,7 @@ import {
   orders,
   products,
   users,
+  type Booking,
   type Order,
 } from "@/db/schema";
 import { UserError } from "@/lib/errors";
@@ -121,7 +122,7 @@ export async function fulfillOrder(
       .where(eq(orders.id, input.orderId))
       .for("update");
     if (!order) throw new Error(`Order ${input.orderId} not found`);
-    if (order.status === "paid") return { order, alreadyPaid: true };
+    if (order.status === "paid") return { order, alreadyPaid: true, dropIn: null };
 
     const [paid] = await tx
       .update(orders)
@@ -144,24 +145,25 @@ export async function fulfillOrder(
     }
     if (paid.kind === "voucher") await activateVoucher(tx, paid.id, now);
 
-    if (paid.kind === "drop_in") await confirmDropIn(tx, paid, now);
+    const dropIn = paid.kind === "drop_in" ? await confirmDropIn(tx, paid, now) : null;
     if (paid.kind === "surcharge" && paid.bookingId)
       await tx.update(bookings).set({ surchargePaidAt: now }).where(eq(bookings.id, paid.bookingId));
     if (paid.kind === "massage" && paid.massageBookingId)
       await tx.update(massageBookings).set({ paidAt: now }).where(eq(massageBookings.id, paid.massageBookingId));
     // an invited friend's first payment thanks the one who invited her
     if (paid.amount > 0) await rewardReferral(tx, paid.userId, now);
-    return { order: paid, alreadyPaid: false };
+    return { order: paid, alreadyPaid: false, dropIn };
   });
 }
 
-async function confirmDropIn(tx: Executor, order: Order, now: Date) {
+/** A paid drop-in: its place is confirmed now – or, when it's gone meanwhile, the money comes back as credit. */
+async function confirmDropIn(tx: Executor, order: Order, now: Date): Promise<{ booking: Booking; outcome: "confirmed" | "credited" } | null> {
   const [b] = await tx
     .select()
     .from(bookings)
     .where(eq(bookings.orderId, order.id))
     .for("update");
-  if (!b) return;
+  if (!b) return null;
   const [s] = await tx
     .select()
     .from(classSessions)
@@ -173,9 +175,9 @@ async function confirmDropIn(tx: Executor, order: Order, now: Date) {
       .update(bookings)
       .set({ status: "confirmed" })
       .where(eq(bookings.id, b.id));
-    return;
+    return { booking: b, outcome: "confirmed" };
   }
-  if (b.status !== "cancelled") return;
+  if (b.status !== "cancelled") return null;
 
   // Paid after the hold expired: rebook if there's still room, else credit.
   const [other] = await tx
@@ -198,15 +200,16 @@ async function confirmDropIn(tx: Executor, order: Order, now: Date) {
       .update(bookings)
       .set({ status: "confirmed", cancelledAt: null })
       .where(eq(bookings.id, b.id));
-  } else {
-    await changeCredits(tx, {
-      userId: b.userId,
-      delta: s.creditCost * b.seats,
-      reason: "refund",
-      orderId: order.id,
-      note: "Platba dorazila po vypršení rezervace – vráceno jako kredit",
-    });
+    return { booking: b, outcome: "confirmed" };
   }
+  await changeCredits(tx, {
+    userId: b.userId,
+    delta: s.creditCost * b.seats,
+    reason: "refund",
+    orderId: order.id,
+    note: "Platba dorazila po vypršení rezervace – vráceno jako kredit",
+  });
+  return { booking: b, outcome: "credited" };
 }
 
 /** Monthly membership renewal from the payment provider (e.g. Stripe invoice). */

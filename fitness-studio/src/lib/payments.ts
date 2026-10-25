@@ -11,6 +11,7 @@ import {
   markSubscriptionCancelled,
   renewMembership,
 } from "@/domain/orders";
+import { notifyPaid } from "@/lib/notify";
 
 /**
  * The card gateway. Bank transfer with a QR code is always available (the
@@ -46,8 +47,8 @@ export async function startCheckout(
   const provider = method === "transfer" ? "transfer" : paymentProvider();
 
   if (provider === "transfer") {
-    // no time limit: a bank transfer takes a day or two
-    await db.update(orders).set({ provider: "transfer", expiresAt: null }).where(eq(orders.id, order.id));
+    // no time limit: a bank transfer takes a day or two – a drop-in keeps its place until its deadline
+    await db.update(orders).set({ provider: "transfer", ...(order.kind === "drop_in" ? {} : { expiresAt: null }) }).where(eq(orders.id, order.id));
     return `/platba/prevod?order=${order.id}`;
   }
 
@@ -161,13 +162,15 @@ export async function handleStripeWebhook(db: DB, rawBody: string, signature: st
         const end = inv.lines.data[0]?.period?.end;
         if (end) periodEnd = new Date(end * 1000);
       }
-      await fulfillOrder(db, {
+      const paid = await fulfillOrder(db, {
         orderId,
         provider: "stripe",
         providerRef: s.id,
         subscriptionId,
         periodEnd,
       });
+      // the payment counts even when the confirmation can't go out right now
+      await notifyPaid(db, paid).catch((e) => console.error("[stripe] paid notice failed", orderId, e));
       break;
     }
     case "checkout.session.expired": {

@@ -44,7 +44,7 @@ import { requireAdmin, requireStaff } from "@/lib/auth";
 import { addDays, dateKey, formatDate, mondayOf, pragueLocalToDate, weekdayOf, isDateKey } from "@/lib/dates";
 import { UserError } from "@/lib/errors";
 import { attempt, field, type FormState } from "@/lib/form";
-import { notifyBooked, notifyPromoted, notifySessionCancelled, notifyStrike } from "@/lib/notify";
+import { notifyBooked, notifyPaid, notifyPromoted, notifySessionCancelled, notifyStrike } from "@/lib/notify";
 import { afterMemberStrike, clearPause } from "@/domain/strikes";
 import { storeImage, uploadedFile } from "@/lib/media";
 import { formatPrice } from "@/lib/money";
@@ -781,8 +781,10 @@ export async function markOrderPaidAction(_: FormState, fd: FormData): Promise<F
     const orderId = field.str(fd, "orderId");
     const [o] = await db.select({ provider: orders.provider }).from(orders).where(eq(orders.id, orderId));
     // a bank transfer stays labelled as such once it's confirmed
-    await fulfillOrder(db, { orderId, provider: o?.provider === "transfer" ? "transfer" : "manual" });
-    return done("Označeno jako zaplacené.");
+    const paid = await fulfillOrder(db, { orderId, provider: o?.provider === "transfer" ? "transfer" : "manual" });
+    await notifyPaid(db, paid).catch(() => {});
+    if (paid.dropIn?.outcome === "credited") return done("Označeno jako zaplacené. Místo už bylo obsazené – klientka dostala částku jako kredit.");
+    return done(paid.dropIn ? "Označeno jako zaplacené – místo na lekci je potvrzené." : "Označeno jako zaplacené.");
   });
 }
 

@@ -7,11 +7,14 @@ import { Empty } from "@/components/ui";
 import { getDb } from "@/db";
 import { entitlements, orders, users } from "@/db/schema";
 import { requireStaff } from "@/lib/auth";
-import { addDays, dateKey, pragueLocalToDate } from "@/lib/dates";
+import { addDays, dateKey, formatDateTime, formatDay, formatTime, pragueLocalToDate } from "@/lib/dates";
 import { formatPrice } from "@/lib/money";
 import { formatDayMonth, upcomingCelebrations } from "@/lib/profile";
 import { listSessions } from "@/lib/queries";
 import { pendingStudentProofs } from "@/domain/students";
+import { transfersToCheck } from "@/domain/booking";
+import { markOrderPaidAction } from "@/app/admin/actions";
+import { ActionForm, SubmitButton } from "@/components/forms";
 
 export default async function AdminDashboard() {
   const user = await requireStaff();
@@ -34,6 +37,8 @@ export default async function AdminDashboard() {
   const celebrations = upcomingCelebrations(celebrants, today, 7);
   // only the admin checks the ISIC photos
   const proofs = user.role === "admin" ? await pendingStudentProofs(db) : [];
+  // drop-ins by transfer: the place is confirmed only once the payment is marked here (or in Platby)
+  const transfers = user.role === "admin" ? await transfersToCheck(db, now) : [];
 
   const capacity = weekSessions.reduce((a, s) => a + s.capacity, 0);
   const booked = weekSessions.reduce((a, s) => a + s.occupied, 0);
@@ -41,6 +46,28 @@ export default async function AdminDashboard() {
   return (
     <>
       <AdminTitle title={`Dobrý den, ${user.name.split(" ")[0]}`} />
+      {transfers.length > 0 && (
+        <section className="mb-8 rounded-2xl border-2 border-zlato bg-zlato/10 p-5">
+          <h2 className="font-semibold">💸 Převody ke kontrole ({transfers.length})</h2>
+          <p className="mt-1 text-sm text-les/60">
+            Zkontroluj účet. Po kliknutí na Zaplaceno se místo potvrdí a klientce přijde potvrzení. Bez platby se místo v uvedený čas samo uvolní.
+          </p>
+          <ul className="mt-3 divide-y divide-linka/50">
+            {transfers.map((t) => (
+              <li key={t.orderId} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                <span className="text-sm">
+                  <strong>{t.userName}</strong> · <Link href={`/admin/rozvrh/${t.sessionId}`} className="underline underline-offset-4">{t.name} {formatDay(t.startsAt)} v {formatTime(t.startsAt)}</Link>
+                  <span className="block text-les/70">{formatPrice(t.amount)} · VS {t.number} · místo drží do <strong>{formatDateTime(t.expiresAt!)}</strong></span>
+                </span>
+                <ActionForm action={markOrderPaidAction} confirm={`Platba ${formatPrice(t.amount)} (VS ${t.number}) dorazila? Místo se potvrdí.`}>
+                  <input type="hidden" name="orderId" value={t.orderId} />
+                  <SubmitButton variant="gold" className="px-4 py-2 text-xs">Zaplaceno</SubmitButton>
+                </ActionForm>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {user.role === "admin" && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Stat label="Tržby 30 dní" value={formatPrice(Number(rev.total ?? 0))} sub="zaplacené objednávky" />

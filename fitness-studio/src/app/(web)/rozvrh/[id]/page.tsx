@@ -110,6 +110,12 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
           </div>
 
           <Card className="self-start border-zlato/30 bg-papir text-les">
+            {view.lapsedAt && (
+              <p className="mb-6 rounded-xl border border-chyba/30 bg-chyba/10 p-4 text-sm">
+                <strong>Tvoje rezervace propadla.</strong> Platba převodem nedorazila do {formatDateTime(view.lapsedAt)}, tak jsme místo uvolnili.
+                Pokud je platba na cestě, nevadí – když bude volno, místo ti vrátíme, jinak ti ji připíšeme jako kredit.
+              </p>
+            )}
             <BookingPanel
               view={view}
               loggedIn={!!user}
@@ -148,11 +154,31 @@ function BookingPanel({
 
   if (b && b.status !== "waitlist") {
     const label =
-      b.status === "pending_payment" ? "Čeká na zaplacení" : b.status === "attended" ? "Zúčastnil/a ses" : b.status === "no_show" ? "Nedorazil/a jsi" : "Máš rezervováno";
+      b.status === "pending_payment" ? "Čeká na platbu" : b.status === "attended" ? "Zúčastnil/a ses" : b.status === "no_show" ? "Nedorazil/a jsi" : "Máš rezervováno";
+    const unpaid = b.status === "pending_payment" ? view.unpaid : undefined;
     return (
       <div>
         <Badge tone={b.status === "pending_payment" ? "gold" : "green"}>{label}</Badge>
-        <h2 className="mt-4 text-2xl font-semibold">{b.guestName || b.isHold ? "Těšíme se na vás!" : "Těšíme se na tebe!"}</h2>
+        {unpaid ? (
+          <>
+            <h2 className="mt-4 text-2xl font-semibold">Místo ti držíme – zatím není potvrzené</h2>
+            {unpaid.provider === "transfer" ? (
+              <>
+                <p className="mt-2 text-les/70">
+                  Zaplať převodem do <strong className="text-les">{unpaid.expiresAt ? formatDateTime(unpaid.expiresAt) : "začátku lekce"}</strong>. Jakmile platba dorazí,
+                  místo potvrdíme – uvidíš to tady i v Můj účet. Když do té doby nedorazí, místo se uvolní pro ostatní.
+                </p>
+                <ButtonLink href={`/platba/prevod?order=${unpaid.id}`} variant="gold" className="mt-5 w-full">Zaplatit – QR kód a údaje</ButtonLink>
+              </>
+            ) : (
+              <p className="mt-2 text-les/70">
+                Platba kartou ještě není dokončená. Pokud ji nedokončíš, místo se {unpaid.expiresAt ? `v ${formatDateTime(unpaid.expiresAt)}` : "brzy"} uvolní.
+              </p>
+            )}
+          </>
+        ) : (
+          <h2 className="mt-4 text-2xl font-semibold">{b.guestName || b.isHold ? "Těšíme se na vás!" : "Těšíme se na tebe!"}</h2>
+        )}
         {b.isHold ? <p className="mt-2 text-les/70">Držíš tu {b.seats} {b.seats === 1 ? "místo" : b.seats < 5 ? "místa" : "míst"}.</p> : b.guestName && <p className="mt-2 text-les/70">Rezervace je i pro kamarádku: <strong>{b.guestName}</strong>.</p>}
         {b.surcharge > 0 && !b.surchargePaidAt && view.state !== "cancelled" && <SurchargePay bookingId={b.id} amount={b.surcharge} />}
         {view.state !== "past" && view.state !== "cancelled" && (
@@ -168,9 +194,11 @@ function BookingPanel({
             <ActionForm action={cancelBookingAction} className="mt-6 border-t border-linka/60 pt-6" confirm="Opravdu zrušit rezervaci?">
               <input type="hidden" name="bookingId" value={b.id} />
               <p className="mb-3 text-sm text-les/70">
-                {view.lateCancel
-                  ? `Do lekce zbývá méně než ${view.cancellationHours} h – při zrušení vstup propadá.`
-                  : `Zrušit můžeš zdarma do ${view.cancellationHours} h před začátkem.`}
+                {unpaid
+                  ? "Nezaplacenou rezervaci můžeš zrušit kdykoli – nic neplatíš."
+                  : view.lateCancel
+                    ? `Do lekce zbývá méně než ${view.cancellationHours} h – při zrušení vstup propadá.`
+                    : `Zrušit můžeš zdarma do ${view.cancellationHours} h před začátkem.`}
               </p>
               <SubmitButton variant="danger">Zrušit rezervaci</SubmitButton>
             </ActionForm>
@@ -255,15 +283,20 @@ function BookingPanel({
     );
   }
 
-  // with card payments on, a drop-in can be paid right away by card or later by transfer
+  // a drop-in is the client's once paid: by card right away, by transfer the place waits until the deadline
+  const until = view.transferUntil;
+  const transfer = until
+    ? `Zaplatíš převodem s QR kódem. Místo ti podržíme do ${formatDateTime(until)} a potvrdíme ho, jakmile platba dorazí.`
+    : "Zaplatíš převodem s QR kódem. Místo ti podržíme do začátku lekce a potvrdíme ho, jakmile platba dorazí.";
+  const tooLate = !until && card ? view.transferTooLate : undefined;
   const options = view.options.flatMap((o) =>
     o.method === "drop_in"
       ? card
         ? [
-            { ...o, pay: "card", detail: "Zaplatíš hned kartou." },
-            { ...o, pay: "transfer", label: `${o.label} – převodem`, detail: "Místo máš hned, zaplatíš převodem s QR kódem." },
+            { ...o, pay: "card", detail: "Zaplatíš hned kartou a místo je tvoje." },
+            { ...o, pay: "transfer", label: `${o.label} – převodem`, detail: transfer, disabled: o.disabled ?? tooLate },
           ]
-        : [{ ...o, pay: "transfer", detail: "Zaplatíš převodem s QR kódem." }]
+        : [{ ...o, pay: "transfer", detail: transfer }]
       : [{ ...o, pay: "" }],
   );
   const firstEnabled = options.find((o) => !o.disabled);
