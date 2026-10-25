@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Návod k lekci Reformer Strength 55 min – A4 PDF se snímky poloh.
+"""Návod k lekci na reformeru – A4 PDF se snímky poloh. Lekce je popsaná v souboru .json vedle skriptu.
 
 Odkud vzít snímky (stačí jedno):
-  --video SOUBOR.mp4   ostré snímky přímo z videa (ffmpeg) v časech z cviky.json
-  --snimky SLOZKA      vlastní fotky nebo screenshoty: 01-vychozi.jpg, 01-provedeni.jpg, …
+  --video SOUBOR.mp4   ostré snímky přímo z videa (ffmpeg) v časech ze souboru lekce
+  --snimky SLOZKA      ilustrace, vlastní fotky nebo screenshoty: 01-vychozi.png, 01-provedeni.png, …
   --nahled SLOZKA      koncept z náhledových mozaik YouTube (M0.jpg … M13.jpg, 160×90 px)
 Bez zdroje se místo snímků kreslí prázdné rámečky s časem ve videu.
 
-  python3 navod.py --video reformer-strength.mp4 -o navod.pdf
-  python3 navod.py --snimky fotky/ --obrazky hotove-obrazky/
+  python3 navod.py zacatecnici-1.json --snimky ilustrace/
+  python3 navod.py strength-55.json --video reformer-strength.mp4 --obrazky hotove-obrazky/
 """
 import argparse
 import io
@@ -129,7 +129,7 @@ def vyrez(img, cvik, pomer, ze_videa):
 
 
 def nakresli_sipky(img, sipky, box, src_size):
-    """Červené šipky směru pohybu. Souřadnice jsou v podílech celého snímku z videa:
+    """Červené šipky směru pohybu. Souřadnice jsou v podílech celého zdrojového snímku:
     [[x1, y1], [x2, y2]] rovně, nebo [[x1, y1], [kx, ky], [x2, y2]] obloukem přes řídicí bod."""
     if not sipky:
         return img
@@ -171,8 +171,8 @@ def nakresli_sipky(img, sipky, box, src_size):
 
 
 def nakresli_schema(img, druh):
-    """Malé schéma v rohu pro pohyb mimo rovinu bokorysu (kroužení nohou)."""
-    if druh != 'kruh':
+    """Malé schéma v rohu pro pohyb mimo rovinu bokorysu: kroužení nebo roznožení nohou, pohled od nohou."""
+    if druh not in ('kruh', 'roznozeni'):
         return img
     W, H = img.size
     S = 3
@@ -183,16 +183,27 @@ def nakresli_schema(img, druh):
                         outline=(120, 120, 120, 255), width=S)
     cx, cy, r = s * S / 2, s * S * 0.47, s * S * 0.27
     w = max(3 * S, round(s * S * 0.035))
-    # kruh: nahoru → roznožit → dolů → spojit (pohled od nohou)
-    d.arc((cx - r, cy - r, cx + r, cy + r), start=-80, end=250, fill=ARROW_RGB + (255,), width=w)
-    ang = math.radians(250)
-    ex, ey = cx + r * math.cos(ang), cy + r * math.sin(ang)
-    tang = ang + math.pi / 2
     hd = w * 3
-    d.polygon([(ex + hd * math.cos(tang), ey + hd * math.sin(tang)),
-               (ex + hd * 0.6 * math.cos(tang + 2.2), ey + hd * 0.6 * math.sin(tang + 2.2)),
-               (ex + hd * 0.6 * math.cos(tang - 2.2), ey + hd * 0.6 * math.sin(tang - 2.2))],
-              fill=ARROW_RGB + (255,))
+    if druh == 'kruh':
+        # kruh: nahoru → roznožit → dolů → spojit
+        d.arc((cx - r, cy - r, cx + r, cy + r), start=-80, end=250, fill=ARROW_RGB + (255,), width=w)
+        ang = math.radians(250)
+        ex, ey = cx + r * math.cos(ang), cy + r * math.sin(ang)
+        tang = ang + math.pi / 2
+        d.polygon([(ex + hd * math.cos(tang), ey + hd * math.sin(tang)),
+                   (ex + hd * 0.6 * math.cos(tang + 2.2), ey + hd * 0.6 * math.sin(tang + 2.2)),
+                   (ex + hd * 0.6 * math.cos(tang - 2.2), ey + hd * 0.6 * math.sin(tang - 2.2))],
+                  fill=ARROW_RGB + (255,))
+    else:
+        # roznožení: dvě nohy ve tvaru V, šipky od sebe a zpět k sobě
+        leg = (70, 70, 70, 255)
+        base = (cx, cy + r)
+        for sx in (-1, 1):
+            d.line([base, (cx + sx * r * 0.75, cy - r)], fill=leg, width=w)
+            a0, a1 = (cx + sx * r * 0.25, cy - r * 0.55), (cx + sx * r * 1.05, cy - r * 0.55)
+            d.line([a0, a1], fill=ARROW_RGB + (255,), width=w)
+            d.polygon([(a1[0] + sx * hd * 0.6, a1[1]), (a1[0] - sx * hd * 0.4, a1[1] - hd * 0.6),
+                       (a1[0] - sx * hd * 0.4, a1[1] + hd * 0.6)], fill=ARROW_RGB + (255,))
     f = ImageFont.truetype(str(FONT_DIR / 'DejaVuSans-Bold.ttf'), round(s * S * 0.1))
     d.text((cx, s * S * 0.9), 'pohled od nohou', fill=(60, 60, 60, 255), font=f, anchor='mm')
     over = over.resize((s, s), Image.LANCZOS)
@@ -207,8 +218,7 @@ def priprav(img, cvik, poloha, pomer, ze_videa, px_w):
     img, box = vyrez(img, cvik, pomer, ze_videa)
     img = img.resize((px_w, round(px_w / pomer)), Image.LANCZOS if img.width > px_w else Image.BICUBIC)
     if poloha == 'provedeni':
-        if ze_videa:
-            img = nakresli_sipky(img, cvik.get('sipky'), box, src_size)
+        img = nakresli_sipky(img, cvik.get('sipky' if ze_videa else 'sipky_snimky'), box, src_size)
         img = nakresli_schema(img, cvik.get('schema'))
     return img
 
@@ -361,21 +371,25 @@ def prehled(data):
 
 
 def build(args):
-    data = json.loads((HERE / 'cviky.json').read_text(encoding='utf-8'))
+    data = json.loads(Path(args.lekce).read_text(encoding='utf-8'))
     bloky = {b['id']: b for b in data['bloky']}
     snimky = Snimky(args, data)
     vystup = Path(args.obrazky) if args.obrazky else None
     if vystup:
         vystup.mkdir(parents=True, exist_ok=True)
     koncept = bool(args.nahled)
+    zdroj = data.get('zdroj_snimku', '') if args.snimky else 'snímky jen pro vnitřní potřebu lekce'
 
     def paticka(c, doc):
         c.saveState()
-        c.setFont('DejaVu', 6.8)
         c.setFillColor(GREY)
         v = data['video']
-        c.drawString(MARGIN, 7 * mm, cz(f"Zdroj: {v['autor']} – {v['titulek']}, {v['url']} · "
-                                        f"jen pro vnitřní potřebu lekce"))
+        text = cz(f"Podle videa: {v['autor']} – {v['titulek']}, {v['url']} · {zdroj}")
+        # písmo se zmenší, aby se patička vešla vedle čísla stránky
+        size = min(6.8, 6.8 * (PAGE_W - 2 * MARGIN - 8 * mm) / pdfmetrics.stringWidth(text, 'DejaVu', 6.8))
+        c.setFont('DejaVu', size)
+        c.drawString(MARGIN, 7 * mm, text)
+        c.setFont('DejaVu', 6.8)
         c.drawRightString(PAGE_W - MARGIN, 7 * mm, str(doc.page))
         c.restoreState()
 
@@ -412,15 +426,20 @@ def build(args):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument('lekce', help='soubor lekce, např. zacatecnici-1.json')
     zdroj = ap.add_mutually_exclusive_group()
     zdroj.add_argument('--video', help='video lekce (mp4/webm); snímky se vytáhnou přes ffmpeg')
-    zdroj.add_argument('--snimky', help='složka s vlastními snímky NN-vychozi.jpg / NN-provedeni.jpg')
+    zdroj.add_argument('--snimky', help='složka se snímky NN-vychozi.png / NN-provedeni.png')
     zdroj.add_argument('--nahled', help='složka s náhledovými mozaikami M0.jpg … M13.jpg (koncept)')
     ap.add_argument('--posun', type=float, default=0.0, help='posun časů ve videu v sekundách (např. 0.5)')
-    ap.add_argument('--cache', default=str(HERE / 'snimky-z-videa'), help='kam ukládat snímky vytažené z videa')
+    ap.add_argument('--cache', help='kam ukládat snímky vytažené z videa (výchozí snimky-z-videa/<lekce>)')
     ap.add_argument('--obrazky', help='uložit i hotové obrázky (PNG) do této složky')
-    ap.add_argument('-o', '--vystup', default=str(HERE / 'reformer-strength-55min-navod.pdf'))
-    build(ap.parse_args())
+    ap.add_argument('-o', '--vystup', help='výsledné PDF (výchozí <lekce>.pdf vedle souboru lekce)')
+    args = ap.parse_args()
+    lekce = Path(args.lekce)
+    args.cache = args.cache or str(HERE / 'snimky-z-videa' / lekce.stem)
+    args.vystup = args.vystup or str(lekce.with_suffix('.pdf'))
+    build(args)
 
 
 if __name__ == '__main__':
