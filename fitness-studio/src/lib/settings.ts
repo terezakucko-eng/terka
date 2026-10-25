@@ -25,6 +25,10 @@ export const defaultSettings = {
   transferHoldHours: 24,
   /** …a nejpozději do X hodin před lekcí; kdo se hlásí později, platí kartou */
   transferCutoffHours: 3,
+  /** Ranní lekce = začínají před X hodinou (0 = bez zvláštního pravidla)… */
+  morningClassBeforeHour: 12,
+  /** …převodem jen do X hodin předchozího dne, potom jen kartou */
+  morningTransferUntilHour: 17,
   /** Masáže: pauza mezi dvěma masážemi (úklid, převlečení) */
   massageBufferMinutes: 15,
   /** Masáže: po kolika minutách lze začít (30 = 9:00, 9:30, 10:00…) */

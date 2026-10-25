@@ -338,9 +338,25 @@ async function activeBooking(tx: Executor, userId: string, sessionId: string) {
  * payment by hand). Null = too late for a transfer – card only.
  */
 export function transferDeadline(cfg: Settings, s: Pick<ClassSession, "startsAt">, now: Date) {
-  const latest = s.startsAt.getTime() - cfg.transferCutoffHours * HOUR;
+  let latest = s.startsAt.getTime() - cfg.transferCutoffHours * HOUR;
+  // a morning class: the transfer has to be confirmed the afternoon before (17:00), later card only
+  const eve = morningEve(cfg, s);
+  if (eve) latest = Math.min(latest, eve.getTime());
   const until = cfg.transferHoldHours > 0 ? Math.min(now.getTime() + cfg.transferHoldHours * HOUR, latest) : latest;
   return until - now.getTime() >= 15 * MIN ? new Date(until) : null;
+}
+
+/** For a morning class: the hour of the day before after which it's card only (null = not a morning class). */
+function morningEve(cfg: Settings, s: Pick<ClassSession, "startsAt">) {
+  if (cfg.morningClassBeforeHour <= 0 || pragueHour(s.startsAt) >= cfg.morningClassBeforeHour) return null;
+  return pragueLocalToDate(`${addDays(dateKey(s.startsAt), -1)}T${String(cfg.morningTransferUntilHour).padStart(2, "0")}:00`);
+}
+
+/** Why a transfer is no longer offered for this class (shown greyed out, or as the error). */
+export function transferTooLate(cfg: Settings, s: Pick<ClassSession, "startsAt">) {
+  return morningEve(cfg, s)
+    ? `Na ranní lekci jde převodem platit jen do ${cfg.morningTransferUntilHour}:00 předchozího dne – teď už jen kartou.`
+    : `Lekce začíná za méně než ${cfg.transferCutoffHours} h – převod by nestihl dorazit. Zaplať kartou.`;
 }
 
 /**
@@ -413,6 +429,46 @@ export async function dropInNotices(db: Executor, userId: string, now: Date) {
     waiting: rows.filter((r) => r.status === "pending" && r.expiresAt),
     lapsed: lapsed.filter((r) => !booked.has(r.sessionId)),
   };
+}
+
+/**
+ * Drop-ins waiting for a bank transfer the studio should check and mark paid
+ * (Přehled and the pushes): who, which class, how much, VS and the deadline.
+ */
+export async function transfersToCheck(db: Executor, now: Date) {
+  return db
+    .select({
+      orderId: orders.id,
+      amount: orders.amount,
+      number: orders.number,
+      expiresAt: orders.expiresAt,
+      notifiedAt: orders.studioNotifiedAt,
+      remindedAt: orders.studioRemindedAt,
+      userName: users.name,
+      sessionId: classSessions.id,
+      startsAt: classSessions.startsAt,
+      name: sessionNameSql,
+    })
+    .from(orders)
+    .innerJoin(users, eq(orders.userId, users.id))
+    .innerJoin(classSessions, eq(orders.sessionId, classSessions.id))
+    .innerJoin(classTypes, eq(classSessions.classTypeId, classTypes.id))
+    .where(
+      and(
+        eq(orders.kind, "drop_in"),
+        eq(orders.provider, "transfer"),
+        eq(orders.status, "pending"),
+        gt(orders.expiresAt, now),
+      ),
+    )
+    .orderBy(asc(orders.expiresAt));
+}
+
+export async function markTransferNotice(db: Executor, orderId: string, kind: "new" | "reminder", now: Date) {
+  await db
+    .update(orders)
+    .set(kind === "new" ? { studioNotifiedAt: now } : { studioRemindedAt: now })
+    .where(eq(orders.id, orderId));
 }
 
 /** Releases spots held by unpaid drop-in orders whose time ran out. */
@@ -1019,8 +1075,7 @@ export async function bookSession(db: DB, input: BookInput, now = new Date()) {
       let expiresAt = new Date(now.getTime() + cfg.pendingPaymentMinutes * MIN);
       if (input.payLater) {
         const until = transferDeadline(cfg, s, now);
-        if (!until && input.cardAvailable !== false)
-          throw new UserError(`Lekce začíná za méně než ${cfg.transferCutoffHours} h – převod by nestihl dorazit. Zaplať prosím kartou.`);
+        if (!until && input.cardAvailable !== false) throw new UserError(transferTooLate(cfg, s));
         expiresAt = until ?? s.startsAt;
       }
       const free = dropIn.price === 0;
@@ -1451,8 +1506,9 @@ export async function sessionForUser(
     lapsedAt,
     waitlistPosition,
     options,
-    /** a drop-in paid by transfer holds the place until then; null = card only now */
+    /** a drop-in paid by transfer holds the place until then; null = card only now (and why) */
     transferUntil: transferDeadline(cfg, s, now),
+    transferTooLate: transferTooLate(cfg, s),
     lateCancel: isLateCancel(s, cancellationHours, now),
     cancellationHours,
     /** a member sees it full while the last place is kept for non-members – until then */

@@ -7,7 +7,9 @@ import {
   dropInNotices,
   expireStalePending,
   markLapseAnnounced,
+  markTransferNotice,
   sessionForUser,
+  transfersToCheck,
   unannouncedLapses,
 } from "@/domain/booking";
 import { fulfillOrder } from "@/domain/orders";
@@ -50,6 +52,37 @@ describe("drop-in paid by bank transfer: the place is the client's only once pai
     ).rejects.toThrow(/kartou/);
     const { order } = await bookSession(h.db, { userId: u.id, sessionId: s.id, method: "drop_in", payLater: true, cardAvailable: false }, NOW);
     expect(order!.expiresAt).toEqual(s.startsAt);
+  });
+
+  it("a morning class takes a transfer only until 17:00 the day before, then card only", async () => {
+    // Tue 6. 10. 7:00 in Prague; NOW is Mon 5. 10. 10:00
+    const s = await makeSession(h.db, { startsAt: new Date("2026-10-06T05:00:00Z") });
+    const u = await makeUser(h.db);
+    const { order } = await bookSession(h.db, { userId: u.id, sessionId: s.id, method: "drop_in", payLater: true }, NOW);
+    expect(order!.expiresAt).toEqual(new Date("2026-10-05T15:00:00Z"));
+    const v = await makeUser(h.db);
+    const evening = new Date("2026-10-05T15:30:00Z");
+    expect((await sessionForUser(h.db, s.id, v.id, evening))!.transferTooLate).toMatch(/ranní lekci .* 17:00/);
+    await expect(
+      bookSession(h.db, { userId: v.id, sessionId: s.id, method: "drop_in", payLater: true }, evening),
+    ).rejects.toThrow(/ranní/);
+    // an afternoon class booked the same evening still takes a transfer
+    const pm = await makeSession(h.db, { startsAt: new Date("2026-10-06T15:00:00Z") });
+    const late = await bookSession(h.db, { userId: v.id, sessionId: pm.id, method: "drop_in", payLater: true }, evening);
+    expect(late.order!.expiresAt).toEqual(new Date("2026-10-06T12:00:00Z"));
+  });
+
+  it("the studio sees the transfers to check until they're paid", async () => {
+    const s = await makeSession(h.db);
+    const u = await makeUser(h.db);
+    const { order } = await bookSession(h.db, { userId: u.id, sessionId: s.id, method: "drop_in", payLater: true }, NOW);
+    await asTransfer(order!.id);
+    const [t] = (await transfersToCheck(h.db, NOW)).filter((x) => x.orderId === order!.id);
+    expect(t).toMatchObject({ userName: u.name, sessionId: s.id, notifiedAt: null, remindedAt: null });
+    await markTransferNotice(h.db, order!.id, "new", NOW);
+    expect((await transfersToCheck(h.db, NOW)).find((x) => x.orderId === order!.id)?.notifiedAt).toEqual(NOW);
+    await fulfillOrder(h.db, { orderId: order!.id, provider: "transfer" }, hours(1));
+    expect((await transfersToCheck(h.db, hours(1))).find((x) => x.orderId === order!.id)).toBeUndefined();
   });
 
   it("cancelling it unpaid just calls the payment off", async () => {

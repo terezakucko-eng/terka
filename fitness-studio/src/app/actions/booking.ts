@@ -16,7 +16,7 @@ import { abandonOrder, createProductOrder, createSurchargeOrder, fulfillOrder, r
 import { requireUser } from "@/lib/auth";
 import { UserError } from "@/lib/errors";
 import { attempt, field, type FormState } from "@/lib/form";
-import { notifyAwaitingPayment, notifyBooked, notifyCancelled, notifyPaid, notifyPromoted, notifyStrike } from "@/lib/notify";
+import { notifyAwaitingPayment, notifyBooked, notifyCancelled, notifyPaid, notifyPromoted, notifyStrike, sendTransferChecks } from "@/lib/notify";
 import { afterMemberStrike, assertNotPaused } from "@/domain/strikes";
 import { cardPayments, paymentProvider, startCheckout, type PayMethod } from "@/lib/payments";
 
@@ -63,7 +63,11 @@ export async function bookAction(_: FormState, fd: FormData): Promise<FormState>
         await abandonOrder(db, order.id);
         throw e instanceof UserError ? e : new UserError("Platební brána teď není dostupná.");
       }
-      if (payMethod === "transfer") await notifyAwaitingPayment(db, order).catch(() => {});
+      if (payMethod === "transfer") {
+        await notifyAwaitingPayment(db, order).catch(() => {});
+        // the studio hears right away that a transfer waits to be checked
+        await sendTransferChecks(db).catch(() => {});
+      }
       return;
     }
     await notifyBooked(db, booking);

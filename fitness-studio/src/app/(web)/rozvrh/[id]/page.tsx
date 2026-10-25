@@ -288,7 +288,7 @@ function BookingPanel({
   const transfer = until
     ? `Zaplatíš převodem s QR kódem. Místo ti podržíme do ${formatDateTime(until)} a potvrdíme ho, jakmile platba dorazí.`
     : "Zaplatíš převodem s QR kódem. Místo ti podržíme do začátku lekce a potvrdíme ho, jakmile platba dorazí.";
-  const tooLate = !until && card ? `Lekce začíná za méně než ${view.cfg.transferCutoffHours} h – převod by nestihl dorazit. Zaplať kartou.` : undefined;
+  const tooLate = !until && card ? view.transferTooLate : undefined;
   const options = view.options.flatMap((o) =>
     o.method === "drop_in"
       ? card

@@ -715,6 +715,13 @@
       "when": 1792966925892,
       "tag": "0101_order_expiry_notified",
       "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1792968085583,
+      "tag": "0102_order_studio_notices",
+      "breakpoints": true
     }
   ]
 }

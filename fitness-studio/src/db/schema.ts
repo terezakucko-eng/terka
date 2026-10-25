@@ -370,6 +370,10 @@ export const orders = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     /** an unpaid drop-in by transfer let go of its place – the client has been told */
     expiryNotifiedAt: timestamp("expiry_notified_at", { withTimezone: true }),
+    /** the studio heard a drop-in waits for a transfer to check… */
+    studioNotifiedAt: timestamp("studio_notified_at", { withTimezone: true }),
+    /** …and was reminded shortly before its deadline */
+    studioRemindedAt: timestamp("studio_reminded_at", { withTimezone: true }),
     paidAt: timestamp("paid_at", { withTimezone: true }),
     createdAt: createdAt(),
   },
