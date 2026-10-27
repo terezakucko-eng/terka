@@ -80,13 +80,14 @@ export const EMAILS = {
   },
   booked: {
     title: "Rezervace lekce potvrzena",
-    when: "Po rezervaci lekce; u jednorázového vstupu až po zaplacení (kartou hned, převodem když ho v Platbách označíš jako zaplacený).",
+    when: "Po rezervaci lekce; u jednorázového vstupu až po zaplacení (kartou hned, převodem když ho v Platbách označíš jako zaplacený). S doplatkem přijde vždy – i klientům, kteří mají e-maily o rezervacích vypnuté.",
     subject: "Rezervace potvrzena: {{lekce}}",
-    body: "Ahoj {{osloveni}},\n\nmáš místo na lekci {{lekce}}.\n{{kamaradka}}\nDetail a případné storno: {{odkaz}}\nPřidat do kalendáře: {{kalendar}}\n\nTěšíme se!",
+    body: "Ahoj {{osloveni}},\n\nmáš místo na lekci {{lekce}}.\n{{kamaradka}}\n{{doplatek}}Detail a případné storno: {{odkaz}}\nPřidat do kalendáře: {{kalendar}}\n\nTěšíme se!",
     vars: {
       osloveni,
       lekce,
       kamaradka: { label: "řádek o kamarádce (+1), jinak prázdné", sample: "Rezervovali jsme i místo pro kamarádku: Jana." },
+      doplatek: { label: "výzva k doplatku s VS a odkazem na platbu (členství/permanentka), jinak prázdné", sample: "K lekci patří doplatek 100 Kč – na místě se neplatí. Zaplať ho prosím kartou nebo převodem (VS 1095): …\n" },
       odkaz: { label: "odkaz na lekci", sample: `${site.url}/rozvrh/…` },
       kalendar: { label: "odkaz na přidání lekce do kalendáře (.ics)", sample: `${site.url}/api/kalendar/lekce/…` },
     },
@@ -145,8 +146,13 @@ export const EMAILS = {
     title: "Místo z pořadníku",
     when: "Když se uvolní místo a klient se z pořadníku dostane na lekci.",
     subject: "Uvolnilo se místo! {{lekce}}",
-    body: "Ahoj {{osloveni}},\n\nz pořadníku ses dostal/a na lekci {{lekce}}. Rezervace je potvrzená.\nKdybys nemohl/a, zruš ji prosím: {{odkaz}}",
-    vars: { osloveni, lekce, odkaz: { label: "odkaz na lekci", sample: `${site.url}/rozvrh/…` } },
+    body: "Ahoj {{osloveni}},\n\nz pořadníku ses dostal/a na lekci {{lekce}}. Rezervace je potvrzená.\n{{doplatek}}Kdybys nemohl/a, zruš ji prosím: {{odkaz}}",
+    vars: {
+      osloveni,
+      lekce,
+      doplatek: { label: "výzva k doplatku s VS a odkazem na platbu, jinak prázdné", sample: "K lekci patří doplatek 100 Kč – na místě se neplatí. Zaplať ho prosím kartou nebo převodem (VS 1095): …\n" },
+      odkaz: { label: "odkaz na lekci", sample: `${site.url}/rozvrh/…` },
+    },
   },
   sessionCancelled: {
     title: "Lekce se nekoná",
@@ -158,6 +164,20 @@ export const EMAILS = {
       lekce,
       vraceni: { label: "co se vrací (vstup/kredit, u nezaplacené rezervace: platbu neposílej)", sample: "Vstup/kredit jsme ti vrátili na účet." },
       odkaz: { label: "odkaz na rozvrh", sample: `${site.url}/rozvrh` },
+    },
+  },
+  paymentReminder: {
+    title: "Připomínka platby",
+    when: "Když v adminu u nezaplacené rezervace (jednorázový vstup nebo doplatek) klikneš na Připomenout platbu – a jednou automaticky u nezaplacených rezervací z doby před platbou předem. Přijde i klientům, kteří mají e-maily o rezervacích vypnuté.",
+    subject: "Připomínka platby – {{lekce}}",
+    body: "Ahoj {{osloveni}},\n\nještě nám chybí {{co}} {{lekce}} ({{castka}}).{{termin}}\n\nZaplatit můžeš tady: {{odkaz}}\n\nPokud už je zaplaceno nebo je platba na cestě, děkujeme – kdyžtak nám napiš a platbu dohledáme.",
+    vars: {
+      osloveni,
+      co: { label: "co chybí (platba za lekci / doplatek k lekci)", sample: "platba za lekci" },
+      lekce,
+      castka: { label: "částka a variabilní symbol", sample: "250 Kč, VS 1088" },
+      termin: { label: "do kdy zaplatit (u převodu)", sample: " Zaplať ji prosím do úterý 7. 10. v 10:00, jinak se místo uvolní pro ostatní." },
+      odkaz: { label: "odkaz na platbu (QR a číslo účtu, u doplatku stránka lekce)", sample: `${site.url}/platba/prevod` },
     },
   },
   sessionMoved: {

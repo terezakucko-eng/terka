@@ -95,7 +95,7 @@ export default async function TransferPage({ searchParams }: PageProps<"/platba/
           )}
         </Card>
       )}
-      {!paid && !off && o.kind === "membership_fee" && cardPayments() && (
+      {!paid && !off && (o.kind === "membership_fee" || o.kind === "surcharge") && cardPayments() && (
         <ActionForm action={payOrderAction} className="mt-6">
           <input type="hidden" name="orderId" value={o.id} />
           <SubmitButton name="pay" value="card" variant="gold">Zaplatit kartou</SubmitButton>

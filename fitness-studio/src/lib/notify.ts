@@ -7,7 +7,7 @@ import type { StrikeOutcome } from "@/domain/strikes";
 import { periodLabel } from "@/domain/membership-fees";
 import { getContent } from "@/content";
 import { credits, formatPrice } from "./money";
-import { formatDate, formatDay, formatTime, pragueHour } from "./dates";
+import { formatDate, formatDateTime, formatDay, formatTime, pragueHour } from "./dates";
 import { sendEmail } from "./email-templates";
 import { greetName } from "@/lib/vocative";
 import { pushQuietly } from "./push";
@@ -18,8 +18,8 @@ import { markAnnounced, unannouncedRewards } from "@/domain/referrals";
 import { markBookingAnnounced, markExpiryAnnounced, markSignUpAnnounced, unannouncedBookings, unannouncedExpiries, unannouncedSignUps } from "@/domain/pass-cards";
 import { formatVoucherCode, markVoucherNotified, unnotifiedVouchers } from "@/domain/vouchers";
 import { displayName } from "./profile";
-import { expireStalePending, fillFromWaitlist, markLapseAnnounced, markTransferNotice, releasedHoldsWithWaitlist, transferPayBy, transfersToCheck, unannouncedLapses } from "@/domain/booking";
-import type { fulfillOrder } from "@/domain/orders";
+import { expireStalePending, fillFromWaitlist, markLapseAnnounced, markPaymentReminded, markTransferNotice, paymentDue, releasedHoldsWithWaitlist, transferPayBy, transfersToCheck, unannouncedLapses } from "@/domain/booking";
+import { createSurchargeOrder, type fulfillOrder } from "@/domain/orders";
 import { getSettings } from "./settings";
 import { unsubscribeUrl } from "./links";
 
@@ -85,16 +85,39 @@ export async function notifyStrike(db: DB, userId: string, o: StrikeOutcome) {
 }
 
 /** `byStudio`: reception added the client – they always hear about it. */
-export async function notifyBooked(db: DB, b: Pick<Booking, "userId" | "sessionId"> & Partial<Pick<Booking, "guestName">>, byStudio = false) {
+export async function notifyBooked(db: DB, b: Pick<Booking, "userId" | "sessionId"> & Partial<Pick<Booking, "guestName" | "id">>, byStudio = false) {
+  const surcharge = await surchargeToPay(db, b.id);
   const u = (await emails(db, [b.userId])).get(b.userId);
-  if (!u || (!byStudio && !u.bookingEmails)) return;
-  await sendEmail(u.email, "booked", {
-    osloveni: greetName(u.name),
-    lekce: await describe(db, b.sessionId),
-    kamaradka: b.guestName ? `Rezervovali jsme i místo pro kamarádku: ${b.guestName}.` : "",
-    odkaz: link(b.sessionId),
-    kalendar: `${site.url}/api/kalendar/lekce/${b.sessionId}`,
-  });
+  // a surcharge to pay is told even with booking e-mails off
+  if (u && (byStudio || u.bookingEmails || surcharge))
+    await sendEmail(u.email, "booked", {
+      osloveni: greetName(u.name),
+      lekce: await describe(db, b.sessionId),
+      kamaradka: b.guestName ? `Rezervovali jsme i místo pro kamarádku: ${b.guestName}.` : "",
+      doplatek: surcharge?.line ?? "",
+      odkaz: link(b.sessionId),
+      kalendar: `${site.url}/api/kalendar/lekce/${b.sessionId}`,
+    });
+  if (surcharge) await pushQuietly(db, [b.userId], { title: "💸 K lekci patří doplatek", body: surcharge.push, url: surcharge.url });
+}
+
+/**
+ * A member's / pass holder's surcharge still to pay for this booking (Reformer, brunch…):
+ * its payment is started right away, so the client gets a VS and a QR code to pay by
+ * transfer (or pays by card). Null when there's nothing to pay.
+ */
+async function surchargeToPay(db: DB, bookingId?: string) {
+  if (!bookingId) return null;
+  const [b] = await db.select().from(bookings).where(eq(bookings.id, bookingId));
+  if (!b || b.surcharge <= 0 || b.surchargePaidAt || b.status !== "confirmed") return null;
+  const o = await createSurchargeOrder(db, { userId: b.userId, bookingId: b.id }).catch(() => null);
+  const url = o ? `${site.url}/platba/prevod?order=${o.id}` : link(b.sessionId);
+  const price = formatPrice(b.surcharge);
+  return {
+    line: `K lekci patří doplatek ${price} – na místě se neplatí. Zaplať ho prosím kartou nebo převodem${o ? ` (VS ${o.number})` : ""}: ${url}\n`,
+    push: `Doplatek ${price}${o ? `, VS ${o.number}` : ""} – zaplať prosím kartou nebo převodem.`,
+    url,
+  };
 }
 
 const when = (d: Date) => `${formatDay(d)} v ${formatTime(d)}`;
@@ -261,15 +284,45 @@ export async function fillReleasedPlaces(db: DB, now = new Date()) {
   return n;
 }
 
-export async function notifyPromoted(db: DB, promoted: Pick<Booking, "userId" | "sessionId">[]) {
+export async function notifyPromoted(db: DB, promoted: (Pick<Booking, "userId" | "sessionId"> & Partial<Pick<Booking, "id">>)[]) {
   const map = await emails(db, promoted.map((p) => p.userId));
   for (const p of promoted) {
     const u = map.get(p.userId);
+    const surcharge = await surchargeToPay(db, p.id);
     if (!u) continue;
     const lekce = await describe(db, p.sessionId);
-    await sendEmail(u.email, "promoted", { osloveni: greetName(u.name), lekce, odkaz: link(p.sessionId) });
-    await pushQuietly(db, [p.userId], { title: "Uvolnilo se místo – jdeš na lekci", body: lekce, url: link(p.sessionId) });
+    await sendEmail(u.email, "promoted", { osloveni: greetName(u.name), lekce, doplatek: surcharge?.line ?? "", odkaz: link(p.sessionId) });
+    await pushQuietly(db, [p.userId], { title: "Uvolnilo se místo – jdeš na lekci", body: surcharge ? `${lekce} · ${surcharge.push}` : lekce, url: surcharge?.url ?? link(p.sessionId) });
   }
+}
+
+/** Reception reminds a client of an unpaid drop-in / surcharge: e-mail (even with booking e-mails off) and push. */
+export async function remindPayment(db: DB, bookingId: string, now = new Date()) {
+  const due = await paymentDue(db, bookingId, now);
+  const b = due.booking;
+  const lekce = await describe(db, b.sessionId);
+  const co = due.kind === "drop_in" ? "platba za lekci" : "doplatek k lekci";
+  const termin = due.past
+    ? ` Lekce už proběhla – ${due.kind === "drop_in" ? "platbu" : "doplatek"} prosím pošli, jakmile to půjde.`
+    : due.kind === "surcharge"
+      ? " Na místě se doplatek neplatí – zaplatíš ho kartou nebo převodem."
+      : due.payBy
+        ? ` Zaplať ji prosím do ${formatDateTime(due.payBy)}, jinak se místo uvolní pro ostatní.`
+        : due.releaseAt
+          ? ` Bez platby se místo ${formatDateTime(due.releaseAt)} uvolní pro ostatní.`
+          : " Místo máš rezervované – zaplať prosím ještě před lekcí.";
+  // a surcharge not started yet gets its payment now – so it has a VS and a QR code to pay by transfer
+  const order = due.kind === "surcharge" ? await createSurchargeOrder(db, { userId: b.userId, bookingId: b.id }).catch(() => null) : null;
+  const orderId = due.orderId ?? order?.id;
+  const vs = due.vs ?? order?.number;
+  // the payment page: QR, account, VS (and card for a surcharge); without one the class page
+  const odkaz = orderId ? `${site.url}/platba/prevod?order=${orderId}` : link(b.sessionId);
+  const u = (await emails(db, [b.userId])).get(b.userId);
+  if (u)
+    await sendEmail(u.email, "paymentReminder", { osloveni: greetName(u.name), co, lekce, castka: `${formatPrice(due.amount)}${vs ? `, VS ${vs}` : ""}`, termin, odkaz });
+  await pushQuietly(db, [b.userId], { title: "💸 Připomínka platby", body: `${co[0].toUpperCase()}${co.slice(1)} ${lekce} (${formatPrice(due.amount)}${vs ? `, VS ${vs}` : ""})`, url: odkaz });
+  await markPaymentReminded(db, b.id, now);
+  return { emailed: !!u };
 }
 
 /** The studio moved a class to another time – everyone booked or waiting hears the new one. Returns how many. */

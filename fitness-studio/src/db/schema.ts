@@ -481,6 +481,8 @@ export const bookings = pgTable(
     /** Doplatek člena placený na místě (haléře) */
     surcharge: integer("surcharge").notNull().default(0),
     surchargePaidAt: timestamp("surcharge_paid_at", { withTimezone: true }),
+    /** Kdy recepce naposledy připomněla nezaplacený vstup / doplatek */
+    paymentRemindedAt: timestamp("payment_reminded_at", { withTimezone: true }),
     /** Kdy odešla připomínka den předem */
     reminderSentAt: timestamp("reminder_sent_at", { withTimezone: true }),
     cancelledAt: timestamp("cancelled_at", { withTimezone: true }),

@@ -448,11 +448,172 @@ export async function dropInNotices(db: Executor, userId: string, now: Date) {
  * Drop-ins waiting for a bank transfer the studio should check and mark paid
  * (Přehled and the pushes): who, which class, how much, VS and the deadline.
  */
+/**
+ * What a client still owes for a booking, for a reminder from reception: an unpaid
+ * drop-in – waiting for its transfer (with the deadline), or an older one that got
+ * the place before paying – or a member's surcharge. Throws when nothing is owed.
+ */
+export async function paymentDue(db: Executor, bookingId: string, now = new Date()) {
+  const [row] = await db
+    .select({ b: bookings, s: classSessions })
+    .from(bookings)
+    .innerJoin(classSessions, eq(bookings.sessionId, classSessions.id))
+    .where(eq(bookings.id, bookingId));
+  if (!row) throw new UserError("Rezervace nenalezena.");
+  const { b, s } = row;
+  if (s.status === "cancelled") throw new UserError("Lekce je zrušená.");
+  if (b.status === "cancelled" || b.status === "waitlist") throw new UserError("Rezervace je zrušená nebo jen v pořadníku.");
+  const past = s.startsAt <= now;
+  const [o] = b.method === "drop_in" && b.orderId ? await db.select().from(orders).where(eq(orders.id, b.orderId)) : [];
+  if (o?.status === "pending") {
+    // waiting for the transfer: its place is let go at the deadline anyway
+    if (b.status === "pending_payment") {
+      if (past) throw new UserError("Lekce už začala.");
+      const cfg = await getSettings(db);
+      const payBy = o.provider === "transfer" && o.expiresAt ? transferPayBy(cfg, o) : null;
+      return { booking: b, session: s, kind: "drop_in" as const, orderId: o.id, vs: o.number, amount: o.amount, past, payBy: payBy && payBy > now ? payBy : null, releaseAt: o.expiresAt };
+    }
+    return { booking: b, session: s, kind: "drop_in" as const, orderId: o.id, vs: o.number, amount: o.amount, past, payBy: null, releaseAt: null };
+  }
+  const [paidOrder] =
+    b.surcharge > 0 && !b.surchargePaidAt
+      ? await db.select({ id: orders.id }).from(orders).where(and(eq(orders.bookingId, b.id), eq(orders.kind, "surcharge"), eq(orders.status, "paid")))
+      : [];
+  if (b.status !== "pending_payment" && b.surcharge > 0 && !b.surchargePaidAt && !paidOrder)
+    return { booking: b, session: s, kind: "surcharge" as const, orderId: null, vs: null, amount: b.surcharge, past, payBy: null, releaseAt: null };
+  throw new UserError("Rezervace je zaplacená.");
+}
+
+/** The VS of a surcharge the client started to pay (its order still waits) – null when not started. */
+export const surchargeVsSql = sql<number | null>`(select max(o2.number) from orders o2 where o2.booking_id = ${bookings.id} and o2.kind = 'surcharge' and o2.status = 'pending')`;
+
+/** A surcharge whose payment came (card / transfer) – paid, whatever the booking's own mark says. */
+const surchargeOrderPaidSql = sql<boolean>`exists (select 1 from orders o3 where o3.booking_id = ${bookings.id} and o3.kind = 'surcharge' and o3.status = 'paid')`;
+
+/**
+ * Brings the surcharges of upcoming unpaid bookings (membership, pass) in line with the
+ * price list. A surcharge is fixed when the client books – a class booked before its
+ * surcharge was set (or changed) would owe nothing. Lessons that a membership includes
+ * (Členství Reformer…) are left as they are, and so is anything already paid; an open
+ * payment follows the new amount. Returns the bookings that changed (or would, dryRun).
+ */
+export async function recomputeSurcharges(
+  db: DB,
+  opts: { classTypeId?: string; sessionId?: string; bookingId?: string; dryRun?: boolean } = {},
+  now = new Date(),
+) {
+  return db.transaction(async (tx) => {
+    const rows = await tx
+      .select({ b: bookings, s: classSessions, e: entitlements })
+      .from(bookings)
+      .innerJoin(classSessions, eq(bookings.sessionId, classSessions.id))
+      .leftJoin(entitlements, eq(bookings.entitlementId, entitlements.id))
+      .where(
+        and(
+          inArray(bookings.method, ["membership", "pass"]),
+          eq(bookings.status, "confirmed"),
+          isNull(bookings.surchargePaidAt),
+          sql`not ${surchargeOrderPaidSql}`,
+          gt(classSessions.startsAt, now),
+          ne(classSessions.status, "cancelled"),
+          opts.classTypeId ? eq(classSessions.classTypeId, opts.classTypeId) : undefined,
+          opts.sessionId ? eq(classSessions.id, opts.sessionId) : undefined,
+          opts.bookingId ? eq(bookings.id, opts.bookingId) : undefined,
+        ),
+      );
+    const rulesOf = new Map<string, ClassRules>();
+    const changed: Booking[] = [];
+    for (const { b, s, e } of rows) {
+      const month = dateKey(s.startsAt).slice(0, 7);
+      const included =
+        b.method === "membership" && !!e && e.includedClassTypeId === s.classTypeId && e.includedPerMonth > 0 && !(e.includedFrom && month < e.includedFrom);
+      if (included) continue;
+      if (!rulesOf.has(s.classTypeId)) rulesOf.set(s.classTypeId, await classRules(tx, s));
+      const want = surchargeFor(b.method!, rulesOf.get(s.classTypeId)!, s, b.seats);
+      if (want === b.surcharge) continue;
+      changed.push({ ...b, surcharge: want });
+      if (opts.dryRun) continue;
+      await tx.update(bookings).set({ surcharge: want }).where(eq(bookings.id, b.id));
+      await tx
+        .update(orders)
+        .set(want > 0 ? { amount: want } : { status: "cancelled" })
+        .where(and(eq(orders.kind, "surcharge"), eq(orders.bookingId, b.id), eq(orders.status, "pending")));
+    }
+    return changed;
+  });
+}
+
+/**
+ * Bookings still waiting for money: a drop-in whose payment hasn't come (incl. older
+ * ones that got the place before paying) and members' unpaid surcharges.
+ */
+export async function unpaidBookings(db: Executor) {
+  const rows = await db
+    .select({
+      bookingId: bookings.id,
+      userId: users.id,
+      userName: users.name,
+      status: bookings.status,
+      method: bookings.method,
+      surcharge: bookings.surcharge,
+      remindedAt: bookings.paymentRemindedAt,
+      createdAt: bookings.createdAt,
+      orderId: orders.id,
+      orderStatus: orders.status,
+      orderAmount: orders.amount,
+      number: orders.number,
+      surchargeVs: surchargeVsSql,
+      expiresAt: orders.expiresAt,
+      sessionId: classSessions.id,
+      startsAt: classSessions.startsAt,
+      name: sessionNameSql,
+    })
+    .from(bookings)
+    .innerJoin(users, eq(bookings.userId, users.id))
+    .innerJoin(classSessions, eq(bookings.sessionId, classSessions.id))
+    .innerJoin(classTypes, eq(classSessions.classTypeId, classTypes.id))
+    .leftJoin(orders, eq(bookings.orderId, orders.id))
+    .where(
+      and(
+        ne(classSessions.status, "cancelled"),
+        or(
+          and(eq(bookings.method, "drop_in"), eq(orders.status, "pending"), inArray(bookings.status, ["pending_payment", "confirmed", "attended", "no_show"])),
+          and(gt(bookings.surcharge, 0), isNull(bookings.surchargePaidAt), sql`not ${surchargeOrderPaidSql}`, inArray(bookings.status, ["confirmed", "attended", "no_show"])),
+        ),
+      ),
+    )
+    .orderBy(asc(classSessions.startsAt));
+  return rows.map((r) => {
+    const dropIn = r.method === "drop_in" && r.orderStatus === "pending";
+    return {
+      ...r,
+      kind: dropIn ? ("drop_in" as const) : ("surcharge" as const),
+      amount: dropIn ? r.orderAmount! : r.surcharge,
+      // the variable symbol the payment comes with (a surcharge has one once the client started paying)
+      vs: dropIn ? r.number : r.surchargeVs,
+    };
+  });
+}
+
+/** The booking a drop-in / surcharge order belongs to – for reminding from the order lists. */
+export async function bookingOfOrder(db: Executor, orderId: string) {
+  const [o] = await db.select({ kind: orders.kind, bookingId: orders.bookingId }).from(orders).where(eq(orders.id, orderId));
+  if (o?.kind === "surcharge") return o.bookingId;
+  const [b] = o?.kind === "drop_in" ? await db.select({ id: bookings.id }).from(bookings).where(eq(bookings.orderId, orderId)) : [];
+  return b?.id ?? null;
+}
+
+export async function markPaymentReminded(db: Executor, bookingId: string, now = new Date()) {
+  await db.update(bookings).set({ paymentRemindedAt: now }).where(eq(bookings.id, bookingId));
+}
+
 export async function transfersToCheck(db: Executor, now: Date) {
   const cfg = await getSettings(db);
   const rows = await db
     .select({
       orderId: orders.id,
+      bookingId: bookings.id,
+      clientRemindedAt: bookings.paymentRemindedAt,
       amount: orders.amount,
       number: orders.number,
       createdAt: orders.createdAt,
@@ -468,6 +629,7 @@ export async function transfersToCheck(db: Executor, now: Date) {
     .innerJoin(users, eq(orders.userId, users.id))
     .innerJoin(classSessions, eq(orders.sessionId, classSessions.id))
     .innerJoin(classTypes, eq(classSessions.classTypeId, classTypes.id))
+    .leftJoin(bookings, eq(bookings.orderId, orders.id))
     .where(
       and(
         eq(orders.kind, "drop_in"),
