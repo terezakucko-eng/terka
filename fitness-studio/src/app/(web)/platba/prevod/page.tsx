@@ -5,12 +5,12 @@ import { CheckCircle2 } from "lucide-react";
 import { Badge, ButtonLink, Card, Container, Eyebrow } from "@/components/ui";
 import { getContent } from "@/content";
 import { getDb } from "@/db";
-import { orders } from "@/db/schema";
+import { bookings, orders } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { bankTransfer } from "@/lib/massage-payment";
 import { credits, formatPrice } from "@/lib/money";
 import { formatDateTime } from "@/lib/dates";
-import { transferPayBy } from "@/domain/booking";
+import { surchargeCredits, transferPayBy, usableCredit } from "@/domain/booking";
 import { creditedBack } from "@/domain/orders";
 import { getSettings } from "@/lib/settings";
 import { cardPayments } from "@/lib/payments";
@@ -33,10 +33,15 @@ export default async function TransferPage({ searchParams }: PageProps<"/platba/
   // the full "within 24 hours" – unless the class is so soon that the deadline is earlier
   const fullDay = !!payBy && payBy.getTime() - o.createdAt.getTime() >= cfg.transferHoldHours * 3_600_000;
   const c = await getContent();
-  const paid = o.status === "paid";
   const off = o.status === "cancelled" || o.status === "expired";
+  // a surcharge settled another way (from credit, at the desk) – its transfer was called off, nothing more to send
+  const settled =
+    off && o.kind === "surcharge" && !!o.bookingId && !!(await db.select({ at: bookings.surchargePaidAt }).from(bookings).where(eq(bookings.id, o.bookingId)))[0]?.at;
+  const paid = o.status === "paid" || settled;
   // paid after the booking was gone – it's on the account as credit
-  const credited = paid && (o.kind === "drop_in" || o.kind === "surcharge") ? await creditedBack(db, o.id) : 0;
+  const credited = o.status === "paid" && (o.kind === "drop_in" || o.kind === "surcharge") ? await creditedBack(db, o.id) : 0;
+  // a surcharge can be paid from the client's credit instead (1 Kč = 1 kredit)
+  const fromCredit = !paid && !off && o.kind === "surcharge" && !!o.bookingId && usableCredit(user) >= surchargeCredits(o.amount);
   const t = paid || off ? null : await bankTransfer({ amount: o.amount, vs: o.number ?? "", message: o.description }, c("massages.bankAccount"));
 
   return (
@@ -44,6 +49,11 @@ export default async function TransferPage({ searchParams }: PageProps<"/platba/
       {o.kind === "drop_in" && paid && !credited && (
         <p className="mb-8 flex items-center gap-3 rounded-2xl bg-forest p-5 text-papir">
           <CheckCircle2 className="size-6 shrink-0 text-zlato" /> Platba dorazila – místo na lekci je tvoje.
+        </p>
+      )}
+      {settled && (
+        <p className="mb-8 flex items-center gap-3 rounded-2xl bg-forest p-5 text-papir">
+          <CheckCircle2 className="size-6 shrink-0 text-zlato" /> Doplatek je zaplacený – převodem už nic neposílej.
         </p>
       )}
       {credited > 0 && (
@@ -95,10 +105,11 @@ export default async function TransferPage({ searchParams }: PageProps<"/platba/
           )}
         </Card>
       )}
-      {!paid && !off && (o.kind === "membership_fee" || o.kind === "surcharge") && cardPayments() && (
-        <ActionForm action={payOrderAction} className="mt-6">
+      {!paid && !off && (fromCredit || ((o.kind === "membership_fee" || o.kind === "surcharge") && cardPayments())) && (
+        <ActionForm action={payOrderAction} className="mt-6 flex flex-wrap gap-2">
           <input type="hidden" name="orderId" value={o.id} />
-          <SubmitButton name="pay" value="card" variant="gold">Zaplatit kartou</SubmitButton>
+          {fromCredit && <SubmitButton name="pay" value="credit" variant="gold">Zaplatit z kreditu ({credits(surchargeCredits(o.amount))}, máš {user.creditBalance})</SubmitButton>}
+          {cardPayments() && <SubmitButton name="pay" value="card" variant={fromCredit ? "outline" : "gold"}>Zaplatit kartou</SubmitButton>}
         </ActionForm>
       )}
       {!paid && !off && !t && (

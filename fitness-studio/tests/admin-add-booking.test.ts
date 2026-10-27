@@ -55,4 +55,13 @@ describe("reception adds a client", () => {
     const solo = await makeSession(h.db, { capacity: 1 });
     await expect(adminAddBooking(h.db, { sessionId: solo.id, userId: u.id, pay: "admin", guestName: "Eva" }, NOW)).rejects.toThrow(/individuální/);
   });
+
+  it("only an admin adds a client without payment – an instructor charges what the client has", async () => {
+    const u = await makeUser(h.db, 5);
+    const s = await makeSession(h.db, { capacity: 6 });
+    await expect(adminAddBooking(h.db, { sessionId: s.id, userId: u.id, pay: "admin", instructor: true }, NOW)).rejects.toThrow(/jen administrátor/);
+    const b = await adminAddBooking(h.db, { sessionId: s.id, userId: u.id, pay: "auto", instructor: true }, NOW);
+    const [row] = await h.db.select().from(bookings).where(eq(bookings.id, b.id));
+    expect(row.method).toBe("credits");
+  });
 });

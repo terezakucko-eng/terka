@@ -10,16 +10,19 @@ import { Field, Input, Select } from "./ui";
 
 /**
  * Reception adds a client to a class: picks what to charge (the client's own
- * passes, free entries, membership or credit – or nothing) and can bring a friend.
+ * passes, free entries, membership or credit – or nothing, admins only) and can bring a friend.
  */
 export function AdminAddBooking({
   sessionId,
   clients,
   friendAllowed,
+  allowFree,
 }: {
   sessionId: string;
   clients: ClientOpt[];
   friendAllowed: boolean;
+  /** "without payment" – only an admin may add a client that way */
+  allowFree: boolean;
 }) {
   const [clientId, setClientId] = useState<string | null>(null);
   const [friend, setFriend] = useState("");
@@ -70,11 +73,13 @@ export function AdminAddBooking({
               </option>
             ))
           )}
-          <option value="admin">Bez strhnutí (zaplaceno na místě / host)</option>
+          {allowFree && <option value="admin">Bez strhnutí (zaplaceno na místě / host)</option>}
         </Select>
       </Field>
       {shown !== null && usable.length === 0 && (
-        <p className="text-xs text-chyba">Klient nemá čím zaplatit{withFriend ? " za dva" : ""} – můžeš ho přidat bez strhnutí.</p>
+        <p className="text-xs text-chyba">
+          Klient nemá čím zaplatit{withFriend ? " za dva" : ""} – {allowFree ? "můžeš ho přidat bez strhnutí." : "bez platby ho může přidat jen administrátor."}
+        </p>
       )}
       <SubmitButton className="w-full">Přidat na lekci</SubmitButton>
     </ActionForm>

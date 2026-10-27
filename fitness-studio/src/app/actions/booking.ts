@@ -9,10 +9,12 @@ import {
   bookSession,
   cancelBooking,
   joinWaitlist,
+  paySurchargeWithCredits,
+  surchargeCredits,
   type Method,
 } from "@/domain/booking";
 import { formatDate } from "@/lib/dates";
-import { formatPrice } from "@/lib/money";
+import { credits, formatPrice } from "@/lib/money";
 import { abandonOrder, createProductOrder, createSurchargeOrder, fulfillOrder, reservePresaleMembership } from "@/domain/orders";
 import { requireUser } from "@/lib/auth";
 import { UserError } from "@/lib/errors";
@@ -73,7 +75,9 @@ export async function bookAction(_: FormState, fd: FormData): Promise<FormState>
     }
     await notifyBooked(db, booking);
     // a member's surcharge (Reformer…): said right away – the pay buttons are just below
-    const [b] = await db.select({ surcharge: bookings.surcharge }).from(bookings).where(eq(bookings.id, booking.id));
+    const [b] = await db.select({ surcharge: bookings.surcharge, paidAt: bookings.surchargePaidAt }).from(bookings).where(eq(bookings.id, booking.id));
+    if (b && b.surcharge > 0 && b.paidAt)
+      return `Hotovo! Místo je tvoje. Doplatek ${formatPrice(b.surcharge)} jsme zaplatili z tvého kreditu (−${credits(surchargeCredits(b.surcharge))}), nic dalšího neplatíš.`;
     if (b && b.surcharge > 0)
       return `Hotovo! Místo je tvoje. K lekci patří doplatek ${formatPrice(b.surcharge)} – zaplať ho prosím níže kartou nebo převodem, na místě se neplatí. Údaje k platbě jsme poslali i e-mailem.`;
     return "Hotovo! Místo je tvoje. Potvrzení jsme poslali e-mailem.";
@@ -152,6 +156,12 @@ export async function paySurchargeAction(_: FormState, fd: FormData): Promise<Fo
   let url: string | null = null;
   const res = await attempt(async () => {
     const db = await getDb();
+    // from the client's credit – paid at once, no checkout
+    if (field.str(fd, "pay") === "credit") {
+      const r = await paySurchargeWithCredits(db, { bookingId: field.str(fd, "bookingId"), userId: user.id });
+      revalidatePath("/", "layout");
+      return `Doplatek zaplacen z kreditu (−${credits(r.credits)}). Děkujeme!`;
+    }
     const order = await createSurchargeOrder(db, { userId: user.id, bookingId: field.str(fd, "bookingId") });
     const method: PayMethod = field.str(fd, "pay") === "card" && cardPayments() ? "card" : "transfer";
     try {
@@ -173,6 +183,11 @@ export async function payOrderAction(_: FormState, fd: FormData): Promise<FormSt
     const [o] = await db.select().from(orders).where(eq(orders.id, field.str(fd, "orderId")));
     if (!o || o.userId !== user.id || (o.kind !== "membership_fee" && o.kind !== "surcharge")) throw new UserError("Platba nenalezena.");
     if (o.status !== "pending") throw new UserError("Tahle platba už je vyřízená.");
+    if (field.str(fd, "pay") === "credit" && o.kind === "surcharge" && o.bookingId) {
+      const r = await paySurchargeWithCredits(db, { bookingId: o.bookingId, userId: user.id });
+      revalidatePath("/", "layout");
+      return `Doplatek zaplacen z kreditu (−${credits(r.credits)}). Děkujeme!`;
+    }
     const method: PayMethod = field.str(fd, "pay") === "card" && cardPayments() ? "card" : "transfer";
     try {
       url = await startCheckout(db, o, user, null, method);

@@ -28,6 +28,7 @@ import {
   fillFromWaitlist,
   holdSeats,
   occupancy,
+  paySurchargeWithCredits,
   recomputeSurcharges,
   setAttendance,
   setSurchargePaid,
@@ -576,7 +577,7 @@ export async function adminBookingOptionsAction(sessionId: string, clientId: str
 }
 
 export async function adminAddBookingAction(_: FormState, fd: FormData): Promise<FormState> {
-  await requireStaff();
+  const staff = await requireStaff();
   return attempt(async () => {
     const db = await getDb();
     const u = await findClient(field.str(fd, "client"));
@@ -586,7 +587,7 @@ export async function adminAddBookingAction(_: FormState, fd: FormData): Promise
     const pay: AdminPay =
       raw === "admin" ? "admin" : raw === "auto" ? "auto" : { method: method as Method, entitlementId: entitlementId || undefined };
     const guestName = field.str(fd, "guestName");
-    const b = await adminAddBooking(db, { sessionId: field.str(fd, "sessionId"), userId: u.id, pay, guestName });
+    const b = await adminAddBooking(db, { sessionId: field.str(fd, "sessionId"), userId: u.id, pay, guestName, instructor: staff.role !== "admin" });
     await notifyBooked(db, b, true);
     return done(guestName ? `${u.name} + ${guestName} přidáni.` : `${u.name} přidán/a.`);
   });
@@ -701,6 +702,15 @@ export async function setSurchargePaidAction(_: FormState, fd: FormData): Promis
     const paid = field.bool(fd, "paid");
     await setSurchargePaid(await getDb(), { bookingId: field.str(fd, "bookingId"), paid, isAdmin: staff.role === "admin" });
     return done(paid ? "Doplatek zaplacen." : "Doplatek vrácen na nezaplacený.");
+  });
+}
+
+/** The client bought credit for surcharges: take the surcharge from it (1 Kč = 1 kredit), the open transfer is called off. */
+export async function paySurchargeFromCreditAction(_: FormState, fd: FormData): Promise<FormState> {
+  const admin = await requireAdmin();
+  return attempt(async () => {
+    const r = await paySurchargeWithCredits(await getDb(), { bookingId: field.str(fd, "bookingId"), actorId: admin.id });
+    return done(`Doplatek zaplacen z kreditu klienta (−${credits(r.credits)}).`);
   });
 }
 

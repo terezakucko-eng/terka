@@ -15,7 +15,7 @@ import {
 import { AdminTitle, Panel, Table, Td } from "@/components/admin";
 import { SessionFields } from "@/components/admin-forms";
 import { ActionForm, SubmitButton } from "@/components/forms";
-import { RemindPayment } from "@/components/remind-payment";
+import { PayFromCredit, RemindPayment } from "@/components/remind-payment";
 import { bookingStatusLabel, methodLabel } from "@/components/labels";
 import { Badge, Card, Field, Input, cx } from "@/components/ui";
 import { getDb } from "@/db";
@@ -28,7 +28,7 @@ import { Avatar } from "@/components/avatar";
 import { upcomingCelebrations } from "@/lib/profile";
 import { dateKey, mondayOf } from "@/lib/dates";
 import { AdminAddBooking } from "@/components/admin-add-booking";
-import { guestAllowed, recomputeSurcharges, surchargeVsSql } from "@/domain/booking";
+import { guestAllowed, recomputeSurcharges, surchargeVsSql, usableCredit } from "@/domain/booking";
 import { splitName } from "@/lib/client-list";
 
 export default async function AdminSessionPage({ params }: PageProps<"/admin/rozvrh/[id]">) {
@@ -88,7 +88,7 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
       <br /><span className="break-all text-xs text-les/50">{u.phone ?? u.email}</span>
     </>
   );
-  const pay = ({ b, payUntil, vs, orderStatus, surchargeVs }: Pick<Row, "b" | "payUntil" | "vs" | "orderStatus" | "surchargeVs">) => {
+  const pay = ({ b, u, payUntil, vs, orderStatus, surchargeVs }: Pick<Row, "b" | "u" | "payUntil" | "vs" | "orderStatus" | "surchargeVs">) => {
     // a drop-in still waiting for its money – also an older one that got the place before paying
     const unpaidDropIn = b.method === "drop_in" && !!b.orderId && orderStatus === "pending";
     const unpaidSurcharge = b.status !== "pending_payment" && b.surcharge > 0 && !b.surchargePaidAt;
@@ -121,6 +121,7 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
       {(unpaidDropIn || unpaidSurcharge) && b.status !== "waitlist" && (!started || b.status !== "pending_payment") && (
         <RemindPayment bookingId={b.id} remindedAt={b.paymentRemindedAt} />
       )}
+      {unpaidSurcharge && isAdmin && b.status !== "waitlist" && <PayFromCredit bookingId={b.id} amount={b.surcharge} credit={usableCredit(u)} />}
       {b.surcharge > 0 && (
         <ActionForm
           action={setSurchargePaidAction}
@@ -197,7 +198,7 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
                   <div className="min-w-0">{who(b, u)}</div>
                   {statusBadge(b)}
                 </div>
-                <div className="mt-2 text-sm text-les/70">{pay({ b, ...money })}</div>
+                <div className="mt-2 text-sm text-les/70">{pay({ b, u, ...money })}</div>
                 {attendance(b, "flex-1 py-2.5 text-sm")}
                 <div className="mt-3 border-t border-linka/40 pt-3">{cancel(b)}</div>
               </li>
@@ -208,7 +209,7 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
             {active.map(({ b, u, ...money }) => (
               <tr key={b.id}>
                 <Td>{who(b, u)}</Td>
-                <Td>{pay({ b, ...money })}</Td>
+                <Td>{pay({ b, u, ...money })}</Td>
                 <Td>{statusBadge(b)}</Td>
                 <Td>{attendance(b)}</Td>
                 <Td>{cancel(b)}</Td>
@@ -256,7 +257,7 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
           {s.status !== "cancelled" && (
             <Card>
               <h2 className="font-semibold">Přidat klienta</h2>
-              <AdminAddBooking sessionId={s.id} clients={clientOpts} friendAllowed={guestAllowed(s)} />
+              <AdminAddBooking sessionId={s.id} clients={clientOpts} friendAllowed={guestAllowed(s)} allowFree={isAdmin} />
               <p className="mt-2 text-xs text-les/50">Recepce může přidat i nad kapacitu.</p>
             </Card>
           )}
