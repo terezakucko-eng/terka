@@ -52,7 +52,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/obj
         <section className="mb-10 rounded-2xl border-2 border-zlato bg-zlato/10 p-5">
           <h2 className="font-semibold">Nezaplacené lekce ({unpaid.length})</h2>
           <p className="mt-1 text-sm text-les/60">
-            Jednorázové vstupy bez platby a nezaplacené doplatky členů. Porovnej VS s výpisem z banky – co už dorazilo, označ Zaplaceno. Rezervace z doby před platbou předem (do 25. 10.) dostanou jednu připomínku automaticky – přes den, postupně. „Zatím bez VS“ = doplatek, který klient ještě nezačal platit – převodem tedy platit nemohl. Připomínka mu VS i QR kód pošle.
+            Jednorázové vstupy bez platby a nezaplacené doplatky členů. Porovnej VS s výpisem z banky – co už dorazilo, označ Zaplaceno. Kdo výzvu k platbě nikdy nedostal – jednorázové vstupy z doby před platbou předem (do 25. 10.) a doplatky „zatím bez VS“ – dostane jednu připomínku automaticky, přes den, postupně. „Zatím bez VS“ = doplatek, ke kterému klientovi dosud nepřišla výzva (nové rezervace ji už dostávají v potvrzení) – připomínka mu VS i QR kód pošle.
           </p>
           <Table head={["VS", "Lekce", "Klient", "Co", "Částka", "Stav", ""]} className="mt-3">
             {unpaid.map((b) => (

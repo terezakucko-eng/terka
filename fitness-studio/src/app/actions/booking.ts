@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
-import { orders, users } from "@/db/schema";
+import { bookings, orders, users } from "@/db/schema";
 import {
   bookSession,
   cancelBooking,
@@ -72,6 +72,10 @@ export async function bookAction(_: FormState, fd: FormData): Promise<FormState>
       return;
     }
     await notifyBooked(db, booking);
+    // a member's surcharge (Reformer…): said right away – the pay buttons are just below
+    const [b] = await db.select({ surcharge: bookings.surcharge }).from(bookings).where(eq(bookings.id, booking.id));
+    if (b && b.surcharge > 0)
+      return `Hotovo! Místo je tvoje. K lekci patří doplatek ${formatPrice(b.surcharge)} – zaplať ho prosím níže kartou nebo převodem, na místě se neplatí. Údaje k platbě jsme poslali i e-mailem.`;
     return "Hotovo! Místo je tvoje. Potvrzení jsme poslali e-mailem.";
   });
   if (checkoutUrl) redirect(checkoutUrl);

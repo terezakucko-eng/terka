@@ -6,11 +6,11 @@ const sent: { id: string; vars: Record<string, string> }[] = [];
 vi.mock("@/lib/email-templates", () => ({ sendEmail: vi.fn(async (_to: string, id: string, vars: Record<string, string>) => void sent.push({ id, vars })) }));
 vi.mock("@/lib/push", () => ({ pushQuietly: vi.fn(async () => 0) }));
 
-const { bookings, classSessions, classTypes, orders } = await import("@/db/schema");
+const { bookings, classSessions, classTypes, orders, users } = await import("@/db/schema");
 const { bookSession, bookingOfOrder, bookingOptions, cancelBooking, unpaidBookings } = await import("@/domain/booking");
 const { createSurchargeOrder, fulfillOrder } = await import("@/domain/orders");
 const { grantEntitlement } = await import("@/domain/users");
-const { PAY_FIRST_SINCE, remindOldUnpaid, remindPayment } = await import("@/lib/notify");
+const { PAY_FIRST_SINCE, notifyBooked, remindOldUnpaid, remindPayment } = await import("@/lib/notify");
 const { NOW, hours, makeSession, makeUser, testDb } = await import("./helpers");
 
 let h: Awaited<ReturnType<typeof testDb>>;
@@ -107,5 +107,46 @@ describe("older bookings that got the place before paying", () => {
     const { booking } = await bookSession(h.db, { userId: u.id, sessionId: s.id, method: "drop_in", payLater: true }, NOW);
     expect((await unpaidBookings(h.db, { createdBefore: PAY_FIRST_SINCE })).some((b) => b.bookingId === booking.id)).toBe(false);
     expect((await unpaidBookings(h.db)).some((b) => b.bookingId === booking.id)).toBe(true);
+  });
+});
+
+describe("a member's surcharge is asked for right at booking", () => {
+  async function surchargeBooking() {
+    const s = await makeSession(h.db);
+    await h.db.update(classTypes).set({ memberSurcharge: 10000 }).where(eq(classTypes.id, s.classTypeId));
+    const u = await makeUser(h.db);
+    await grantEntitlement(h.db, { userId: u.id, kind: "membership", name: "Členství", entries: null, validityDays: 30 }, NOW);
+    const opt = (await bookingOptions(h.db, u.id, s)).find((o) => o.method === "membership")!;
+    const { booking } = await bookSession(h.db, { userId: u.id, sessionId: s.id, method: "membership", entitlementId: opt.entitlementId }, NOW);
+    return { u, booking };
+  }
+
+  it("the confirmation carries the VS and where to pay – even with booking e-mails off", async () => {
+    const { u, booking } = await surchargeBooking();
+    await h.db.update(users).set({ bookingEmails: false }).where(eq(users.id, u.id));
+    await notifyBooked(h.db, booking);
+    const [o] = await h.db.select().from(orders).where(eq(orders.bookingId, booking.id));
+    expect(o).toMatchObject({ kind: "surcharge", status: "pending", amount: 10000 });
+    expect(sent).toHaveLength(1);
+    expect(sent[0].id).toBe("booked");
+    expect(sent[0].vars.doplatek).toContain(`VS ${o.number}`);
+    expect(sent[0].vars.doplatek).toContain(`/platba/prevod?order=${o.id}`);
+  });
+
+  it("older surcharges never asked for get one reminder; those already asked for don't", async () => {
+    const never = await surchargeBooking();
+    const asked = await surchargeBooking();
+    await notifyBooked(h.db, asked.booking);
+    sent.length = 0;
+    for (const b of [never.booking, asked.booking])
+      await h.db.update(bookings).set({ createdAt: new Date("2026-10-27T10:00:00+01:00") }).where(eq(bookings.id, b.id));
+    const later = new Date("2026-10-28T09:00:00Z");
+    // the class (in 2 days of NOW) – keep it ahead of `later`
+    for (const b of [never.booking, asked.booking])
+      await h.db.update(classSessions).set({ startsAt: new Date("2026-11-02T17:00:00Z") }).where(eq(classSessions.id, b.sessionId));
+    expect(await remindOldUnpaid(h.db, later)).toBe(1);
+    expect(sent[0].vars.co).toBe("doplatek k lekci");
+    expect((await bookingOf(never.booking.id)).paymentRemindedAt).toEqual(later);
+    expect((await bookingOf(asked.booking.id)).paymentRemindedAt).toBeNull();
   });
 });

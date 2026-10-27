@@ -86,16 +86,39 @@ export async function notifyStrike(db: DB, userId: string, o: StrikeOutcome) {
 }
 
 /** `byStudio`: reception added the client – they always hear about it. */
-export async function notifyBooked(db: DB, b: Pick<Booking, "userId" | "sessionId"> & Partial<Pick<Booking, "guestName">>, byStudio = false) {
+export async function notifyBooked(db: DB, b: Pick<Booking, "userId" | "sessionId"> & Partial<Pick<Booking, "guestName" | "id">>, byStudio = false) {
+  const surcharge = await surchargeToPay(db, b.id);
   const u = (await emails(db, [b.userId])).get(b.userId);
-  if (!u || (!byStudio && !u.bookingEmails)) return;
-  await sendEmail(u.email, "booked", {
-    osloveni: greetName(u.name),
-    lekce: await describe(db, b.sessionId),
-    kamaradka: b.guestName ? `Rezervovali jsme i místo pro kamarádku: ${b.guestName}.` : "",
-    odkaz: link(b.sessionId),
-    kalendar: `${site.url}/api/kalendar/lekce/${b.sessionId}`,
-  });
+  // a surcharge to pay is told even with booking e-mails off
+  if (u && (byStudio || u.bookingEmails || surcharge))
+    await sendEmail(u.email, "booked", {
+      osloveni: greetName(u.name),
+      lekce: await describe(db, b.sessionId),
+      kamaradka: b.guestName ? `Rezervovali jsme i místo pro kamarádku: ${b.guestName}.` : "",
+      doplatek: surcharge?.line ?? "",
+      odkaz: link(b.sessionId),
+      kalendar: `${site.url}/api/kalendar/lekce/${b.sessionId}`,
+    });
+  if (surcharge) await pushQuietly(db, [b.userId], { title: "💸 K lekci patří doplatek", body: surcharge.push, url: surcharge.url });
+}
+
+/**
+ * A member's / pass holder's surcharge still to pay for this booking (Reformer, brunch…):
+ * its payment is started right away, so the client gets a VS and a QR code to pay by
+ * transfer (or pays by card). Null when there's nothing to pay.
+ */
+async function surchargeToPay(db: DB, bookingId?: string) {
+  if (!bookingId) return null;
+  const [b] = await db.select().from(bookings).where(eq(bookings.id, bookingId));
+  if (!b || b.surcharge <= 0 || b.surchargePaidAt || b.status !== "confirmed") return null;
+  const o = await createSurchargeOrder(db, { userId: b.userId, bookingId: b.id }).catch(() => null);
+  const url = o ? `${site.url}/platba/prevod?order=${o.id}` : link(b.sessionId);
+  const price = formatPrice(b.surcharge);
+  return {
+    line: `K lekci patří doplatek ${price} – na místě se neplatí. Zaplať ho prosím kartou nebo převodem${o ? ` (VS ${o.number})` : ""}: ${url}\n`,
+    push: `Doplatek ${price}${o ? `, VS ${o.number}` : ""} – zaplať prosím kartou nebo převodem.`,
+    url,
+  };
 }
 
 const when = (d: Date) => `${formatDay(d)} v ${formatTime(d)}`;
@@ -262,14 +285,15 @@ export async function fillReleasedPlaces(db: DB, now = new Date()) {
   return n;
 }
 
-export async function notifyPromoted(db: DB, promoted: Pick<Booking, "userId" | "sessionId">[]) {
+export async function notifyPromoted(db: DB, promoted: (Pick<Booking, "userId" | "sessionId"> & Partial<Pick<Booking, "id">>)[]) {
   const map = await emails(db, promoted.map((p) => p.userId));
   for (const p of promoted) {
     const u = map.get(p.userId);
+    const surcharge = await surchargeToPay(db, p.id);
     if (!u) continue;
     const lekce = await describe(db, p.sessionId);
-    await sendEmail(u.email, "promoted", { osloveni: greetName(u.name), lekce, odkaz: link(p.sessionId) });
-    await pushQuietly(db, [p.userId], { title: "Uvolnilo se místo – jdeš na lekci", body: lekce, url: link(p.sessionId) });
+    await sendEmail(u.email, "promoted", { osloveni: greetName(u.name), lekce, doplatek: surcharge?.line ?? "", odkaz: link(p.sessionId) });
+    await pushQuietly(db, [p.userId], { title: "Uvolnilo se místo – jdeš na lekci", body: surcharge ? `${lekce} · ${surcharge.push}` : lekce, url: surcharge?.url ?? link(p.sessionId) });
   }
 }
 
@@ -306,15 +330,25 @@ export async function remindPayment(db: DB, bookingId: string, now = new Date())
 export const PAY_FIRST_SINCE = new Date("2026-10-26T00:00:00+01:00");
 
 /**
- * Tidying up after that change: older bookings still unpaid (the place given before
- * paying, or a member's surcharge) get one reminder each – in the daytime, a few per
- * run; the studio hears how many went out. Run by the 15-minute cron.
+ * Tidying up: bookings that never got a request to pay get one reminder each – drop-ins
+ * from before the pay-first change (the place given before paying) and members' surcharges
+ * that never had a payment started (no VS: the booking e-mail didn't ask for it until now).
+ * In the daytime, a few per run; the studio hears how many went out. Run by the 15-minute cron.
  */
 export async function remindOldUnpaid(db: DB, now = new Date(), batch = 15) {
   const hour = pragueHour(now);
   if (hour < 9 || hour >= 20) return 0;
-  // a no-show isn't chased – reception decides on those in Platby
-  const list = (await unpaidBookings(db, { createdBefore: PAY_FIRST_SINCE, notReminded: true })).filter((b) => b.status !== "no_show").slice(0, batch);
+  const settled = new Date(now.getTime() - 15 * 60_000);
+  const list = (await unpaidBookings(db, { notReminded: true }))
+    .filter(
+      (b) =>
+        // a no-show isn't chased – reception decides on those in Platby
+        b.status !== "no_show" &&
+        (b.kind === "drop_in"
+          ? b.status !== "pending_payment" && b.createdAt < PAY_FIRST_SINCE
+          : b.vs === null && b.createdAt < settled),
+    )
+    .slice(0, batch);
   let sent = 0;
   for (const b of list) {
     try {
@@ -328,7 +362,7 @@ export async function remindOldUnpaid(db: DB, now = new Date(), batch = 15) {
   if (sent)
     await pushQuietly(db, await adminIds(db), {
       title: `📨 Připomínka platby odešla ${sent}×`,
-      body: "Nezaplacené lekce z doby před změnou – přehled v Platby a objednávky.",
+      body: "Nezaplacené lekce a doplatky, ke kterým klient výzvu k platbě nedostal – přehled v Platby a objednávky.",
       url: `${site.url}/admin/objednavky`,
     });
   return sent;
