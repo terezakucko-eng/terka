@@ -449,6 +449,10 @@ export const entitlements = pgTable(
     /** Jen na lekce začínající před touto hodinou (12 = ranní); null = kdykoli */
     beforeHour: integer("before_hour"),
     note: text("note"),
+    /** Vstup zdarma s nevyužitými vstupy: klientovi přišla připomínka týden předem… */
+    expiryWarnedAt: timestamp("expiry_warned_at", { withTimezone: true }),
+    /** …a poslední den před vypršením */
+    lastCallAt: timestamp("last_call_at", { withTimezone: true }),
     createdAt: createdAt(),
   },
   (t) => [index("entitlements_user_idx").on(t.userId)],

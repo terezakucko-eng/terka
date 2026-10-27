@@ -3,7 +3,9 @@ import { getDb } from "@/db";
 import { campaigns, users } from "@/db/schema";
 import { site } from "@/config/site";
 import { creditsExpiringSoon, expireCredits } from "@/domain/wallet";
+import { freeEntriesExpiring, markFreeEntryReminded } from "@/domain/free-entries";
 import { dateKey, formatDate } from "@/lib/dates";
+import { pluralCs } from "@/lib/money";
 import { getSettings } from "@/lib/settings";
 import { createMonthlyFees, currentPeriod, shiftPeriod } from "@/domain/membership-fees";
 import { notifyFee } from "@/lib/notify";
@@ -21,7 +23,8 @@ export const maxDuration = 60;
 /**
  * Housekeeping (Vercel Cron, see vercel.json):
  * releases spots held by unpaid drop-ins, zeroes expired credit (and
- * warns a week ahead), sends membership fee notices, makes the weekly backup
+ * warns a week ahead), reminds unused free entries before they run out,
+ * sends membership fee notices, makes the weekly backup
  * and finishes campaigns whose sending page was closed.
  */
 export async function GET(req: Request) {
@@ -41,6 +44,21 @@ export async function GET(req: Request) {
     });
     await db.update(users).set({ creditExpiryWarnedAt: new Date() }).where(eq(users.id, u.id));
     creditWarnings++;
+  }
+
+  // unused free entries (welcome lesson, birthday gift…): a week ahead and the day before they run out
+  let freeEntryReminders = 0;
+  for (const stage of ["lastCall", "week"] as const) {
+    for (const e of await freeEntriesExpiring(db, stage)) {
+      await sendEmail(e.email, stage === "week" ? "freeEntryWeek" : "freeEntryLastCall", {
+        osloveni: greetName(e.userName),
+        nazev: e.left > 1 ? `${e.name} (${pluralCs(e.left, "vstup", "vstupy", "vstupů")})` : e.name,
+        platnost: formatDate(e.validUntil),
+        odkaz: `${site.url}/rozvrh`,
+      });
+      await markFreeEntryReminded(db, e.id, stage);
+      freeEntryReminders++;
+    }
   }
 
   // Membership fees for next month go out from the notice day on (idempotent, so a missed run catches up).
@@ -66,5 +84,5 @@ export async function GET(req: Request) {
       sent += r.sent;
     }
   }
-  return Response.json({ expired, sent, creditsExpired, creditWarnings, feeNotices, backup });
+  return Response.json({ expired, sent, creditsExpired, creditWarnings, freeEntryReminders, feeNotices, backup });
 }
