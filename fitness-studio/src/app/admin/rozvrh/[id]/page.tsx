@@ -16,6 +16,7 @@ import { AdminTitle, Panel, Table, Td } from "@/components/admin";
 import { SessionFields } from "@/components/admin-forms";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { PayFromCredit, RemindPayment } from "@/components/remind-payment";
+import { ChangePayment } from "@/components/change-payment";
 import { bookingStatusLabel, methodLabel } from "@/components/labels";
 import { Badge, Card, Field, Input, cx } from "@/components/ui";
 import { getDb } from "@/db";
@@ -138,6 +139,7 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
           </button>
         </ActionForm>
       )}
+      {!b.isHold && (isAdmin || !started) && <ChangePayment bookingId={b.id} allowFree={isAdmin} />}
     </>
     );
   };

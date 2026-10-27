@@ -1662,6 +1662,42 @@ export async function cancelSession(db: DB, sessionId: string, now = new Date())
 /** How reception pays for a booking it makes: pick automatically, don't charge, or a chosen option. */
 export type AdminPay = "auto" | "admin" | { method: Method; entitlementId?: string };
 
+/**
+ * Reception changes how a booking is paid – e.g. a drop-in waiting for a transfer → the membership
+ * the client has just bought. What it cost comes back as on an in-time cancel (entry, credit, an
+ * unpaid transfer called off), then the new payment is charged – in one go, so the place stays the
+ * client's and the waitlist doesn't move. When the new one can't be charged, nothing changes.
+ */
+export async function changeBookingPayment(
+  db: DB,
+  input: { bookingId: string; pay: Exclude<AdminPay, "auto">; isAdmin: boolean },
+  now = new Date(),
+) {
+  return db.transaction(async (tx) => {
+    const [b] = await tx.select().from(bookings).where(eq(bookings.id, input.bookingId)).for("update");
+    if (!b || b.isHold) throw new UserError("Rezervace nenalezena.");
+    if (!["pending_payment", "confirmed", "attended", "no_show"].includes(b.status)) throw new UserError("Platbu jde změnit jen u platné rezervace.");
+    const s = await lockSession(tx, b.sessionId);
+    if (!input.isAdmin && s.startsAt <= now) throw new UserError("Po začátku lekce může platbu změnit jen administrátor/ka.");
+    const pay = input.pay;
+    if (pay === "admin" && !input.isAdmin) throw new UserError("Bez platby může klienta přidat jen administrátor.");
+    const method: Method = pay === "admin" ? "admin" : pay.method;
+    const entitlementId = pay === "admin" ? undefined : pay.entitlementId;
+    if (method === "drop_in") throw new UserError("Vyber, z čeho se má strhnout.");
+    if (method === b.method && (entitlementId ?? null) === b.entitlementId) throw new UserError("Rezervace už je placená takhle.");
+
+    await refund(tx, b, s, "Změna platby");
+    // the old payment is gone: no order (a transfer paid anyway comes back as credit), nothing charged
+    const cleared = { status: b.status === "pending_payment" ? ("confirmed" as const) : b.status, orderId: null, entitlementId: null, creditsCharged: 0, entriesCharged: 0, surcharge: 0, surchargePaidAt: null };
+    await tx.update(bookings).set(cleared).where(eq(bookings.id, b.id));
+    await charge(tx, { ...b, ...cleared }, s, method, entitlementId, now);
+    // a lesson included in the membership freed up – the next surcharged one that month gets it
+    await passIncludedOn(tx, b, s);
+    const [after] = await tx.select().from(bookings).where(eq(bookings.id, b.id));
+    return { before: b, booking: after };
+  });
+}
+
 export async function adminAddBooking(
   db: DB,
   input: {
