@@ -3,20 +3,12 @@ import { getContent } from "@/content";
 import { getDb } from "@/db";
 import { seatsLeft } from "@/domain/booking";
 import { dateKey } from "@/lib/dates";
-import { pluralCs } from "@/lib/money";
 import { weekdayIndex } from "@/lib/popup-seen";
 import { nbsp } from "@/lib/typography";
+import { isYes, sessionOf, spotsHint } from "@/lib/spots";
 import { ContentImage } from "./content-image";
 import { PopupShell } from "./popup-shell";
 
-const SESSION_URL = /^(?:https?:\/\/[^/]+)?\/rozvrh\/([0-9a-f-]{36})\/?(?:[?#].*)?$/i;
-
-function spotsHint(n: number) {
-  if (n === 0) return "Obsazeno – zapiš se mezi náhradníky";
-  if (n === 1) return "Poslední volné místo!";
-  if (n <= 5) return `Poslední ${pluralCs(n, "volné místo", "volná místa", "volných míst")}!`;
-  return `Volno: ${pluralCs(n, "místo", "místa", "míst")}`;
-}
 
 /** One-off announcement window, edited in Obsah webu → Vyskakovací okno. */
 export async function Popup() {
@@ -32,8 +24,7 @@ export async function Popup() {
     { label: c("popup.buttonLabel2").trim(), url: c("popup.buttonUrl2").trim() },
   ].filter((b) => b.label && b.url);
   // a button leading to a class can show how many spots are left – live, so "last spots" is always true
-  const showSpots = /^(ano|a|yes|1)$/i.test(c("popup.showSpots").trim());
-  const sessionOf = (href: string) => href.match(SESSION_URL)?.[1];
+  const showSpots = isYes(c("popup.showSpots"));
   const ids = showSpots ? buttons.map((b) => sessionOf(b.url)).filter((id): id is string => !!id) : [];
   const none = new Map<string, number>();
   // the pop-up is on every page – a hiccup here must not take the site down
@@ -43,22 +34,37 @@ export async function Popup() {
     "data-popup-close": true,
     ...(/^https?:\/\//.test(href) ? { target: "_blank", rel: "noreferrer" } : {}),
   });
+  const first = left.get(sessionOf(buttons[0]?.url ?? "") ?? "");
   // a finished poster says it all – without text only the (clickable) picture and the buttons show
   const imageOnly = !!image && !text;
   const buttonRow = buttons.length > 0 && (
     <div className={imageOnly ? "flex flex-col gap-2 p-4 sm:flex-row sm:p-5" : "mt-6 flex flex-col gap-2 sm:flex-row"}>
-      {buttons.map((b) => {
+      {buttons.map((b, i) => {
         const n = left.get(sessionOf(b.url) ?? "");
         return (
           <div key={b.url + b.label} className="flex flex-1 flex-col items-stretch gap-1.5">
             <Link
               {...linkProps(b.url)}
-              className="bg-gold inline-flex items-center justify-center rounded-full px-6 py-3 text-center text-xs font-semibold uppercase tracking-[0.15em] text-les"
+              className={
+                i === 0
+                  ? "bg-gold inline-flex animate-[cta_2.4s_ease-in-out_infinite] items-center justify-center gap-2 rounded-full px-7 py-4 text-center text-sm font-bold uppercase tracking-[0.14em] text-les shadow-[0_10px_28px_-10px_rgba(103,67,41,.7)]"
+                  : "bg-gold inline-flex items-center justify-center rounded-full px-6 py-3 text-center text-xs font-semibold uppercase tracking-[0.15em] text-les"
+              }
             >
               {b.label}
+              {i === 0 && <span aria-hidden>→</span>}
             </Link>
             {n !== undefined && (
-              <span className={`text-center text-xs font-semibold ${n <= 5 ? "text-chyba" : "text-les/60"}`}>{spotsHint(n)}</span>
+              <span
+                className={
+                  n <= 4
+                    ? "self-center rounded-full bg-chyba/10 px-3 py-1 text-center text-sm font-bold text-chyba"
+                    : "text-center text-xs font-semibold text-les/60"
+                }
+              >
+                {n > 0 && n <= 4 ? "🔥 " : ""}
+                {spotsHint(n)}
+              </span>
             )}
           </div>
         );
@@ -89,6 +95,10 @@ export async function Popup() {
         </>
       ) : (
         <div className="p-7 sm:p-8">
+          {/* the live count up top, so it's the first thing read */}
+          {first !== undefined && first <= 4 && (
+            <p className="mb-3 inline-flex rounded-full bg-chyba/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-chyba">🔥 {spotsHint(first)}</p>
+          )}
           <h2 className="pr-8 text-2xl font-semibold tracking-tight">{title}</h2>
           {text && <p className="mt-3 whitespace-pre-line text-les/75">{nbsp(text)}</p>}
           {buttonRow}

@@ -255,3 +255,19 @@ input[type="datetime-local"] {
     text-align: left;
   }
 }
+
+/* a gentle nudge on the main call to action (akční lišta, pop-up) */
+@keyframes cta {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.045);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [class*="animate-[cta"] {
+    animation: none;
+  }
+}
