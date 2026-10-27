@@ -1,5 +1,6 @@
 import { aiImageAction } from "@/app/admin/image-actions";
 import { AdminTitle } from "@/components/admin";
+import { AiMark } from "@/components/content-image";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { Badge, Card } from "@/components/ui";
 import { getContent } from "@/content";
@@ -39,8 +40,8 @@ export default async function AiImagesPage() {
     <>
       <AdminTitle title="Obrázky (AI)" />
       <p className="-mt-4 mb-6 max-w-3xl text-sm text-les/60">
-        Obrázky vytvořené nebo upravené pomocí AI je potřeba označit (evropský AI Act). Označeným se na webu ukáže v rohu drobný
-        nápis „Ilustrační foto · AI“. Skutečné fotky ze studia neoznačuj. Nový obrázek nahraný jinde v adminu se tu objeví sám.
+        Obrázky vytvořené nebo upravené pomocí AI je potřeba označit (evropský AI Act). Označeným se na webu ukáže v rohu vodoznak –
+        chobotnice s „AI“ v hlavě. Skutečné fotky ze studia neoznačuj. Nový obrázek nahraný jinde v adminu se tu objeví sám.
       </p>
       {unmarked.length > 1 && (
         <ActionForm action={aiImageAction} className="mb-6" confirm={`Označit všech ${unmarked.length} neoznačených obrázků jako AI?`}>
@@ -57,6 +58,7 @@ export default async function AiImagesPage() {
               <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-linka/30">
                 {/* eslint-disable-next-line @next/next/no-img-element -- admin thumbnail, any URL */}
                 <img src={i.src} alt="" className="size-full object-cover" />
+                {isAi && <AiMark className="w-14 sm:w-14" />}
               </div>
               <ActionForm action={aiImageAction} className="mt-3">
                 <input type="hidden" name="src" value={i.src} />

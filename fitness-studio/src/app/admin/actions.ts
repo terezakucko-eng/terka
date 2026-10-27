@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { getDb, type DB } from "@/db";
 import {
   announcements,
+  bookings,
   classSessions,
   classTypes,
   entitlements,
@@ -20,6 +21,7 @@ import {
 import {
   adminAddBooking,
   bookingOptions,
+  changeBookingPayment,
   type AdminPay,
   type Method,
   cancelBooking,
@@ -39,6 +41,7 @@ import { setDraftHidden } from "@/domain/lesson-drafts";
 import { deleteClient, deleteClients, deleteOrder, deleteOrders, purgeSession, seriesFrom } from "@/domain/cleanup";
 import { cancelOrder, fulfillOrder, paidLateOk, sellAtReception } from "@/domain/orders";
 import { deductSolarium } from "@/domain/solarium";
+import { methodLabel } from "@/components/labels";
 import { deleteStudentProof } from "@/domain/students";
 import { createClientByStudio, grantEntitlement, normalizeEmail } from "@/domain/users";
 import { sendEmail } from "@/lib/email-templates";
@@ -590,6 +593,39 @@ export async function adminAddBookingAction(_: FormState, fd: FormData): Promise
     const b = await adminAddBooking(db, { sessionId: field.str(fd, "sessionId"), userId: u.id, pay, guestName, instructor: staff.role !== "admin" });
     await notifyBooked(db, b, true);
     return done(guestName ? `${u.name} + ${guestName} přidáni.` : `${u.name} přidán/a.`);
+  });
+}
+
+/** Změnit platbu: the ways this booked client could pay instead (not the current one, not a drop-in). */
+export async function changePaymentOptionsAction(bookingId: string) {
+  await requireStaff();
+  if (!/^[0-9a-f-]{36}$/i.test(bookingId)) return [];
+  const db = await getDb();
+  const [row] = await db
+    .select({ b: bookings, s: classSessions })
+    .from(bookings)
+    .innerJoin(classSessions, eq(bookings.sessionId, classSessions.id))
+    .where(eq(bookings.id, bookingId));
+  if (!row) return [];
+  const { b, s } = row;
+  return (await bookingOptions(db, b.userId, s, b.seats)).filter(
+    (o) => o.method !== "drop_in" && !(o.method === b.method && (o.entitlementId ?? null) === b.entitlementId),
+  );
+}
+
+/** Reception changes how a booking is paid: what it cost comes back, the new payment is taken – the place stays. */
+export async function changePaymentAction(_: FormState, fd: FormData): Promise<FormState> {
+  const staff = await requireStaff();
+  return attempt(async () => {
+    const raw = field.str(fd, "pay");
+    if (!raw) throw new UserError("Vyber, jak má klient zaplatit.");
+    const [method, entitlementId] = raw.split(":");
+    const pay = raw === "admin" ? ("admin" as const) : { method: method as Method, entitlementId: entitlementId || undefined };
+    const r = await changeBookingPayment(await getDb(), { bookingId: field.str(fd, "bookingId"), pay, isAdmin: staff.role === "admin" });
+    const label = (m: string | null) => (m === "admin" ? "Bez platby" : m ? methodLabel[m] : "—");
+    const b = r.booking;
+    const surcharge = b.surcharge > 0 ? (b.surchargePaidAt ? ` · doplatek ${formatPrice(b.surcharge)} zaplacen z kreditu` : ` · doplatek ${formatPrice(b.surcharge)} čeká na zaplacení`) : "";
+    return done(`Platba změněna: ${label(r.before.method)} → ${label(b.method)}${surcharge}.`);
   });
 }
 

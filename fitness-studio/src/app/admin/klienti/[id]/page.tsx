@@ -30,6 +30,7 @@ import { Avatar } from "@/components/avatar";
 import { MONTHS, formatDayMonth } from "@/lib/profile";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { PayFromCredit, RemindPayment } from "@/components/remind-payment";
+import { ChangePayment } from "@/components/change-payment";
 import { usableCredit } from "@/domain/booking";
 import { bookingStatusLabel, creditReasonLabel, entitlementKindLabel, methodLabel, orderStatusLabel } from "@/components/labels";
 import { Badge, Button, Card, Field, Input, Select, Textarea } from "@/components/ui";
@@ -204,6 +205,7 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
                   {s.status !== "cancelled" && b.status === "confirmed" && b.surcharge > 0 && !b.surchargePaidAt && (
                     <PayFromCredit bookingId={b.id} amount={b.surcharge} credit={usableCredit(u)} />
                   )}
+                  {s.status !== "cancelled" && !b.isHold && (b.status === "confirmed" || b.status === "pending_payment") && <ChangePayment bookingId={b.id} allowFree />}
                 </Td>
                 <Td>
                   {s.status === "cancelled" ? <Badge tone="red">Lekce zrušena</Badge> : <Badge tone={b.status === "waitlist" ? "gold" : "green"}>{bookingStatusLabel[b.status]}</Badge>}
