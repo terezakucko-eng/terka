@@ -14,6 +14,7 @@ import { listSessions } from "@/lib/queries";
 import { pendingStudentProofs } from "@/domain/students";
 import { transfersToCheck } from "@/domain/booking";
 import { markOrderPaidAction } from "@/app/admin/actions";
+import { getSettings } from "@/lib/settings";
 import { ActionForm, SubmitButton } from "@/components/forms";
 
 export default async function AdminDashboard() {
@@ -39,6 +40,7 @@ export default async function AdminDashboard() {
   const proofs = user.role === "admin" ? await pendingStudentProofs(db) : [];
   // drop-ins by transfer: the place is confirmed only once the payment is marked here (or in Platby)
   const transfers = user.role === "admin" ? await transfersToCheck(db, now) : [];
+  const cfg = await getSettings(db);
 
   const capacity = weekSessions.reduce((a, s) => a + s.capacity, 0);
   const booked = weekSessions.reduce((a, s) => a + s.occupied, 0);
@@ -50,7 +52,7 @@ export default async function AdminDashboard() {
         <section className="mb-8 rounded-2xl border-2 border-zlato bg-zlato/10 p-5">
           <h2 className="font-semibold">💸 Převody ke kontrole ({transfers.length})</h2>
           <p className="mt-1 text-sm text-les/60">
-            Zkontroluj účet. Po kliknutí na Zaplaceno se místo potvrdí a klientce přijde potvrzení. Klientka má zaplatit do 24 h – když platba nedorazí do 48 h, systém ji z lekce sám odhlásí.
+            Zkontroluj účet. Po kliknutí na Zaplaceno se místo potvrdí a klientce přijde potvrzení. Klientka má zaplatit do {cfg.transferHoldHours} h – když platba nedorazí do {cfg.transferGraceHours} h, systém ji z lekce sám odhlásí.
           </p>
           <ul className="mt-3 divide-y divide-linka/50">
             {transfers.map((t) => (
@@ -89,9 +91,7 @@ export default async function AdminDashboard() {
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {todaySessions.length === 0 && <Empty>Dnes žádné lekce.</Empty>}
           {todaySessions.map((s) => (
-            <Link key={s.id} href={`/admin/rozvrh/${s.id}`} className="block">
-              <SessionCardAdmin s={s} />
-            </Link>
+            <SessionCard key={s.id} s={s} href={`/admin/rozvrh/${s.id}`} />
           ))}
         </div>
       </section>
@@ -142,13 +142,5 @@ export default async function AdminDashboard() {
         </section>
       )}
     </>
-  );
-}
-
-function SessionCardAdmin({ s }: { s: Awaited<ReturnType<typeof listSessions>>[number] }) {
-  return (
-    <div className="pointer-events-none">
-      <SessionCard s={s} />
-    </div>
   );
 }

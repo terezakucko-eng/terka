@@ -1,4 +1,4 @@
-import { and, count, eq, gt, or, sql } from "drizzle-orm";
+import { and, count, eq, gt, lte, or, sql } from "drizzle-orm";
 import type { DB, Executor } from "@/db";
 import { bookings, classSessions, users } from "@/db/schema";
 import { UserError } from "@/lib/errors";
@@ -67,4 +67,32 @@ export async function assertNotPaused(db: Executor, userId: string, now = new Da
 /** Admin forgives: ends the pause and starts counting strikes from now. */
 export async function clearPause(db: Executor, userId: string, now = new Date()) {
   await db.update(users).set({ bookingPausedUntil: null, strikesResetAt: now }).where(eq(users.id, userId));
+}
+
+/**
+ * A no-show taken back (ticked by mistake): when the pause it led to wouldn't
+ * have happened without it, the pause ends. Returns whether it was lifted.
+ */
+export async function reconsiderPause(db: Executor, userId: string, now = new Date()) {
+  const cfg = await getSettings(db);
+  const [u] = await db.select({ until: users.bookingPausedUntil, pausedAt: users.strikesResetAt }).from(users).where(eq(users.id, userId));
+  if (!cfg.memberStrikeLimit || !u?.until || u.until <= now || !u.pausedAt) return false;
+  const from = new Date(u.pausedAt.getTime() - cfg.memberStrikeWindowDays * DAY);
+  const when = sql`coalesce(${bookings.cancelledAt}, ${classSessions.startsAt})`;
+  const [r] = await db
+    .select({ n: count() })
+    .from(bookings)
+    .innerJoin(classSessions, eq(bookings.sessionId, classSessions.id))
+    .where(
+      and(
+        eq(bookings.userId, userId),
+        eq(bookings.method, "membership"),
+        or(and(eq(bookings.status, "cancelled"), eq(bookings.lateCancel, true)), eq(bookings.status, "no_show")),
+        gt(when, from),
+        lte(when, u.pausedAt),
+      ),
+    );
+  if (r.n >= cfg.memberStrikeLimit) return false;
+  await db.update(users).set({ bookingPausedUntil: null }).where(eq(users.id, userId));
+  return true;
 }

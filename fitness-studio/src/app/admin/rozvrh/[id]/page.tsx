@@ -66,6 +66,7 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
     .filter(({ b }) => b.status === "cancelled")
     .sort((x, y) => (y.b.cancelledAt?.getTime() ?? 0) - (x.b.cancelledAt?.getTime() ?? 0));
   const isAdmin = staff.role === "admin";
+  const started = s.startsAt <= new Date();
   const myHold = active.find(({ b, u }) => b.isHold && u.id === staff.id)?.b;
   type Row = (typeof list)[number];
   const who = (b: Row["b"], u: Row["u"]) => (
@@ -134,7 +135,12 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
   const cancel = (b: Row["b"]) => (
     <ActionForm action={adminCancelBookingAction} confirm="Odhlásit klienta z lekce?" className="flex items-center gap-3">
       <input type="hidden" name="bookingId" value={b.id} />
-      <label className="flex items-center gap-1 text-xs"><input type="checkbox" name="refund" defaultChecked /> vrátit vstup</label>
+      {/* after the class (came / didn't come) nothing goes back unless an admin ticks it on purpose */}
+      {(isAdmin || !started) && (
+        <label className="flex items-center gap-1 text-xs">
+          <input type="checkbox" name="refund" defaultChecked={!started && b.status === "confirmed" && !b.isHold} /> {b.method === "drop_in" ? "vrátit jako kredit" : "vrátit vstup"}
+        </label>
+      )}
       <button className="text-xs font-semibold text-chyba underline">Odhlásit</button>
     </ActionForm>
   );

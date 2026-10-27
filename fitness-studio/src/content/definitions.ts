@@ -3,7 +3,7 @@
  * Admin → Obsah webu edits these; a key missing in the DB shows the default.
  *
  * Placeholders usable in any text: {{storno_hodin}}, {{storno_vyjimky}} (lessons with their own window, e.g. " (u lekcí Reformer fusion a Fitness brunch 24 h)"), {{prohresky}}, {{prohresky_dni}}, {{pauza_dni}}, {{rezervace_dni}}, {{rezervace_dni_clenove}}, {{rezervace_okno}}, {{rezervace_okno_clenove}},
- * {{platba_minut}}, {{vstupy_zdarma}}, {{platnost_zdarma}}, {{firma}}, {{ico}},
+ * {{platba_minut}}, {{prevod_hodin}}, {{prevod_pred_lekci}}, {{ranni_lekce_do}}, {{ranni_prevod_do}}, {{vstupy_zdarma}}, {{platnost_zdarma}}, {{firma}}, {{ico}},
  * {{adresa}}, {{email}}, {{telefon}}.
  */
 
@@ -417,18 +417,18 @@ Napiš sem, jak studio vzniklo a co pro tebe pohyb znamená.
 ## 2. Rezervace lekcí
 - Rezervace probíhá online přes klientský účet: {{rezervace_okno}} (s aktivním členstvím {{rezervace_okno_clenove}}).
 - Lekci lze zaplatit kreditem, permanentkou, členstvím, vstupem zdarma nebo jednorázově převodem.
-- Neuhrazená rezervace jednorázového vstupu se uvolní po {{platba_minut}} minutách.
+- Jednorázový vstup je rezervovaný až po zaplacení. Neuhrazená platba kartou se uvolní po {{platba_minut}} minutách. Převodem je nutné zaplatit do {{prevod_hodin}} hodin; když platba nedorazí včas, rezervace se zruší (nejpozději {{prevod_pred_lekci}} hodiny před lekcí). Ranní lekci (začátek před {{ranni_lekce_do}}:00) lze od {{ranni_prevod_do}}:00 předchozího dne zaplatit jen kartou.
 - U některých lekcí (např. Reformer) držíme místo pro klienty bez členství; členové ho mohou obsadit až v čase uvedeném u lekce (zpravidla týden předem).
 
 ## 3. Storno podmínky
 - Rezervaci lze bezplatně zrušit nejpozději {{storno_hodin}} hodin před začátkem lekce{{storno_vyjimky}}; vstup nebo kredit se vrací na účet.
 - Při pozdějším zrušení nebo neúčasti vstup propadá.
 - Členství nemá omezený počet lekcí, proto se pozdní zrušení a neúčast u členů počítají jako prohřešek. Po {{prohresky}} prohřešcích za {{prohresky_dni}} dní se přihlašování na nové lekce pozastaví na {{pauza_dni}} dní; na již rezervované lekce lze chodit. Před pauzou přijde upozornění e-mailem.
-- Zruší-li lekci studio, vstup se vrací vždy. Jednorázový vstup zaplacený kartou je vrácen ve formě kreditu.
+- Zruší-li lekci studio, vstup se vrací vždy. Zaplacený jednorázový vstup i doplatek se vrací ve formě kreditu ve výši zaplacené částky. Platba, která dorazí až po zrušení rezervace, se také připíše jako kredit.
 - Při uvolnění místa je automaticky přihlášen klient z pořadníku a je mu stržen vstup.
 
 ## 4. Kredit, permanentky a členství
-- Kredit je nepřenosný a nepropadá. 1 kredit odpovídá ceně uvedené u lekce.
+- Kredit je nepřenosný. Má-li omezenou platnost (uvedenou v ceníku u dobití), každé dobití ji prodlouží pro celý zůstatek a kredit vrácený za zrušenou lekci platí nejméně 60 dní. 1 kredit odpovídá ceně uvedené u lekce.
 - Permanentky platí po dobu uvedenou v ceníku od data nákupu.
 - Členství se závazkem se uzavírá na dobu určitou 12 měsíců a platí se 12 měsíčními platbami ve výši uvedené v ceníku. Cena členství platí za podmínky, že klient uhradí všech 12 plateb.
 - Závazek na 12 měsíců klient potvrzuje při nákupu členství (zaškrtnutím souhlasu na webu nebo podpisem na recepci).

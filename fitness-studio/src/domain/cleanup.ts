@@ -19,9 +19,29 @@ import { changeCredits } from "./wallet";
  * is deducted (never below zero) – and it no longer counts in revenue.
  * Money itself is not moved; card refunds go through Stripe.
  */
-async function removeOrder(tx: Executor, orderId: string, actorId: string) {
+async function removeOrder(tx: Executor, orderId: string, actorId: string, now = new Date()) {
   const [o] = await tx.select().from(orders).where(eq(orders.id, orderId)).for("update");
-  if (!o) return false;
+  if (!o) return null;
+
+  // without its payment a drop-in place isn't the client's – an upcoming one is let go (past ones stay as history)
+  const freed = o.kind === "drop_in"
+    ? await tx
+        .update(bookings)
+        .set({ status: "cancelled", cancelledAt: now })
+        .where(
+          and(
+            eq(bookings.orderId, o.id),
+            inArray(bookings.status, ["pending_payment", "confirmed"]),
+            inArray(bookings.sessionId, tx.select({ id: classSessions.id }).from(classSessions).where(gte(classSessions.startsAt, now))),
+          ),
+        )
+        .returning({ sessionId: bookings.sessionId })
+    : [];
+  // a surcharge / massage paid by this order is unpaid again
+  if (o.kind === "surcharge" && o.bookingId && o.status === "paid")
+    await tx.update(bookings).set({ surchargePaidAt: null }).where(eq(bookings.id, o.bookingId));
+  if (o.kind === "massage" && o.massageBookingId && o.status === "paid")
+    await tx.update(massageBookings).set({ paidAt: null }).where(eq(massageBookings.id, o.massageBookingId));
 
   await tx.delete(entitlements).where(eq(entitlements.orderId, o.id));
 
@@ -45,12 +65,15 @@ async function removeOrder(tx: Executor, orderId: string, actorId: string) {
   // a gift voucher from a deleted order is no longer valid (unless already redeemed)
   await tx.update(vouchers).set({ cancelledAt: new Date() }).where(and(eq(vouchers.orderId, o.id), isNull(vouchers.redeemedAt)));
   await tx.delete(orders).where(eq(orders.id, o.id));
-  return true;
+  return { freedSessionIds: freed.map((b) => b.sessionId) };
 }
 
-export async function deleteOrder(db: DB, orderId: string, actorId: string) {
+/** Returns the classes where a place came free (for the waitlist). */
+export async function deleteOrder(db: DB, orderId: string, actorId: string, now = new Date()) {
   return db.transaction(async (tx) => {
-    if (!(await removeOrder(tx, orderId, actorId))) throw new UserError("Objednávka nenalezena.");
+    const r = await removeOrder(tx, orderId, actorId, now);
+    if (!r) throw new UserError("Objednávka nenalezena.");
+    return r.freedSessionIds;
   });
 }
 

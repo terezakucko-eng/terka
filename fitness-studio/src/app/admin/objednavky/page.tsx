@@ -7,6 +7,7 @@ import { orderStatusLabel } from "@/components/labels";
 import { Badge } from "@/components/ui";
 import { getDb } from "@/db";
 import { orders, users } from "@/db/schema";
+import { paidLateOk } from "@/domain/orders";
 import { requireAdmin } from "@/lib/auth";
 import { formatDateTime } from "@/lib/dates";
 import { formatPrice } from "@/lib/money";
@@ -40,9 +41,18 @@ export default async function OrdersPage() {
                   <button className="text-xs font-semibold text-zeme underline">Zaplaceno</button>
                 </ActionForm>
               )}
+              {paidLateOk(o) && (
+                <ActionForm
+                  action={markOrderPaidAction}
+                  confirm={`Platba č. ${o.number} (${formatPrice(o.amount)}) přesto dorazila? Když je na lekci ještě místo a rezervace jen propadla, místo se vrátí – jinak se částka připíše jako kredit.`}
+                >
+                  <input type="hidden" name="orderId" value={o.id} />
+                  <button className="text-xs font-semibold text-zeme underline">Platba přesto dorazila</button>
+                </ActionForm>
+              )}
               <ActionForm
                 action={deleteOrderAction}
-                confirm={`Smazat objednávku č. ${o.number}? Klientovi se odebere, co z ní dostal (permanentka, kredit…), a zmizí z tržeb.${o.provider === "stripe" ? " Peníze na kartu se tím NEVRACÍ – to se dělá ve Stripe." : ""}`}
+                confirm={`Smazat objednávku č. ${o.number}? Klientovi se odebere, co z ní dostal (permanentka, kredit, místo na lekci…), a zmizí z tržeb.${o.provider === "stripe" ? " Peníze na kartu se tím NEVRACÍ – to se dělá ve Stripe." : ""}`}
               >
                 <input type="hidden" name="orderId" value={o.id} />
                 <button className="text-xs font-semibold text-chyba underline">Smazat</button>

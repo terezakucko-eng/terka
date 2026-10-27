@@ -11,7 +11,7 @@ import {
   markSubscriptionCancelled,
   renewMembership,
 } from "@/domain/orders";
-import { notifyPaid } from "@/lib/notify";
+import { notifyOrphanRenewal, notifyPaid } from "@/lib/notify";
 
 /**
  * The card gateway. Bank transfer with a QR code is always available (the
@@ -184,7 +184,7 @@ export async function handleStripeWebhook(db: DB, rawBody: string, signature: st
       if (!sub || inv.billing_reason !== "subscription_cycle") break;
       const period = inv.lines.data[0]?.period;
       if (!period) break;
-      await renewMembership(db, {
+      const renewed = await renewMembership(db, {
         provider: "stripe",
         subscriptionId: sub,
         invoiceId: inv.id!,
@@ -192,6 +192,7 @@ export async function handleStripeWebhook(db: DB, rawBody: string, signature: st
         periodStart: new Date(period.start * 1000),
         periodEnd: new Date(period.end * 1000),
       });
+      if (renewed && !renewed.ent) await notifyOrphanRenewal(db, renewed.order).catch(() => {});
       break;
     }
     case "customer.subscription.updated":

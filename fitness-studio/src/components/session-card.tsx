@@ -38,16 +38,19 @@ export function SessionCard({
   s,
   compact,
   opens,
+  href,
 }: {
   s: ScheduleItem;
   compact?: boolean;
   opens?: { at: Date; membersNow: boolean } | null;
+  /** where the card leads (admin: the class detail) – default the public class page */
+  href?: string;
 }) {
   const spots = spotsLabel(s);
   const past = s.startsAt <= new Date() || s.status === "cancelled";
   return (
     <Link
-      href={`/rozvrh/${s.id}`}
+      href={href ?? `/rozvrh/${s.id}`}
       className={cx(
         "group block rounded-2xl border border-linka/60 bg-white/60 p-4 transition hover:-translate-y-0.5 hover:border-zlato hover:shadow-[0_12px_30px_-18px_rgba(21,26,19,.5)]",
         past && "opacity-55",

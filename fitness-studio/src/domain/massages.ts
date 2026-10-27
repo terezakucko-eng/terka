@@ -5,6 +5,7 @@ import {
   massageAvailability,
   massageBookings,
   massageServices,
+  orders,
   products,
   type Entitlement,
   type MassageBooking,
@@ -281,6 +282,11 @@ export async function cancelMassage(
         .update(entitlements)
         .set({ entriesUsed: sql`greatest(${entitlements.entriesUsed} - 1, 0)` })
         .where(eq(entitlements.id, out.entitlementId));
+    // an unpaid massage is called off – its payment is no longer due
+    await tx
+      .update(orders)
+      .set({ status: "cancelled" })
+      .where(and(eq(orders.kind, "massage"), eq(orders.massageBookingId, out.id), eq(orders.status, "pending")));
     return out;
   });
 }
