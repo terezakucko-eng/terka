@@ -97,6 +97,13 @@ export const SECTIONS = {
         optional: true,
         hint: "Datum ve tvaru 2026-10-31. Po něm lišta sama zmizí. Prázdné = pořád.",
       },
+      showSpots: {
+        label: "Ukázat volná místa v liště",
+        type: "text",
+        default: "",
+        optional: true,
+        hint: "Napiš „ano“ a když odkaz vede na lekci (/rozvrh/…), lišta ukáže, kolik zbývá míst („Zbývají už jen 3 místa!“) – počítá se pokaždé znovu. Prázdné = neukazovat.",
+      },
     },
   },
   popup: {

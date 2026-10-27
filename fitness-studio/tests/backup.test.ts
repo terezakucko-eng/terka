@@ -21,8 +21,10 @@ describe("backups", () => {
     const content = readBackup(file!.data);
     expect(content.app).toBe("octopush");
     expect(content.tables.users.some((r) => r.id === u.id)).toBe(true);
-    expect(content.tables.media[0]).toMatchObject({ filename: "a.webp" });
-    expect(content.tables.media[0]).not.toHaveProperty("data");
+    // migrations may add pictures of their own (pop-up posters) – look for ours
+    const pic = content.tables.media.find((r) => r.filename === "a.webp");
+    expect(pic).toBeDefined();
+    expect(content.tables.media.every((r) => !("data" in r))).toBe(true);
     expect(content.tables).not.toHaveProperty("backups");
     expect(file!.counts.users).toBeGreaterThan(0);
 
