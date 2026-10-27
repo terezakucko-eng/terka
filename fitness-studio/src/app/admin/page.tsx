@@ -8,11 +8,11 @@ import { getDb } from "@/db";
 import { entitlements, orders, users } from "@/db/schema";
 import { requireStaff } from "@/lib/auth";
 import { addDays, dateKey, formatDateTime, formatDay, formatTime, pragueLocalToDate } from "@/lib/dates";
-import { formatPrice } from "@/lib/money";
+import { formatPrice, pluralCs } from "@/lib/money";
 import { formatDayMonth, upcomingCelebrations } from "@/lib/profile";
 import { listSessions } from "@/lib/queries";
 import { pendingStudentProofs } from "@/domain/students";
-import { transfersToCheck } from "@/domain/booking";
+import { transfersToCheck, unpaidBookings } from "@/domain/booking";
 import { markOrderPaidAction } from "@/app/admin/actions";
 import { RemindPayment } from "@/components/remind-payment";
 import { getSettings } from "@/lib/settings";
@@ -41,6 +41,9 @@ export default async function AdminDashboard() {
   const proofs = user.role === "admin" ? await pendingStudentProofs(db) : [];
   // drop-ins by transfer: the place is confirmed only once the payment is marked here (or in Platby)
   const transfers = user.role === "admin" ? await transfersToCheck(db, now) : [];
+  // every unpaid lesson (surcharges too) – the full list with reminders is in Platby
+  const unpaid = user.role === "admin" ? await unpaidBookings(db) : [];
+  const unpaidSurcharges = unpaid.filter((b) => b.kind === "surcharge").length;
   const cfg = await getSettings(db);
 
   const capacity = weekSessions.reduce((a, s) => a + s.capacity, 0);
@@ -73,6 +76,20 @@ export default async function AdminDashboard() {
             ))}
           </ul>
         </section>
+      )}
+      {unpaid.length > 0 && (
+        <Link href="/admin/objednavky" className="mb-8 flex items-center justify-between gap-4 rounded-2xl border border-zlato/60 bg-zlato/10 p-5 transition hover:bg-zlato/20">
+          <span>
+            <strong>💳 Nezaplacené lekce ({unpaid.length})</strong>
+            <span className="block text-sm text-les/70">
+              {formatPrice(unpaid.reduce((a, b) => a + b.amount, 0))}
+              {unpaidSurcharges > 0 && ` · ${pluralCs(unpaidSurcharges, "doplatek", "doplatky", "doplatků")}`}
+              {unpaid.length - unpaidSurcharges > 0 && ` · ${pluralCs(unpaid.length - unpaidSurcharges, "vstup", "vstupy", "vstupů")}`}
+              {" "}– zkontroluj VS, připomeň nebo strhni z kreditu
+            </span>
+          </span>
+          <span className="eyebrow shrink-0 text-zeme">Platby →</span>
+        </Link>
       )}
       {user.role === "admin" && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

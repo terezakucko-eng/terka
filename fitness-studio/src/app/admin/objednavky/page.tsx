@@ -5,7 +5,7 @@ import { AdminTitle, Table, Td } from "@/components/admin";
 import { ActionForm } from "@/components/forms";
 import { PayFromCredit, RemindPayment } from "@/components/remind-payment";
 import { bookingStatusLabel, orderStatusLabel } from "@/components/labels";
-import { Badge, Input } from "@/components/ui";
+import { Badge, Input, cx } from "@/components/ui";
 import { getDb } from "@/db";
 import { bookings, classSessions, classTypes, orders, users } from "@/db/schema";
 import { unpaidBookings, usableCredit } from "@/domain/booking";
@@ -39,6 +39,20 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/obj
     unpaidBookings(db),
   ]);
   const now = new Date();
+  // a transfer that arrived: a drop-in's order is paid, a surcharge is marked paid
+  const paidButton = (b: (typeof unpaid)[number]) =>
+    b.kind === "drop_in" ? (
+      <ActionForm action={markOrderPaidAction} confirm={`Platba ${formatPrice(b.amount)}${b.number ? ` (VS ${b.number})` : ""} dorazila?`}>
+        <input type="hidden" name="orderId" value={b.orderId!} />
+        <button className="text-xs font-semibold text-zeme underline">Zaplaceno</button>
+      </ActionForm>
+    ) : (
+      <ActionForm action={setSurchargePaidAction} confirm={`Doplatek ${formatPrice(b.amount)} je zaplacený?`}>
+        <input type="hidden" name="bookingId" value={b.bookingId} />
+        <input type="hidden" name="paid" value="true" />
+        <button className="text-xs font-semibold text-zeme underline">Zaplaceno</button>
+      </ActionForm>
+    );
 
   return (
     <>
@@ -49,12 +63,43 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/obj
       </AdminTitle>
 
       {!term && unpaid.length > 0 && (
-        <section className="mb-10 rounded-2xl border-2 border-zlato bg-zlato/10 p-5">
+        <section id="nezaplacene" className="mb-10 rounded-2xl border-2 border-zlato bg-zlato/10 p-4 sm:p-5">
           <h2 className="font-semibold">Nezaplacené lekce ({unpaid.length})</h2>
-          <p className="mt-1 text-sm text-les/60">
-            Jednorázové vstupy bez platby a nezaplacené doplatky členů. Porovnej VS s výpisem z banky – co už dorazilo, označ Zaplaceno; komu chceš připomenout, klikni na Připomenout platbu. „Zatím bez VS“ = doplatek, ke kterému klientovi nepřišla výzva (nové rezervace ji už dostávají v potvrzení) – připomínka mu VS i QR kód pošle.
-          </p>
-          <Table head={["VS", "Lekce", "Klient", "Co", "Částka", "Stav", ""]} className="mt-3">
+          <p className="mt-1 text-sm text-les/60">Porovnej VS s výpisem z banky – co dorazilo, označ Zaplaceno. Ostatním pošli připomínku.</p>
+          <details className="mt-1 text-xs text-les/60">
+            <summary className="cursor-pointer underline">Co tu je a co znamená „bez VS“?</summary>
+            Jednorázové vstupy bez platby a nezaplacené doplatky členů. „Bez VS“ = doplatek, ke kterému klientovi nepřišla výzva (nové rezervace ji už dostávají v potvrzení) – připomínka mu VS i QR kód pošle. Má-li klient dost kreditu, doplatek strhneš tlačítkem Z kreditu.
+          </details>
+          {/* phones: one short card per lesson, the buttons in a row */}
+          <ul className="mt-3 space-y-2 md:hidden">
+            {unpaid.map((b) => (
+              <li key={b.bookingId} className={cx("rounded-xl border border-linka/60 p-3", b.startsAt < now ? "bg-white/40" : "bg-white/80")}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <Link href={`/admin/klienti/${b.userId}`} className="font-semibold">{b.userName}</Link>
+                    <Link href={`/admin/rozvrh/${b.sessionId}`} className="block text-sm text-les/70">
+                      {b.name} · {formatDay(b.startsAt)} {formatTime(b.startsAt)}{b.startsAt < now && " · proběhla"}
+                    </Link>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="font-semibold tabular-nums">{formatPrice(b.amount)}</p>
+                    <p className="text-xs tabular-nums text-les/60">{b.vs ? `VS ${b.vs}` : "bez VS"}</p>
+                  </div>
+                </div>
+                <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-les/60">
+                  <Badge tone="gold">{b.kind === "drop_in" ? "Vstup" : "Doplatek"}</Badge>
+                  {b.status !== "confirmed" && <Badge tone={b.status === "no_show" ? "red" : "neutral"}>{bookingStatusLabel[b.status]}</Badge>}
+                  {b.status === "pending_payment" && b.expiresAt && <span>bez platby odhlásím {formatDateTime(b.expiresAt)}</span>}
+                </p>
+                <div className="mt-2 flex flex-wrap items-start gap-x-5 gap-y-1 border-t border-linka/50 pt-2">
+                  {paidButton(b)}
+                  <RemindPayment bookingId={b.bookingId} remindedAt={b.remindedAt} />
+                  {b.kind === "surcharge" && <PayFromCredit bookingId={b.bookingId} amount={b.amount} credit={usableCredit(b)} />}
+                </div>
+              </li>
+            ))}
+          </ul>
+          <Table head={["VS", "Lekce", "Klient", "Co", "Částka", "Stav", ""]} className="mt-3 max-md:hidden">
             {unpaid.map((b) => (
               <tr key={b.bookingId} className={b.startsAt < now ? "bg-white/40" : ""}>
                 <Td className="whitespace-nowrap font-semibold tabular-nums">{b.vs ?? <span className="text-xs font-normal text-les/50">zatím bez VS</span>}</Td>
@@ -70,18 +115,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/obj
                   {b.status === "pending_payment" && b.expiresAt && <span className="block text-xs text-les/60">bez platby odhlásím {formatDateTime(b.expiresAt)}</span>}
                 </Td>
                 <Td className="space-y-1 text-right">
-                  {b.kind === "drop_in" ? (
-                    <ActionForm action={markOrderPaidAction} confirm={`Platba ${formatPrice(b.amount)}${b.number ? ` (VS ${b.number})` : ""} dorazila?`}>
-                      <input type="hidden" name="orderId" value={b.orderId!} />
-                      <button className="text-xs font-semibold text-zeme underline">Zaplaceno</button>
-                    </ActionForm>
-                  ) : (
-                    <ActionForm action={setSurchargePaidAction} confirm={`Doplatek ${formatPrice(b.amount)} je zaplacený?`}>
-                      <input type="hidden" name="bookingId" value={b.bookingId} />
-                      <input type="hidden" name="paid" value="true" />
-                      <button className="text-xs font-semibold text-zeme underline">Zaplaceno</button>
-                    </ActionForm>
-                  )}
+                  {paidButton(b)}
                   <RemindPayment bookingId={b.bookingId} remindedAt={b.remindedAt} />
                   {b.kind === "surcharge" && <PayFromCredit bookingId={b.bookingId} amount={b.amount} credit={usableCredit(b)} />}
                 </Td>
