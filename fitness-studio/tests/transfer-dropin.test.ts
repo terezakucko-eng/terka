@@ -27,13 +27,21 @@ const bookingOf = async (id: string) => (await h.db.select().from(bookings).wher
 const asTransfer = (orderId: string) => h.db.update(orders).set({ provider: "transfer" }).where(eq(orders.id, orderId));
 
 describe("drop-in paid by bank transfer: the place is the client's only once paid", () => {
-  it("holds the place for 24 h from booking, waiting for the payment", async () => {
-    const s = await makeSession(h.db);
+  it("asks to pay within 24 h, lets the place go only after 48 h", async () => {
+    const s = await makeSession(h.db, { startsAt: hours(96) });
     const u = await makeUser(h.db);
+    const before = (await sessionForUser(h.db, s.id, u.id, NOW))!;
+    expect(before.transferPayBy).toEqual(hours(24));
+    expect(before.transferPayFull).toBe(true);
     const { booking, order } = await bookSession(h.db, { userId: u.id, sessionId: s.id, method: "drop_in", payLater: true }, NOW);
     expect(booking.status).toBe("pending_payment");
-    expect(order!.expiresAt).toEqual(hours(24));
-    expect((await sessionForUser(h.db, s.id, u.id, NOW))!.unpaid?.expiresAt).toEqual(hours(24));
+    expect(order!.expiresAt).toEqual(hours(48));
+    await asTransfer(order!.id);
+    expect((await sessionForUser(h.db, s.id, u.id, NOW))!.unpaid).toMatchObject({ payBy: hours(24), overdue: false });
+    // past the 24 h the client is told to pay at once – the place is still held
+    expect((await sessionForUser(h.db, s.id, u.id, hours(30)))!.unpaid).toMatchObject({ overdue: true });
+    await h.db.transaction((tx) => expireStalePending(tx, hours(30)));
+    expect((await bookingOf(booking.id)).status).toBe("pending_payment");
   });
 
   it("close to the class it waits at the latest until 3 h before it", async () => {
@@ -46,7 +54,7 @@ describe("drop-in paid by bank transfer: the place is the client's only once pai
   it("at the last minute it's card only – unless there are no card payments at all", async () => {
     const s = await makeSession(h.db, { startsAt: hours(2) });
     const u = await makeUser(h.db);
-    expect((await sessionForUser(h.db, s.id, u.id, NOW))!.transferUntil).toBeNull();
+    expect((await sessionForUser(h.db, s.id, u.id, NOW))!.transferPayBy).toBeNull();
     await expect(
       bookSession(h.db, { userId: u.id, sessionId: s.id, method: "drop_in", payLater: true }, NOW),
     ).rejects.toThrow(/kartou/);
@@ -114,13 +122,13 @@ describe("drop-in paid by bank transfer: the place is the client's only once pai
   });
 
   it("unpaid by the deadline the place is let go – the client is told once, on the page too", async () => {
-    const s = await makeSession(h.db);
+    const s = await makeSession(h.db, { startsAt: hours(96) });
     const u = await makeUser(h.db);
     const { booking, order } = await bookSession(h.db, { userId: u.id, sessionId: s.id, method: "drop_in", payLater: true }, NOW);
     await asTransfer(order!.id);
     expect((await dropInNotices(h.db, u.id, NOW)).waiting.map((w) => w.orderId)).toEqual([order!.id]);
 
-    const later = hours(25);
+    const later = hours(49);
     await h.db.transaction((tx) => expireStalePending(tx, later));
     expect((await bookingOf(booking.id)).status).toBe("cancelled");
     expect((await unannouncedLapses(h.db, later)).map((l) => l.orderId)).toContain(order!.id);
@@ -130,7 +138,8 @@ describe("drop-in paid by bank transfer: the place is the client's only once pai
     const notices = await dropInNotices(h.db, u.id, later);
     expect(notices.waiting).toHaveLength(0);
     expect(notices.lapsed.map((l) => l.orderId)).toEqual([order!.id]);
-    expect((await sessionForUser(h.db, s.id, u.id, later))!.lapsedAt).toEqual(hours(24));
+    expect((await sessionForUser(h.db, s.id, u.id, later))!.lapsedPayBy).toEqual(hours(24));
+    expect(notices.lapsed[0].payBy).toEqual(hours(24));
 
     // booked again → the old lapse is no longer shown
     await bookSession(h.db, { userId: u.id, sessionId: s.id, method: "drop_in", payLater: true }, later);
@@ -138,21 +147,21 @@ describe("drop-in paid by bank transfer: the place is the client's only once pai
   });
 
   it("paid after the deadline: the place comes back when there's room, else credit", async () => {
-    const s = await makeSession(h.db, { capacity: 1 });
+    const s = await makeSession(h.db, { capacity: 1, startsAt: hours(96) });
     const a = await makeUser(h.db);
     const { booking, order } = await bookSession(h.db, { userId: a.id, sessionId: s.id, method: "drop_in", payLater: true }, NOW);
-    await h.db.transaction((tx) => expireStalePending(tx, hours(25)));
-    const r = await fulfillOrder(h.db, { orderId: order!.id, provider: "transfer" }, hours(26));
+    await h.db.transaction((tx) => expireStalePending(tx, hours(49)));
+    const r = await fulfillOrder(h.db, { orderId: order!.id, provider: "transfer" }, hours(50));
     expect(r.dropIn?.outcome).toBe("confirmed");
     expect((await bookingOf(booking.id)).status).toBe("confirmed");
 
-    const s2 = await makeSession(h.db, { capacity: 1 });
+    const s2 = await makeSession(h.db, { capacity: 1, startsAt: hours(96) });
     const b = await makeUser(h.db);
     const c = await makeUser(h.db, 100);
     const late = await bookSession(h.db, { userId: b.id, sessionId: s2.id, method: "drop_in", payLater: true }, NOW);
-    await h.db.transaction((tx) => expireStalePending(tx, hours(25)));
-    await bookSession(h.db, { userId: c.id, sessionId: s2.id, method: "credits" }, hours(25));
-    const r2 = await fulfillOrder(h.db, { orderId: late.order!.id, provider: "transfer" }, hours(26));
+    await h.db.transaction((tx) => expireStalePending(tx, hours(49)));
+    await bookSession(h.db, { userId: c.id, sessionId: s2.id, method: "credits" }, hours(49));
+    const r2 = await fulfillOrder(h.db, { orderId: late.order!.id, provider: "transfer" }, hours(50));
     expect(r2.dropIn?.outcome).toBe("credited");
     expect(await balance(b.id)).toBe(s2.creditCost);
   });

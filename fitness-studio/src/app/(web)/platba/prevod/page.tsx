@@ -10,6 +10,8 @@ import { requireUser } from "@/lib/auth";
 import { bankTransfer } from "@/lib/massage-payment";
 import { formatPrice } from "@/lib/money";
 import { formatDateTime } from "@/lib/dates";
+import { transferPayBy } from "@/domain/booking";
+import { getSettings } from "@/lib/settings";
 import { cardPayments } from "@/lib/payments";
 import { payOrderAction } from "@/app/actions/booking";
 import { ActionForm, SubmitButton } from "@/components/forms";
@@ -21,8 +23,14 @@ export default async function TransferPage({ searchParams }: PageProps<"/platba/
   const { order: id } = await searchParams;
   if (typeof id !== "string" || !/^[0-9a-f-]{36}$/.test(id)) notFound();
   const user = await requireUser(`/platba/prevod?order=${id}`);
-  const [o] = await (await getDb()).select().from(orders).where(eq(orders.id, id));
+  const db = await getDb();
+  const [o] = await db.select().from(orders).where(eq(orders.id, id));
   if (!o || o.userId !== user.id) notFound();
+  // a drop-in by transfer: what the client is told is "pay within 24 hours"
+  const cfg = await getSettings(db);
+  const payBy = o.kind === "drop_in" && o.expiresAt ? transferPayBy(cfg, o) : null;
+  // the full "within 24 hours" – unless the class is so soon that the deadline is earlier
+  const fullDay = !!payBy && payBy.getTime() - o.createdAt.getTime() >= cfg.transferHoldHours * 3_600_000;
   const c = await getContent();
   const paid = o.status === "paid";
   const off = o.status === "cancelled" || o.status === "expired";
@@ -38,10 +46,10 @@ export default async function TransferPage({ searchParams }: PageProps<"/platba/
       {/* the place is the client's only once paid (older bookings had it right away – no deadline) */}
       {o.kind === "drop_in" && !paid && !off && (
         <p className="mb-8 rounded-2xl border-2 border-zlato bg-zlato/15 p-5">
-          {o.expiresAt ? (
+          {payBy ? (
             <>
-              <strong>Místo ti držíme do {formatDateTime(o.expiresAt)}.</strong> Potvrdíme ho, jakmile platba dorazí – uvidíš to v Můj účet.
-              Když do té doby nedorazí, místo se uvolní pro ostatní.
+              <strong>Platbu je nutné uhradit {fullDay ? `do ${cfg.transferHoldHours} hodin – do ${formatDateTime(payBy)}` : `do ${formatDateTime(payBy)}`}.</strong> Místo na lekci potvrdíme, jakmile platba dorazí – uvidíš to v Můj účet.
+              Když nedorazí, z lekce tě odhlásíme a místo uvolníme pro ostatní.
             </>
           ) : (
             <>Místo na lekci máš rezervované. Zaplať prosím co nejdřív.</>
@@ -50,7 +58,7 @@ export default async function TransferPage({ searchParams }: PageProps<"/platba/
       )}
       {o.kind === "drop_in" && o.status === "expired" && (
         <p className="mb-8 rounded-2xl border border-chyba/40 bg-chyba/10 p-5">
-          <strong>Rezervace propadla</strong> – platba nedorazila{o.expiresAt ? ` do ${formatDateTime(o.expiresAt)}` : ""}, tak jsme místo uvolnili.
+          <strong>Rezervace propadla</strong> – platba nedorazila včas, tak jsme tě z lekce odhlásili.
           Pokud je platba na cestě, nevadí – když bude volno, místo ti vrátíme, jinak ji dostaneš jako kredit.
         </p>
       )}

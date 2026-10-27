@@ -18,7 +18,7 @@ import { markAnnounced, unannouncedRewards } from "@/domain/referrals";
 import { markBookingAnnounced, markExpiryAnnounced, markSignUpAnnounced, unannouncedBookings, unannouncedExpiries, unannouncedSignUps } from "@/domain/pass-cards";
 import { formatVoucherCode, markVoucherNotified, unnotifiedVouchers } from "@/domain/vouchers";
 import { displayName } from "./profile";
-import { expireStalePending, fillFromWaitlist, markLapseAnnounced, markTransferNotice, releasedHoldsWithWaitlist, transfersToCheck, unannouncedLapses } from "@/domain/booking";
+import { expireStalePending, fillFromWaitlist, markLapseAnnounced, markTransferNotice, releasedHoldsWithWaitlist, transferPayBy, transfersToCheck, unannouncedLapses } from "@/domain/booking";
 import type { fulfillOrder } from "@/domain/orders";
 import { getSettings } from "./settings";
 import { unsubscribeUrl } from "./links";
@@ -98,13 +98,14 @@ export async function notifyBooked(db: DB, b: Pick<Booking, "userId" | "sessionI
 const when = (d: Date) => `${formatDay(d)} v ${formatTime(d)}`;
 
 /** A drop-in by transfer waits for its payment: bank details, QR link and until when the place is held. */
-export async function notifyAwaitingPayment(db: DB, o: Pick<Order, "id" | "userId" | "sessionId" | "amount" | "number" | "expiresAt">) {
+export async function notifyAwaitingPayment(db: DB, o: Pick<Order, "id" | "userId" | "sessionId" | "amount" | "number" | "createdAt" | "expiresAt">) {
   const u = (await emails(db, [o.userId])).get(o.userId);
   if (!u || !o.sessionId || !o.expiresAt) return;
+  const payBy = transferPayBy(await getSettings(db), o);
   await sendEmail(u.email, "bookedPending", {
     osloveni: greetName(u.name),
     lekce: await describe(db, o.sessionId),
-    platnost: when(o.expiresAt),
+    platnost: when(payBy),
     castka: formatPrice(o.amount),
     ucet: (await getContent()).raw("massages.bankAccount").trim() || "viz odkaz",
     vs: String(o.number ?? ""),
@@ -141,17 +142,19 @@ export async function notifyPaid(db: DB, r: Awaited<ReturnType<typeof fulfillOrd
 export async function releaseUnpaidDropIns(db: DB, now = new Date()) {
   await db.transaction((tx) => expireStalePending(tx, now));
   const lapses = await unannouncedLapses(db, now);
+  const cfg = await getSettings(db);
   const map = await emails(db, lapses.map((l) => l.userId));
   for (const l of lapses) {
     try {
       const lekce = await describe(db, l.sessionId!);
       const u = map.get(l.userId);
-      const [o] = await db.select({ expiresAt: orders.expiresAt }).from(orders).where(eq(orders.id, l.orderId));
-      if (u) await sendEmail(u.email, "dropInLapsed", { osloveni: greetName(u.name), lekce, platnost: when(o.expiresAt!), odkaz: `${site.url}/rozvrh` });
+      const [o] = await db.select({ createdAt: orders.createdAt, expiresAt: orders.expiresAt, amount: orders.amount, number: orders.number }).from(orders).where(eq(orders.id, l.orderId));
+      if (u) await sendEmail(u.email, "dropInLapsed", { osloveni: greetName(u.name), lekce, platnost: when(transferPayBy(cfg, o)), odkaz: `${site.url}/rozvrh` });
       await pushQuietly(db, [l.userId], { title: "Rezervace propadla – platba nedorazila", body: lekce, url: link(l.sessionId!) });
+      // the studio checks the account once more – a transfer that did arrive can still be marked paid
       await pushQuietly(db, await adminIds(db), {
-        title: "⌛ Převod nedorazil – místo je uvolněné",
-        body: `${u?.name ?? "Klient"} · ${lekce}`,
+        title: "⌛ Platba nedorazila – klientka je z lekce odhlášená. Zkontroluj ji prosím",
+        body: `${u?.name ?? "Klient"} · ${lekce} · ${formatPrice(o.amount)}, VS ${o.number}`,
         url: `${site.url}/admin/rozvrh/${l.sessionId}`,
       });
       await markLapseAnnounced(db, l.orderId, now);
@@ -182,11 +185,11 @@ export async function sendTransferChecks(db: DB, now = new Date()) {
     if (!t.remindedAt && t.expiresAt!.getTime() - now.getTime() <= 2 * 3_600_000) {
       await markTransferNotice(db, t.orderId, "reminder", now);
       if (!t.notifiedAt) await markTransferNotice(db, t.orderId, "new", now);
-      await pushQuietly(db, admins, { title: `⏰ Zkontroluj převod – místo propadne v ${formatTime(t.expiresAt!)}`, body: what, url });
+      await pushQuietly(db, admins, { title: `⏰ Převod pořád nedorazil – v ${formatTime(t.expiresAt!)} klientku z lekce odhlásím`, body: what, url });
       sent++;
     } else if (!t.notifiedAt) {
       await markTransferNotice(db, t.orderId, "new", now);
-      await pushQuietly(db, admins, { title: `💸 Čeká převod – potvrď do ${when(t.expiresAt!)}`, body: what, url });
+      await pushQuietly(db, admins, { title: `💸 Čeká převod – zaplatit má do ${when(t.payBy)}`, body: what, url });
       sent++;
     }
   }
@@ -194,13 +197,23 @@ export async function sendTransferChecks(db: DB, now = new Date()) {
 }
 
 /** The client's own cancellation – skipped when they turned booking e-mails off. */
-export async function notifyCancelled(db: DB, b: Pick<Booking, "userId" | "sessionId">, refunded: boolean) {
+export async function notifyCancelled(db: DB, b: Pick<Booking, "userId" | "sessionId"> & Partial<Pick<Booking, "status" | "surcharge" | "surchargePaidAt">>, refunded: boolean) {
   const u = (await emails(db, [b.userId])).get(b.userId);
   if (!u || !u.bookingEmails) return;
+  const surcharge = (b.surcharge ?? 0) > 0 && b.surchargePaidAt;
   await sendEmail(u.email, "cancelled", {
     osloveni: greetName(u.name),
     lekce: await describe(db, b.sessionId),
-    vraceni: refunded ? "Vstup/kredit ti vracíme na účet." : "Storno proběhlo po lhůtě, vstup propadá.",
+    vraceni:
+      b.status === "pending_payment"
+        ? "Rezervace nebyla zaplacená, takže nic neplatíš."
+        : refunded
+          ? surcharge
+            ? `Vstup/kredit ti vracíme na účet a doplatek ${formatPrice(b.surcharge!)} jako kredit.`
+            : "Vstup/kredit ti vracíme na účet."
+          : surcharge
+            ? "Storno proběhlo po lhůtě, vstup i doplatek propadají."
+            : "Storno proběhlo po lhůtě, vstup propadá.",
   });
 }
 

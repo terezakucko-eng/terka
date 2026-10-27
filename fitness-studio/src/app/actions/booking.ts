@@ -12,6 +12,7 @@ import {
   type Method,
 } from "@/domain/booking";
 import { formatDate } from "@/lib/dates";
+import { formatPrice } from "@/lib/money";
 import { abandonOrder, createProductOrder, createSurchargeOrder, fulfillOrder, reservePresaleMembership } from "@/domain/orders";
 import { requireUser } from "@/lib/auth";
 import { UserError } from "@/lib/errors";
@@ -97,12 +98,19 @@ export async function cancelBookingAction(_: FormState, fd: FormData): Promise<F
     const db = await getDb();
     const r = await cancelBooking(db, { bookingId: field.str(fd, "bookingId"), actorId: user.id });
     if (r.booking.status !== "waitlist") await notifyCancelled(db, r.booking, r.refunded);
+    // an unpaid drop-in costs nothing to cancel
+    if (r.booking.status === "pending_payment") return "Rezervace zrušena – nic neplatíš.";
     await notifyPromoted(db, r.promoted);
     if (r.booking.method === "membership" && r.booking.status === "confirmed" && r.late && !r.refunded)
       await notifyStrike(db, user.id, await afterMemberStrike(db, user.id));
     if (r.booking.status === "waitlist") return "Odhlášeno z pořadníku.";
-    return r.refunded
-      ? "Rezervace zrušena, vstup máš zpátky na účtu."
+    const surcharge = r.booking.surcharge > 0 && r.booking.surchargePaidAt;
+    if (r.refunded)
+      return surcharge
+        ? `Rezervace zrušena, vstup máš zpátky na účtu a doplatek ${formatPrice(r.booking.surcharge)} jako kredit.`
+        : "Rezervace zrušena, vstup máš zpátky na účtu.";
+    return surcharge
+      ? "Rezervace zrušena. Storno proběhlo po lhůtě, vstup i doplatek propadají."
       : "Rezervace zrušena. Storno proběhlo po lhůtě, vstup propadá.";
   });
   revalidatePath("/", "layout");

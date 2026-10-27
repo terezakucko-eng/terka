@@ -106,8 +106,11 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
             <Badge tone="gold">Čeká na platbu</Badge>
             <span className="mt-2 block font-semibold">{w.name} – {formatDay(w.startsAt)} v {formatTime(w.startsAt)}</span>
             <span className="block text-sm text-les/70">
-              Místo ti držíme do <strong>{formatDateTime(w.expiresAt!)}</strong> – potvrdíme ho, až dorazí platba {formatPrice(w.amount)} (VS {w.number}).
-              Když do té doby nedorazí, místo se uvolní.
+              {w.overdue ? (
+                <><strong className="text-chyba">Termín platby uplynul</strong> – zaplať prosím hned {formatPrice(w.amount)} (VS {w.number}), jinak tě z lekce odhlásíme.</>
+              ) : (
+                <>Platbu {formatPrice(w.amount)} (VS {w.number}) je nutné uhradit do <strong>{formatDateTime(w.payBy)}</strong>. Místo potvrdíme, jakmile dorazí – bez platby tě z lekce odhlásíme.</>
+              )}
             </span>
           </p>
           <ButtonLink href={`/platba/prevod?order=${w.orderId}`} variant="gold">Zaplatit (QR)</ButtonLink>
@@ -118,7 +121,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
           <p>
             <span className="block font-semibold">Rezervace propadla: {l.name} – {formatDay(l.startsAt)} v {formatTime(l.startsAt)}</span>
             <span className="block text-sm text-les/70">
-              Platba převodem nedorazila do {formatDateTime(l.expiresAt!)}, tak jsme místo uvolnili. Pokud je platba na cestě, nevadí – když bude volno, místo ti vrátíme, jinak ji dostaneš jako kredit.
+              Platba převodem nedorazila včas (měla dorazit do {formatDateTime(l.payBy)}), tak jsme tě z lekce odhlásili. Pokud je platba na cestě, nevadí – když bude volno, místo ti vrátíme, jinak ji dostaneš jako kredit.
             </span>
           </p>
           <ButtonLink href={`/rozvrh/${l.sessionId}`} variant="outline">Zobrazit lekci</ButtonLink>

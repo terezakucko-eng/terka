@@ -50,14 +50,14 @@ export default async function AdminDashboard() {
         <section className="mb-8 rounded-2xl border-2 border-zlato bg-zlato/10 p-5">
           <h2 className="font-semibold">💸 Převody ke kontrole ({transfers.length})</h2>
           <p className="mt-1 text-sm text-les/60">
-            Zkontroluj účet. Po kliknutí na Zaplaceno se místo potvrdí a klientce přijde potvrzení. Bez platby se místo v uvedený čas samo uvolní.
+            Zkontroluj účet. Po kliknutí na Zaplaceno se místo potvrdí a klientce přijde potvrzení. Klientka má zaplatit do 24 h – když platba nedorazí do 48 h, systém ji z lekce sám odhlásí.
           </p>
           <ul className="mt-3 divide-y divide-linka/50">
             {transfers.map((t) => (
               <li key={t.orderId} className="flex flex-wrap items-center justify-between gap-3 py-3">
                 <span className="text-sm">
                   <strong>{t.userName}</strong> · <Link href={`/admin/rozvrh/${t.sessionId}`} className="underline underline-offset-4">{t.name} {formatDay(t.startsAt)} v {formatTime(t.startsAt)}</Link>
-                  <span className="block text-les/70">{formatPrice(t.amount)} · VS {t.number} · místo drží do <strong>{formatDateTime(t.expiresAt!)}</strong></span>
+                  <span className="block text-les/70">{formatPrice(t.amount)} · VS {t.number} · zaplatit do {formatDateTime(t.payBy)} · bez platby odhlásím <strong>{formatDateTime(t.expiresAt!)}</strong></span>
                 </span>
                 <ActionForm action={markOrderPaidAction} confirm={`Platba ${formatPrice(t.amount)} (VS ${t.number}) dorazila? Místo se potvrdí.`}>
                   <input type="hidden" name="orderId" value={t.orderId} />

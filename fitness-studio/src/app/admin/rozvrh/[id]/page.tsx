@@ -89,7 +89,7 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
         <ActionForm action={markOrderPaidAction} confirm="Platba dorazila? Místo se potvrdí a klientce přijde potvrzení." className="mt-1">
           <input type="hidden" name="orderId" value={b.orderId} />
           <button title="Označit jako zaplacené">
-            <Badge tone="gold">Nezaplaceno{payUntil ? ` · drží do ${formatDateTime(payUntil)}` : ""} – zaplaceno?</Badge>
+            <Badge tone="gold">Nezaplaceno{payUntil ? ` · bez platby odhlásím ${formatDateTime(payUntil)}` : ""} – zaplaceno?</Badge>
           </button>
         </ActionForm>
       )}
