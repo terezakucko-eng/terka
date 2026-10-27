@@ -4,9 +4,9 @@ UPDATE "bookings" b
 SET "surcharge_paid_at" = o."paid_at"
 FROM "orders" o
 WHERE o."booking_id" = b."id"
-  AND o."kind" = 'surcharge'
-  AND o."status" = 'paid'
+  AND o."kind"::text = 'surcharge'
+  AND o."status"::text = 'paid'
   AND o."paid_at" IS NOT NULL
   AND b."surcharge" > 0
   AND b."surcharge_paid_at" IS NULL
-  AND b."status" <> 'cancelled';
+  AND b."status"::text <> 'cancelled';
