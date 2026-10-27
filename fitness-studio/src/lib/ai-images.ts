@@ -4,8 +4,8 @@ import { getDb, type Executor } from "@/db";
 import { settings } from "@/db/schema";
 
 /**
- * Pictures on the web made with AI, by their URL. They show a small
- * "Ilustrační foto · AI" label (the EU AI Act wants realistic AI images
+ * Pictures on the web made with AI, by their URL. They show a watermark –
+ * the octopus with "AI" in its head (the EU AI Act wants realistic AI images
  * disclosed). Marked in Admin → Obrázky (AI).
  */
 const KEY = "aiImages";

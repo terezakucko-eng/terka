@@ -13,7 +13,7 @@ export async function aiImageAction(_: FormState, fd: FormData): Promise<FormSta
     const srcs = fd.getAll("src").filter((v): v is string => typeof v === "string");
     const on = field.bool(fd, "on");
     await setAiImages(await getDb(), srcs, on);
-    return on ? "Označeno – na webu se u obrázku ukáže „Ilustrační foto · AI“." : "Označení zrušeno.";
+    return on ? "Označeno – na webu se v rohu obrázku ukáže vodoznak chobotnice s „AI“." : "Označení zrušeno.";
   });
   revalidatePath("/", "layout");
   return res;
