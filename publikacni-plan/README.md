@@ -17,7 +17,7 @@ odkaz třeba přímo na „Kondomshop, únor 2027“ nebo na konkrétní publika
 
 ## Jak to funguje
 
-- Statická React appka (Vite) na Netlify, data ve Firebase (projekt `publikacni-plan`, Firestore).
+- Statická React appka (Vite) na Firebase Hosting, data ve Firebase (projekt `publikacni-plan`, Firestore).
   Server ani databázi tu není potřeba spravovat.
 - Přihlášení firemním Google účtem. Kdo smí dovnitř, hlídají **pravidla ve Firestore**
   (`firestore.rules`), ne jen appka.
@@ -28,20 +28,21 @@ odkaz třeba přímo na „Kondomshop, únor 2027“ nebo na konkrétní publika
 
 ## Spuštění (jednou)
 
+Appka běží na **Firebase Hosting** ve stejném projektu jako data:
+**https://publikacni-plan.web.app**. Tahle adresa je pro přihlášení povolená automaticky.
+
 1. **Google přihlášení**: Firebase console → projekt *publikacni-plan* → Authentication →
    Sign-in method → Google → Enable.
-2. **Domény webu**: Authentication → Settings → Authorized domains → přidat adresu z Netlify
-   (např. `rs-plan.netlify.app`).
-3. **Pravidla**: v `firestore.rules` zkontrolovat firemní doménu (teď `ruzovyslon.cz`) a nasadit:
-   ```
-   npx firebase-tools@14 deploy --only firestore:rules --project publikacni-plan
-   ```
-   Nebo obsah souboru vložit ve Firebase console → Firestore → Rules → Publish.
-4. **Netlify**: Add new site → z tohoto repa, *Base directory* `publikacni-plan`. Build a publish
-   se vezmou z `netlify.toml`. Proměnná prostředí `VITE_ALLOWED_DOMAINS` = stejné domény jako
-   v pravidlech (víc domén oddělit čárkou).
-5. **Data**: přihlásit se → Nastavení → *Import ze staré appky* → Importovat. Pak *Významné dny*
+2. **Nasazení appky i pravidel** (`firestore.rules`, firemní doména `ruzovyslon.cz`):
+   - ručně z počítače: `npx firebase-tools@14 login` a pak `npm run deploy`,
+   - nebo automaticky po každé změně v `main`: v GitHubu nastavit secret
+     `FIREBASE_SERVICE_ACCOUNT` (JSON klíč servisního účtu s rolemi *Firebase Hosting Admin*
+     a *Firebase Rules Admin*); workflow `deploy-publikacni-plan.yml` pak nasazuje sám.
+3. **Data**: přihlásit se → Nastavení → *Import ze staré appky* → Importovat. Pak *Významné dny*
    → 2027 → Přidat. Import jde pustit znovu, nic nezdvojí.
+
+Na Netlify jde appka nasadit taky (`netlify.toml`, Base directory `publikacni-plan`); pak je
+potřeba přidat její adresu do Authentication → Settings → Authorized domains.
 
 Po přechodu na nový plán přepnout v `firestore.rules` staré kolekce na „jen čtení pro tým“
 (návod je přímo v souboru) a pravidla znovu nasadit.
@@ -50,7 +51,7 @@ Po přechodu na nový plán přepnout v `firestore.rules` staré kolekce na „j
 
 Když se má přihlašovat i jiná doména (např. `kondomshop.cz`), přidej ji na obě místa:
 - `firestore.rules`: `matches('.*@(ruzovyslon[.]cz|kondomshop[.]cz)$')`
-- Netlify: `VITE_ALLOWED_DOMAINS=ruzovyslon.cz,kondomshop.cz`
+- při buildu: `VITE_ALLOWED_DOMAINS=ruzovyslon.cz,kondomshop.cz`
 
 ## Vývoj
 

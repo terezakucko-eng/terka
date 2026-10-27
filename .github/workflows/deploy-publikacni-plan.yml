@@ -1,0 +1,51 @@
+name: publikacni-plan deploy
+
+# Publishes the planner to Firebase Hosting (https://publikacni-plan.web.app) together with
+# the Firestore rules whenever main changes. Needs the repository secret
+# FIREBASE_SERVICE_ACCOUNT (JSON key of a service account in the publikacni-plan project);
+# without it the job is skipped instead of failing.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'publikacni-plan/**'
+      - '.github/workflows/deploy-publikacni-plan.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-publikacni-plan
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      HAS_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+    defaults:
+      run:
+        working-directory: publikacni-plan
+    steps:
+      - name: No deploy key yet
+        if: env.HAS_KEY != 'true'
+        working-directory: .
+        run: echo "::notice::FIREBASE_SERVICE_ACCOUNT is not set, skipping the deploy (see publikacni-plan/README.md)."
+      - uses: actions/checkout@v4
+        if: env.HAS_KEY == 'true'
+      - uses: actions/setup-node@v4
+        if: env.HAS_KEY == 'true'
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: publikacni-plan/package-lock.json
+      - run: npm ci
+        if: env.HAS_KEY == 'true'
+      - run: npm test
+        if: env.HAS_KEY == 'true'
+      - run: npm run build
+        if: env.HAS_KEY == 'true'
+      - uses: google-github-actions/auth@v2
+        if: env.HAS_KEY == 'true'
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      - run: npx -y firebase-tools@14 deploy --only hosting,firestore:rules --project publikacni-plan --non-interactive
+        if: env.HAS_KEY == 'true'
