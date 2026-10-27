@@ -1,6 +1,7 @@
 import { getDb } from "@/db";
 import { site } from "@/config/site";
 import { dueReminders, markReminded } from "@/domain/reminders";
+import { recomputeSurcharges } from "@/domain/booking";
 import { formatDay, formatTime } from "@/lib/dates";
 import { sendEmail } from "@/lib/email-templates";
 import { greetName } from "@/lib/vocative";
@@ -67,7 +68,9 @@ export async function GET(req: Request) {
   const releasedPlaces = await fillReleasedPlaces(db, now);
   const unpaidReleased = await releaseUnpaidDropIns(db, now);
   const transferChecks = await sendTransferChecks(db, now);
+  // surcharges follow the price list (a class booked before its surcharge was set owes it too)
+  const surchargesFixed = (await recomputeSurcharges(db, {}, now)).length;
   const oldUnpaid = await remindOldUnpaid(db, now);
   const passCards = hour >= 7 && hour < 22 ? await sendPassCardNotices(db, now) : 0;
-  return Response.json({ classes: done.classes.length, massages: done.massages.length, greetings, winbacks, referralThanks, vouchersReady, releasedPlaces, unpaidReleased, transferChecks, oldUnpaid, passCards });
+  return Response.json({ classes: done.classes.length, massages: done.massages.length, greetings, winbacks, referralThanks, vouchersReady, releasedPlaces, unpaidReleased, transferChecks, surchargesFixed, oldUnpaid, passCards });
 }

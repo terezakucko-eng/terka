@@ -141,6 +141,8 @@ describe("a member's surcharge is asked for right at booking", () => {
     sent.length = 0;
     for (const b of [never.booking, asked.booking])
       await h.db.update(bookings).set({ createdAt: new Date("2026-10-27T10:00:00+01:00") }).where(eq(bookings.id, b.id));
+    // the booking e-mail started its payment right away
+    await h.db.update(orders).set({ createdAt: new Date("2026-10-27T10:00:20+01:00") }).where(eq(orders.bookingId, asked.booking.id));
     const later = new Date("2026-10-28T09:00:00Z");
     // the class (in 2 days of NOW) – keep it ahead of `later`
     for (const b of [never.booking, asked.booking])
@@ -171,5 +173,24 @@ describe("a surcharge paid by transfer whose booking lost the paid mark", () => 
     const fix = readFileSync(new URL("../drizzle/0107_surcharge_paid_from_orders.sql", import.meta.url), "utf8");
     await h.db.execute(sql.raw(fix));
     expect((await bookingOf(booking.id)).surchargePaidAt).not.toBeNull();
+  });
+});
+
+describe("surcharges whose payment the client started later on their own", () => {
+  it("get one reminder too – the booking e-mail never asked for them", async () => {
+    const s = await makeSession(h.db);
+    await h.db.update(classTypes).set({ memberSurcharge: 10000 }).where(eq(classTypes.id, s.classTypeId));
+    const u = await makeUser(h.db);
+    await grantEntitlement(h.db, { userId: u.id, kind: "membership", name: "Členství", entries: null, validityDays: 60 }, NOW);
+    const opt = (await bookingOptions(h.db, u.id, s)).find((o) => o.method === "membership")!;
+    const { booking } = await bookSession(h.db, { userId: u.id, sessionId: s.id, method: "membership", entitlementId: opt.entitlementId }, NOW);
+    await h.db.update(classSessions).set({ startsAt: new Date("2026-11-03T17:00:00Z") }).where(eq(classSessions.id, s.id));
+    await h.db.update(bookings).set({ createdAt: new Date("2026-10-20T10:00:00+02:00") }).where(eq(bookings.id, booking.id));
+    // a day later the client clicked "Převodem" – but never paid
+    const o = await createSurchargeOrder(h.db, { userId: u.id, bookingId: booking.id });
+    await h.db.update(orders).set({ createdAt: new Date("2026-10-21T10:00:00+02:00") }).where(eq(orders.id, o.id));
+    sent.length = 0;
+    expect(await remindOldUnpaid(h.db, new Date("2026-10-28T09:30:00Z"))).toBeGreaterThanOrEqual(1);
+    expect(sent.some((m) => m.vars.castka.includes(`VS ${o.number}`))).toBe(true);
   });
 });

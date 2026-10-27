@@ -491,6 +491,52 @@ export const surchargeVsSql = sql<number | null>`(select max(o2.number) from ord
 const surchargeOrderPaidSql = sql<boolean>`exists (select 1 from orders o3 where o3.booking_id = ${bookings.id} and o3.kind = 'surcharge' and o3.status = 'paid')`;
 
 /**
+ * Brings the surcharges of upcoming unpaid bookings (membership, pass) in line with the
+ * price list. A surcharge is fixed when the client books – a class booked before its
+ * surcharge was set (or changed) would owe nothing. Lessons that a membership includes
+ * (Členství Reformer…) are left as they are, and so is anything already paid; an open
+ * payment follows the new amount. Returns the bookings that changed.
+ */
+export async function recomputeSurcharges(db: DB, opts: { classTypeId?: string } = {}, now = new Date()) {
+  return db.transaction(async (tx) => {
+    const rows = await tx
+      .select({ b: bookings, s: classSessions, e: entitlements })
+      .from(bookings)
+      .innerJoin(classSessions, eq(bookings.sessionId, classSessions.id))
+      .leftJoin(entitlements, eq(bookings.entitlementId, entitlements.id))
+      .where(
+        and(
+          inArray(bookings.method, ["membership", "pass"]),
+          eq(bookings.status, "confirmed"),
+          isNull(bookings.surchargePaidAt),
+          sql`not ${surchargeOrderPaidSql}`,
+          gt(classSessions.startsAt, now),
+          ne(classSessions.status, "cancelled"),
+          opts.classTypeId ? eq(classSessions.classTypeId, opts.classTypeId) : undefined,
+        ),
+      );
+    const rulesOf = new Map<string, ClassRules>();
+    const changed: Booking[] = [];
+    for (const { b, s, e } of rows) {
+      const month = dateKey(s.startsAt).slice(0, 7);
+      const included =
+        b.method === "membership" && !!e && e.includedClassTypeId === s.classTypeId && e.includedPerMonth > 0 && !(e.includedFrom && month < e.includedFrom);
+      if (included) continue;
+      if (!rulesOf.has(s.classTypeId)) rulesOf.set(s.classTypeId, await classRules(tx, s));
+      const want = surchargeFor(b.method!, rulesOf.get(s.classTypeId)!, s, b.seats);
+      if (want === b.surcharge) continue;
+      await tx.update(bookings).set({ surcharge: want }).where(eq(bookings.id, b.id));
+      await tx
+        .update(orders)
+        .set(want > 0 ? { amount: want } : { status: "cancelled" })
+        .where(and(eq(orders.kind, "surcharge"), eq(orders.bookingId, b.id), eq(orders.status, "pending")));
+      changed.push({ ...b, surcharge: want });
+    }
+    return changed;
+  });
+}
+
+/**
  * Bookings still waiting for money: a drop-in whose payment hasn't come (incl. older
  * ones that got the place before paying) and members' unpaid surcharges.
  */
@@ -510,6 +556,8 @@ export async function unpaidBookings(db: Executor, opts: { createdBefore?: Date;
       orderAmount: orders.amount,
       number: orders.number,
       surchargeVs: surchargeVsSql,
+      // when its payment was started – right at booking means the client was asked for it then
+      surchargeAskedAt: sql<Date | null>`(select min(o4.created_at) from orders o4 where o4.booking_id = ${bookings.id} and o4.kind = 'surcharge' and o4.status = 'pending')`.mapWith(bookings.createdAt),
       expiresAt: orders.expiresAt,
       sessionId: classSessions.id,
       startsAt: classSessions.startsAt,

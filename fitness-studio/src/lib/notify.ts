@@ -326,13 +326,16 @@ export async function remindPayment(db: DB, bookingId: string, now = new Date())
   return { emailed: !!u };
 }
 
+/** A surcharge payment started this soon after the booking came with the booking e-mail (VS and link). */
+const ASKED_AT_BOOKING_MS = 2 * 60_000;
+
 /** Bookings made before the place was the client's only once paid (the change went live the night to 26. 10. 2026). */
 export const PAY_FIRST_SINCE = new Date("2026-10-26T00:00:00+01:00");
 
 /**
  * Tidying up: bookings that never got a request to pay get one reminder each – drop-ins
  * from before the pay-first change (the place given before paying) and members' surcharges
- * that never had a payment started (no VS: the booking e-mail didn't ask for it until now).
+ * the booking e-mail didn't ask for (until now it didn't; or the surcharge came later).
  * In the daytime, a few per run; the studio hears how many went out. Run by the 15-minute cron.
  */
 export async function remindOldUnpaid(db: DB, now = new Date(), batch = 15) {
@@ -346,7 +349,8 @@ export async function remindOldUnpaid(db: DB, now = new Date(), batch = 15) {
         b.status !== "no_show" &&
         (b.kind === "drop_in"
           ? b.status !== "pending_payment" && b.createdAt < PAY_FIRST_SINCE
-          : b.vs === null && b.createdAt < settled),
+          : // a surcharge the booking e-mail didn't ask for: no payment yet, or one the client started later
+            b.createdAt < settled && (b.surchargeAskedAt === null || b.surchargeAskedAt.getTime() - b.createdAt.getTime() > ASKED_AT_BOOKING_MS)),
     )
     .slice(0, batch);
   let sent = 0;

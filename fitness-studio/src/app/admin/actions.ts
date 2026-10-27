@@ -28,6 +28,7 @@ import {
   fillFromWaitlist,
   holdSeats,
   occupancy,
+  recomputeSurcharges,
   setAttendance,
   setSurchargePaid,
 } from "@/domain/booking";
@@ -137,6 +138,10 @@ export async function saveClassTypeAction(_: FormState, fd: FormData): Promise<F
     const id = field.str(fd, "id");
     if (id) await db.update(classTypes).set(values).where(eq(classTypes.id, id));
     else await db.insert(classTypes).values(values);
+    // a surcharge set or changed applies to the upcoming unpaid bookings too
+    const changed = id ? await recomputeSurcharges(db, { classTypeId: id }) : [];
+    if (changed.length)
+      return done(`Lekce uložena. Doplatek upraven u ${changed.length} ${changed.length === 1 ? "rezervace" : "rezervací"} – klientům, kteří mají doplácet, přijde připomínka s VS.`);
     return done(id ? "Lekce uložena." : "Lekce vytvořena.");
   });
 }
