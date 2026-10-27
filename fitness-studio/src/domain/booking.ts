@@ -1672,9 +1672,12 @@ export async function adminAddBooking(
     pay?: AdminPay;
     /** A friend coming along (+1) – takes a second spot and is charged too. */
     guestName?: string;
+    /** An instructor at reception – may not add a client without payment, only an admin can */
+    instructor?: boolean;
   },
   now = new Date(),
 ) {
+  if ((input.pay ?? input.mode) === "admin" && input.instructor) throw new UserError("Bez platby může klienta přidat jen administrátor.");
   return db.transaction(async (tx) => {
     const s = await lockSession(tx, input.sessionId);
     if (s.status === "cancelled") throw new UserError("Lekce je zrušená.");

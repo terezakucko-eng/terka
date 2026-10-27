@@ -257,7 +257,7 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
           {s.status !== "cancelled" && (
             <Card>
               <h2 className="font-semibold">Přidat klienta</h2>
-              <AdminAddBooking sessionId={s.id} clients={clientOpts} friendAllowed={guestAllowed(s)} />
+              <AdminAddBooking sessionId={s.id} clients={clientOpts} friendAllowed={guestAllowed(s)} allowFree={isAdmin} />
               <p className="mt-2 text-xs text-les/50">Recepce může přidat i nad kapacitu.</p>
             </Card>
           )}
