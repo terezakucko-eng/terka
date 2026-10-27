@@ -14,7 +14,7 @@ import { credits, formatPrice, pluralCs } from "@/lib/money";
 import { SurchargePay } from "@/components/surcharge-pay";
 import { flexibleMemberships, membershipPlacesTaken, membershipSwitches, openFees, periodStartLabel } from "@/domain/membership-fees";
 import { placesLeftLabel } from "@/lib/price-list";
-import { dropInNotices, includedSummary } from "@/domain/booking";
+import { dropInNotices, includedSummary, usableCredit } from "@/domain/booking";
 import { endMembershipAction, switchMembershipAction } from "@/app/actions/membership";
 import { insuranceYears } from "@/domain/insurance";
 import { payOrderAction } from "@/app/actions/booking";
@@ -316,7 +316,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
                 {b.isHold ? <Badge>{b.seats} {b.seats === 1 ? "místo" : b.seats < 5 ? "místa" : "míst"}</Badge> : b.guestName && <Badge>+1 {b.guestName}</Badge>}
                 {b.status === "waitlist" && <Badge tone="gold">Pořadník</Badge>}
                 {b.status === "pending_payment" && <Badge tone="gold">Čeká na platbu</Badge>}
-                {b.surcharge > 0 && !b.surchargePaidAt && b.status !== "waitlist" && b.status !== "cancelled" && <SurchargePay bookingId={b.id} amount={b.surcharge} compact />}
+                {b.surcharge > 0 && !b.surchargePaidAt && b.status !== "waitlist" && b.status !== "cancelled" && <SurchargePay bookingId={b.id} amount={b.surcharge} compact credit={usableCredit(user)} />}
                 {s.status === "cancelled" && <Badge tone="red">Lekce zrušena</Badge>}
                 {s.status !== "cancelled" && (
                   <ActionForm action={cancelBookingAction} confirm="Opravdu zrušit rezervaci?">

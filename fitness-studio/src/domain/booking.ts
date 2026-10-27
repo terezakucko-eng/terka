@@ -553,6 +553,8 @@ export async function unpaidBookings(db: Executor) {
       bookingId: bookings.id,
       userId: users.id,
       userName: users.name,
+      creditBalance: users.creditBalance,
+      creditExpiresAt: users.creditExpiresAt,
       status: bookings.status,
       method: bookings.method,
       surcharge: bookings.surcharge,
@@ -1220,6 +1222,44 @@ export async function setSurchargePaid(db: DB, input: { bookingId: string; paid:
       .where(and(eq(orders.kind, "surcharge"), eq(orders.bookingId, b.id), eq(orders.status, "paid")));
     if (online) throw new UserError("Doplatek je zaplacený kartou nebo převodem – vrátit se dá jen smazáním té platby v Platby a objednávky.");
     await tx.update(bookings).set({ surchargePaidAt: null }).where(eq(bookings.id, b.id));
+  });
+}
+
+/** Credits a surcharge costs when paid from the client's credit – 1 Kč = 1 kredit, as it comes back on a cancel. */
+export const surchargeCredits = (surcharge: number) => Math.round(surcharge / 100);
+
+/** Credit the client can pay a surcharge with right now (0 when it has run out). */
+export const usableCredit = (u: { creditBalance: number; creditExpiresAt: Date | null }, now = new Date()) =>
+  creditExpired(u, now) ? 0 : u.creditBalance;
+
+/**
+ * A member / pass holder pays the surcharge from their credit (or reception does it
+ * for them): the credit goes down, the surcharge is paid and an open card / transfer
+ * payment of it is called off. `userId` = only the client's own booking.
+ */
+export async function paySurchargeWithCredits(db: DB, input: { bookingId: string; userId?: string; actorId?: string }, now = new Date()) {
+  return db.transaction(async (tx) => {
+    const [b] = await tx.select().from(bookings).where(eq(bookings.id, input.bookingId)).for("update");
+    if (!b || (input.userId && b.userId !== input.userId)) throw new UserError("Rezervace nenalezena.");
+    if (!["confirmed", "attended", "no_show"].includes(b.status)) throw new UserError("Rezervace je zrušená.");
+    const [paidOrder] = await tx
+      .select({ id: orders.id })
+      .from(orders)
+      .where(and(eq(orders.bookingId, b.id), eq(orders.kind, "surcharge"), eq(orders.status, "paid")));
+    if (b.surcharge <= 0) throw new UserError("K téhle rezervaci se nic nedoplácí.");
+    if (b.surchargePaidAt || paidOrder) throw new UserError("Doplatek už je zaplacený.");
+    const credits = surchargeCredits(b.surcharge);
+    await changeCredits(tx, {
+      userId: b.userId,
+      delta: -credits,
+      reason: "booking",
+      bookingId: b.id,
+      note: `Doplatek ${formatPrice(b.surcharge)} zaplacen z kreditu`,
+      createdBy: input.actorId ?? null,
+    });
+    await tx.update(bookings).set({ surchargePaidAt: now }).where(eq(bookings.id, b.id));
+    await callOffSurcharge(tx, b.id);
+    return { booking: b, credits };
   });
 }
 

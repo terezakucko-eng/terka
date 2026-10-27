@@ -29,7 +29,8 @@ import { AdminTitle, FoldedTable, Stat, Table, Td } from "@/components/admin";
 import { Avatar } from "@/components/avatar";
 import { MONTHS, formatDayMonth } from "@/lib/profile";
 import { ActionForm, SubmitButton } from "@/components/forms";
-import { RemindPayment } from "@/components/remind-payment";
+import { PayFromCredit, RemindPayment } from "@/components/remind-payment";
+import { usableCredit } from "@/domain/booking";
 import { bookingStatusLabel, creditReasonLabel, entitlementKindLabel, methodLabel, orderStatusLabel } from "@/components/labels";
 import { Badge, Button, Card, Field, Input, Select, Textarea } from "@/components/ui";
 import { getDb } from "@/db";
@@ -199,6 +200,9 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
                   )}
                   {s.status !== "cancelled" && ((b.status === "pending_payment" && b.orderId) || (b.status === "confirmed" && b.surcharge > 0 && !b.surchargePaidAt)) && (
                     <RemindPayment bookingId={b.id} remindedAt={b.paymentRemindedAt} />
+                  )}
+                  {s.status !== "cancelled" && b.status === "confirmed" && b.surcharge > 0 && !b.surchargePaidAt && (
+                    <PayFromCredit bookingId={b.id} amount={b.surcharge} credit={usableCredit(u)} />
                   )}
                 </Td>
                 <Td>

@@ -3,12 +3,12 @@ import { aliasedTable, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { deleteOrderAction, markOrderPaidAction, setSurchargePaidAction } from "@/app/admin/actions";
 import { AdminTitle, Table, Td } from "@/components/admin";
 import { ActionForm } from "@/components/forms";
-import { RemindPayment } from "@/components/remind-payment";
+import { PayFromCredit, RemindPayment } from "@/components/remind-payment";
 import { bookingStatusLabel, orderStatusLabel } from "@/components/labels";
 import { Badge, Input } from "@/components/ui";
 import { getDb } from "@/db";
 import { bookings, classSessions, classTypes, orders, users } from "@/db/schema";
-import { unpaidBookings } from "@/domain/booking";
+import { unpaidBookings, usableCredit } from "@/domain/booking";
 import { paidLateOk } from "@/domain/orders";
 import { requireAdmin } from "@/lib/auth";
 import { formatDateTime, formatDay, formatTime } from "@/lib/dates";
@@ -83,6 +83,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/obj
                     </ActionForm>
                   )}
                   <RemindPayment bookingId={b.bookingId} remindedAt={b.remindedAt} />
+                  {b.kind === "surcharge" && <PayFromCredit bookingId={b.bookingId} amount={b.amount} credit={usableCredit(b)} />}
                 </Td>
               </tr>
             ))}

@@ -10,7 +10,7 @@ import { HealthCheckbox } from "@/components/health-checkbox";
 import { cardPayments } from "@/lib/payments";
 import { VideoEmbed } from "@/components/video-embed";
 import { Badge, ButtonLink, Card, Container, Eyebrow, cx } from "@/components/ui";
-import { memberSurchargeFor, membershipIncluding, passSurchargeFor, sessionForUser, stateMessage } from "@/domain/booking";
+import { memberSurchargeFor, membershipIncluding, passSurchargeFor, sessionForUser, stateMessage, usableCredit } from "@/domain/booking";
 import { getCurrentUser } from "@/lib/auth";
 import { dateKey, formatDateTime, formatDay, formatOpens, formatRange } from "@/lib/dates";
 import { priceNoteOn } from "@/lib/price-list";
@@ -121,6 +121,7 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
               loggedIn={!!user}
               needsHealth={!!user && !user.healthConfirmedAt}
               studentVerified={isStudent(user)}
+              credit={user ? usableCredit(user) : 0}
               card={cardPayments()}
               sessionId={s.id}
               gcal={googleCalendarLink(lessonEvent(s, ct, `${c.raw("site.street")}, ${c.raw("site.city")}`))}
@@ -137,12 +138,15 @@ function BookingPanel({
   loggedIn,
   needsHealth,
   studentVerified,
+  credit,
   card,
   sessionId,
   gcal,
 }: {
   /** "Student do" still valid – no need to confirm the student drop-in */
   studentVerified: boolean;
+  /** usable credit – a surcharge can be paid from it */
+  credit: number;
   card: boolean;
   view: NonNullable<Awaited<ReturnType<typeof sessionForUser>>>;
   loggedIn: boolean;
@@ -186,7 +190,7 @@ function BookingPanel({
           <h2 className="mt-4 text-2xl font-semibold">{b.guestName || b.isHold ? "Těšíme se na vás!" : "Těšíme se na tebe!"}</h2>
         )}
         {b.isHold ? <p className="mt-2 text-les/70">Držíš tu {b.seats} {b.seats === 1 ? "místo" : b.seats < 5 ? "místa" : "míst"}.</p> : b.guestName && <p className="mt-2 text-les/70">Rezervace je i pro kamarádku: <strong>{b.guestName}</strong>.</p>}
-        {b.surcharge > 0 && !b.surchargePaidAt && view.state !== "cancelled" && <SurchargePay bookingId={b.id} amount={b.surcharge} />}
+        {b.surcharge > 0 && !b.surchargePaidAt && view.state !== "cancelled" && <SurchargePay bookingId={b.id} amount={b.surcharge} credit={credit} />}
         {view.state !== "past" && view.state !== "cancelled" && (
           <>
             <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-semibold text-zeme">

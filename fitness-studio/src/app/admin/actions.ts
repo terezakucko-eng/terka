@@ -28,6 +28,7 @@ import {
   fillFromWaitlist,
   holdSeats,
   occupancy,
+  paySurchargeWithCredits,
   recomputeSurcharges,
   setAttendance,
   setSurchargePaid,
@@ -701,6 +702,15 @@ export async function setSurchargePaidAction(_: FormState, fd: FormData): Promis
     const paid = field.bool(fd, "paid");
     await setSurchargePaid(await getDb(), { bookingId: field.str(fd, "bookingId"), paid, isAdmin: staff.role === "admin" });
     return done(paid ? "Doplatek zaplacen." : "Doplatek vrácen na nezaplacený.");
+  });
+}
+
+/** The client bought credit for surcharges: take the surcharge from it (1 Kč = 1 kredit), the open transfer is called off. */
+export async function paySurchargeFromCreditAction(_: FormState, fd: FormData): Promise<FormState> {
+  const admin = await requireAdmin();
+  return attempt(async () => {
+    const r = await paySurchargeWithCredits(await getDb(), { bookingId: field.str(fd, "bookingId"), actorId: admin.id });
+    return done(`Doplatek zaplacen z kreditu klienta (−${credits(r.credits)}).`);
   });
 }
 

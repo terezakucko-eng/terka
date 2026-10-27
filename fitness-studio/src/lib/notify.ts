@@ -18,7 +18,7 @@ import { markAnnounced, unannouncedRewards } from "@/domain/referrals";
 import { markBookingAnnounced, markExpiryAnnounced, markSignUpAnnounced, unannouncedBookings, unannouncedExpiries, unannouncedSignUps } from "@/domain/pass-cards";
 import { formatVoucherCode, markVoucherNotified, unnotifiedVouchers } from "@/domain/vouchers";
 import { displayName } from "./profile";
-import { expireStalePending, fillFromWaitlist, markLapseAnnounced, markPaymentReminded, markTransferNotice, paymentDue, releasedHoldsWithWaitlist, transferPayBy, transfersToCheck, unannouncedLapses } from "@/domain/booking";
+import { expireStalePending, fillFromWaitlist, markLapseAnnounced, markPaymentReminded, markTransferNotice, paymentDue, releasedHoldsWithWaitlist, surchargeCredits, transferPayBy, transfersToCheck, unannouncedLapses, usableCredit } from "@/domain/booking";
 import { createSurchargeOrder, type fulfillOrder } from "@/domain/orders";
 import { getSettings } from "./settings";
 import { unsubscribeUrl } from "./links";
@@ -113,11 +113,18 @@ async function surchargeToPay(db: DB, bookingId?: string) {
   const o = await createSurchargeOrder(db, { userId: b.userId, bookingId: b.id }).catch(() => null);
   const url = o ? `${site.url}/platba/prevod?order=${o.id}` : link(b.sessionId);
   const price = formatPrice(b.surcharge);
+  const how = (await creditCovers(db, b.userId, b.surcharge)) ? "z kreditu, kartou nebo převodem" : "kartou nebo převodem";
   return {
-    line: `K lekci patří doplatek ${price} – na místě se neplatí. Zaplať ho prosím kartou nebo převodem${o ? ` (VS ${o.number})` : ""}: ${url}\n`,
-    push: `Doplatek ${price}${o ? `, VS ${o.number}` : ""} – zaplať prosím kartou nebo převodem.`,
+    line: `K lekci patří doplatek ${price} – na místě se neplatí. Zaplať ho prosím ${how}${o ? ` (VS ${o.number})` : ""}: ${url}\n`,
+    push: `Doplatek ${price}${o ? `, VS ${o.number}` : ""} – zaplať prosím ${how}.`,
     url,
   };
+}
+
+/** The client has enough credit (bought for surcharges) to pay this one from it. */
+async function creditCovers(db: DB, userId: string, surcharge: number) {
+  const [u] = await db.select({ creditBalance: users.creditBalance, creditExpiresAt: users.creditExpiresAt }).from(users).where(eq(users.id, userId));
+  return !!u && usableCredit(u) >= surchargeCredits(surcharge);
 }
 
 const when = (d: Date) => `${formatDay(d)} v ${formatTime(d)}`;
@@ -305,7 +312,7 @@ export async function remindPayment(db: DB, bookingId: string, now = new Date())
   const termin = due.past
     ? ` Lekce už proběhla – ${due.kind === "drop_in" ? "platbu" : "doplatek"} prosím pošli, jakmile to půjde.`
     : due.kind === "surcharge"
-      ? " Na místě se doplatek neplatí – zaplatíš ho kartou nebo převodem."
+      ? ` Na místě se doplatek neplatí – zaplatíš ho ${(await creditCovers(db, b.userId, due.amount)) ? "z kreditu (máš ho dost), kartou nebo převodem" : "kartou nebo převodem"}.`
       : due.payBy
         ? ` Zaplať ji prosím do ${formatDateTime(due.payBy)}, jinak se místo uvolní pro ostatní.`
         : due.releaseAt
