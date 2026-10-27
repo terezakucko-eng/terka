@@ -21,7 +21,6 @@ import { displayName } from "./profile";
 import { expireStalePending, fillFromWaitlist, markLapseAnnounced, markPaymentReminded, markTransferNotice, paymentDue, releasedHoldsWithWaitlist, transferPayBy, transfersToCheck, unannouncedLapses } from "@/domain/booking";
 import { createSurchargeOrder, type fulfillOrder } from "@/domain/orders";
 import { getSettings } from "./settings";
-import { UserError } from "./errors";
 import { unsubscribeUrl } from "./links";
 
 async function describe(db: DB, sessionId: string) {
