@@ -1,0 +1,48 @@
+rules_version = '2';
+
+// Pravidla pro Firebase projekt "publikacni-plan".
+// Nasazení: npx firebase-tools@14 deploy --only firestore:rules --project publikacni-plan
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Kdo smí do plánu: ověřený firemní Google účet. Seznam domén drž stejný jako VITE_ALLOWED_DOMAINS.
+    function isTeam() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.lower().matches('.*@(ruzovyslon[.]cz)$');
+    }
+
+    function isDate(v) {
+      return v is string && v.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+
+    function validItem(d) {
+      return d.name is string && d.name.size() > 0 && d.name.size() <= 300
+        && isDate(d.dateFrom) && isDate(d.dateTo) && d.dateFrom <= d.dateTo
+        && d.domains is list;
+    }
+
+    match /plan_publikace/{id} {
+      allow read, delete: if isTeam();
+      allow create, update: if isTeam() && validItem(request.resource.data) && request.resource.data.channels is list;
+    }
+
+    match /plan_akce/{id} {
+      allow read, delete: if isTeam();
+      allow create, update: if isTeam() && validItem(request.resource.data) && request.resource.data.type is string;
+    }
+
+    match /plan_settings/{id} {
+      allow read, write: if isTeam();
+    }
+
+    // Stará appka (rs-publikacni-plan.netlify.app) se nepřihlašuje, proto ji zatím nechávám beze změny.
+    // Po přechodu na nový plán přepni na:   allow read: if isTeam();   allow write: if false;
+    match /campaigns/{id} {
+      allow read, write: if true;
+    }
+    match /yearlyPlans/{id} {
+      allow read, write: if true;
+    }
+  }
+}
