@@ -14,6 +14,7 @@ import {
 import { AdminTitle, Panel, Table, Td } from "@/components/admin";
 import { SessionFields } from "@/components/admin-forms";
 import { ActionForm, SubmitButton } from "@/components/forms";
+import { RemindPayment } from "@/components/remind-payment";
 import { bookingStatusLabel, methodLabel } from "@/components/labels";
 import { Badge, Card, Field, Input, cx } from "@/components/ui";
 import { getDb } from "@/db";
@@ -93,6 +94,10 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
             <Badge tone="gold">Nezaplaceno{payUntil ? ` · bez platby odhlásím ${formatDateTime(payUntil)}` : ""} – zaplaceno?</Badge>
           </button>
         </ActionForm>
+      )}
+      {/* not paid yet – reception nudges the client (e-mail + push with where to pay) */}
+      {!started && ((b.status === "pending_payment" && b.orderId) || (b.status === "confirmed" && b.surcharge > 0 && !b.surchargePaidAt)) && (
+        <RemindPayment bookingId={b.id} remindedAt={b.paymentRemindedAt} />
       )}
       {b.surcharge > 0 && (
         <ActionForm action={setSurchargePaidAction} className="mt-1">

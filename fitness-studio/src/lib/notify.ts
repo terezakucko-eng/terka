@@ -7,7 +7,7 @@ import type { StrikeOutcome } from "@/domain/strikes";
 import { periodLabel } from "@/domain/membership-fees";
 import { getContent } from "@/content";
 import { credits, formatPrice } from "./money";
-import { formatDate, formatDay, formatTime, pragueHour } from "./dates";
+import { formatDate, formatDateTime, formatDay, formatTime, pragueHour } from "./dates";
 import { sendEmail } from "./email-templates";
 import { greetName } from "@/lib/vocative";
 import { pushQuietly } from "./push";
@@ -18,7 +18,7 @@ import { markAnnounced, unannouncedRewards } from "@/domain/referrals";
 import { markBookingAnnounced, markExpiryAnnounced, markSignUpAnnounced, unannouncedBookings, unannouncedExpiries, unannouncedSignUps } from "@/domain/pass-cards";
 import { formatVoucherCode, markVoucherNotified, unnotifiedVouchers } from "@/domain/vouchers";
 import { displayName } from "./profile";
-import { expireStalePending, fillFromWaitlist, markLapseAnnounced, markTransferNotice, releasedHoldsWithWaitlist, transferPayBy, transfersToCheck, unannouncedLapses } from "@/domain/booking";
+import { expireStalePending, fillFromWaitlist, markLapseAnnounced, markPaymentReminded, markTransferNotice, paymentDue, releasedHoldsWithWaitlist, transferPayBy, transfersToCheck, unannouncedLapses } from "@/domain/booking";
 import type { fulfillOrder } from "@/domain/orders";
 import { getSettings } from "./settings";
 import { unsubscribeUrl } from "./links";
@@ -270,6 +270,27 @@ export async function notifyPromoted(db: DB, promoted: Pick<Booking, "userId" | 
     await sendEmail(u.email, "promoted", { osloveni: greetName(u.name), lekce, odkaz: link(p.sessionId) });
     await pushQuietly(db, [p.userId], { title: "Uvolnilo se místo – jdeš na lekci", body: lekce, url: link(p.sessionId) });
   }
+}
+
+/** Reception reminds a client of an unpaid drop-in / surcharge: e-mail (even with booking e-mails off) and push. */
+export async function remindPayment(db: DB, bookingId: string, now = new Date()) {
+  const due = await paymentDue(db, bookingId, now);
+  const b = due.booking;
+  const lekce = await describe(db, b.sessionId);
+  const co = due.kind === "drop_in" ? "platba za lekci" : "doplatek k lekci";
+  const termin =
+    due.kind === "surcharge"
+      ? " Na místě se doplatek neplatí – zaplatíš ho kartou nebo převodem."
+      : due.payBy
+        ? ` Zaplať ji prosím do ${formatDateTime(due.payBy)}, jinak se místo uvolní pro ostatní.`
+        : due.releaseAt
+          ? ` Bez platby se místo ${formatDateTime(due.releaseAt)} uvolní pro ostatní.`
+          : "";
+  const u = (await emails(db, [b.userId])).get(b.userId);
+  if (u) await sendEmail(u.email, "paymentReminder", { osloveni: greetName(u.name), co, lekce, castka: formatPrice(due.amount), termin, odkaz: link(b.sessionId) });
+  await pushQuietly(db, [b.userId], { title: "💸 Připomínka platby", body: `${co[0].toUpperCase()}${co.slice(1)} ${lekce} (${formatPrice(due.amount)})`, url: link(b.sessionId) });
+  await markPaymentReminded(db, b.id, now);
+  return { emailed: !!u };
 }
 
 /** The studio moved a class to another time – everyone booked or waiting hears the new one. Returns how many. */

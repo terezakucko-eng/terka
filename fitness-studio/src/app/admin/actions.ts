@@ -23,6 +23,7 @@ import {
   type AdminPay,
   type Method,
   cancelBooking,
+  bookingOfOrder,
   cancelSession,
   fillFromWaitlist,
   holdSeats,
@@ -46,7 +47,7 @@ import { requireAdmin, requireStaff } from "@/lib/auth";
 import { addDays, dateKey, formatDate, formatDay, mondayOf, pragueLocalToDate, weekdayOf, isDateKey } from "@/lib/dates";
 import { UserError } from "@/lib/errors";
 import { attempt, field, type FormState } from "@/lib/form";
-import { cancelledRecipients, notifyBooked, notifyCancelled, notifyPaid, notifyPromoted, notifySessionCancelled, notifySessionMoved, notifyStrike } from "@/lib/notify";
+import { cancelledRecipients, notifyBooked, notifyCancelled, notifyPaid, notifyPromoted, notifySessionCancelled, notifySessionMoved, notifyStrike, remindPayment } from "@/lib/notify";
 import { afterMemberStrike, clearPause, reconsiderPause } from "@/domain/strikes";
 import { storeImage, uploadedFile } from "@/lib/media";
 import { credits, formatPrice } from "@/lib/money";
@@ -593,6 +594,18 @@ export async function holdSeatsAction(_: FormState, fd: FormData): Promise<FormS
     const r = await holdSeats(db, { sessionId: field.str(fd, "sessionId"), userId: staff.id, seats, note: field.str(fd, "note") });
     await notifyPromoted(db, r.promoted);
     return done(seats ? `Drženo ${seats} ${seats === 1 ? "místo" : seats < 5 ? "místa" : "míst"}.` : "Místa uvolněna.");
+  });
+}
+
+/** Reminds a client of an unpaid drop-in / surcharge (by booking, or by its order from the payment lists). */
+export async function remindPaymentAction(_: FormState, fd: FormData): Promise<FormState> {
+  await requireStaff();
+  return attempt(async () => {
+    const db = await getDb();
+    const bookingId = field.str(fd, "bookingId") || (await bookingOfOrder(db, field.str(fd, "orderId")));
+    if (!bookingId) throw new UserError("Rezervace k platbě nenalezena.");
+    const r = await remindPayment(db, bookingId);
+    return done(r.emailed ? "Připomínka odeslána – e-mailem i do mobilu (má-li zapnuté notifikace)." : "Připomínka odeslána do mobilu (e-mail klient nemá).");
   });
 }
 

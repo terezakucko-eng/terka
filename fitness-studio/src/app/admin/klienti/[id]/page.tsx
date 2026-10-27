@@ -29,6 +29,7 @@ import { AdminTitle, FoldedTable, Stat, Table, Td } from "@/components/admin";
 import { Avatar } from "@/components/avatar";
 import { MONTHS, formatDayMonth } from "@/lib/profile";
 import { ActionForm, SubmitButton } from "@/components/forms";
+import { RemindPayment } from "@/components/remind-payment";
 import { bookingStatusLabel, creditReasonLabel, entitlementKindLabel, methodLabel, orderStatusLabel } from "@/components/labels";
 import { Badge, Button, Card, Field, Input, Select, Textarea } from "@/components/ui";
 import { getDb } from "@/db";
@@ -191,7 +192,15 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
                   <Link href={`/admin/rozvrh/${s.id}`} className="font-semibold underline-offset-4 hover:underline">{ct.name}</Link>
                   {b.guestName && <span className="text-les/60"> · +1 {b.guestName}</span>}
                 </Td>
-                <Td>{b.method ? methodLabel[b.method] : "—"}</Td>
+                <Td>
+                  {b.method ? methodLabel[b.method] : "—"}
+                  {b.surcharge > 0 && b.status !== "waitlist" && (
+                    <span className="block text-xs text-les/60">doplatek {formatPrice(b.surcharge)} {b.surchargePaidAt ? "✓" : "– nezaplaceno"}</span>
+                  )}
+                  {s.status !== "cancelled" && ((b.status === "pending_payment" && b.orderId) || (b.status === "confirmed" && b.surcharge > 0 && !b.surchargePaidAt)) && (
+                    <RemindPayment bookingId={b.id} remindedAt={b.paymentRemindedAt} />
+                  )}
+                </Td>
                 <Td>
                   {s.status === "cancelled" ? <Badge tone="red">Lekce zrušena</Badge> : <Badge tone={b.status === "waitlist" ? "gold" : "green"}>{bookingStatusLabel[b.status]}</Badge>}
                 </Td>
@@ -483,6 +492,7 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
                         </ActionForm>
                       </div>
                     )}
+                    {o.status === "pending" && (o.kind === "drop_in" || o.kind === "surcharge") && <RemindPayment orderId={o.id} />}
                     {/* the transfer came after the place was let go / called off – settled as the place or credit */}
                     {paidLateOk(o) && (
                       <ActionForm

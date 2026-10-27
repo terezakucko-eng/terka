@@ -14,6 +14,7 @@ import { listSessions } from "@/lib/queries";
 import { pendingStudentProofs } from "@/domain/students";
 import { transfersToCheck } from "@/domain/booking";
 import { markOrderPaidAction } from "@/app/admin/actions";
+import { RemindPayment } from "@/components/remind-payment";
 import { getSettings } from "@/lib/settings";
 import { ActionForm, SubmitButton } from "@/components/forms";
 
@@ -61,10 +62,13 @@ export default async function AdminDashboard() {
                   <strong>{t.userName}</strong> · <Link href={`/admin/rozvrh/${t.sessionId}`} className="underline underline-offset-4">{t.name} {formatDay(t.startsAt)} v {formatTime(t.startsAt)}</Link>
                   <span className="block text-les/70">{formatPrice(t.amount)} · VS {t.number} · zaplatit do {formatDateTime(t.payBy)} · bez platby odhlásím <strong>{formatDateTime(t.expiresAt!)}</strong></span>
                 </span>
-                <ActionForm action={markOrderPaidAction} confirm={`Platba ${formatPrice(t.amount)} (VS ${t.number}) dorazila? Místo se potvrdí.`}>
-                  <input type="hidden" name="orderId" value={t.orderId} />
-                  <SubmitButton variant="gold" className="px-4 py-2 text-xs">Zaplaceno</SubmitButton>
-                </ActionForm>
+                <div className="flex flex-col items-end gap-1">
+                  <ActionForm action={markOrderPaidAction} confirm={`Platba ${formatPrice(t.amount)} (VS ${t.number}) dorazila? Místo se potvrdí.`}>
+                    <input type="hidden" name="orderId" value={t.orderId} />
+                    <SubmitButton variant="gold" className="px-4 py-2 text-xs">Zaplaceno</SubmitButton>
+                  </ActionForm>
+                  {t.bookingId && <RemindPayment bookingId={t.bookingId} remindedAt={t.clientRemindedAt} />}
+                </div>
               </li>
             ))}
           </ul>

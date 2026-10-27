@@ -448,11 +448,51 @@ export async function dropInNotices(db: Executor, userId: string, now: Date) {
  * Drop-ins waiting for a bank transfer the studio should check and mark paid
  * (Přehled and the pushes): who, which class, how much, VS and the deadline.
  */
+/**
+ * What a client still owes for an upcoming booking, for a reminder from reception:
+ * an unpaid drop-in (with its deadline) or a member's surcharge. Throws when nothing is owed.
+ */
+export async function paymentDue(db: Executor, bookingId: string, now = new Date()) {
+  const [row] = await db
+    .select({ b: bookings, s: classSessions })
+    .from(bookings)
+    .innerJoin(classSessions, eq(bookings.sessionId, classSessions.id))
+    .where(eq(bookings.id, bookingId));
+  if (!row) throw new UserError("Rezervace nenalezena.");
+  const { b, s } = row;
+  if (s.startsAt <= now || s.status === "cancelled") throw new UserError("Lekce už začala nebo je zrušená.");
+  if (b.status === "cancelled") throw new UserError("Rezervace je zrušená.");
+  if (b.status === "pending_payment" && b.orderId) {
+    const [o] = await db.select().from(orders).where(eq(orders.id, b.orderId));
+    if (!o || o.status !== "pending") throw new UserError("Rezervace už na platbu nečeká.");
+    const cfg = await getSettings(db);
+    const payBy = o.provider === "transfer" && o.expiresAt ? transferPayBy(cfg, o) : null;
+    return { booking: b, session: s, kind: "drop_in" as const, amount: o.amount, payBy: payBy && payBy > now ? payBy : null, releaseAt: o.expiresAt };
+  }
+  if (b.status === "confirmed" && b.surcharge > 0 && !b.surchargePaidAt)
+    return { booking: b, session: s, kind: "surcharge" as const, amount: b.surcharge, payBy: null, releaseAt: null };
+  throw new UserError("Rezervace je zaplacená.");
+}
+
+/** The booking a drop-in / surcharge order belongs to – for reminding from the order lists. */
+export async function bookingOfOrder(db: Executor, orderId: string) {
+  const [o] = await db.select({ kind: orders.kind, bookingId: orders.bookingId }).from(orders).where(eq(orders.id, orderId));
+  if (o?.kind === "surcharge") return o.bookingId;
+  const [b] = o?.kind === "drop_in" ? await db.select({ id: bookings.id }).from(bookings).where(eq(bookings.orderId, orderId)) : [];
+  return b?.id ?? null;
+}
+
+export async function markPaymentReminded(db: Executor, bookingId: string, now = new Date()) {
+  await db.update(bookings).set({ paymentRemindedAt: now }).where(eq(bookings.id, bookingId));
+}
+
 export async function transfersToCheck(db: Executor, now: Date) {
   const cfg = await getSettings(db);
   const rows = await db
     .select({
       orderId: orders.id,
+      bookingId: bookings.id,
+      clientRemindedAt: bookings.paymentRemindedAt,
       amount: orders.amount,
       number: orders.number,
       createdAt: orders.createdAt,
@@ -468,6 +508,7 @@ export async function transfersToCheck(db: Executor, now: Date) {
     .innerJoin(users, eq(orders.userId, users.id))
     .innerJoin(classSessions, eq(orders.sessionId, classSessions.id))
     .innerJoin(classTypes, eq(classSessions.classTypeId, classTypes.id))
+    .leftJoin(bookings, eq(bookings.orderId, orders.id))
     .where(
       and(
         eq(orders.kind, "drop_in"),

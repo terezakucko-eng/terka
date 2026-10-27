@@ -3,6 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { deleteOrderAction, markOrderPaidAction } from "@/app/admin/actions";
 import { AdminTitle, Table, Td } from "@/components/admin";
 import { ActionForm } from "@/components/forms";
+import { RemindPayment } from "@/components/remind-payment";
 import { orderStatusLabel } from "@/components/labels";
 import { Badge } from "@/components/ui";
 import { getDb } from "@/db";
@@ -41,6 +42,7 @@ export default async function OrdersPage() {
                   <button className="text-xs font-semibold text-zeme underline">Zaplaceno</button>
                 </ActionForm>
               )}
+              {o.status === "pending" && (o.kind === "drop_in" || o.kind === "surcharge") && <RemindPayment orderId={o.id} />}
               {paidLateOk(o) && (
                 <ActionForm
                   action={markOrderPaidAction}
