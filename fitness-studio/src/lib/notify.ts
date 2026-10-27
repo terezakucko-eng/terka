@@ -19,7 +19,7 @@ import { markBookingAnnounced, markExpiryAnnounced, markSignUpAnnounced, unannou
 import { formatVoucherCode, markVoucherNotified, unnotifiedVouchers } from "@/domain/vouchers";
 import { displayName } from "./profile";
 import { expireStalePending, fillFromWaitlist, markLapseAnnounced, markPaymentReminded, markTransferNotice, paymentDue, releasedHoldsWithWaitlist, transferPayBy, transfersToCheck, unannouncedLapses, unpaidBookings } from "@/domain/booking";
-import type { fulfillOrder } from "@/domain/orders";
+import { createSurchargeOrder, type fulfillOrder } from "@/domain/orders";
 import { getSettings } from "./settings";
 import { UserError } from "./errors";
 import { unsubscribeUrl } from "./links";
@@ -288,11 +288,16 @@ export async function remindPayment(db: DB, bookingId: string, now = new Date())
         : due.releaseAt
           ? ` Bez platby se místo ${formatDateTime(due.releaseAt)} uvolní pro ostatní.`
           : " Místo máš rezervované – zaplať prosím ještě před lekcí.";
-  // a drop-in: the payment page (QR, account, VS); a surcharge: the class page (card or transfer)
-  const odkaz = due.orderId ? `${site.url}/platba/prevod?order=${due.orderId}` : link(b.sessionId);
+  // a surcharge not started yet gets its payment now – so it has a VS and a QR code to pay by transfer
+  const order = due.kind === "surcharge" ? await createSurchargeOrder(db, { userId: b.userId, bookingId: b.id }).catch(() => null) : null;
+  const orderId = due.orderId ?? order?.id;
+  const vs = due.vs ?? order?.number;
+  // the payment page: QR, account, VS (and card for a surcharge); without one the class page
+  const odkaz = orderId ? `${site.url}/platba/prevod?order=${orderId}` : link(b.sessionId);
   const u = (await emails(db, [b.userId])).get(b.userId);
-  if (u) await sendEmail(u.email, "paymentReminder", { osloveni: greetName(u.name), co, lekce, castka: formatPrice(due.amount), termin, odkaz });
-  await pushQuietly(db, [b.userId], { title: "💸 Připomínka platby", body: `${co[0].toUpperCase()}${co.slice(1)} ${lekce} (${formatPrice(due.amount)})`, url: odkaz });
+  if (u)
+    await sendEmail(u.email, "paymentReminder", { osloveni: greetName(u.name), co, lekce, castka: `${formatPrice(due.amount)}${vs ? `, VS ${vs}` : ""}`, termin, odkaz });
+  await pushQuietly(db, [b.userId], { title: "💸 Připomínka platby", body: `${co[0].toUpperCase()}${co.slice(1)} ${lekce} (${formatPrice(due.amount)}${vs ? `, VS ${vs}` : ""})`, url: odkaz });
   await markPaymentReminded(db, b.id, now);
   return { emailed: !!u };
 }

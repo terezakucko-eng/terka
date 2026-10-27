@@ -48,9 +48,13 @@ describe("reception reminds an unpaid booking", () => {
     const { booking } = await bookSession(h.db, { userId: u.id, sessionId: s.id, method: "membership", entitlementId: opt.entitlementId }, NOW);
     await remindPayment(h.db, booking.id, NOW);
     expect(sent[0].vars).toMatchObject({ co: "doplatek k lekci" });
-    expect(sent[0].vars.castka).toMatch(/100/);
-    // once paid there's nothing to remind
+    // the reminder starts its payment, so there's a VS and a QR code to pay by transfer
+    const [started] = await h.db.select().from(orders).where(eq(orders.bookingId, booking.id));
+    expect(sent[0].vars.castka).toMatch(new RegExp(`100.*VS ${started.number}`));
+    expect(sent[0].vars.odkaz).toContain(`/platba/prevod?order=${started.id}`);
+    // once paid there's nothing to remind (the client's own checkout reuses the same payment)
     const o = await createSurchargeOrder(h.db, { userId: u.id, bookingId: booking.id });
+    expect(o.id).toBe(started.id);
     expect(await bookingOfOrder(h.db, o.id)).toBe(booking.id);
     await fulfillOrder(h.db, { orderId: o.id, provider: "transfer" }, NOW);
     await expect(remindPayment(h.db, booking.id, NOW)).rejects.toThrow(/zaplacená/);

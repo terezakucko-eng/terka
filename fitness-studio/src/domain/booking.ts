@@ -471,12 +471,12 @@ export async function paymentDue(db: Executor, bookingId: string, now = new Date
       if (past) throw new UserError("Lekce už začala.");
       const cfg = await getSettings(db);
       const payBy = o.provider === "transfer" && o.expiresAt ? transferPayBy(cfg, o) : null;
-      return { booking: b, session: s, kind: "drop_in" as const, orderId: o.id, amount: o.amount, past, payBy: payBy && payBy > now ? payBy : null, releaseAt: o.expiresAt };
+      return { booking: b, session: s, kind: "drop_in" as const, orderId: o.id, vs: o.number, amount: o.amount, past, payBy: payBy && payBy > now ? payBy : null, releaseAt: o.expiresAt };
     }
-    return { booking: b, session: s, kind: "drop_in" as const, orderId: o.id, amount: o.amount, past, payBy: null, releaseAt: null };
+    return { booking: b, session: s, kind: "drop_in" as const, orderId: o.id, vs: o.number, amount: o.amount, past, payBy: null, releaseAt: null };
   }
   if (b.status !== "pending_payment" && b.surcharge > 0 && !b.surchargePaidAt)
-    return { booking: b, session: s, kind: "surcharge" as const, orderId: null, amount: b.surcharge, past, payBy: null, releaseAt: null };
+    return { booking: b, session: s, kind: "surcharge" as const, orderId: null, vs: null, amount: b.surcharge, past, payBy: null, releaseAt: null };
   throw new UserError("Rezervace je zaplacená.");
 }
 

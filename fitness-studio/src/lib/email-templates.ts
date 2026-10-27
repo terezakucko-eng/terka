@@ -169,7 +169,7 @@ export const EMAILS = {
       osloveni,
       co: { label: "co chybí (platba za lekci / doplatek k lekci)", sample: "platba za lekci" },
       lekce,
-      castka: { label: "částka", sample: "250 Kč" },
+      castka: { label: "částka a variabilní symbol", sample: "250 Kč, VS 1088" },
       termin: { label: "do kdy zaplatit (u převodu)", sample: " Zaplať ji prosím do úterý 7. 10. v 10:00, jinak se místo uvolní pro ostatní." },
       odkaz: { label: "odkaz na platbu (QR a číslo účtu, u doplatku stránka lekce)", sample: `${site.url}/platba/prevod` },
     },
