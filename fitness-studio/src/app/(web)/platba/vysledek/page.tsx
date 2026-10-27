@@ -4,6 +4,8 @@ import { getDb } from "@/db";
 import { entitlements, orders, vouchers } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
+import { credits } from "@/lib/money";
+import { creditedBack } from "@/domain/orders";
 
 export default async function PaymentResultPage({ searchParams }: PageProps<"/platba/vysledek">) {
   const { order: id, stav } = await searchParams;
@@ -16,6 +18,8 @@ export default async function PaymentResultPage({ searchParams }: PageProps<"/pl
   const paid = mine?.status === "paid";
   const [gift] = mine?.kind === "voucher" ? await (await getDb()).select().from(vouchers).where(eq(vouchers.orderId, mine.id)) : [];
   const cancelled = stav === "zruseno" && !paid;
+  // paid for a booking that was gone meanwhile – it came back as credit
+  const credited = paid && (mine.kind === "drop_in" || mine.kind === "surcharge") ? await creditedBack(await getDb(), mine.id) : 0;
   // bought in presale (Členství 2027): it starts later
   const [later] =
     paid && mine?.kind === "product"
@@ -35,6 +39,8 @@ export default async function PaymentResultPage({ searchParams }: PageProps<"/pl
         <p className="mt-3 text-les/70">
           {paid && gift
             ? "Dárkový poukaz je připravený 🎁 Stáhni si ho jako PDF – vytiskni ho, nebo ho rovnou pošli. Najdeš ho i v Můj účet."
+            : credited > 0
+            ? `Platba prošla, ale rezervace už neplatila – máš ji na účtu jako kredit (${credits(credited)}). Můžeš s ním zaplatit jinou lekci.`
             : paid
             ? mine?.kind === "drop_in" || mine?.kind === "surcharge" || mine?.kind === "massage" || mine?.kind === "membership_fee"
               ? "Zaplaceno, děkujeme. Těšíme se na tebe."

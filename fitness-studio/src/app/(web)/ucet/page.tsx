@@ -42,7 +42,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
   const db = await getDb();
   const fees = await openFees(db, user.id);
   const [upcoming, ents, massages, unpaid, visits, review, content, insuranceYrs] = await Promise.all([
-    userBookings(db, user.id, "upcoming"),
+    userBookings(db, user.id, "upcoming", new Date(), 50, true),
     userEntitlements(db, user.id, true),
     db
       .select()
@@ -234,7 +234,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
                       );
                     })()}
                   </div>
-                  {flexible.has(e.id) && !e.renewalCancelled && (
+                  {flexible.has(e.id) && !e.renewalCancelled && !e.subscriptionId && (
                     <ActionForm action={endMembershipAction} confirm="Ukončit členství? Platí do konce zaplaceného měsíce, další platby už nepřijdou.">
                       <input type="hidden" name="id" value={e.id} />
                       <SubmitButton variant="ghost" className="px-3 py-2 text-[0.65rem]">Ukončit ke konci měsíce</SubmitButton>
@@ -316,7 +316,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
                 {b.isHold ? <Badge>{b.seats} {b.seats === 1 ? "místo" : b.seats < 5 ? "místa" : "míst"}</Badge> : b.guestName && <Badge>+1 {b.guestName}</Badge>}
                 {b.status === "waitlist" && <Badge tone="gold">Pořadník</Badge>}
                 {b.status === "pending_payment" && <Badge tone="gold">Čeká na platbu</Badge>}
-                {b.surcharge > 0 && !b.surchargePaidAt && b.status !== "waitlist" && <SurchargePay bookingId={b.id} amount={b.surcharge} compact />}
+                {b.surcharge > 0 && !b.surchargePaidAt && b.status !== "waitlist" && b.status !== "cancelled" && <SurchargePay bookingId={b.id} amount={b.surcharge} compact />}
                 {s.status === "cancelled" && <Badge tone="red">Lekce zrušena</Badge>}
                 {s.status !== "cancelled" && (
                   <ActionForm action={cancelBookingAction} confirm="Opravdu zrušit rezervaci?">

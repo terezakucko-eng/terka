@@ -8,9 +8,10 @@ import { getDb } from "@/db";
 import { orders } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { bankTransfer } from "@/lib/massage-payment";
-import { formatPrice } from "@/lib/money";
+import { credits, formatPrice } from "@/lib/money";
 import { formatDateTime } from "@/lib/dates";
 import { transferPayBy } from "@/domain/booking";
+import { creditedBack } from "@/domain/orders";
 import { getSettings } from "@/lib/settings";
 import { cardPayments } from "@/lib/payments";
 import { payOrderAction } from "@/app/actions/booking";
@@ -34,13 +35,21 @@ export default async function TransferPage({ searchParams }: PageProps<"/platba/
   const c = await getContent();
   const paid = o.status === "paid";
   const off = o.status === "cancelled" || o.status === "expired";
+  // paid after the booking was gone – it's on the account as credit
+  const credited = paid && (o.kind === "drop_in" || o.kind === "surcharge") ? await creditedBack(db, o.id) : 0;
   const t = paid || off ? null : await bankTransfer({ amount: o.amount, vs: o.number ?? "", message: o.description }, c("massages.bankAccount"));
 
   return (
     <Container className="max-w-3xl py-12 sm:py-16">
-      {o.kind === "drop_in" && paid && (
+      {o.kind === "drop_in" && paid && !credited && (
         <p className="mb-8 flex items-center gap-3 rounded-2xl bg-forest p-5 text-papir">
           <CheckCircle2 className="size-6 shrink-0 text-zlato" /> Platba dorazila – místo na lekci je tvoje.
+        </p>
+      )}
+      {credited > 0 && (
+        <p className="mb-8 flex items-center gap-3 rounded-2xl bg-forest p-5 text-papir">
+          <CheckCircle2 className="size-6 shrink-0 text-zlato" />
+          <span>Platba dorazila, ale rezervace už neplatila – máš ji na účtu jako kredit ({credits(credited)}). Můžeš s ním zaplatit jinou lekci.</span>
         </p>
       )}
       {/* the place is the client's only once paid (older bookings had it right away – no deadline) */}

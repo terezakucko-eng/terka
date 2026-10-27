@@ -22,6 +22,7 @@ import {
 import { adminCancelMassageAction } from "@/app/admin/massage-actions";
 import { recordPastFeesAction } from "@/app/admin/fee-actions";
 import { insuranceYears } from "@/domain/insurance";
+import { paidLateOk } from "@/domain/orders";
 import { currentPeriod, periodStartLabel, shiftPeriod } from "@/domain/membership-fees";
 import { getSettings } from "@/lib/settings";
 import { AdminTitle, FoldedTable, Stat, Table, Td } from "@/components/admin";
@@ -481,6 +482,17 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
                           <button className="text-xs font-semibold text-chyba underline">Zrušit</button>
                         </ActionForm>
                       </div>
+                    )}
+                    {/* the transfer came after the place was let go / called off – settled as the place or credit */}
+                    {paidLateOk(o) && (
+                      <ActionForm
+                        action={markOrderPaidAction}
+                        confirm={`Platba č. ${o.number} (${formatPrice(o.amount)}) přesto dorazila? Když je na lekci ještě místo a rezervace jen propadla, místo se vrátí – jinak se částka připíše jako kredit.`}
+                        className="mt-1"
+                      >
+                        <input type="hidden" name="orderId" value={o.id} />
+                        <button className="text-xs font-semibold text-zeme underline">Platba přesto dorazila</button>
+                      </ActionForm>
                     )}
                   </Td>
                 </tr>

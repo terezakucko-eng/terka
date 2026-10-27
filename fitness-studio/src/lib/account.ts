@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, lt, ne } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lt, ne, or } from "drizzle-orm";
 import { sessionName } from "./session-name";
 import type { DB } from "@/db";
 import {
@@ -17,6 +17,8 @@ export async function userBookings(
   when: "upcoming" | "past",
   now = new Date(),
   limit = 50,
+  /** the client's own list also keeps classes the studio cancelled – so it's clear why they're gone */
+  cancelledClasses = false,
 ) {
   const rows = await db
     .select({ b: bookings, s: classSessions, ct: classTypes, ins: instructors })
@@ -28,7 +30,12 @@ export async function userBookings(
       and(
         eq(bookings.userId, userId),
         when === "upcoming"
-          ? and(gte(classSessions.startsAt, now), ne(bookings.status, "cancelled"))
+          ? and(
+              gte(classSessions.startsAt, now),
+              cancelledClasses
+                ? or(ne(bookings.status, "cancelled"), and(eq(classSessions.status, "cancelled"), eq(bookings.isHold, false)))
+                : ne(bookings.status, "cancelled"),
+            )
           : lt(classSessions.startsAt, now),
       ),
     )

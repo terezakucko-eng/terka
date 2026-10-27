@@ -17,7 +17,7 @@ import { addDays, dateKey, formatDate, formatDateTime, mondayOf, pragueLocalToDa
 import { UserError } from "@/lib/errors";
 import { credits as creditsLabel, formatPrice } from "@/lib/money";
 import { getSettings, type Settings } from "@/lib/settings";
-import { changeCredits, creditExpired } from "./wallet";
+import { changeCredits, creditExpired, dropInCredit } from "./wallet";
 import { periodLabel, shiftPeriod } from "./membership-fees";
 import { surchargeOn } from "@/lib/price-list";
 import { sessionNameSql } from "@/lib/session-name";
@@ -939,7 +939,7 @@ async function passIncludedOn(tx: Executor, b: Booking, s: ClassSession) {
   if (!memberSurchargeFor(rules, s) || !(await includedLeft(tx, e, s, rules))) return;
   const month = dateKey(s.startsAt).slice(0, 7);
   const [next] = await tx
-    .select({ id: bookings.id })
+    .select({ id: bookings.id, userId: bookings.userId, surcharge: bookings.surcharge, surchargePaidAt: bookings.surchargePaidAt })
     .from(bookings)
     .innerJoin(classSessions, eq(bookings.sessionId, classSessions.id))
     .where(
@@ -947,20 +947,26 @@ async function passIncludedOn(tx: Executor, b: Booking, s: ClassSession) {
         eq(bookings.entitlementId, e.id),
         eq(bookings.status, "confirmed"),
         gt(bookings.surcharge, 0),
-        isNull(bookings.surchargePaidAt),
         eq(classSessions.classTypeId, s.classTypeId),
+        ne(classSessions.status, "cancelled"),
         gte(classSessions.startsAt, pragueLocalToDate(`${month}-01T00:00`)),
         lt(classSessions.startsAt, pragueLocalToDate(`${shiftPeriod(month, 1)}-01T00:00`)),
       ),
     )
-    .orderBy(asc(classSessions.startsAt))
+    // an unpaid surcharge first (nothing to give back), else the paid one comes back as credit
+    .orderBy(sql`${bookings.surchargePaidAt} is not null`, asc(classSessions.startsAt))
     .limit(1);
   if (!next) return;
-  await tx.update(bookings).set({ surcharge: 0 }).where(eq(bookings.id, next.id));
-  await tx
-    .update(orders)
-    .set({ status: "cancelled" })
-    .where(and(eq(orders.kind, "surcharge"), eq(orders.bookingId, next.id), eq(orders.status, "pending")));
+  await tx.update(bookings).set({ surcharge: 0, surchargePaidAt: null }).where(eq(bookings.id, next.id));
+  if (next.surchargePaidAt)
+    await changeCredits(tx, {
+      userId: next.userId,
+      delta: Math.round(next.surcharge / 100),
+      reason: "refund",
+      bookingId: next.id,
+      note: `Lekce v ceně členství uvolněná zrušením – doplatek ${formatPrice(next.surcharge)} vrácen jako kredit`,
+    });
+  await callOffSurcharge(tx, next.id);
 }
 
 /** Gives back whatever the booking cost. */
@@ -977,20 +983,22 @@ async function refund(tx: Executor, b: Booking, s: ClassSession, note: string) {
         });
       break;
     case "drop_in": {
-      // Not paid yet (bank transfer pending) – just call the payment off.
       const [o] = b.orderId ? await tx.select().from(orders).where(eq(orders.id, b.orderId)) : [];
-      if (o && o.status !== "paid") {
-        await tx.update(orders).set({ status: "cancelled" }).where(eq(orders.id, o.id));
+      // Not paid (bank transfer pending, order deleted at reception) – nothing comes back, the payment is called off.
+      if (!o || o.status !== "paid") {
+        if (o?.status === "pending") await tx.update(orders).set({ status: "cancelled" }).where(eq(orders.id, o.id));
         break;
       }
-      // Paid entries come back as credit – no refund round-trip needed.
-      await changeCredits(tx, {
-        userId: b.userId,
-        delta: s.creditCost * b.seats,
-        reason: "refund",
-        bookingId: b.id,
-        note: `${note} (jednorázový vstup vrácen jako kredit)`,
-      });
+      // What was paid comes back as credit – never more than the class costs (a free first visit gives nothing).
+      const credit = dropInCredit(o.amount, s.creditCost, b.seats);
+      if (credit > 0)
+        await changeCredits(tx, {
+          userId: b.userId,
+          delta: credit,
+          reason: "refund",
+          bookingId: b.id,
+          note: `${note} (jednorázový vstup vrácen jako kredit)`,
+        });
       break;
     }
     case "pass":
@@ -1025,6 +1033,32 @@ async function refund(tx: Executor, b: Booking, s: ClassSession, note: string) {
       note: `${note} (doplatek ${formatPrice(b.surcharge)} vrácen jako kredit)`,
     });
   await callOffSurcharge(tx, b.id);
+}
+
+/**
+ * Reception marks a surcharge paid at the desk (the online payment is then
+ * called off) or takes its own mark back – a surcharge paid by card or
+ * transfer can only be undone by deleting that order.
+ */
+export async function setSurchargePaid(db: DB, input: { bookingId: string; paid: boolean; isAdmin: boolean }, now = new Date()) {
+  return db.transaction(async (tx) => {
+    const [b] = await tx.select().from(bookings).where(eq(bookings.id, input.bookingId)).for("update");
+    if (!b || b.surcharge === 0) throw new UserError("Rezervace nemá doplatek.");
+    if (input.paid) {
+      if (b.surchargePaidAt) return;
+      await tx.update(bookings).set({ surchargePaidAt: now }).where(eq(bookings.id, b.id));
+      await callOffSurcharge(tx, b.id);
+      return;
+    }
+    if (!b.surchargePaidAt) return;
+    if (!input.isAdmin) throw new UserError("Zaplacení doplatku může vrátit jen administrátor/ka.");
+    const [online] = await tx
+      .select({ id: orders.id })
+      .from(orders)
+      .where(and(eq(orders.kind, "surcharge"), eq(orders.bookingId, b.id), eq(orders.status, "paid")));
+    if (online) throw new UserError("Doplatek je zaplacený kartou nebo převodem – vrátit se dá jen smazáním té platby v Platby a objednávky.");
+    await tx.update(bookings).set({ surchargePaidAt: null }).where(eq(bookings.id, b.id));
+  });
 }
 
 /** A surcharge not paid yet is called off – nothing is owed for a cancelled class. */
@@ -1268,6 +1302,8 @@ export async function cancelBooking(
     isAdmin?: boolean;
     /** Admin override – refund even after the free-cancellation window. */
     refund?: boolean;
+    /** An instructor, not an admin: no refunds once the class has started. */
+    instructor?: boolean;
   },
   now = new Date(),
 ) {
@@ -1286,6 +1322,8 @@ export async function cancelBooking(
       throw new UserError("Lekce už začala, rezervaci nelze zrušit.");
     if (!input.isAdmin && (b.status === "attended" || b.status === "no_show"))
       throw new UserError("Rezervaci už nelze zrušit.");
+    if (input.instructor && input.refund && (s.startsAt <= now || b.status === "attended" || b.status === "no_show"))
+      throw new UserError("Vrátit vstup po začátku lekce může jen administrátor/ka.");
 
     const late = isLateCancel(s, await cancellationHoursFor(tx, s, cfg), now);
     let refunded = false;
@@ -1392,6 +1430,8 @@ export async function cancelSession(db: DB, sessionId: string, now = new Date())
         .update(bookings)
         .set({ status: "cancelled", cancelledAt: now })
         .where(eq(bookings.id, b.id));
+      // a lesson included in the membership isn't lost – it goes to the next surcharged one that month
+      if (b.status === "confirmed") await passIncludedOn(tx, b, s);
     }
     return { session: s, affected };
   });
@@ -1459,11 +1499,23 @@ export async function adminAddBooking(
   });
 }
 
+/** Attendance can be ticked from an hour before the class (people arrive early); "didn't come" only once it started. */
+const ATTENDANCE_EARLY_MS = 60 * MIN;
+
 export async function setAttendance(
   db: DB,
   bookingId: string,
   status: "attended" | "no_show" | "confirmed",
+  now = new Date(),
 ) {
+  const [row] = await db
+    .select({ b: bookings, startsAt: classSessions.startsAt })
+    .from(bookings)
+    .innerJoin(classSessions, eq(bookings.sessionId, classSessions.id))
+    .where(eq(bookings.id, bookingId));
+  if (row && status === "attended" && row.startsAt.getTime() - ATTENDANCE_EARLY_MS > now.getTime())
+    throw new UserError("Docházku jde zapsat nejdřív hodinu před lekcí.");
+  if (row && status === "no_show" && row.startsAt > now) throw new UserError("„Nepřišel“ jde označit až po začátku lekce.");
   const [b] = await db
     .update(bookings)
     .set({ status })
@@ -1475,7 +1527,7 @@ export async function setAttendance(
     )
     .returning();
   if (!b) throw new UserError("Rezervaci nelze upravit.");
-  return b;
+  return { ...b, was: row?.b.status };
 }
 
 /** Everything the session detail page needs about one client and one class. */

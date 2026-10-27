@@ -1,7 +1,7 @@
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { sessionName } from "./session-name";
 import type { DB } from "@/db";
-import { classSessions, classTypes, orders, users, type Booking, type Order, type Wish } from "@/db/schema";
+import { bookings, classSessions, classTypes, orders, users, type Booking, type Order, type Wish } from "@/db/schema";
 import { site } from "@/config/site";
 import type { StrikeOutcome } from "@/domain/strikes";
 import { periodLabel } from "@/domain/membership-fees";
@@ -29,6 +29,8 @@ async function describe(db: DB, sessionId: string) {
     .from(classSessions)
     .innerJoin(classTypes, eq(classSessions.classTypeId, classTypes.id))
     .where(eq(classSessions.id, sessionId));
+  // a class deleted from the schedule meanwhile (lapsed payment, late notice)
+  if (!row) return "lekce, která už není v rozvrhu";
   return `${sessionName(row.s, row.ct)} – ${formatDay(row.s.startsAt)} v ${formatTime(row.s.startsAt)}`;
 }
 
@@ -113,26 +115,45 @@ export async function notifyAwaitingPayment(db: DB, o: Pick<Order, "id" | "userI
   });
 }
 
+/** Stripe renewed a membership the studio had ended – the money is in, reception refunds it. */
+export async function notifyOrphanRenewal(db: DB, o: Pick<Order, "description" | "amount" | "number">) {
+  await pushQuietly(db, await adminIds(db), {
+    title: "⚠️ Stripe obnovil ukončené členství – vrať platbu",
+    body: `${o.description} · ${formatPrice(o.amount)}${o.number ? ` · č. ${o.number}` : ""} · zruš i předplatné ve Stripe`,
+    url: `${site.url}/admin/objednavky`,
+  });
+}
+
 /** After a payment: a drop-in's place is confirmed now – or came back as credit when it was gone. */
 export async function notifyPaid(db: DB, r: Awaited<ReturnType<typeof fulfillOrder>>) {
-  if (!r.dropIn) return;
-  const { booking: b, outcome } = r.dropIn;
-  const lekce = await describe(db, b.sessionId);
-  if (outcome === "confirmed") {
+  // money the studio has to send back by hand
+  if (r.duplicate || r.massageCancelled)
+    await pushQuietly(db, await adminIds(db), {
+      title: r.duplicate ? "⚠️ Dvojitá platba kartou – vrať ji přes Stripe" : "⚠️ Zaplacená masáž je zrušená – vrať platbu",
+      body: `${r.order.description} · ${formatPrice(r.order.amount)}${r.order.number ? ` · č. ${r.order.number}` : ""}`,
+      url: `${site.url}/admin/objednavky`,
+    });
+  const settled = r.dropIn ?? r.surcharge;
+  if (!settled) return;
+  const b = settled.booking;
+  if (settled.outcome === "confirmed" && b) {
+    const lekce = await describe(db, b.sessionId);
     await notifyBooked(db, b, true);
     await pushQuietly(db, [b.userId], { title: "Platba dorazila – místo je tvoje", body: lekce, url: link(b.sessionId) });
     return;
   }
-  const u = (await emails(db, [b.userId])).get(b.userId);
-  const [row] = await db.select({ cost: classSessions.creditCost }).from(classSessions).where(eq(classSessions.id, b.sessionId));
+  if (settled.outcome !== "credited" || settled.credit <= 0) return;
+  // paid for something no longer there (cancelled, lapsed, full, deleted) – it's credit now
+  const lekce = b ? await describe(db, b.sessionId).catch(() => r.order.description) : r.order.description;
+  const u = (await emails(db, [settled.userId])).get(settled.userId);
   if (u)
     await sendEmail(u.email, "dropInLate", {
       osloveni: greetName(u.name),
       lekce,
-      kredit: credits((row?.cost ?? 0) * b.seats),
+      kredit: credits(settled.credit),
       odkaz: `${site.url}/rozvrh`,
     });
-  await pushQuietly(db, [b.userId], { title: "Platba dorazila pozdě – máš ji jako kredit", body: lekce, url: `${site.url}/ucet` });
+  await pushQuietly(db, [settled.userId], { title: "Platba dorazila – máš ji jako kredit", body: lekce, url: `${site.url}/ucet` });
 }
 
 /**
@@ -197,9 +218,11 @@ export async function sendTransferChecks(db: DB, now = new Date()) {
 }
 
 /** The client's own cancellation – skipped when they turned booking e-mails off. */
-export async function notifyCancelled(db: DB, b: Pick<Booking, "userId" | "sessionId"> & Partial<Pick<Booking, "status" | "surcharge" | "surchargePaidAt">>, refunded: boolean) {
+export async function notifyCancelled(db: DB, b: Pick<Booking, "userId" | "sessionId"> & Partial<Pick<Booking, "status" | "surcharge" | "surchargePaidAt" | "method">>, refunded: boolean, byStudio = false) {
+  // the studio cancelling a client's booking is always told – by e-mail and push
+  if (byStudio) await pushQuietly(db, [b.userId], { title: "Rezervace zrušena studiem", body: await describe(db, b.sessionId), url: `${site.url}/ucet` });
   const u = (await emails(db, [b.userId])).get(b.userId);
-  if (!u || !u.bookingEmails) return;
+  if (!u || (!byStudio && !u.bookingEmails)) return;
   const surcharge = (b.surcharge ?? 0) > 0 && b.surchargePaidAt;
   await sendEmail(u.email, "cancelled", {
     osloveni: greetName(u.name),
@@ -208,9 +231,11 @@ export async function notifyCancelled(db: DB, b: Pick<Booking, "userId" | "sessi
       b.status === "pending_payment"
         ? "Rezervace nebyla zaplacená, takže nic neplatíš."
         : refunded
-          ? surcharge
-            ? `Vstup/kredit ti vracíme na účet a doplatek ${formatPrice(b.surcharge!)} jako kredit.`
-            : "Vstup/kredit ti vracíme na účet."
+          ? b.method === "drop_in"
+            ? "Zaplacenou částku ti vracíme na účet jako kredit – můžeš s ním zaplatit jinou lekci."
+            : surcharge
+              ? `Vstup/kredit ti vracíme na účet a doplatek ${formatPrice(b.surcharge!)} jako kredit.`
+              : "Vstup/kredit ti vracíme na účet."
           : surcharge
             ? "Storno proběhlo po lhůtě, vstup i doplatek propadají."
             : "Storno proběhlo po lhůtě, vstup propadá.",
@@ -247,15 +272,49 @@ export async function notifyPromoted(db: DB, promoted: Pick<Booking, "userId" | 
   }
 }
 
-export async function notifySessionCancelled(db: DB, sessionId: string, userIds: string[]) {
-  const map = await emails(db, userIds);
+/** The studio moved a class to another time – everyone booked or waiting hears the new one. Returns how many. */
+export async function notifySessionMoved(db: DB, sessionId: string, was: Date) {
+  const rows = await db
+    .select({ userId: bookings.userId })
+    .from(bookings)
+    .where(and(eq(bookings.sessionId, sessionId), inArray(bookings.status, ["confirmed", "pending_payment", "waitlist"]), eq(bookings.isHold, false)));
+  const ids = [...new Set(rows.map((r) => r.userId))];
+  if (!ids.length) return 0;
+  const map = await emails(db, ids);
   const what = await describe(db, sessionId);
-  for (const id of userIds) {
+  for (const id of ids) {
     const u = map.get(id);
     if (!u) continue;
-    await sendEmail(u.email, "sessionCancelled", { osloveni: greetName(u.name), lekce: what, odkaz: `${site.url}/rozvrh` });
+    await sendEmail(u.email, "sessionMoved", { osloveni: greetName(u.name), lekce: what, puvodne: when(was), odkaz: link(sessionId) });
   }
-  await pushQuietly(db, userIds, { title: "Lekce je zrušená", body: what, url: `${site.url}/rozvrh` });
+  await pushQuietly(db, ids, { title: "Lekce má nový čas", body: what, url: link(sessionId) });
+  return ids.length;
+}
+
+/** Who hears that the studio cancelled a class: the booked clients – not the waitlist, not places staff held. */
+export const cancelledRecipients = <B extends Pick<Booking, "status" | "isHold">>(affected: B[]) =>
+  affected.filter((b) => b.status !== "waitlist" && !b.isHold);
+
+export async function notifySessionCancelled(db: DB, sessionId: string, affected: Pick<Booking, "status" | "isHold" | "userId" | "method">[]) {
+  const list = cancelledRecipients(affected);
+  const map = await emails(db, list.map((b) => b.userId));
+  const what = await describe(db, sessionId);
+  for (const b of list) {
+    const u = map.get(b.userId);
+    if (!u) continue;
+    await sendEmail(u.email, "sessionCancelled", {
+      osloveni: greetName(u.name),
+      lekce: what,
+      odkaz: `${site.url}/rozvrh`,
+      vraceni:
+        b.status === "pending_payment"
+          ? "Rezervace ještě nebyla zaplacená – platbu už neposílej."
+          : b.method === "drop_in"
+            ? "Zaplacenou částku jsme ti vrátili na účet jako kredit."
+            : "Vstup/kredit jsme ti vrátili na účet.",
+    });
+  }
+  await pushQuietly(db, list.map((b) => b.userId), { title: "Lekce je zrušená", body: what, url: `${site.url}/rozvrh` });
 }
 
 /** A new message in the Schránka přání a nápadů: push to the admins, e-mail to the studio. */

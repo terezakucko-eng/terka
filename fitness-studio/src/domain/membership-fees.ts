@@ -1,6 +1,6 @@
-import { and, asc, desc, eq, gt, gte, inArray, isNull, lt, lte, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, gte, inArray, isNull, lt, lte, or } from "drizzle-orm";
 import type { DB, Executor } from "@/db";
-import { entitlements, orders, products, users, type Entitlement, type Order, type Product } from "@/db/schema";
+import { bookings, classSessions, entitlements, orders, products, users, type Entitlement, type Order, type Product } from "@/db/schema";
 import { dateKey, pragueLocalToDate } from "@/lib/dates";
 import { UserError } from "@/lib/errors";
 
@@ -111,7 +111,8 @@ export async function createMonthlyFees(
   );
   if (!members.length) return [];
   const existing = await feeOrders(db, input.period, members.map((m) => m.userId));
-  const has = new Set(existing.filter((o) => o.status !== "cancelled").map((o) => o.userId));
+  // a fee the studio called off (waived) isn't issued again by the monthly run – only for one member on purpose
+  const has = new Set(existing.filter((o) => o.status !== "cancelled" || !input.userIds).map((o) => o.userId));
   const created: Order[] = [];
   for (const m of members) {
     if (has.has(m.userId)) continue;
@@ -476,5 +477,34 @@ export async function switchMembership(db: DB, userId: string, entitlementId: st
       .set({ amount: offer.price })
       .where(and(eq(orders.userId, userId), eq(orders.kind, "membership_fee"), eq(orders.status, "pending"), gte(orders.period, period)));
     return { period, product: offer, previous: e.name };
+  });
+}
+
+/**
+ * Reception invalidates a pass / membership. A membership's fees for the coming
+ * months are no longer due (unless another membership goes on); classes already
+ * booked on it stay – the count tells reception to check them.
+ */
+export async function cancelEntitlement(db: DB, entitlementId: string, now = new Date()) {
+  return db.transaction(async (tx) => {
+    const [e] = await tx.update(entitlements).set({ status: "cancelled" }).where(eq(entitlements.id, entitlementId)).returning();
+    if (!e) throw new UserError("Nenalezeno.");
+    if (e.kind === "membership") {
+      const [other] = await tx
+        .select({ id: entitlements.id })
+        .from(entitlements)
+        .where(and(eq(entitlements.userId, e.userId), eq(entitlements.kind, "membership"), eq(entitlements.status, "active"), gt(entitlements.validUntil, now)));
+      if (!other)
+        await tx
+          .update(orders)
+          .set({ status: "cancelled" })
+          .where(and(eq(orders.userId, e.userId), eq(orders.kind, "membership_fee"), eq(orders.status, "pending"), gt(orders.period, currentPeriod(now))));
+    }
+    const [{ n }] = await tx
+      .select({ n: count() })
+      .from(bookings)
+      .innerJoin(classSessions, eq(bookings.sessionId, classSessions.id))
+      .where(and(eq(bookings.entitlementId, e.id), eq(bookings.status, "confirmed"), gt(classSessions.startsAt, now)));
+    return { entitlement: e, upcoming: n };
   });
 }

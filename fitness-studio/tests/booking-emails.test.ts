@@ -7,7 +7,7 @@ vi.mock("@/lib/email-templates", () => ({ sendEmail: vi.fn(async (_to: string, i
 vi.mock("@/lib/push", () => ({ pushQuietly: vi.fn(async () => 0) }));
 
 const { users } = await import("@/db/schema");
-const { notifyBooked, notifyCancelled, notifySessionCancelled } = await import("@/lib/notify");
+const { cancelledRecipients, notifyBooked, notifyCancelled, notifySessionCancelled } = await import("@/lib/notify");
 const { makeSession, makeUser, testDb } = await import("./helpers");
 
 let h: Awaited<ReturnType<typeof testDb>>;
@@ -28,7 +28,7 @@ describe("booking confirmation e-mails", () => {
     expect(sent).toEqual([]);
 
     await notifyBooked(h.db, { userId: u.id, sessionId: s.id }, true); // added by the reception
-    await notifySessionCancelled(h.db, s.id, [u.id]);
+    await notifySessionCancelled(h.db, s.id, [{ userId: u.id, status: "confirmed", isHold: false, method: "credits" }]);
     expect(sent).toEqual(["booked", "sessionCancelled"]);
   });
 
@@ -38,5 +38,17 @@ describe("booking confirmation e-mails", () => {
     await notifyBooked(h.db, { userId: u.id, sessionId: s.id });
     await notifyCancelled(h.db, { userId: u.id, sessionId: s.id }, false);
     expect(sent).toEqual(["booked", "cancelled"]);
+  });
+});
+
+describe("studio cancels a class", () => {
+  it("tells the booked clients – not the waitlist, not places staff held", () => {
+    const list = [
+      { userId: "a", status: "confirmed", isHold: false },
+      { userId: "b", status: "pending_payment", isHold: false },
+      { userId: "c", status: "waitlist", isHold: false },
+      { userId: "d", status: "confirmed", isHold: true },
+    ] as const;
+    expect(cancelledRecipients([...list]).map((b) => b.userId)).toEqual(["a", "b"]);
   });
 });

@@ -120,9 +120,9 @@ export const EMAILS = {
   },
   dropInLate: {
     title: "Platba dorazila pozdě – vráceno jako kredit",
-    when: "Když platba za propadlou rezervaci dorazí, ale místo na lekci už není volné.",
+    when: "Když platba dorazí, až rezervace už neplatí (propadla, byla zrušená nebo je lekce plná) – i za doplatek.",
     subject: "Platba dorazila – vrátili jsme ji jako kredit",
-    body: "Ahoj {{osloveni}},\n\ntvoje platba za lekci {{lekce}} dorazila až po uvolnění místa a lekce je teď plná. Vrátili jsme ti ji jako kredit ({{kredit}}) – můžeš s ním zaplatit jinou lekci.\nRozvrh: {{odkaz}}",
+    body: "Ahoj {{osloveni}},\n\ntvoje platba za {{lekce}} dorazila, ale rezervace už neplatí (byla zrušená, propadla, nebo je lekce plná). Vrátili jsme ti ji jako kredit ({{kredit}}) – můžeš s ním zaplatit jinou lekci.\nRozvrh: {{odkaz}}",
     vars: {
       osloveni,
       lekce,
@@ -152,8 +152,25 @@ export const EMAILS = {
     title: "Lekce se nekoná",
     when: "Když v Rozvrhu zrušíš lekci – jde všem přihlášeným.",
     subject: "Lekce zrušena: {{lekce}}",
-    body: "Ahoj {{osloveni}},\n\nomlouváme se, lekce {{lekce}} se nekoná. Vstup/kredit jsme ti vrátili na účet.\nVyber si jinou lekci: {{odkaz}}",
-    vars: { osloveni, lekce, odkaz: { label: "odkaz na rozvrh", sample: `${site.url}/rozvrh` } },
+    body: "Ahoj {{osloveni}},\n\nomlouváme se, lekce {{lekce}} se nekoná. {{vraceni}}\nVyber si jinou lekci: {{odkaz}}",
+    vars: {
+      osloveni,
+      lekce,
+      vraceni: { label: "co se vrací (vstup/kredit, u nezaplacené rezervace: platbu neposílej)", sample: "Vstup/kredit jsme ti vrátili na účet." },
+      odkaz: { label: "odkaz na rozvrh", sample: `${site.url}/rozvrh` },
+    },
+  },
+  sessionMoved: {
+    title: "Lekce má nový čas",
+    when: "Když v Rozvrhu změníš lekci čas nebo den – jde všem přihlášeným i z pořadníku.",
+    subject: "Změna času: {{lekce}}",
+    body: "Ahoj {{osloveni}},\n\nlekce se přesouvá na nový čas: {{lekce}} (původně {{puvodne}}). Rezervace ti zůstává.\nKdyž ti nový čas nevyhovuje, zruš ji prosím, ať místo dostane někdo další – nebo nám napiš: {{odkaz}}",
+    vars: {
+      osloveni,
+      lekce,
+      puvodne: { label: "původní den a čas", sample: "úterý 7. 10. v 18:00" },
+      odkaz: { label: "odkaz na lekci", sample: `${site.url}/rozvrh` },
+    },
   },
   reminderClass: {
     title: "Připomínka lekce",

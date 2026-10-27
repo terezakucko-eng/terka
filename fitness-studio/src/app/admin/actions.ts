@@ -4,10 +4,9 @@ import { htmlToText, toSafeHtml } from "@/lib/rich-html";
 import { and, eq, gte, inArray, isNull, lt } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getDb } from "@/db";
+import { getDb, type DB } from "@/db";
 import {
   announcements,
-  bookings,
   classSessions,
   classTypes,
   entitlements,
@@ -16,6 +15,7 @@ import {
   products,
   pushSubscriptions,
   users,
+  type ClassSession,
 } from "@/db/schema";
 import {
   adminAddBooking,
@@ -24,15 +24,17 @@ import {
   type Method,
   cancelBooking,
   cancelSession,
+  fillFromWaitlist,
   holdSeats,
   occupancy,
   setAttendance,
+  setSurchargePaid,
 } from "@/domain/booking";
 import { deleteClassType, deleteProduct } from "@/domain/catalog";
 import { LESSON_TEMPLATES, templateFor } from "@/domain/lesson-templates";
 import { setDraftHidden } from "@/domain/lesson-drafts";
 import { deleteClient, deleteClients, deleteOrder, deleteOrders, purgeSession, seriesFrom } from "@/domain/cleanup";
-import { cancelOrder, fulfillOrder, sellAtReception } from "@/domain/orders";
+import { cancelOrder, fulfillOrder, paidLateOk, sellAtReception } from "@/domain/orders";
 import { deductSolarium } from "@/domain/solarium";
 import { deleteStudentProof } from "@/domain/students";
 import { createClientByStudio, grantEntitlement, normalizeEmail } from "@/domain/users";
@@ -41,16 +43,16 @@ import { createPasswordLink } from "@/lib/password-links";
 import { greetName } from "@/lib/vocative";
 import { changeCredits } from "@/domain/wallet";
 import { requireAdmin, requireStaff } from "@/lib/auth";
-import { addDays, dateKey, formatDate, mondayOf, pragueLocalToDate, weekdayOf, isDateKey } from "@/lib/dates";
+import { addDays, dateKey, formatDate, formatDay, mondayOf, pragueLocalToDate, weekdayOf, isDateKey } from "@/lib/dates";
 import { UserError } from "@/lib/errors";
 import { attempt, field, type FormState } from "@/lib/form";
-import { notifyBooked, notifyPaid, notifyPromoted, notifySessionCancelled, notifyStrike } from "@/lib/notify";
-import { afterMemberStrike, clearPause } from "@/domain/strikes";
+import { cancelledRecipients, notifyBooked, notifyCancelled, notifyPaid, notifyPromoted, notifySessionCancelled, notifySessionMoved, notifyStrike } from "@/lib/notify";
+import { afterMemberStrike, clearPause, reconsiderPause } from "@/domain/strikes";
 import { storeImage, uploadedFile } from "@/lib/media";
-import { formatPrice } from "@/lib/money";
+import { credits, formatPrice } from "@/lib/money";
 import { normalizePhone } from "@/lib/phone";
 import { defaultSettings, getSettings, saveSettings, type Settings } from "@/lib/settings";
-import { followMonthlyFee, isPeriod, periodLabel } from "@/domain/membership-fees";
+import { cancelEntitlement, followMonthlyFee, isPeriod, periodLabel } from "@/domain/membership-fees";
 import { cleanBirthDate, cleanNameDay } from "@/lib/profile";
 import { videoEmbedUrl } from "@/lib/video";
 import { pushQuietly } from "@/lib/push";
@@ -412,8 +414,9 @@ export async function updateSessionAction(_: FormState, fd: FormData): Promise<F
     const id = field.str(fd, "id");
     if (field.str(fd, "scope") !== "series") {
       checkOpensBefore(values.bookingOpensAt, [pragueLocalToDate(local)]);
+      const before = await sessionsBefore(db, [id], values.isFree);
       await db.update(classSessions).set({ ...values, startsAt: pragueLocalToDate(local) }).where(eq(classSessions.id, id));
-      return done("Termín uložen.");
+      return done(`Termín uložen.${await afterSessionEdit(db, before)}`);
     }
     // This and the following classes of the series: same settings, same new
     // start time, and moved by the same number of days if the date changed.
@@ -424,12 +427,40 @@ export async function updateSessionAction(_: FormState, fd: FormData): Promise<F
     const shift = Math.round((Date.parse(newDay) - Date.parse(dateKey(me.startsAt))) / 86_400_000);
     const moved = list.map((s) => ({ id: s.id, startsAt: pragueLocalToDate(`${addDays(dateKey(s.startsAt), shift)}T${newTime}`) }));
     checkOpensBefore(values.bookingOpensAt, moved.map((s) => s.startsAt));
+    const before = await sessionsBefore(db, moved.map((s) => s.id), values.isFree);
     await db.transaction(async (tx) => {
       for (const s of moved)
         await tx.update(classSessions).set({ ...values, startsAt: s.startsAt }).where(eq(classSessions.id, s.id));
     });
-    return done(`Uloženo pro ${list.length} ${list.length === 1 ? "termín" : list.length < 5 ? "termíny" : "termínů"}.`);
+    return done(`Uloženo pro ${list.length} ${list.length === 1 ? "termín" : list.length < 5 ? "termíny" : "termínů"}.${await afterSessionEdit(db, before)}`);
   });
+}
+
+/**
+ * Before editing classes: how they were. Switching a class with bookings between
+ * free and paid would leave them charged wrong – that's refused.
+ */
+async function sessionsBefore(db: DB, ids: string[], isFree: boolean) {
+  const list = ids.length ? await db.select().from(classSessions).where(inArray(classSessions.id, ids)) : [];
+  for (const s of list)
+    if (s.isFree !== isFree && (await occupancy(db, s.id)) > 0)
+      throw new UserError(
+        `Na lekci ${formatDay(s.startsAt)} už jsou přihlášení – mezi placenou a zdarma ji přepnout nejde. Odhlas je, nebo vytvoř novou lekci.`,
+      );
+  return list;
+}
+
+/** After editing classes: a new time is told to whoever's booked, a bigger class takes people from the waitlist. */
+async function afterSessionEdit(db: DB, before: ClassSession[]) {
+  const now = new Date();
+  let told = 0;
+  for (const old of before) {
+    const [s] = await db.select().from(classSessions).where(eq(classSessions.id, old.id));
+    if (!s || s.status === "cancelled" || s.startsAt <= now) continue;
+    if (s.startsAt.getTime() !== old.startsAt.getTime()) told += await notifySessionMoved(db, s.id, old.startsAt).catch(() => 0);
+    if (s.capacity > old.capacity) await notifyPromoted(db, await fillFromWaitlist(db, s.id, now)).catch(() => {});
+  }
+  return told ? ` Nový čas jsme poslali ${told} ${told === 1 ? "klientovi" : "klientům"}.` : "";
 }
 
 export async function cancelSessionAction(_: FormState, fd: FormData): Promise<FormState> {
@@ -437,9 +468,9 @@ export async function cancelSessionAction(_: FormState, fd: FormData): Promise<F
   return attempt(async () => {
     const db = await getDb();
     const r = await cancelSession(db, field.str(fd, "id"));
-    const notify = r.affected.filter((b) => b.status !== "waitlist").map((b) => b.userId);
-    await notifySessionCancelled(db, r.session.id, notify);
-    return done(`Lekce zrušena, vráceno ${notify.length} klientům.`);
+    await notifySessionCancelled(db, r.session.id, r.affected);
+    const n = cancelledRecipients(r.affected).length;
+    return done(n ? `Lekce zrušena, dali jsme vědět ${n} ${n === 1 ? "klientovi" : "klientům"} a vrátili, co zaplatili.` : "Lekce zrušena.");
   });
 }
 
@@ -453,9 +484,8 @@ async function removeSessions(ids: string[]) {
     if (!s) continue;
     if (s.status !== "cancelled" && s.startsAt > now && (await occupancy(db, id)) > 0) {
       const r = await cancelSession(db, id, now);
-      const notify = r.affected.filter((b) => b.status !== "waitlist").map((b) => b.userId);
-      await notifySessionCancelled(db, id, notify);
-      notified += notify.length;
+      await notifySessionCancelled(db, id, r.affected);
+      notified += cancelledRecipients(r.affected).length;
     }
     await purgeSession(db, id);
   }
@@ -575,9 +605,16 @@ export async function adminCancelBookingAction(_: FormState, fd: FormData): Prom
       actorId: staff.id,
       isAdmin: true,
       refund: field.bool(fd, "refund"),
+      instructor: staff.role !== "admin",
     });
     await notifyPromoted(db, r.promoted);
-    return done(r.refunded ? "Zrušeno s vrácením." : "Zrušeno bez vrácení.");
+    // the client learns the studio cancelled an upcoming booking (not places staff held, not the waitlist)
+    const b = r.booking;
+    if (!b.isHold && b.status !== "waitlist" && r.session.startsAt > new Date()) await notifyCancelled(db, b, r.refunded, true).catch(() => {});
+    if (b.method === "membership" && b.status === "confirmed" && r.late && !r.refunded)
+      await notifyStrike(db, b.userId, await afterMemberStrike(db, b.userId));
+    if (!r.refunded) return done(b.method === "membership" && b.status === "confirmed" && r.late ? "Zrušeno bez vrácení – pozdní storno se počítá do upozornění/pauzy." : "Zrušeno bez vrácení.");
+    return done(b.method === "drop_in" && b.status !== "pending_payment" ? "Zrušeno – zaplacená částka se vrátila jako kredit." : "Zrušeno s vrácením.");
   });
 }
 
@@ -588,6 +625,9 @@ export async function attendanceAction(_: FormState, fd: FormData): Promise<Form
     const db = await getDb();
     const b = await setAttendance(db, field.str(fd, "bookingId"), status);
     if (status === "no_show" && b.method === "membership") await notifyStrike(db, b.userId, await afterMemberStrike(db, b.userId));
+    // "didn't come" taken back – the pause it caused goes too
+    if (b.was === "no_show" && status !== "no_show" && b.method === "membership" && (await reconsiderPause(db, b.userId)))
+      return done("Docházka uložena a pauza v přihlašování zrušena.");
     return done("Docházka uložena.");
   });
 }
@@ -623,13 +663,10 @@ export async function adjustCreditsAction(_: FormState, fd: FormData): Promise<F
 }
 
 export async function setSurchargePaidAction(_: FormState, fd: FormData): Promise<FormState> {
-  await requireStaff();
+  const staff = await requireStaff();
   return attempt(async () => {
     const paid = field.bool(fd, "paid");
-    await (await getDb())
-      .update(bookings)
-      .set({ surchargePaidAt: paid ? new Date() : null })
-      .where(eq(bookings.id, field.str(fd, "bookingId")));
+    await setSurchargePaid(await getDb(), { bookingId: field.str(fd, "bookingId"), paid, isAdmin: staff.role === "admin" });
     return done(paid ? "Doplatek zaplacen." : "Doplatek vrácen na nezaplacený.");
   });
 }
@@ -755,11 +792,8 @@ export async function setCreditExpiryAction(_: FormState, fd: FormData): Promise
 export async function cancelEntitlementAction(_: FormState, fd: FormData): Promise<FormState> {
   await requireAdmin();
   return attempt(async () => {
-    await (await getDb())
-      .update(entitlements)
-      .set({ status: "cancelled" })
-      .where(eq(entitlements.id, field.str(fd, "id")));
-    return done("Zneplatněno.");
+    const { upcoming } = await cancelEntitlement(await getDb(), field.str(fd, "id"));
+    return done(upcoming ? `Zneplatněno. Pozor: na ni jsou ještě přihlášené budoucí lekce (${upcoming}) – zkontroluj je v rezervacích.` : "Zneplatněno.");
   });
 }
 
@@ -779,11 +813,17 @@ export async function markOrderPaidAction(_: FormState, fd: FormData): Promise<F
   return attempt(async () => {
     const db = await getDb();
     const orderId = field.str(fd, "orderId");
-    const [o] = await db.select({ provider: orders.provider }).from(orders).where(eq(orders.id, orderId));
+    const [o] = await db.select({ provider: orders.provider, status: orders.status, kind: orders.kind }).from(orders).where(eq(orders.id, orderId));
+    if (!o) throw new UserError("Objednávka neexistuje.");
+    if (o.status !== "pending" && o.status !== "paid" && !paidLateOk(o)) throw new UserError("Tahle objednávka je zrušená – platbu za ni nejde potvrdit.");
     // a bank transfer stays labelled as such once it's confirmed
-    const paid = await fulfillOrder(db, { orderId, provider: o?.provider === "transfer" ? "transfer" : "manual" });
+    const paid = await fulfillOrder(db, { orderId, provider: o.provider === "transfer" ? "transfer" : "manual" });
     await notifyPaid(db, paid).catch(() => {});
-    if (paid.dropIn?.outcome === "credited") return done("Označeno jako zaplacené. Místo už bylo obsazené – klientka dostala částku jako kredit.");
+    if (paid.alreadyPaid) return done("Objednávka už byla zaplacená dřív.");
+    const settled = paid.dropIn ?? paid.surcharge;
+    if (settled?.outcome === "credited")
+      return done(`Označeno jako zaplacené. Rezervace už neplatí – částka šla na účet jako kredit (${credits(settled.credit)}).`);
+    if (paid.massageCancelled) return done("Označeno jako zaplacené. Masáž je ale zrušená – platbu je potřeba vrátit.");
     return done(paid.dropIn ? "Označeno jako zaplacené – místo na lekci je potvrzené." : "Označeno jako zaplacené.");
   });
 }
@@ -800,8 +840,11 @@ export async function cancelOrderAction(_: FormState, fd: FormData): Promise<For
 export async function deleteOrderAction(_: FormState, fd: FormData): Promise<FormState> {
   const admin = await requireAdmin();
   const res = await attempt(async () => {
-    await deleteOrder(await getDb(), field.str(fd, "orderId"), admin.id);
-    return done("Objednávka smazána, co přidělila, bylo odebráno.");
+    const db = await getDb();
+    const freed = await deleteOrder(db, field.str(fd, "orderId"), admin.id);
+    // a drop-in place let go goes to the waitlist
+    for (const id of freed) await notifyPromoted(db, await fillFromWaitlist(db, id)).catch(() => {});
+    return done(freed.length ? "Objednávka smazána a rezervace na lekci zrušena." : "Objednávka smazána, co přidělila, bylo odebráno.");
   });
   return res;
 }

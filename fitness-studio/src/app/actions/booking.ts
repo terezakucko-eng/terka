@@ -106,9 +106,11 @@ export async function cancelBookingAction(_: FormState, fd: FormData): Promise<F
     if (r.booking.status === "waitlist") return "Odhlášeno z pořadníku.";
     const surcharge = r.booking.surcharge > 0 && r.booking.surchargePaidAt;
     if (r.refunded)
-      return surcharge
-        ? `Rezervace zrušena, vstup máš zpátky na účtu a doplatek ${formatPrice(r.booking.surcharge)} jako kredit.`
-        : "Rezervace zrušena, vstup máš zpátky na účtu.";
+      return r.booking.method === "drop_in"
+        ? "Rezervace zrušena, zaplacenou částku máš na účtu jako kredit."
+        : surcharge
+          ? `Rezervace zrušena, vstup máš zpátky na účtu a doplatek ${formatPrice(r.booking.surcharge)} jako kredit.`
+          : "Rezervace zrušena, vstup máš zpátky na účtu.";
     return surcharge
       ? "Rezervace zrušena. Storno proběhlo po lhůtě, vstup i doplatek propadají."
       : "Rezervace zrušena. Storno proběhlo po lhůtě, vstup propadá.";
