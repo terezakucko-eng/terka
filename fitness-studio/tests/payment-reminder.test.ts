@@ -11,7 +11,7 @@ const { bookings, classSessions, classTypes, orders, users } = await import("@/d
 const { bookSession, bookingOfOrder, bookingOptions, cancelBooking, unpaidBookings } = await import("@/domain/booking");
 const { createSurchargeOrder, fulfillOrder } = await import("@/domain/orders");
 const { grantEntitlement } = await import("@/domain/users");
-const { PAY_FIRST_SINCE, notifyBooked, remindOldUnpaid, remindPayment } = await import("@/lib/notify");
+const { notifyBooked, remindPayment } = await import("@/lib/notify");
 const { NOW, hours, makeSession, makeUser, testDb } = await import("./helpers");
 
 let h: Awaited<ReturnType<typeof testDb>>;
@@ -72,7 +72,7 @@ describe("reception reminds an unpaid booking", () => {
   });
 });
 
-describe("older bookings that got the place before paying", () => {
+describe("older drop-ins that got the place before paying", () => {
   /** A drop-in from before the pay-first change: confirmed right away, its transfer still pending. */
   async function legacy(startsIn: number, status: "confirmed" | "no_show" = "confirmed") {
     const s = await makeSession(h.db, { startsAt: hours(96) });
@@ -84,30 +84,24 @@ describe("older bookings that got the place before paying", () => {
     return { s, booking, order: order! };
   }
 
-  it("are listed and each gets one reminder in the daytime – a no-show isn't chased", async () => {
+  it("are listed as unpaid and a reminder fits a class that's coming or one that's over", async () => {
     const coming = await legacy(48);
     const gone = await legacy(-48);
     const absent = await legacy(-24, "no_show");
-    const list = await unpaidBookings(h.db, { createdBefore: PAY_FIRST_SINCE });
+    const list = await unpaidBookings(h.db);
     expect(list.map((b) => b.bookingId)).toEqual(expect.arrayContaining([coming.booking.id, gone.booking.id, absent.booking.id]));
-
-    // at night nothing goes out
-    expect(await remindOldUnpaid(h.db, new Date("2026-10-05T21:00:00Z"))).toBe(0);
-    expect(await remindOldUnpaid(h.db, NOW)).toBe(2);
+    await remindPayment(h.db, coming.booking.id, NOW);
+    await remindPayment(h.db, gone.booking.id, NOW);
     const byLink = (o: string) => sent.find((m) => m.vars.odkaz.includes(o))!;
     expect(byLink(coming.order.id).vars.termin).toMatch(/zaplať prosím ještě před lekcí/);
     expect(byLink(gone.order.id).vars.termin).toMatch(/Lekce už proběhla/);
-    expect((await bookingOf(absent.booking.id)).paymentRemindedAt).toBeNull();
-    // once only
-    expect(await remindOldUnpaid(h.db, NOW)).toBe(0);
   });
 
-  it("new bookings (after the change) are left to the regular flow", async () => {
+  it("a new drop-in waiting for its transfer is listed with its deadline", async () => {
     const s = await makeSession(h.db, { startsAt: hours(96) });
     const u = await makeUser(h.db);
     const { booking } = await bookSession(h.db, { userId: u.id, sessionId: s.id, method: "drop_in", payLater: true }, NOW);
-    expect((await unpaidBookings(h.db, { createdBefore: PAY_FIRST_SINCE })).some((b) => b.bookingId === booking.id)).toBe(false);
-    expect((await unpaidBookings(h.db)).some((b) => b.bookingId === booking.id)).toBe(true);
+    expect((await unpaidBookings(h.db)).find((b) => b.bookingId === booking.id)).toMatchObject({ status: "pending_payment", kind: "drop_in" });
   });
 });
 
@@ -133,25 +127,6 @@ describe("a member's surcharge is asked for right at booking", () => {
     expect(sent[0].vars.doplatek).toContain(`VS ${o.number}`);
     expect(sent[0].vars.doplatek).toContain(`/platba/prevod?order=${o.id}`);
   });
-
-  it("older surcharges never asked for get one reminder; those already asked for don't", async () => {
-    const never = await surchargeBooking();
-    const asked = await surchargeBooking();
-    await notifyBooked(h.db, asked.booking);
-    sent.length = 0;
-    for (const b of [never.booking, asked.booking])
-      await h.db.update(bookings).set({ createdAt: new Date("2026-10-27T10:00:00+01:00") }).where(eq(bookings.id, b.id));
-    // the booking e-mail started its payment right away
-    await h.db.update(orders).set({ createdAt: new Date("2026-10-27T10:00:20+01:00") }).where(eq(orders.bookingId, asked.booking.id));
-    const later = new Date("2026-10-28T09:00:00Z");
-    // the class (in 2 days of NOW) – keep it ahead of `later`
-    for (const b of [never.booking, asked.booking])
-      await h.db.update(classSessions).set({ startsAt: new Date("2026-11-02T17:00:00Z") }).where(eq(classSessions.id, b.sessionId));
-    expect(await remindOldUnpaid(h.db, later)).toBe(1);
-    expect(sent[0].vars.co).toBe("doplatek k lekci");
-    expect((await bookingOf(never.booking.id)).paymentRemindedAt).toEqual(later);
-    expect((await bookingOf(asked.booking.id)).paymentRemindedAt).toBeNull();
-  });
 });
 
 describe("a surcharge paid by transfer whose booking lost the paid mark", () => {
@@ -173,24 +148,5 @@ describe("a surcharge paid by transfer whose booking lost the paid mark", () => 
     const fix = readFileSync(new URL("../drizzle/0107_surcharge_paid_from_orders.sql", import.meta.url), "utf8");
     await h.db.execute(sql.raw(fix));
     expect((await bookingOf(booking.id)).surchargePaidAt).not.toBeNull();
-  });
-});
-
-describe("surcharges whose payment the client started later on their own", () => {
-  it("get one reminder too – the booking e-mail never asked for them", async () => {
-    const s = await makeSession(h.db);
-    await h.db.update(classTypes).set({ memberSurcharge: 10000 }).where(eq(classTypes.id, s.classTypeId));
-    const u = await makeUser(h.db);
-    await grantEntitlement(h.db, { userId: u.id, kind: "membership", name: "Členství", entries: null, validityDays: 60 }, NOW);
-    const opt = (await bookingOptions(h.db, u.id, s)).find((o) => o.method === "membership")!;
-    const { booking } = await bookSession(h.db, { userId: u.id, sessionId: s.id, method: "membership", entitlementId: opt.entitlementId }, NOW);
-    await h.db.update(classSessions).set({ startsAt: new Date("2026-11-03T17:00:00Z") }).where(eq(classSessions.id, s.id));
-    await h.db.update(bookings).set({ createdAt: new Date("2026-10-20T10:00:00+02:00") }).where(eq(bookings.id, booking.id));
-    // a day later the client clicked "Převodem" – but never paid
-    const o = await createSurchargeOrder(h.db, { userId: u.id, bookingId: booking.id });
-    await h.db.update(orders).set({ createdAt: new Date("2026-10-21T10:00:00+02:00") }).where(eq(orders.id, o.id));
-    sent.length = 0;
-    expect(await remindOldUnpaid(h.db, new Date("2026-10-28T09:30:00Z"))).toBeGreaterThanOrEqual(1);
-    expect(sent.some((m) => m.vars.castka.includes(`VS ${o.number}`))).toBe(true);
   });
 });

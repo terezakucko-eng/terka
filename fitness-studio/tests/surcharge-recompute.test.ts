@@ -72,3 +72,18 @@ describe("a surcharge set after the class was booked", () => {
     expect((await h.db.select().from(orders).where(eq(orders.id, o.id)))[0].status).toBe("cancelled");
   });
 });
+
+describe("one booking from the class detail", () => {
+  it("is only looked at in a dry run, then counted on its own", async () => {
+    const a = await memberBooking();
+    const b = await memberBooking(a.s.classTypeId);
+    await h.db.update(classTypes).set({ memberSurcharge: 10000 }).where(eq(classTypes.id, a.s.classTypeId));
+    const seen = await recomputeSurcharges(h.db, { sessionId: a.s.id, dryRun: true }, NOW);
+    expect(seen.map((x) => [x.id, x.surcharge])).toEqual([[a.booking.id, 10000]]);
+    expect((await bookingOf(a.booking.id)).surcharge).toBe(0);
+    await recomputeSurcharges(h.db, { bookingId: a.booking.id }, NOW);
+    expect((await bookingOf(a.booking.id)).surcharge).toBe(10000);
+    // the other booking of the same class isn't touched
+    expect((await bookingOf(b.booking.id)).surcharge).toBe(0);
+  });
+});

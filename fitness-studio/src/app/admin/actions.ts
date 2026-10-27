@@ -136,12 +136,14 @@ export async function saveClassTypeAction(_: FormState, fd: FormData): Promise<F
       ...(await imageField(fd, "image", "removeImage", "imageUrl")),
     };
     const id = field.str(fd, "id");
+    const [before] = id ? await db.select().from(classTypes).where(eq(classTypes.id, id)) : [];
     if (id) await db.update(classTypes).set(values).where(eq(classTypes.id, id));
     else await db.insert(classTypes).values(values);
-    // a surcharge set or changed applies to the upcoming unpaid bookings too
-    const changed = id ? await recomputeSurcharges(db, { classTypeId: id }) : [];
+    // a surcharge set or changed applies to the upcoming unpaid bookings of this class too
+    const surchargeKeys = ["memberSurcharge", "memberSurchargeFrom", "memberSurchargeNext", "memberSurchargeNextFrom", "passSurcharge"] as const;
+    const changed = before && surchargeKeys.some((k) => before[k] !== values[k]) ? await recomputeSurcharges(db, { classTypeId: id }) : [];
     if (changed.length)
-      return done(`Lekce uložena. Doplatek upraven u ${changed.length} ${changed.length === 1 ? "rezervace" : "rezervací"} – klientům, kteří mají doplácet, přijde připomínka s VS.`);
+      return done(`Lekce uložena. Doplatek upraven u ${changed.length} ${changed.length === 1 ? "nadcházející rezervace" : "nadcházejících rezervací"} – najdeš je v Platby → Nezaplacené lekce.`);
     return done(id ? "Lekce uložena." : "Lekce vytvořena.");
   });
 }
@@ -599,6 +601,19 @@ export async function holdSeatsAction(_: FormState, fd: FormData): Promise<FormS
     const r = await holdSeats(db, { sessionId: field.str(fd, "sessionId"), userId: staff.id, seats, note: field.str(fd, "note") });
     await notifyPromoted(db, r.promoted);
     return done(seats ? `Drženo ${seats} ${seats === 1 ? "místo" : seats < 5 ? "místa" : "míst"}.` : "Místa uvolněna.");
+  });
+}
+
+/** Class detail: a surcharge the price list asks for but the booking didn't count (booked before it was set) – count it and ask for it. */
+export async function applySurchargeAction(_: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  return attempt(async () => {
+    const db = await getDb();
+    const bookingId = field.str(fd, "bookingId");
+    const [b] = await recomputeSurcharges(db, { bookingId });
+    if (!b || b.surcharge <= 0) throw new UserError("Doplatek se u téhle rezervace nepočítá.");
+    const r = await remindPayment(db, b.id);
+    return done(`Doplatek ${formatPrice(b.surcharge)} započítán, výzvu s VS jsme poslali ${r.emailed ? "e-mailem i do mobilu" : "do mobilu"}.`);
   });
 }
 

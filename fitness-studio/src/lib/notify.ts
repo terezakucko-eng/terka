@@ -18,7 +18,7 @@ import { markAnnounced, unannouncedRewards } from "@/domain/referrals";
 import { markBookingAnnounced, markExpiryAnnounced, markSignUpAnnounced, unannouncedBookings, unannouncedExpiries, unannouncedSignUps } from "@/domain/pass-cards";
 import { formatVoucherCode, markVoucherNotified, unnotifiedVouchers } from "@/domain/vouchers";
 import { displayName } from "./profile";
-import { expireStalePending, fillFromWaitlist, markLapseAnnounced, markPaymentReminded, markTransferNotice, paymentDue, releasedHoldsWithWaitlist, transferPayBy, transfersToCheck, unannouncedLapses, unpaidBookings } from "@/domain/booking";
+import { expireStalePending, fillFromWaitlist, markLapseAnnounced, markPaymentReminded, markTransferNotice, paymentDue, releasedHoldsWithWaitlist, transferPayBy, transfersToCheck, unannouncedLapses } from "@/domain/booking";
 import { createSurchargeOrder, type fulfillOrder } from "@/domain/orders";
 import { getSettings } from "./settings";
 import { UserError } from "./errors";
@@ -324,52 +324,6 @@ export async function remindPayment(db: DB, bookingId: string, now = new Date())
   await pushQuietly(db, [b.userId], { title: "💸 Připomínka platby", body: `${co[0].toUpperCase()}${co.slice(1)} ${lekce} (${formatPrice(due.amount)}${vs ? `, VS ${vs}` : ""})`, url: odkaz });
   await markPaymentReminded(db, b.id, now);
   return { emailed: !!u };
-}
-
-/** A surcharge payment started this soon after the booking came with the booking e-mail (VS and link). */
-const ASKED_AT_BOOKING_MS = 2 * 60_000;
-
-/** Bookings made before the place was the client's only once paid (the change went live the night to 26. 10. 2026). */
-export const PAY_FIRST_SINCE = new Date("2026-10-26T00:00:00+01:00");
-
-/**
- * Tidying up: bookings that never got a request to pay get one reminder each – drop-ins
- * from before the pay-first change (the place given before paying) and members' surcharges
- * the booking e-mail didn't ask for (until now it didn't; or the surcharge came later).
- * In the daytime, a few per run; the studio hears how many went out. Run by the 15-minute cron.
- */
-export async function remindOldUnpaid(db: DB, now = new Date(), batch = 15) {
-  const hour = pragueHour(now);
-  if (hour < 9 || hour >= 20) return 0;
-  const settled = new Date(now.getTime() - 15 * 60_000);
-  const list = (await unpaidBookings(db, { notReminded: true }))
-    .filter(
-      (b) =>
-        // a no-show isn't chased – reception decides on those in Platby
-        b.status !== "no_show" &&
-        (b.kind === "drop_in"
-          ? b.status !== "pending_payment" && b.createdAt < PAY_FIRST_SINCE
-          : // a surcharge the booking e-mail didn't ask for: no payment yet, or one the client started later
-            b.createdAt < settled && (b.surchargeAskedAt === null || b.surchargeAskedAt.getTime() - b.createdAt.getTime() > ASKED_AT_BOOKING_MS)),
-    )
-    .slice(0, batch);
-  let sent = 0;
-  for (const b of list) {
-    try {
-      await remindPayment(db, b.bookingId, now);
-      sent++;
-    } catch (e) {
-      // paid or cancelled meanwhile – nothing to remind (a failed e-mail is tried again next run)
-      if (e instanceof UserError) await markPaymentReminded(db, b.bookingId, now);
-    }
-  }
-  if (sent)
-    await pushQuietly(db, await adminIds(db), {
-      title: `📨 Připomínka platby odešla ${sent}×`,
-      body: "Nezaplacené lekce a doplatky, ke kterým klient výzvu k platbě nedostal – přehled v Platby a objednávky.",
-      url: `${site.url}/admin/objednavky`,
-    });
-  return sent;
 }
 
 /** The studio moved a class to another time – everyone booked or waiting hears the new one. Returns how many. */

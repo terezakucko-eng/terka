@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import {
   adminCancelBookingAction,
+  applySurchargeAction,
   attendanceAction,
   holdSeatsAction,
   cancelSessionAction,
@@ -27,7 +28,7 @@ import { Avatar } from "@/components/avatar";
 import { upcomingCelebrations } from "@/lib/profile";
 import { dateKey, mondayOf } from "@/lib/dates";
 import { AdminAddBooking } from "@/components/admin-add-booking";
-import { guestAllowed, surchargeVsSql } from "@/domain/booking";
+import { guestAllowed, recomputeSurcharges, surchargeVsSql } from "@/domain/booking";
 import { splitName } from "@/lib/client-list";
 
 export default async function AdminSessionPage({ params }: PageProps<"/admin/rozvrh/[id]">) {
@@ -68,6 +69,10 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
     .sort((x, y) => (y.b.cancelledAt?.getTime() ?? 0) - (x.b.cancelledAt?.getTime() ?? 0));
   const isAdmin = staff.role === "admin";
   const started = s.startsAt <= new Date();
+  // surcharges the price list asks for but bookings made before it was set didn't count
+  const missingSurcharge = new Map(
+    isAdmin && !started ? (await recomputeSurcharges(db, { sessionId: s.id, dryRun: true })).filter((b) => b.surcharge > 0).map((b) => [b.id, b.surcharge]) : [],
+  );
   const myHold = active.find(({ b, u }) => b.isHold && u.id === staff.id)?.b;
   type Row = (typeof list)[number];
   const who = (b: Row["b"], u: Row["u"]) => (
@@ -100,6 +105,18 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
         </ActionForm>
       )}
       {unpaidDropIn && !isAdmin && vs && <span className="block text-xs text-les/60">nezaplaceno · VS {vs}</span>}
+      {missingSurcharge.has(b.id) && (
+        <ActionForm
+          action={applySurchargeAction}
+          confirm={`Započítat doplatek ${formatPrice(missingSurcharge.get(b.id)!)} podle ceníku a poslat klientovi výzvu s VS?`}
+          className="mt-1"
+        >
+          <input type="hidden" name="bookingId" value={b.id} />
+          <button title="Rezervace vznikla dřív, než byl doplatek nastavený">
+            <Badge tone="gold">Doplatek {formatPrice(missingSurcharge.get(b.id)!)} nezapočítán – započítat a poslat výzvu</Badge>
+          </button>
+        </ActionForm>
+      )}
       {/* not paid yet – reception nudges the client (e-mail + push with where to pay) */}
       {(unpaidDropIn || unpaidSurcharge) && b.status !== "waitlist" && (!started || b.status !== "pending_payment") && (
         <RemindPayment bookingId={b.id} remindedAt={b.paymentRemindedAt} />

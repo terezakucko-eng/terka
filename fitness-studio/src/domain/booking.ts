@@ -495,9 +495,13 @@ const surchargeOrderPaidSql = sql<boolean>`exists (select 1 from orders o3 where
  * price list. A surcharge is fixed when the client books – a class booked before its
  * surcharge was set (or changed) would owe nothing. Lessons that a membership includes
  * (Členství Reformer…) are left as they are, and so is anything already paid; an open
- * payment follows the new amount. Returns the bookings that changed.
+ * payment follows the new amount. Returns the bookings that changed (or would, dryRun).
  */
-export async function recomputeSurcharges(db: DB, opts: { classTypeId?: string } = {}, now = new Date()) {
+export async function recomputeSurcharges(
+  db: DB,
+  opts: { classTypeId?: string; sessionId?: string; bookingId?: string; dryRun?: boolean } = {},
+  now = new Date(),
+) {
   return db.transaction(async (tx) => {
     const rows = await tx
       .select({ b: bookings, s: classSessions, e: entitlements })
@@ -513,6 +517,8 @@ export async function recomputeSurcharges(db: DB, opts: { classTypeId?: string }
           gt(classSessions.startsAt, now),
           ne(classSessions.status, "cancelled"),
           opts.classTypeId ? eq(classSessions.classTypeId, opts.classTypeId) : undefined,
+          opts.sessionId ? eq(classSessions.id, opts.sessionId) : undefined,
+          opts.bookingId ? eq(bookings.id, opts.bookingId) : undefined,
         ),
       );
     const rulesOf = new Map<string, ClassRules>();
@@ -525,12 +531,13 @@ export async function recomputeSurcharges(db: DB, opts: { classTypeId?: string }
       if (!rulesOf.has(s.classTypeId)) rulesOf.set(s.classTypeId, await classRules(tx, s));
       const want = surchargeFor(b.method!, rulesOf.get(s.classTypeId)!, s, b.seats);
       if (want === b.surcharge) continue;
+      changed.push({ ...b, surcharge: want });
+      if (opts.dryRun) continue;
       await tx.update(bookings).set({ surcharge: want }).where(eq(bookings.id, b.id));
       await tx
         .update(orders)
         .set(want > 0 ? { amount: want } : { status: "cancelled" })
         .where(and(eq(orders.kind, "surcharge"), eq(orders.bookingId, b.id), eq(orders.status, "pending")));
-      changed.push({ ...b, surcharge: want });
     }
     return changed;
   });
@@ -540,7 +547,7 @@ export async function recomputeSurcharges(db: DB, opts: { classTypeId?: string }
  * Bookings still waiting for money: a drop-in whose payment hasn't come (incl. older
  * ones that got the place before paying) and members' unpaid surcharges.
  */
-export async function unpaidBookings(db: Executor, opts: { createdBefore?: Date; notReminded?: boolean } = {}) {
+export async function unpaidBookings(db: Executor) {
   const rows = await db
     .select({
       bookingId: bookings.id,
@@ -556,8 +563,6 @@ export async function unpaidBookings(db: Executor, opts: { createdBefore?: Date;
       orderAmount: orders.amount,
       number: orders.number,
       surchargeVs: surchargeVsSql,
-      // when its payment was started – right at booking means the client was asked for it then
-      surchargeAskedAt: sql<Date | null>`(select min(o4.created_at) from orders o4 where o4.booking_id = ${bookings.id} and o4.kind = 'surcharge' and o4.status = 'pending')`.mapWith(bookings.createdAt),
       expiresAt: orders.expiresAt,
       sessionId: classSessions.id,
       startsAt: classSessions.startsAt,
@@ -575,8 +580,6 @@ export async function unpaidBookings(db: Executor, opts: { createdBefore?: Date;
           and(eq(bookings.method, "drop_in"), eq(orders.status, "pending"), inArray(bookings.status, ["pending_payment", "confirmed", "attended", "no_show"])),
           and(gt(bookings.surcharge, 0), isNull(bookings.surchargePaidAt), sql`not ${surchargeOrderPaidSql}`, inArray(bookings.status, ["confirmed", "attended", "no_show"])),
         ),
-        opts.createdBefore ? lt(bookings.createdAt, opts.createdBefore) : undefined,
-        opts.notReminded ? isNull(bookings.paymentRemindedAt) : undefined,
       ),
     )
     .orderBy(asc(classSessions.startsAt));
