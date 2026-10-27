@@ -162,16 +162,16 @@ export const EMAILS = {
   },
   paymentReminder: {
     title: "Připomínka platby",
-    when: "Když v adminu u nezaplacené rezervace (jednorázový vstup nebo doplatek) klikneš na Připomenout platbu. Přijde i klientům, kteří mají e-maily o rezervacích vypnuté.",
+    when: "Když v adminu u nezaplacené rezervace (jednorázový vstup nebo doplatek) klikneš na Připomenout platbu – a jednou automaticky u nezaplacených rezervací z doby před platbou předem. Přijde i klientům, kteří mají e-maily o rezervacích vypnuté.",
     subject: "Připomínka platby – {{lekce}}",
-    body: "Ahoj {{osloveni}},\n\nještě nám chybí {{co}} {{lekce}} ({{castka}}).{{termin}}\n\nZaplatit můžeš tady: {{odkaz}}\n\nPokud už je platba na cestě, děkujeme – tuhle zprávu prosím ignoruj.",
+    body: "Ahoj {{osloveni}},\n\nještě nám chybí {{co}} {{lekce}} ({{castka}}).{{termin}}\n\nZaplatit můžeš tady: {{odkaz}}\n\nPokud už je zaplaceno nebo je platba na cestě, děkujeme – kdyžtak nám napiš a platbu dohledáme.",
     vars: {
       osloveni,
       co: { label: "co chybí (platba za lekci / doplatek k lekci)", sample: "platba za lekci" },
       lekce,
       castka: { label: "částka", sample: "250 Kč" },
       termin: { label: "do kdy zaplatit (u převodu)", sample: " Zaplať ji prosím do úterý 7. 10. v 10:00, jinak se místo uvolní pro ostatní." },
-      odkaz: { label: "odkaz na lekci s platbou", sample: `${site.url}/rozvrh` },
+      odkaz: { label: "odkaz na platbu (QR a číslo účtu, u doplatku stránka lekce)", sample: `${site.url}/platba/prevod` },
     },
   },
   sessionMoved: {

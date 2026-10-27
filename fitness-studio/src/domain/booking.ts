@@ -449,8 +449,9 @@ export async function dropInNotices(db: Executor, userId: string, now: Date) {
  * (Přehled and the pushes): who, which class, how much, VS and the deadline.
  */
 /**
- * What a client still owes for an upcoming booking, for a reminder from reception:
- * an unpaid drop-in (with its deadline) or a member's surcharge. Throws when nothing is owed.
+ * What a client still owes for a booking, for a reminder from reception: an unpaid
+ * drop-in – waiting for its transfer (with the deadline), or an older one that got
+ * the place before paying – or a member's surcharge. Throws when nothing is owed.
  */
 export async function paymentDue(db: Executor, bookingId: string, now = new Date()) {
   const [row] = await db
@@ -460,18 +461,70 @@ export async function paymentDue(db: Executor, bookingId: string, now = new Date
     .where(eq(bookings.id, bookingId));
   if (!row) throw new UserError("Rezervace nenalezena.");
   const { b, s } = row;
-  if (s.startsAt <= now || s.status === "cancelled") throw new UserError("Lekce už začala nebo je zrušená.");
-  if (b.status === "cancelled") throw new UserError("Rezervace je zrušená.");
-  if (b.status === "pending_payment" && b.orderId) {
-    const [o] = await db.select().from(orders).where(eq(orders.id, b.orderId));
-    if (!o || o.status !== "pending") throw new UserError("Rezervace už na platbu nečeká.");
-    const cfg = await getSettings(db);
-    const payBy = o.provider === "transfer" && o.expiresAt ? transferPayBy(cfg, o) : null;
-    return { booking: b, session: s, kind: "drop_in" as const, amount: o.amount, payBy: payBy && payBy > now ? payBy : null, releaseAt: o.expiresAt };
+  if (s.status === "cancelled") throw new UserError("Lekce je zrušená.");
+  if (b.status === "cancelled" || b.status === "waitlist") throw new UserError("Rezervace je zrušená nebo jen v pořadníku.");
+  const past = s.startsAt <= now;
+  const [o] = b.method === "drop_in" && b.orderId ? await db.select().from(orders).where(eq(orders.id, b.orderId)) : [];
+  if (o?.status === "pending") {
+    // waiting for the transfer: its place is let go at the deadline anyway
+    if (b.status === "pending_payment") {
+      if (past) throw new UserError("Lekce už začala.");
+      const cfg = await getSettings(db);
+      const payBy = o.provider === "transfer" && o.expiresAt ? transferPayBy(cfg, o) : null;
+      return { booking: b, session: s, kind: "drop_in" as const, orderId: o.id, amount: o.amount, past, payBy: payBy && payBy > now ? payBy : null, releaseAt: o.expiresAt };
+    }
+    return { booking: b, session: s, kind: "drop_in" as const, orderId: o.id, amount: o.amount, past, payBy: null, releaseAt: null };
   }
-  if (b.status === "confirmed" && b.surcharge > 0 && !b.surchargePaidAt)
-    return { booking: b, session: s, kind: "surcharge" as const, amount: b.surcharge, payBy: null, releaseAt: null };
+  if (b.status !== "pending_payment" && b.surcharge > 0 && !b.surchargePaidAt)
+    return { booking: b, session: s, kind: "surcharge" as const, orderId: null, amount: b.surcharge, past, payBy: null, releaseAt: null };
   throw new UserError("Rezervace je zaplacená.");
+}
+
+/**
+ * Bookings still waiting for money: a drop-in whose payment hasn't come (incl. older
+ * ones that got the place before paying) and members' unpaid surcharges.
+ */
+export async function unpaidBookings(db: Executor, opts: { createdBefore?: Date; notReminded?: boolean } = {}) {
+  const rows = await db
+    .select({
+      bookingId: bookings.id,
+      userId: users.id,
+      userName: users.name,
+      status: bookings.status,
+      method: bookings.method,
+      surcharge: bookings.surcharge,
+      remindedAt: bookings.paymentRemindedAt,
+      createdAt: bookings.createdAt,
+      orderId: orders.id,
+      orderStatus: orders.status,
+      orderAmount: orders.amount,
+      number: orders.number,
+      expiresAt: orders.expiresAt,
+      sessionId: classSessions.id,
+      startsAt: classSessions.startsAt,
+      name: sessionNameSql,
+    })
+    .from(bookings)
+    .innerJoin(users, eq(bookings.userId, users.id))
+    .innerJoin(classSessions, eq(bookings.sessionId, classSessions.id))
+    .innerJoin(classTypes, eq(classSessions.classTypeId, classTypes.id))
+    .leftJoin(orders, eq(bookings.orderId, orders.id))
+    .where(
+      and(
+        ne(classSessions.status, "cancelled"),
+        or(
+          and(eq(bookings.method, "drop_in"), eq(orders.status, "pending"), inArray(bookings.status, ["pending_payment", "confirmed", "attended", "no_show"])),
+          and(gt(bookings.surcharge, 0), isNull(bookings.surchargePaidAt), inArray(bookings.status, ["confirmed", "attended", "no_show"])),
+        ),
+        opts.createdBefore ? lt(bookings.createdAt, opts.createdBefore) : undefined,
+        opts.notReminded ? isNull(bookings.paymentRemindedAt) : undefined,
+      ),
+    )
+    .orderBy(asc(classSessions.startsAt));
+  return rows.map((r) => {
+    const dropIn = r.method === "drop_in" && r.orderStatus === "pending";
+    return { ...r, kind: dropIn ? ("drop_in" as const) : ("surcharge" as const), amount: dropIn ? r.orderAmount! : r.surcharge };
+  });
 }
 
 /** The booking a drop-in / surcharge order belongs to – for reminding from the order lists. */

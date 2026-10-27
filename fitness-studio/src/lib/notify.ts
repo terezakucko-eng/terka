@@ -18,9 +18,10 @@ import { markAnnounced, unannouncedRewards } from "@/domain/referrals";
 import { markBookingAnnounced, markExpiryAnnounced, markSignUpAnnounced, unannouncedBookings, unannouncedExpiries, unannouncedSignUps } from "@/domain/pass-cards";
 import { formatVoucherCode, markVoucherNotified, unnotifiedVouchers } from "@/domain/vouchers";
 import { displayName } from "./profile";
-import { expireStalePending, fillFromWaitlist, markLapseAnnounced, markPaymentReminded, markTransferNotice, paymentDue, releasedHoldsWithWaitlist, transferPayBy, transfersToCheck, unannouncedLapses } from "@/domain/booking";
+import { expireStalePending, fillFromWaitlist, markLapseAnnounced, markPaymentReminded, markTransferNotice, paymentDue, releasedHoldsWithWaitlist, transferPayBy, transfersToCheck, unannouncedLapses, unpaidBookings } from "@/domain/booking";
 import type { fulfillOrder } from "@/domain/orders";
 import { getSettings } from "./settings";
+import { UserError } from "./errors";
 import { unsubscribeUrl } from "./links";
 
 async function describe(db: DB, sessionId: string) {
@@ -278,19 +279,54 @@ export async function remindPayment(db: DB, bookingId: string, now = new Date())
   const b = due.booking;
   const lekce = await describe(db, b.sessionId);
   const co = due.kind === "drop_in" ? "platba za lekci" : "doplatek k lekci";
-  const termin =
-    due.kind === "surcharge"
+  const termin = due.past
+    ? ` Lekce už proběhla – ${due.kind === "drop_in" ? "platbu" : "doplatek"} prosím pošli, jakmile to půjde.`
+    : due.kind === "surcharge"
       ? " Na místě se doplatek neplatí – zaplatíš ho kartou nebo převodem."
       : due.payBy
         ? ` Zaplať ji prosím do ${formatDateTime(due.payBy)}, jinak se místo uvolní pro ostatní.`
         : due.releaseAt
           ? ` Bez platby se místo ${formatDateTime(due.releaseAt)} uvolní pro ostatní.`
-          : "";
+          : " Místo máš rezervované – zaplať prosím ještě před lekcí.";
+  // a drop-in: the payment page (QR, account, VS); a surcharge: the class page (card or transfer)
+  const odkaz = due.orderId ? `${site.url}/platba/prevod?order=${due.orderId}` : link(b.sessionId);
   const u = (await emails(db, [b.userId])).get(b.userId);
-  if (u) await sendEmail(u.email, "paymentReminder", { osloveni: greetName(u.name), co, lekce, castka: formatPrice(due.amount), termin, odkaz: link(b.sessionId) });
-  await pushQuietly(db, [b.userId], { title: "💸 Připomínka platby", body: `${co[0].toUpperCase()}${co.slice(1)} ${lekce} (${formatPrice(due.amount)})`, url: link(b.sessionId) });
+  if (u) await sendEmail(u.email, "paymentReminder", { osloveni: greetName(u.name), co, lekce, castka: formatPrice(due.amount), termin, odkaz });
+  await pushQuietly(db, [b.userId], { title: "💸 Připomínka platby", body: `${co[0].toUpperCase()}${co.slice(1)} ${lekce} (${formatPrice(due.amount)})`, url: odkaz });
   await markPaymentReminded(db, b.id, now);
   return { emailed: !!u };
+}
+
+/** Bookings made before the place was the client's only once paid (the change went live the night to 26. 10. 2026). */
+export const PAY_FIRST_SINCE = new Date("2026-10-26T00:00:00+01:00");
+
+/**
+ * Tidying up after that change: older bookings still unpaid (the place given before
+ * paying, or a member's surcharge) get one reminder each – in the daytime, a few per
+ * run; the studio hears how many went out. Run by the 15-minute cron.
+ */
+export async function remindOldUnpaid(db: DB, now = new Date(), batch = 15) {
+  const hour = pragueHour(now);
+  if (hour < 9 || hour >= 20) return 0;
+  // a no-show isn't chased – reception decides on those in Platby
+  const list = (await unpaidBookings(db, { createdBefore: PAY_FIRST_SINCE, notReminded: true })).filter((b) => b.status !== "no_show").slice(0, batch);
+  let sent = 0;
+  for (const b of list) {
+    try {
+      await remindPayment(db, b.bookingId, now);
+      sent++;
+    } catch (e) {
+      // paid or cancelled meanwhile – nothing to remind (a failed e-mail is tried again next run)
+      if (e instanceof UserError) await markPaymentReminded(db, b.bookingId, now);
+    }
+  }
+  if (sent)
+    await pushQuietly(db, await adminIds(db), {
+      title: `📨 Připomínka platby odešla ${sent}×`,
+      body: "Nezaplacené lekce z doby před změnou – přehled v Platby a objednávky.",
+      url: `${site.url}/admin/objednavky`,
+    });
+  return sent;
 }
 
 /** The studio moved a class to another time – everyone booked or waiting hears the new one. Returns how many. */

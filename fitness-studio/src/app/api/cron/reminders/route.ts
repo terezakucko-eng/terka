@@ -5,7 +5,7 @@ import { formatDay, formatTime } from "@/lib/dates";
 import { sendEmail } from "@/lib/email-templates";
 import { greetName } from "@/lib/vocative";
 import { pushQuietly } from "@/lib/push";
-import { fillReleasedPlaces, releaseUnpaidDropIns, sendTransferChecks, sendGreetings, sendPassCardNotices, sendReferralThanks, sendVoucherReady, sendWinbacks } from "@/lib/notify";
+import { fillReleasedPlaces, releaseUnpaidDropIns, remindOldUnpaid, sendTransferChecks, sendGreetings, sendPassCardNotices, sendReferralThanks, sendVoucherReady, sendWinbacks } from "@/lib/notify";
 import { pragueHour } from "@/lib/dates";
 
 export const maxDuration = 60;
@@ -67,6 +67,7 @@ export async function GET(req: Request) {
   const releasedPlaces = await fillReleasedPlaces(db, now);
   const unpaidReleased = await releaseUnpaidDropIns(db, now);
   const transferChecks = await sendTransferChecks(db, now);
+  const oldUnpaid = await remindOldUnpaid(db, now);
   const passCards = hour >= 7 && hour < 22 ? await sendPassCardNotices(db, now) : 0;
-  return Response.json({ classes: done.classes.length, massages: done.massages.length, greetings, winbacks, referralThanks, vouchersReady, releasedPlaces, unpaidReleased, transferChecks, passCards });
+  return Response.json({ classes: done.classes.length, massages: done.massages.length, greetings, winbacks, referralThanks, vouchersReady, releasedPlaces, unpaidReleased, transferChecks, oldUnpaid, passCards });
 }
