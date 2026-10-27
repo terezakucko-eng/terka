@@ -27,7 +27,7 @@ import { Avatar } from "@/components/avatar";
 import { upcomingCelebrations } from "@/lib/profile";
 import { dateKey, mondayOf } from "@/lib/dates";
 import { AdminAddBooking } from "@/components/admin-add-booking";
-import { guestAllowed } from "@/domain/booking";
+import { guestAllowed, surchargeVsSql } from "@/domain/booking";
 import { splitName } from "@/lib/client-list";
 
 export default async function AdminSessionPage({ params }: PageProps<"/admin/rozvrh/[id]">) {
@@ -51,7 +51,7 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
     .sort((a, b) => collator.compare(a.label, b.label));
   const [list, types, instructorList] = await Promise.all([
     db
-      .select({ b: bookings, u: users, payUntil: orders.expiresAt })
+      .select({ b: bookings, u: users, payUntil: orders.expiresAt, vs: orders.number, orderStatus: orders.status, surchargeVs: surchargeVsSql })
       .from(bookings)
       .innerJoin(users, eq(bookings.userId, users.id))
       .leftJoin(orders, eq(bookings.orderId, orders.id))
@@ -83,20 +83,25 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
       <br /><span className="break-all text-xs text-les/50">{u.phone ?? u.email}</span>
     </>
   );
-  const pay = (b: Row["b"], payUntil?: Date | null) => (
+  const pay = ({ b, payUntil, vs, orderStatus, surchargeVs }: Pick<Row, "b" | "payUntil" | "vs" | "orderStatus" | "surchargeVs">) => {
+    // a drop-in still waiting for its money – also an older one that got the place before paying
+    const unpaidDropIn = b.method === "drop_in" && !!b.orderId && orderStatus === "pending";
+    const unpaidSurcharge = b.status !== "pending_payment" && b.surcharge > 0 && !b.surchargePaidAt;
+    return (
     <>
       {b.method ? methodLabel[b.method] : "—"}
-      {/* a drop-in is confirmed once paid – reception can mark a transfer that arrived right here */}
-      {b.status === "pending_payment" && b.orderId && isAdmin && (
-        <ActionForm action={markOrderPaidAction} confirm="Platba dorazila? Místo se potvrdí a klientce přijde potvrzení." className="mt-1">
-          <input type="hidden" name="orderId" value={b.orderId} />
+      {/* reception marks a transfer that arrived right here (by its VS) */}
+      {unpaidDropIn && isAdmin && (
+        <ActionForm action={markOrderPaidAction} confirm={`Platba${vs ? ` s VS ${vs}` : ""} dorazila?${b.status === "pending_payment" ? " Místo se potvrdí a klientce přijde potvrzení." : ""}`} className="mt-1">
+          <input type="hidden" name="orderId" value={b.orderId!} />
           <button title="Označit jako zaplacené">
-            <Badge tone="gold">Nezaplaceno{payUntil ? ` · bez platby odhlásím ${formatDateTime(payUntil)}` : ""} – zaplaceno?</Badge>
+            <Badge tone="gold">Nezaplaceno{vs ? ` · VS ${vs}` : ""}{b.status === "pending_payment" && payUntil ? ` · bez platby odhlásím ${formatDateTime(payUntil)}` : ""} – zaplaceno?</Badge>
           </button>
         </ActionForm>
       )}
+      {unpaidDropIn && !isAdmin && vs && <span className="block text-xs text-les/60">nezaplaceno · VS {vs}</span>}
       {/* not paid yet – reception nudges the client (e-mail + push with where to pay) */}
-      {!started && ((b.status === "pending_payment" && b.orderId) || (b.status === "confirmed" && b.surcharge > 0 && !b.surchargePaidAt)) && (
+      {(unpaidDropIn || unpaidSurcharge) && b.status !== "waitlist" && (!started || b.status !== "pending_payment") && (
         <RemindPayment bookingId={b.id} remindedAt={b.paymentRemindedAt} />
       )}
       {b.surcharge > 0 && (
@@ -105,13 +110,14 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
           <input type="hidden" name="paid" value={b.surchargePaidAt ? "false" : "true"} />
           <button title={b.surchargePaidAt ? "Zrušit zaplacení" : "Označit jako zaplacené"}>
             <Badge tone={b.surchargePaidAt ? "green" : "gold"}>
-              Doplatek {formatPrice(b.surcharge)} {b.surchargePaidAt ? "✓" : "– nezaplaceno"}
+              Doplatek {formatPrice(b.surcharge)} {b.surchargePaidAt ? "✓" : `– nezaplaceno${surchargeVs ? ` · VS ${surchargeVs}` : ""}`}
             </Badge>
           </button>
         </ActionForm>
       )}
     </>
-  );
+    );
+  };
   const statusBadge = (b: Row["b"]) => (
     <Badge tone={b.status === "attended" ? "green" : b.status === "no_show" ? "red" : "neutral"}>{bookingStatusLabel[b.status]}</Badge>
   );
@@ -163,13 +169,13 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
           <h2 className="text-lg font-semibold">Přihlášení klienti a docházka</h2>
           {/* phones: one card per client, big attendance buttons */}
           <ul className="space-y-3 md:hidden">
-            {active.map(({ b, u, payUntil }) => (
+            {active.map(({ b, u, ...money }) => (
               <li key={b.id} className="rounded-2xl border border-linka/60 bg-white/60 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">{who(b, u)}</div>
                   {statusBadge(b)}
                 </div>
-                <div className="mt-2 text-sm text-les/70">{pay(b, payUntil)}</div>
+                <div className="mt-2 text-sm text-les/70">{pay({ b, ...money })}</div>
                 {attendance(b, "flex-1 py-2.5 text-sm")}
                 <div className="mt-3 border-t border-linka/40 pt-3">{cancel(b)}</div>
               </li>
@@ -177,10 +183,10 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
             {active.length === 0 && <li className="text-sm text-les/50">Zatím nikdo.</li>}
           </ul>
           <Table head={["Klient", "Platba", "Stav", "Docházka", ""]} className="max-md:hidden">
-            {active.map(({ b, u, payUntil }) => (
+            {active.map(({ b, u, ...money }) => (
               <tr key={b.id}>
                 <Td>{who(b, u)}</Td>
-                <Td>{pay(b, payUntil)}</Td>
+                <Td>{pay({ b, ...money })}</Td>
                 <Td>{statusBadge(b)}</Td>
                 <Td>{attendance(b)}</Td>
                 <Td>{cancel(b)}</Td>

@@ -52,17 +52,18 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/obj
         <section className="mb-10 rounded-2xl border-2 border-zlato bg-zlato/10 p-5">
           <h2 className="font-semibold">Nezaplacené lekce ({unpaid.length})</h2>
           <p className="mt-1 text-sm text-les/60">
-            Jednorázové vstupy bez platby a nezaplacené doplatky členů. Rezervace z doby před platbou předem (do 25. 10.) dostanou jednu připomínku automaticky – přes den, postupně.
+            Jednorázové vstupy bez platby a nezaplacené doplatky členů. Porovnej VS s výpisem z banky – co už dorazilo, označ Zaplaceno. Rezervace z doby před platbou předem (do 25. 10.) dostanou jednu připomínku automaticky – přes den, postupně. „Zatím bez VS“ = klient platbu ještě nezačal (doplatek), převodem tedy platit nemohl.
           </p>
-          <Table head={["Lekce", "Klient", "Co", "Částka", "Stav", ""]} className="mt-3">
+          <Table head={["VS", "Lekce", "Klient", "Co", "Částka", "Stav", ""]} className="mt-3">
             {unpaid.map((b) => (
               <tr key={b.bookingId} className={b.startsAt < now ? "bg-white/40" : ""}>
+                <Td className="whitespace-nowrap font-semibold tabular-nums">{b.vs ?? <span className="text-xs font-normal text-les/50">zatím bez VS</span>}</Td>
                 <Td className="whitespace-nowrap">
                   <Link href={`/admin/rozvrh/${b.sessionId}`} className="font-semibold underline-offset-4 hover:underline">{b.name}</Link>
                   <span className="block text-xs text-les/60">{formatDay(b.startsAt)} v {formatTime(b.startsAt)}{b.startsAt < now && " · proběhla"}</span>
                 </Td>
                 <Td><Link href={`/admin/klienti/${b.userId}`} className="underline-offset-4 hover:underline">{b.userName}</Link></Td>
-                <Td>{b.kind === "drop_in" ? <>Jednorázový vstup{b.number && <span className="block text-xs text-les/60">VS {b.number}</span>}</> : "Doplatek"}</Td>
+                <Td>{b.kind === "drop_in" ? "Jednorázový vstup" : "Doplatek"}</Td>
                 <Td className="whitespace-nowrap tabular-nums">{formatPrice(b.amount)}</Td>
                 <Td>
                   <Badge tone={b.status === "no_show" ? "red" : "gold"}>{bookingStatusLabel[b.status]}</Badge>
@@ -89,10 +90,10 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/obj
         </section>
       )}
 
-      <Table head={["Č.", "Datum", "Klient", "Položka", "Částka", "Způsob", "Stav", ""]}>
+      <Table head={["VS", "Datum", "Klient", "Položka", "Částka", "Způsob", "Stav", ""]}>
         {list.map(({ o, u, lesson }) => (
           <tr key={o.id}>
-            <Td>{o.number}</Td>
+            <Td className="font-semibold tabular-nums">{o.number}</Td>
             <Td className="whitespace-nowrap">{formatDateTime(o.createdAt)}</Td>
             <Td><Link href={`/admin/klienti/${u.id}`} className="underline-offset-4 hover:underline">{u.name}</Link></Td>
             <Td>
@@ -104,7 +105,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/obj
               )}
             </Td>
             <Td className="whitespace-nowrap tabular-nums">{formatPrice(o.amount)}</Td>
-            <Td>{{ stripe: "Karta online", transfer: `Převodem · VS ${o.number}`, reception: "Recepce", manual: "Ručně", test: "Test", pending: "—" }[o.provider] ?? o.provider}</Td>
+            <Td>{{ stripe: "Karta online", transfer: "Převodem", reception: "Recepce", manual: "Ručně", test: "Test", pending: "Nezvoleno" }[o.provider] ?? o.provider}</Td>
             <Td><Badge tone={o.status === "paid" ? "green" : o.status === "pending" ? "gold" : "neutral"}>{orderStatusLabel[o.status]}</Badge></Td>
             <Td className="space-y-1 text-right">
               {o.status === "pending" && o.kind !== "renewal" && (

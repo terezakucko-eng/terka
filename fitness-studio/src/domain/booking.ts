@@ -480,6 +480,9 @@ export async function paymentDue(db: Executor, bookingId: string, now = new Date
   throw new UserError("Rezervace je zaplacená.");
 }
 
+/** The VS of a surcharge the client started to pay (its order still waits) – null when not started. */
+export const surchargeVsSql = sql<number | null>`(select max(o2.number) from orders o2 where o2.booking_id = ${bookings.id} and o2.kind = 'surcharge' and o2.status = 'pending')`;
+
 /**
  * Bookings still waiting for money: a drop-in whose payment hasn't come (incl. older
  * ones that got the place before paying) and members' unpaid surcharges.
@@ -499,6 +502,7 @@ export async function unpaidBookings(db: Executor, opts: { createdBefore?: Date;
       orderStatus: orders.status,
       orderAmount: orders.amount,
       number: orders.number,
+      surchargeVs: surchargeVsSql,
       expiresAt: orders.expiresAt,
       sessionId: classSessions.id,
       startsAt: classSessions.startsAt,
@@ -523,7 +527,13 @@ export async function unpaidBookings(db: Executor, opts: { createdBefore?: Date;
     .orderBy(asc(classSessions.startsAt));
   return rows.map((r) => {
     const dropIn = r.method === "drop_in" && r.orderStatus === "pending";
-    return { ...r, kind: dropIn ? ("drop_in" as const) : ("surcharge" as const), amount: dropIn ? r.orderAmount! : r.surcharge };
+    return {
+      ...r,
+      kind: dropIn ? ("drop_in" as const) : ("surcharge" as const),
+      amount: dropIn ? r.orderAmount! : r.surcharge,
+      // the variable symbol the payment comes with (a surcharge has one once the client started paying)
+      vs: dropIn ? r.number : r.surchargeVs,
+    };
   });
 }
 
