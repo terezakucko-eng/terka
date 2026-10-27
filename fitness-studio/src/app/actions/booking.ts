@@ -10,6 +10,7 @@ import {
   cancelBooking,
   joinWaitlist,
   paySurchargeWithCredits,
+  surchargeCredits,
   type Method,
 } from "@/domain/booking";
 import { formatDate } from "@/lib/dates";
@@ -74,7 +75,9 @@ export async function bookAction(_: FormState, fd: FormData): Promise<FormState>
     }
     await notifyBooked(db, booking);
     // a member's surcharge (Reformer…): said right away – the pay buttons are just below
-    const [b] = await db.select({ surcharge: bookings.surcharge }).from(bookings).where(eq(bookings.id, booking.id));
+    const [b] = await db.select({ surcharge: bookings.surcharge, paidAt: bookings.surchargePaidAt }).from(bookings).where(eq(bookings.id, booking.id));
+    if (b && b.surcharge > 0 && b.paidAt)
+      return `Hotovo! Místo je tvoje. Doplatek ${formatPrice(b.surcharge)} jsme zaplatili z tvého kreditu (−${credits(surchargeCredits(b.surcharge))}), nic dalšího neplatíš.`;
     if (b && b.surcharge > 0)
       return `Hotovo! Místo je tvoje. K lekci patří doplatek ${formatPrice(b.surcharge)} – zaplať ho prosím níže kartou nebo převodem, na místě se neplatí. Údaje k platbě jsme poslali i e-mailem.`;
     return "Hotovo! Místo je tvoje. Potvrzení jsme poslali e-mailem.";

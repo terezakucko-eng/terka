@@ -938,6 +938,7 @@ export async function bookingOptions(
     isClassKind(e.kind) && (!e.classTypeId || e.classTypeId === s.classTypeId) ? [{ ...e, kind: e.kind }] : [],
   );
   classEnts.sort((a, b) => rank[a.kind] - rank[b.kind]);
+  const [credit] = await tx.select({ creditBalance: users.creditBalance, creditExpiresAt: users.creditExpiresAt }).from(users).where(eq(users.id, userId));
   for (const e of classEnts) {
     const problem = await entitlementProblem(tx, e, s, seats, now);
     const need = entriesFor(e, rules, seats);
@@ -959,7 +960,9 @@ export async function bookingOptions(
       method: methodForKind[e.kind],
       entitlementId: e.id,
       label: e.name,
-      detail: extra ? `${left} · doplatek ${formatPrice(extra)} (kartou nebo převodem)${included}` : left + included,
+      detail: extra
+        ? `${left} · doplatek ${formatPrice(extra)} (${credit && usableCredit(credit, now) >= surchargeCredits(extra) ? `strhneme z kreditu, ${creditsLabel(surchargeCredits(extra))}` : "kartou nebo převodem"})${included}`
+        : left + included,
       ...(problem ? { disabled: problem } : {}),
     });
   }
@@ -1079,6 +1082,21 @@ async function charge(
   let surcharge = surchargeFor(method, rules, s, booking.seats);
   // lessons included in the membership (e.g. 4× Reformer a month) need no surcharge
   if (surcharge > 0 && method === "membership" && ent && (await includedLeft(tx, ent, s, rules, booking.id))) surcharge = 0;
+  // credit on the account (bought for surcharges) pays it right away – no transfer, no VS; 1 Kč = 1 kredit
+  let surchargePaidAt: Date | null = null;
+  if (surcharge > 0) {
+    const [u] = await tx.select({ creditBalance: users.creditBalance, creditExpiresAt: users.creditExpiresAt }).from(users).where(eq(users.id, booking.userId));
+    if (u && usableCredit(u, now) >= surchargeCredits(surcharge)) {
+      await changeCredits(tx, {
+        userId: booking.userId,
+        delta: -surchargeCredits(surcharge),
+        reason: "booking",
+        bookingId: booking.id,
+        note: `Doplatek ${formatPrice(surcharge)} zaplacen z kreditu`,
+      });
+      surchargePaidAt = now;
+    }
+  }
   await tx
     .update(bookings)
     .set({
@@ -1087,6 +1105,7 @@ async function charge(
       entitlementId: entId,
       method,
       surcharge,
+      surchargePaidAt,
     })
     .where(eq(bookings.id, booking.id));
 }

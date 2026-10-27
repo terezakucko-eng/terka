@@ -16,8 +16,8 @@ const userOf = async (id: string) => (await h.db.select().from(users).where(eq(u
 const bookingOf = async (id: string) => (await h.db.select().from(bookings).where(eq(bookings.id, id)))[0];
 const orderOf = async (id: string) => (await h.db.select().from(orders).where(eq(orders.id, id)))[0];
 
-/** A member booked on a Reformer with a 100 Kč surcharge, with `credit` bought for surcharges. */
-async function member(credit: number) {
+/** A member booked on a Reformer with a 100 Kč surcharge (`credit` on the account when booking). */
+async function book(credit: number) {
   const s = await makeSession(h.db);
   await h.db.update(classTypes).set({ memberSurcharge: 10000 }).where(eq(classTypes.id, s.classTypeId));
   const u = await makeUser(h.db, credit);
@@ -27,6 +27,44 @@ async function member(credit: number) {
   expect((await bookingOf(booking.id)).surcharge).toBe(10000);
   return { u, booking };
 }
+
+/** …booked without credit, the surcharge left unpaid; `credit` bought afterwards. */
+async function member(credit: number) {
+  const r = await book(0);
+  expect((await bookingOf(r.booking.id)).surchargePaidAt).toBeNull();
+  await h.db.update(users).set({ creditBalance: credit }).where(eq(users.id, r.u.id));
+  return r;
+}
+
+describe("booking with credit on the account", () => {
+  it("pays the surcharge from it right away – nothing to transfer", async () => {
+    const { u, booking } = await book(1100);
+    expect((await bookingOf(booking.id)).surchargePaidAt).toEqual(NOW);
+    expect((await userOf(u.id)).creditBalance).toBe(1000);
+    expect((await unpaidBookings(h.db)).some((x) => x.bookingId === booking.id)).toBe(false);
+    // cancelled in time → back as credit
+    await cancelBooking(h.db, { bookingId: booking.id, actorId: u.id }, NOW);
+    expect((await userOf(u.id)).creditBalance).toBe(1100);
+  });
+
+  it("not enough credit → the surcharge waits to be paid, the credit stays", async () => {
+    const { u, booking } = await book(60);
+    expect((await bookingOf(booking.id)).surchargePaidAt).toBeNull();
+    expect((await userOf(u.id)).creditBalance).toBe(60);
+  });
+
+  it("credit that ran out isn't used", async () => {
+    const s = await makeSession(h.db);
+    await h.db.update(classTypes).set({ memberSurcharge: 10000 }).where(eq(classTypes.id, s.classTypeId));
+    const u = await makeUser(h.db, 1100);
+    await h.db.update(users).set({ creditExpiresAt: new Date(NOW.getTime() - 86_400_000) }).where(eq(users.id, u.id));
+    await grantEntitlement(h.db, { userId: u.id, kind: "membership", name: "Členství", entries: null, validityDays: 30 }, NOW);
+    const opt = (await bookingOptions(h.db, u.id, s)).find((o) => o.method === "membership")!;
+    const { booking } = await bookSession(h.db, { userId: u.id, sessionId: s.id, method: "membership", entitlementId: opt.entitlementId }, NOW);
+    expect((await bookingOf(booking.id)).surchargePaidAt).toBeNull();
+    expect((await userOf(u.id)).creditBalance).toBe(1100);
+  });
+});
 
 describe("a surcharge paid from credit", () => {
   it("takes 1 kredit per 1 Kč, marks it paid and calls the open transfer off", async () => {

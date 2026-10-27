@@ -89,7 +89,7 @@ export async function notifyBooked(db: DB, b: Pick<Booking, "userId" | "sessionI
   const surcharge = await surchargeToPay(db, b.id);
   const u = (await emails(db, [b.userId])).get(b.userId);
   // a surcharge to pay is told even with booking e-mails off
-  if (u && (byStudio || u.bookingEmails || surcharge))
+  if (u && (byStudio || u.bookingEmails || surcharge?.push))
     await sendEmail(u.email, "booked", {
       osloveni: greetName(u.name),
       lekce: await describe(db, b.sessionId),
@@ -98,18 +98,21 @@ export async function notifyBooked(db: DB, b: Pick<Booking, "userId" | "sessionI
       odkaz: link(b.sessionId),
       kalendar: `${site.url}/api/kalendar/lekce/${b.sessionId}`,
     });
-  if (surcharge) await pushQuietly(db, [b.userId], { title: "💸 K lekci patří doplatek", body: surcharge.push, url: surcharge.url });
+  if (surcharge?.push) await pushQuietly(db, [b.userId], { title: "💸 K lekci patří doplatek", body: surcharge.push, url: surcharge.url });
 }
 
 /**
  * A member's / pass holder's surcharge still to pay for this booking (Reformer, brunch…):
  * its payment is started right away, so the client gets a VS and a QR code to pay by
- * transfer (or pays by card). Null when there's nothing to pay.
+ * transfer (or pays by card). Already paid from credit when booked – just the line saying so
+ * (no push). Null when there's no surcharge.
  */
 async function surchargeToPay(db: DB, bookingId?: string) {
   if (!bookingId) return null;
   const [b] = await db.select().from(bookings).where(eq(bookings.id, bookingId));
-  if (!b || b.surcharge <= 0 || b.surchargePaidAt || b.status !== "confirmed") return null;
+  if (!b || b.surcharge <= 0 || b.status !== "confirmed") return null;
+  if (b.surchargePaidAt)
+    return { line: `Doplatek ${formatPrice(b.surcharge)} jsme zaplatili z tvého kreditu (−${credits(surchargeCredits(b.surcharge))}) – nic dalšího neplatíš.\n`, push: null, url: null };
   const o = await createSurchargeOrder(db, { userId: b.userId, bookingId: b.id }).catch(() => null);
   const url = o ? `${site.url}/platba/prevod?order=${o.id}` : link(b.sessionId);
   const price = formatPrice(b.surcharge);
@@ -299,7 +302,7 @@ export async function notifyPromoted(db: DB, promoted: (Pick<Booking, "userId" |
     if (!u) continue;
     const lekce = await describe(db, p.sessionId);
     await sendEmail(u.email, "promoted", { osloveni: greetName(u.name), lekce, doplatek: surcharge?.line ?? "", odkaz: link(p.sessionId) });
-    await pushQuietly(db, [p.userId], { title: "Uvolnilo se místo – jdeš na lekci", body: surcharge ? `${lekce} · ${surcharge.push}` : lekce, url: surcharge?.url ?? link(p.sessionId) });
+    await pushQuietly(db, [p.userId], { title: "Uvolnilo se místo – jdeš na lekci", body: surcharge?.push ? `${lekce} · ${surcharge.push}` : lekce, url: surcharge?.url ?? link(p.sessionId) });
   }
 }
 
