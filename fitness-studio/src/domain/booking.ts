@@ -475,13 +475,20 @@ export async function paymentDue(db: Executor, bookingId: string, now = new Date
     }
     return { booking: b, session: s, kind: "drop_in" as const, orderId: o.id, vs: o.number, amount: o.amount, past, payBy: null, releaseAt: null };
   }
-  if (b.status !== "pending_payment" && b.surcharge > 0 && !b.surchargePaidAt)
+  const [paidOrder] =
+    b.surcharge > 0 && !b.surchargePaidAt
+      ? await db.select({ id: orders.id }).from(orders).where(and(eq(orders.bookingId, b.id), eq(orders.kind, "surcharge"), eq(orders.status, "paid")))
+      : [];
+  if (b.status !== "pending_payment" && b.surcharge > 0 && !b.surchargePaidAt && !paidOrder)
     return { booking: b, session: s, kind: "surcharge" as const, orderId: null, vs: null, amount: b.surcharge, past, payBy: null, releaseAt: null };
   throw new UserError("Rezervace je zaplacená.");
 }
 
 /** The VS of a surcharge the client started to pay (its order still waits) – null when not started. */
 export const surchargeVsSql = sql<number | null>`(select max(o2.number) from orders o2 where o2.booking_id = ${bookings.id} and o2.kind = 'surcharge' and o2.status = 'pending')`;
+
+/** A surcharge whose payment came (card / transfer) – paid, whatever the booking's own mark says. */
+const surchargeOrderPaidSql = sql<boolean>`exists (select 1 from orders o3 where o3.booking_id = ${bookings.id} and o3.kind = 'surcharge' and o3.status = 'paid')`;
 
 /**
  * Bookings still waiting for money: a drop-in whose payment hasn't come (incl. older
@@ -518,7 +525,7 @@ export async function unpaidBookings(db: Executor, opts: { createdBefore?: Date;
         ne(classSessions.status, "cancelled"),
         or(
           and(eq(bookings.method, "drop_in"), eq(orders.status, "pending"), inArray(bookings.status, ["pending_payment", "confirmed", "attended", "no_show"])),
-          and(gt(bookings.surcharge, 0), isNull(bookings.surchargePaidAt), inArray(bookings.status, ["confirmed", "attended", "no_show"])),
+          and(gt(bookings.surcharge, 0), isNull(bookings.surchargePaidAt), sql`not ${surchargeOrderPaidSql}`, inArray(bookings.status, ["confirmed", "attended", "no_show"])),
         ),
         opts.createdBefore ? lt(bookings.createdAt, opts.createdBefore) : undefined,
         opts.notReminded ? isNull(bookings.paymentRemindedAt) : undefined,

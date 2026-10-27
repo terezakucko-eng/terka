@@ -1,4 +1,5 @@
-import { eq } from "drizzle-orm";
+import { readFileSync } from "node:fs";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
@@ -148,5 +149,27 @@ describe("a member's surcharge is asked for right at booking", () => {
     expect(sent[0].vars.co).toBe("doplatek k lekci");
     expect((await bookingOf(never.booking.id)).paymentRemindedAt).toEqual(later);
     expect((await bookingOf(asked.booking.id)).paymentRemindedAt).toBeNull();
+  });
+});
+
+describe("a surcharge paid by transfer whose booking lost the paid mark", () => {
+  it("isn't listed or reminded as unpaid, and the data fix marks it paid again", async () => {
+    const s = await makeSession(h.db);
+    await h.db.update(classTypes).set({ memberSurcharge: 10000 }).where(eq(classTypes.id, s.classTypeId));
+    const u = await makeUser(h.db);
+    await grantEntitlement(h.db, { userId: u.id, kind: "membership", name: "Členství", entries: null, validityDays: 30 }, NOW);
+    const opt = (await bookingOptions(h.db, u.id, s)).find((o) => o.method === "membership")!;
+    const { booking } = await bookSession(h.db, { userId: u.id, sessionId: s.id, method: "membership", entitlementId: opt.entitlementId }, NOW);
+    const o = await createSurchargeOrder(h.db, { userId: u.id, bookingId: booking.id });
+    await fulfillOrder(h.db, { orderId: o.id, provider: "transfer" }, NOW);
+    // the green "paid" badge tapped by mistake
+    await h.db.update(bookings).set({ surchargePaidAt: null }).where(eq(bookings.id, booking.id));
+
+    expect((await unpaidBookings(h.db)).some((b) => b.bookingId === booking.id)).toBe(false);
+    await expect(remindPayment(h.db, booking.id, NOW)).rejects.toThrow(/zaplacená/);
+
+    const fix = readFileSync(new URL("../drizzle/0107_surcharge_paid_from_orders.sql", import.meta.url), "utf8");
+    await h.db.execute(sql.raw(fix));
+    expect((await bookingOf(booking.id)).surchargePaidAt).not.toBeNull();
   });
 });

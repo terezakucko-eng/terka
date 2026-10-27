@@ -105,7 +105,12 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
         <RemindPayment bookingId={b.id} remindedAt={b.paymentRemindedAt} />
       )}
       {b.surcharge > 0 && (
-        <ActionForm action={setSurchargePaidAction} className="mt-1">
+        <ActionForm
+          action={setSurchargePaidAction}
+          // un-marking a paid surcharge is rare – a tap on the green badge by mistake mustn't do it
+          confirm={b.surchargePaidAt ? `Opravdu vrátit doplatek ${formatPrice(b.surcharge)} na nezaplacený?` : undefined}
+          className="mt-1"
+        >
           <input type="hidden" name="bookingId" value={b.id} />
           <input type="hidden" name="paid" value={b.surchargePaidAt ? "false" : "true"} />
           <button title={b.surchargePaidAt ? "Zrušit zaplacení" : "Označit jako zaplacené"}>
