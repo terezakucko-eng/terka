@@ -257,6 +257,30 @@ export const EMAILS = {
       odkaz: { label: "odkaz na rozvrh", sample: `${site.url}/rozvrh` },
     },
   },
+  freeEntryWeek: {
+    title: "Lekce zdarma – zbývá týden",
+    when: "Týden předtím, než klientovi vyprší nevyužitá lekce zdarma (úvodní, k narozeninám, za pozvání…).",
+    subject: "Nezapomeň na svou lekci zdarma",
+    body: "Ahoj {{osloveni}},\n\nna účtu tě pořád čeká {{nazev}} – platí do {{platnost}}. Vyber si v rozvrhu lekci, na kterou máš chuť, a přijď si ji užít.\n\nRozvrh: {{odkaz}}\n\nTěšíme se na tebe!",
+    vars: {
+      osloveni,
+      nazev: { label: "co klient má (název, u více vstupů i počet)", sample: "Úvodní lekce zdarma" },
+      platnost: { label: "do kdy platí", sample: "31. 10. 2026" },
+      odkaz: { label: "odkaz na rozvrh", sample: `${site.url}/rozvrh` },
+    },
+  },
+  freeEntryLastCall: {
+    title: "Lekce zdarma – poslední den",
+    when: "Den předtím, než klientovi vyprší nevyužitá lekce zdarma.",
+    subject: "Poslední šance: lekce zdarma platí do {{platnost}}",
+    body: "Ahoj {{osloveni}},\n\n{{nazev}} ti vyprší {{platnost}}. Pokud ji chceš využít, přihlas se ještě dnes na lekci v rozvrhu: {{odkaz}}\n\nKdyby ti to teď nevycházelo, ozvi se nám – domluvíme se.",
+    vars: {
+      osloveni,
+      nazev: { label: "co klient má (název, u více vstupů i počet)", sample: "Úvodní lekce zdarma" },
+      platnost: { label: "kdy vyprší", sample: "31. 10. 2026" },
+      odkaz: { label: "odkaz na rozvrh", sample: `${site.url}/rozvrh` },
+    },
+  },
   strikeWarning: {
     title: "Členství – varování před pauzou",
     when: "Když se člen po pozdním odhlášení nebo nepříchodu dostane jeden prohřešek před pauzu (Nastavení).",
