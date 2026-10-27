@@ -333,17 +333,24 @@ async function activeBooking(tx: Executor, userId: string, sessionId: string) {
 }
 
 /**
- * Until when a drop-in paid by bank transfer holds its place: N hours from
- * booking, but at the latest X hours before the class (reception confirms the
- * payment by hand). Null = too late for a transfer – card only.
+ * Until when a drop-in paid by bank transfer holds its place before it's let go:
+ * the client is asked to pay within 24 h, the place waits 48 h (reception
+ * confirms the payment by hand), but at the latest X hours before the class.
+ * Null = too late for a transfer – card only.
  */
 export function transferDeadline(cfg: Settings, s: Pick<ClassSession, "startsAt">, now: Date) {
   let latest = s.startsAt.getTime() - cfg.transferCutoffHours * HOUR;
   // a morning class: the transfer has to be confirmed the afternoon before (17:00), later card only
   const eve = morningEve(cfg, s);
   if (eve) latest = Math.min(latest, eve.getTime());
-  const until = cfg.transferHoldHours > 0 ? Math.min(now.getTime() + cfg.transferHoldHours * HOUR, latest) : latest;
+  const until = cfg.transferGraceHours > 0 ? Math.min(now.getTime() + cfg.transferGraceHours * HOUR, latest) : latest;
   return until - now.getTime() >= 15 * MIN ? new Date(until) : null;
+}
+
+/** What the client is told: pay within N hours of booking (the place is let go only a while later). */
+export function transferPayBy(cfg: Settings, o: { createdAt: Date; expiresAt: Date | null }) {
+  const by = new Date(o.createdAt.getTime() + cfg.transferHoldHours * HOUR);
+  return o.expiresAt && o.expiresAt < by ? o.expiresAt : by;
 }
 
 /** For a morning class: the hour of the day before after which it's card only (null = not a morning class). */
@@ -394,6 +401,7 @@ export async function dropInNotices(db: Executor, userId: string, now: Date) {
       status: orders.status,
       amount: orders.amount,
       number: orders.number,
+      createdAt: orders.createdAt,
       expiresAt: orders.expiresAt,
       sessionId: classSessions.id,
       startsAt: classSessions.startsAt,
@@ -425,9 +433,14 @@ export async function dropInNotices(db: Executor, userId: string, now: Date) {
         ).map((b) => b.sessionId),
       )
     : new Set<string>();
+  const cfg = await getSettings(db);
+  const withPayBy = (r: (typeof rows)[number]) => {
+    const payBy = transferPayBy(cfg, r);
+    return { ...r, payBy, overdue: payBy <= now };
+  };
   return {
-    waiting: rows.filter((r) => r.status === "pending" && r.expiresAt),
-    lapsed: lapsed.filter((r) => !booked.has(r.sessionId)),
+    waiting: rows.filter((r) => r.status === "pending" && r.expiresAt).map(withPayBy),
+    lapsed: lapsed.filter((r) => !booked.has(r.sessionId)).map(withPayBy),
   };
 }
 
@@ -436,11 +449,13 @@ export async function dropInNotices(db: Executor, userId: string, now: Date) {
  * (Přehled and the pushes): who, which class, how much, VS and the deadline.
  */
 export async function transfersToCheck(db: Executor, now: Date) {
-  return db
+  const cfg = await getSettings(db);
+  const rows = await db
     .select({
       orderId: orders.id,
       amount: orders.amount,
       number: orders.number,
+      createdAt: orders.createdAt,
       expiresAt: orders.expiresAt,
       notifiedAt: orders.studioNotifiedAt,
       remindedAt: orders.studioRemindedAt,
@@ -462,6 +477,7 @@ export async function transfersToCheck(db: Executor, now: Date) {
       ),
     )
     .orderBy(asc(orders.expiresAt));
+  return rows.map((r) => ({ ...r, payBy: transferPayBy(cfg, r) }));
 }
 
 export async function markTransferNotice(db: Executor, orderId: string, kind: "new" | "reminder", now: Date) {
@@ -999,6 +1015,24 @@ async function refund(tx: Executor, b: Booking, s: ClassSession, note: string) {
     default:
       break;
   }
+  // the member's / pass holder's surcharge paid on top (Reformer…) comes back as credit, 1 Kč = 1 kredit
+  if (b.surcharge > 0 && b.surchargePaidAt)
+    await changeCredits(tx, {
+      userId: b.userId,
+      delta: Math.round(b.surcharge / 100),
+      reason: "refund",
+      bookingId: b.id,
+      note: `${note} (doplatek ${formatPrice(b.surcharge)} vrácen jako kredit)`,
+    });
+  await callOffSurcharge(tx, b.id);
+}
+
+/** A surcharge not paid yet is called off – nothing is owed for a cancelled class. */
+async function callOffSurcharge(tx: Executor, bookingId: string) {
+  await tx
+    .update(orders)
+    .set({ status: "cancelled" })
+    .where(and(eq(orders.kind, "surcharge"), eq(orders.bookingId, bookingId), eq(orders.status, "pending")));
 }
 
 /* ------------------------------------------------------------ commands */
@@ -1087,6 +1121,8 @@ export async function bookSession(db: DB, input: BookInput, now = new Date()) {
           sessionId: s.id,
           description: guestName ? "Jednorázový vstup pro dva" : student ? "Studentský vstup" : dropIn.intro ? "První lekce" : "Jednorázový vstup",
           amount: dropIn.price,
+          // the "pay within 24 h" counts from here
+          createdAt: now,
           ...(free ? { status: "paid" as const, provider: "free", paidAt: now } : { provider: "pending", expiresAt }),
         })
         .returning();
@@ -1261,7 +1297,9 @@ export async function cancelBooking(
         .where(and(eq(orders.id, b.orderId), eq(orders.status, "pending")));
     } else if (b.status !== "waitlist") {
       refunded = input.isAdmin ? (input.refund ?? true) : !late;
+      // a late cancel keeps what was paid (entry, surcharge) – an unpaid surcharge is just called off
       if (refunded) await refund(tx, b, s, "Storno rezervace");
+      else await callOffSurcharge(tx, b.id);
     }
 
     await tx
@@ -1467,8 +1505,9 @@ export async function sessionForUser(
   let myBooking: Booking | undefined;
   let waitlistPosition: number | null = null;
   let options: BookingOption[] = [];
-  let unpaid: { id: string; expiresAt: Date | null; provider: string } | undefined;
-  let lapsedAt: Date | null = null;
+  let unpaid: { id: string; createdAt: Date; expiresAt: Date | null; provider: string; payBy?: Date; overdue?: boolean } | undefined;
+  let lapsedPayBy: Date | null = null;
+  const transferUntil = transferDeadline(cfg, s, now);
   if (userId) {
     myBooking = await activeBooking(db, userId, s.id);
     if (myBooking?.status === "waitlist") {
@@ -1479,18 +1518,22 @@ export async function sessionForUser(
       options = await bookingOptions(db, userId, s, withFriend ? 2 : 1);
     if (myBooking?.status === "pending_payment" && myBooking.orderId)
       [unpaid] = await db
-        .select({ id: orders.id, expiresAt: orders.expiresAt, provider: orders.provider })
+        .select({ id: orders.id, createdAt: orders.createdAt, expiresAt: orders.expiresAt, provider: orders.provider })
         .from(orders)
         .where(and(eq(orders.id, myBooking.orderId), eq(orders.status, "pending")));
+    if (unpaid?.provider === "transfer") {
+      unpaid.payBy = transferPayBy(cfg, unpaid);
+      unpaid.overdue = unpaid.payBy <= now;
+    }
     // an earlier drop-in here whose transfer didn't arrive in time – said on the page, not just by e-mail
     if (!myBooking || myBooking.status === "waitlist") {
       const [l] = await db
-        .select({ at: orders.expiresAt })
+        .select({ createdAt: orders.createdAt, expiresAt: orders.expiresAt })
         .from(orders)
         .where(and(eq(orders.userId, userId), eq(orders.sessionId, s.id), eq(orders.kind, "drop_in"), eq(orders.provider, "transfer"), eq(orders.status, "expired")))
         .orderBy(desc(orders.expiresAt))
         .limit(1);
-      lapsedAt = l?.at ?? null;
+      lapsedPayBy = l ? transferPayBy(cfg, l) : null;
     }
   }
   return {
@@ -1502,12 +1545,14 @@ export async function sessionForUser(
     myBooking,
     /** the drop-in this client hasn't paid yet – and until when its place is held */
     unpaid,
-    /** this client's drop-in here lapsed unpaid at… (no booking now) */
-    lapsedAt,
+    /** this client's drop-in here lapsed unpaid – it was to be paid by… (no booking now) */
+    lapsedPayBy,
     waitlistPosition,
     options,
-    /** a drop-in paid by transfer holds the place until then; null = card only now (and why) */
-    transferUntil: transferDeadline(cfg, s, now),
+    /** a drop-in paid by transfer is to be paid by then; null = card only now (and why) */
+    transferPayBy: transferUntil && transferPayBy(cfg, { createdAt: now, expiresAt: transferUntil }),
+    /** …and that's the full "within 24 hours" (not cut short by the class being soon) */
+    transferPayFull: !!transferUntil && transferUntil.getTime() >= now.getTime() + cfg.transferHoldHours * HOUR,
     transferTooLate: transferTooLate(cfg, s),
     lateCancel: isLateCancel(s, cancellationHours, now),
     cancellationHours,

@@ -21,8 +21,10 @@ export const defaultSettings = {
   welcomeFreeValidityDays: 30,
   /** Jak dlouho čeká neuhrazený jednorázový vstup (Stripe vyžaduje min. 30) */
   pendingPaymentMinutes: 30,
-  /** Jednorázový vstup převodem: místo čeká na platbu nejdéle X hodin od rezervace… */
+  /** Jednorázový vstup převodem: klient má zaplatit do X hodin od rezervace… */
   transferHoldHours: 24,
+  /** …ale z lekce ho systém odhlásí, až když platba nedorazí do X hodin */
+  transferGraceHours: 48,
   /** …a nejpozději do X hodin před lekcí; kdo se hlásí později, platí kartou */
   transferCutoffHours: 3,
   /** Ranní lekce = začínají před X hodinou (0 = bez zvláštního pravidla)… */

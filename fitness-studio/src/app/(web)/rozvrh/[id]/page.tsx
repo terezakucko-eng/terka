@@ -110,9 +110,9 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
           </div>
 
           <Card className="self-start border-zlato/30 bg-papir text-les">
-            {view.lapsedAt && (
+            {view.lapsedPayBy && (
               <p className="mb-6 rounded-xl border border-chyba/30 bg-chyba/10 p-4 text-sm">
-                <strong>Tvoje rezervace propadla.</strong> Platba převodem nedorazila do {formatDateTime(view.lapsedAt)}, tak jsme místo uvolnili.
+                <strong>Tvoje rezervace propadla.</strong> Platba převodem nedorazila včas (měla dorazit do {formatDateTime(view.lapsedPayBy)}), tak jsme tě z lekce odhlásili.
                 Pokud je platba na cestě, nevadí – když bude volno, místo ti vrátíme, jinak ti ji připíšeme jako kredit.
               </p>
             )}
@@ -164,10 +164,16 @@ function BookingPanel({
             <h2 className="mt-4 text-2xl font-semibold">Místo ti držíme – zatím není potvrzené</h2>
             {unpaid.provider === "transfer" ? (
               <>
-                <p className="mt-2 text-les/70">
-                  Zaplať převodem do <strong className="text-les">{unpaid.expiresAt ? formatDateTime(unpaid.expiresAt) : "začátku lekce"}</strong>. Jakmile platba dorazí,
-                  místo potvrdíme – uvidíš to tady i v Můj účet. Když do té doby nedorazí, místo se uvolní pro ostatní.
-                </p>
+                {unpaid.overdue ? (
+                  <p className="mt-2 rounded-xl border border-chyba/30 bg-chyba/10 p-3 text-sm">
+                    <strong>Termín platby uplynul.</strong> Zaplať prosím hned – jinak tě z lekce odhlásíme a místo uvolníme pro ostatní.
+                  </p>
+                ) : (
+                  <p className="mt-2 text-les/70">
+                    Platbu převodem je nutné uhradit do <strong className="text-les">{unpaid.payBy ? formatDateTime(unpaid.payBy) : "začátku lekce"}</strong>. Jakmile dorazí,
+                    místo potvrdíme – uvidíš to tady i v Můj účet. Bez platby tě z lekce odhlásíme.
+                  </p>
+                )}
                 <ButtonLink href={`/platba/prevod?order=${unpaid.id}`} variant="gold" className="mt-5 w-full">Zaplatit – QR kód a údaje</ButtonLink>
               </>
             ) : (
@@ -197,8 +203,8 @@ function BookingPanel({
                 {unpaid
                   ? "Nezaplacenou rezervaci můžeš zrušit kdykoli – nic neplatíš."
                   : view.lateCancel
-                    ? `Do lekce zbývá méně než ${view.cancellationHours} h – při zrušení vstup propadá.`
-                    : `Zrušit můžeš zdarma do ${view.cancellationHours} h před začátkem.`}
+                    ? `Do lekce zbývá méně než ${view.cancellationHours} h – při zrušení vstup${b.surchargePaidAt ? " i doplatek propadají" : " propadá"}.`
+                    : `Zrušit můžeš zdarma do ${view.cancellationHours} h před začátkem${b.surcharge > 0 && b.surchargePaidAt ? " – doplatek se ti vrátí jako kredit" : ""}.`}
               </p>
               <SubmitButton variant="danger">Zrušit rezervaci</SubmitButton>
             </ActionForm>
@@ -283,12 +289,12 @@ function BookingPanel({
     );
   }
 
-  // a drop-in is the client's once paid: by card right away, by transfer the place waits until the deadline
-  const until = view.transferUntil;
-  const transfer = until
-    ? `Zaplatíš převodem s QR kódem. Místo ti podržíme do ${formatDateTime(until)} a potvrdíme ho, jakmile platba dorazí.`
-    : "Zaplatíš převodem s QR kódem. Místo ti podržíme do začátku lekce a potvrdíme ho, jakmile platba dorazí.";
-  const tooLate = !until && card ? view.transferTooLate : undefined;
+  // a drop-in is the client's once paid: by card right away, by transfer once the payment is in (within 24 h)
+  const payBy = view.transferPayBy;
+  const transfer = payBy
+    ? `Zaplatíš převodem s QR kódem. Je nutné uhradit ${view.transferPayFull ? `do ${view.cfg.transferHoldHours} hodin (do ${formatDateTime(payBy)})` : `do ${formatDateTime(payBy)}`} – místo potvrdíme, jakmile platba dorazí.`
+    : "Zaplatíš převodem s QR kódem. Je nutné uhradit před začátkem lekce – místo potvrdíme, jakmile platba dorazí.";
+  const tooLate = !payBy && card ? view.transferTooLate : undefined;
   const options = view.options.flatMap((o) =>
     o.method === "drop_in"
       ? card
