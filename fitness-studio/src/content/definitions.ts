@@ -125,6 +125,13 @@ export const SECTIONS = {
         optional: true,
         hint: "Na šířku 16 : 9 (např. 1600 × 900). Hotový plakát? Nech text prázdný – ukáže se jen obrázek (klik vede na odkaz prvního tlačítka) a pod ním tlačítka.",
       },
+      imageMobile: {
+        label: "Obrázek na mobil (nepovinný)",
+        type: "image",
+        default: "",
+        optional: true,
+        hint: "Na výšku 4 : 5 (např. 1080 × 1350) s větším písmem – na telefonu se ukáže místo obrázku na šířku, jehož text je tam moc drobný. Prázdné = i na mobilu ten na šířku.",
+      },
       buttonLabel: opt("Text tlačítka", "Chci to"),
       buttonUrl: t(
         "Kam tlačítko vede",

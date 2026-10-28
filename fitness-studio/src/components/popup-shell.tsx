@@ -66,7 +66,7 @@ export function PopupShell({
           e.stopPropagation();
           if ((e.target as HTMLElement).closest("[data-popup-close]")) close();
         }}
-        className={`relative w-full ${wide ? "max-w-3xl" : "max-w-lg"} overflow-hidden rounded-2xl bg-papir text-les shadow-2xl outline-none`}
+        className={`relative max-h-[calc(100dvh-2rem)] w-full ${wide ? "max-w-3xl" : "max-w-lg"} overflow-y-auto rounded-2xl bg-papir text-les shadow-2xl outline-none`}
       >
         <button
           type="button"
