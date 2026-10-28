@@ -18,6 +18,8 @@ export async function Popup() {
   if (!title || (/^\d{4}-\d{2}-\d{2}$/.test(until) && dateKey(new Date()) > until)) return null;
   const text = c("popup.text").trim();
   const image = c("popup.image").trim();
+  // a poster's text is too small on a phone – a portrait version shows there instead
+  const imageMobile = image ? c("popup.imageMobile").trim() : "";
   const url = c("popup.buttonUrl").trim();
   const buttons = [
     { label: c("popup.buttonLabel").trim(), url },
@@ -71,6 +73,18 @@ export async function Popup() {
       })}
     </div>
   );
+  const picture = (
+    <>
+      {imageMobile && (
+        <div className="relative aspect-[4/5] overflow-hidden sm:hidden">
+          <ContentImage src={imageMobile} alt={title} fill sizes="100vw" className="object-cover" />
+        </div>
+      )}
+      <div className={imageMobile ? "relative hidden aspect-[16/9] overflow-hidden sm:block" : "relative aspect-[16/9] overflow-hidden"}>
+        <ContentImage src={image} alt={title} fill sizes="(min-width: 640px) 48rem, 100vw" className="object-cover" />
+      </div>
+    </>
+  );
   return (
     <PopupShell
       id={`${title}|${text}|${image}|${until}|${buttons.map((b) => b.label).join("|")}`}
@@ -80,13 +94,11 @@ export async function Popup() {
       {image &&
         (url && buttons.length < 2 ? (
           // the picture is usually the poster itself – a tap on it does what the button does
-          <Link {...linkProps(url)} className="relative block aspect-[16/9] overflow-hidden">
-            <ContentImage src={image} alt={title} fill sizes="(min-width: 640px) 48rem, 100vw" className="object-cover" />
+          <Link {...linkProps(url)} className="block">
+            {picture}
           </Link>
         ) : (
-          <div className="relative aspect-[16/9] overflow-hidden">
-            <ContentImage src={image} alt={title} fill sizes="(min-width: 640px) 48rem, 100vw" className="object-cover" />
-          </div>
+          picture
         ))}
       {imageOnly ? (
         <>
