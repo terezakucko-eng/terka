@@ -785,6 +785,13 @@
       "when": 1793168717059,
       "tag": "0111_brunch_poster_mobile_clean",
       "breakpoints": true
+    },
+    {
+      "idx": 112,
+      "version": "7",
+      "when": 1793169072269,
+      "tag": "0112_brunch_poster_mobile_cta",
+      "breakpoints": true
     }
   ]
 }
