@@ -7,6 +7,7 @@ krátký popis a dva obrázky VÝCHOZÍ POLOHA / PROVEDENÍ s červenou šipkou 
 | Soubor lekce | Video | Obrázky |
 |---|---|---|
 | `zacatecnici-1.json` | [Full Body Reformer Pilates \| 60 minutes](https://www.youtube.com/watch?v=RATdaL_GZik) – první lekce pro začátečníky, 30 cviků | kreslené ilustrace z Canvy (design „Ilustrace reformer – začátečníci“) |
+| `uplni-zacatecnici.json` | výběr 12 cviků ze `zacatecnici-1.json` na první hodinu (45 min + rezerva); box se přesouvá jen jednou, žádný blok na každou stranu zvlášť | stejné ilustrace – soubory přečíslované podle nového pořadí (původní číslo v klíči `puvodni`) |
 | `strength-55.json` | [REFORMER STRENGTH \| 55 minutes](https://www.youtube.com/watch?v=evZSmhx7iT4), 26 cviků | snímky z videa |
 
 `navod.py` je generátor (Python 3, reportlab, Pillow, ffmpeg).

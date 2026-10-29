@@ -1,0 +1,524 @@
+{
+ "nazev": "Reformer – úplní začátečníci",
+ "podtitul": "První hodina na reformeru pro 6 lidí, 45 min + 5 min rezerva. Zkrácený výběr 12 cviků z lekce Full Body Reformer (Neve McKee Pilates), přepsaný na TRINFIT Light.",
+ "video": {
+  "url": "https://www.youtube.com/watch?v=RATdaL_GZik",
+  "titulek": "Full Body Reformer Pilates | 60 minutes",
+  "autor": "Neve McKee Pilates",
+  "nahled_krok_s": 9.9699
+ },
+ "zdroj_snimku": "ilustrace z Canvy",
+ "vybaveni": [
+  "reformer TRINFIT Light, popruhy, pilates box, stupačka",
+  "bez činek a bez dalšího náčiní"
+ ],
+ "pruziny": [
+  [
+   "modrá / lehká",
+   "1 pružina"
+  ],
+  [
+   "červená / střední",
+   "2 pružiny"
+  ],
+  [
+   "2× červená",
+   "4 pružiny (komu je to moc, dá 3)"
+  ],
+  [
+   "mezistupeň",
+   "místo pružiny přidat gumičku"
+  ]
+ ],
+ "poznamky": [
+  "Prvních 5 minut patří stroji: jak nastoupit a sestoupit, že se vozík hýbe, jak se mění pružiny a domluvený signál „stop“. Pružiny měnit jen u vozíku, který je doma.",
+  "Box se přesouvá jen jednou (po bloku 3). Žádný blok se neopakuje na druhou stranu – cviky jsou buď oběma stranami najednou, nebo střídavě.",
+  "V kleku na vozíku je víc pružin snazší – vozík hůř ujede. Kdo se klepe, přidá pružinu, neubírá.",
+  "Cviky 6–8 se opírají o stupačku. První hodina je o poznání stroje: raději pomalu a méně opakování."
+ ],
+ "ilustrace_styl": "Flat vector illustration in exactly the style of the reference image: plain cream / light beige background, no outlines, only flat solid colour shapes, no shading, no gradients, no text, no labels. The whole figure and the whole machine are visible. A slim woman with blond hair in a ponytail, white sports top, pink leggings, white socks. A pilates reformer drawn as in the reference: long low frame and carriage in light wood, dark grey metal parts and pads, golden springs; the foot bar end is on the LEFT, the shoulder rests, headrest and the two pulley posts with dark straps are on the RIGHT. The far-side arm and leg are a slightly darker shade so left and right are distinguishable. Knees always bend forward, never backward.",
+ "pozy": {
+  "1v": {
+   "stroj": "A light wooden pilates box lies lengthwise on the carriage. The foot bar is folded down flat.",
+   "poza": "She stands on the floor just left of the machine, facing right toward it, feet hip-width apart and flat on the floor, legs straight, both arms raised straight overhead, chest lifted in a small back bend."
+  },
+  "1p": {
+   "stroj": "A light wooden pilates box lies lengthwise on the carriage. The foot bar is folded down flat.",
+   "poza": "She stands on the floor just left of the machine facing it, legs straight, hips above her heels, hinged forward so her back is long, flat and horizontal like a table top, arms straight, both hands on the far corners of the box; the carriage has slid away to the right and the spring is stretched."
+  },
+  "2p": {
+   "stroj": "A light wooden pilates box lies lengthwise on the carriage. The foot bar is folded down flat.",
+   "poza": "She stands on the floor just left of the machine facing it, hips above her heels, back flat and horizontal, hands on the far corners of the box, elbows bent wide out to the sides like a push-up so her forehead comes down toward the box; the carriage is partly pulled back toward her."
+  },
+  "3p": {
+   "stroj": "A light wooden pilates box lies lengthwise on the carriage. The foot bar is folded down flat.",
+   "poza": "She stands on the floor just left of the machine facing it, back flat and horizontal, arms straight with hands on the far corners of the box, carriage pushed away to the right; she has risen up onto the balls of her feet with both heels lifted off the floor."
+  },
+  "4v": {
+   "stroj": "No box. A small flat dark grey standing platform covers the springs at the left end between the frame end and the carriage. The foot bar is folded down.",
+   "poza": "On hands and knees on the reformer facing LEFT: both hands flat on the small platform under her shoulders, knees on the carriage under her hips, toes curled under and the soles of the feet pressing against the shoulder rests, back flat, head in line with the spine."
+  },
+  "4p": {
+   "stroj": "No box. A small flat dark grey standing platform covers the springs at the left end between the frame end and the carriage. The foot bar is folded down.",
+   "poza": "On hands and knees on the reformer facing LEFT: one hand flat on the small platform, the other arm reaching straight up to the ceiling, chest rotated open toward the viewer, looking up at the raised hand; knees on the carriage under the hips, toes curled, feet against the shoulder rests, hips level."
+  },
+  "5p": {
+   "stroj": "No box. A small flat dark grey standing platform covers the springs at the left end between the frame end and the carriage. The foot bar is folded down.",
+   "poza": "Hands flat on the small platform under the shoulders, facing LEFT, toes curled under on the carriage with the soles against the shoulder rests; both knees hover just a few centimetres above the carriage, back flat like a table top."
+  },
+  "8v": {
+   "stroj": "No box. A small flat dark grey standing platform covers the springs at the left end between the frame end and the carriage. The foot bar is folded down.",
+   "poza": "Side view, facing LEFT: forearms on the small platform with hands clasped and elbows under the shoulders, knees on the carriage under the hips, toes curled with the soles against the shoulder rests, back flat."
+  },
+  "8p": {
+   "stroj": "No box. A small flat dark grey standing platform covers the springs at the left end between the frame end and the carriage. The foot bar is folded down.",
+   "poza": "Side view, facing LEFT: forearms on the small platform with elbows under the shoulders; she has pushed the carriage back to the right with her feet so her thighs and hips are lower and her body is a long straight line from knees to shoulders, knees still on the carriage, belly lifted, spring stretched."
+  },
+  "21v": {
+   "stroj": "A light wooden pilates box lies lengthwise on the carriage; the two straps run from the pulley posts at the right end.",
+   "poza": "She sits tall on the box near its right edge, facing RIGHT toward the pulley posts, knees bent, both feet flat on the headrest; she holds the two straps crossed in front of her, arms straight forward, collarbones wide."
+  },
+  "21p": {
+   "stroj": "A light wooden pilates box lies lengthwise on the carriage; the two straps run from the pulley posts at the right end.",
+   "poza": "She sits on the box facing RIGHT toward the pulley posts, both feet flat on the headrest; she rolls back halfway: pelvis tucked, spine rounded backward in a deep C-curve, belly scooped, arms straight forward holding the straps, feet still down."
+  },
+  "23p": {
+   "stroj": "A light wooden pilates box lies lengthwise on the carriage; the two straps run from the pulley posts at the right end.",
+   "poza": "She sits on the box facing RIGHT, spine rolled back halfway in a C-curve, arms straight forward holding the straps; one foot stays flat on the headrest while the other leg lifts into table-top, knee bent 90 degrees with the knee drawn toward her chin."
+  },
+  "24v": {
+   "stroj": "The foot bar is raised upright at the left end; the straps run from the pulley posts at the right end to her feet.",
+   "poza": "She lies on her back on the carriage, head on the headrest at the RIGHT, arms long by her sides; the straps loop around the arches of both feet; both legs straight together, pointing up and to the left at a 45 degree angle, small natural curve in the lower back."
+  },
+  "24p": {
+   "stroj": "The foot bar is raised upright at the left end; the straps run from the pulley posts at the right end to her feet.",
+   "poza": "She lies on her back on the carriage, head on the headrest at the RIGHT, arms long by her sides; the straps loop around the arches of both feet; both legs straight together raised vertically toward the ceiling, tailbone still heavy on the carriage."
+  },
+  "25v": {
+   "stroj": "The foot bar is raised upright at the left end; the straps run from the pulley posts at the right end to her feet.",
+   "poza": "She lies on her back on the carriage, head on the headrest at the RIGHT; straps around the arches of both feet; frog position: heels together, toes apart, knees bent and opened out to the sides, knees right above the hips, shins angled down toward the foot bar."
+  },
+  "25p": {
+   "stroj": "The foot bar is raised upright at the left end; the straps run from the pulley posts at the right end to her feet.",
+   "poza": "She lies on her back on the carriage, head on the headrest at the RIGHT; straps around the arches of both feet; legs pressed out straight at about 45 degrees toward the upper left, turned out with heels together and toes apart; carriage slid slightly to the right."
+  },
+  "26p": {
+   "stroj": "The foot bar is raised upright at the left end; the straps run from the pulley posts at the right end to her feet.",
+   "poza": "She lies on her back on the carriage, head on the headrest at the RIGHT; straps around the arches of both feet; legs straight at about 45 degrees, turned out, opened apart into a wide V a little wider than the foot bar."
+  },
+  "30v": {
+   "stroj": "The foot bar is raised upright at the left end.",
+   "poza": "She stands on the carriage, feet hip-width with heels against the shoulder rests, knees softly bent, folded forward over her legs, arms and head hanging down toward her feet."
+  },
+  "30p": {
+   "stroj": "The foot bar is raised upright at the left end.",
+   "poza": "She stands tall on the carriage, feet hip-width with heels against the shoulder rests, arms relaxed by her sides, shoulders rolled back and down."
+  }
+ },
+ "bloky": [
+  {
+   "id": 1,
+   "nazev": "Seznámení se strojem",
+   "cas": "0–5 min",
+   "pruziny": "–",
+   "nastaveni": "všichni u svého stroje: nastoupit a sestoupit, vyzkoušet rukama, jak vozík jede s 1 a se 2 pružinami, kde je hrazda, opěrky ramen a popruhy; domluvit signál „stop“",
+   "barva": "#9A8F84"
+  },
+  {
+   "id": 2,
+   "nazev": "Rozehřátí u boxu",
+   "cas": "5–11 min",
+   "pruziny": "2",
+   "nastaveni": "box nadél na vozíku, hrazda dole, stoj na zemi před hrazdou",
+   "barva": "#E39B6B"
+  },
+  {
+   "id": 3,
+   "nazev": "Sed na boxu – střed těla",
+   "cas": "11–18 min",
+   "pruziny": "1",
+   "nastaveni": "box zůstává nadél, sed čelem k opěrce hlavy, chodidla na ní; popruhy v rukou",
+   "barva": "#7A9A4A"
+  },
+  {
+   "id": 4,
+   "nazev": "Na čtyřech na vozíku",
+   "cas": "20–29 min",
+   "pruziny": "1",
+   "nastaveni": "přestavba 2 min: box pryč, stupačka na pružinách, dlaně nebo předloktí na ní",
+   "barva": "#3FA597"
+  },
+  {
+   "id": 5,
+   "nazev": "Nohy v popruzích",
+   "cas": "31–41 min",
+   "pruziny": "4",
+   "nastaveni": "přestavba 2 min: leh na vozíku, hrazda nahoře, popruhy kolem chodidel; komu jsou 4 pružiny moc, dá 3",
+   "barva": "#2E8BB0"
+  },
+  {
+   "id": 6,
+   "nazev": "Závěr",
+   "cas": "41–45 min",
+   "pruziny": "4",
+   "nastaveni": "stoj na vozíku, dlaně na hrazdě – nebo na zemi vedle stroje; pak 5 min rezerva na otázky a úklid",
+   "barva": "#C0506A"
+  }
+ ],
+ "cviky": [
+  {
+   "c": 1,
+   "blok": 2,
+   "nazev": "Předklon u boxu – odtlačení vozíku",
+   "pruziny": "2",
+   "opakovani": "4×",
+   "strany": false,
+   "nohy": "stoj na zemi před hrazdou, chodidla celou plochou na šířku pánve, paralelně; boky zůstávají nad patami; dlaně na rozích boxu",
+   "jak": "Paže vzhůru a malý záklon, pak předklon, dlaně na rozích boxu a vozík odtlačit, záda rovná. Zpět sbalit a pomalu se odrolovat nahoru.",
+   "vychozi": "0:59",
+   "provedeni": "1:19",
+   "poza": {
+    "vychozi": "1v",
+    "provedeni": "1p"
+   },
+   "sipky_snimky": [
+    [
+     [
+      0.22,
+      0.6
+     ],
+     [
+      0.42,
+      0.6
+     ]
+    ]
+   ],
+   "puvodni": 1
+  },
+  {
+   "c": 2,
+   "blok": 2,
+   "nazev": "Předklon u boxu – kliky v předklonu",
+   "pruziny": "2",
+   "opakovani": "8×",
+   "strany": false,
+   "nohy": "jako u cviku 1 – váha v patách, tělo se nepřesouvá vpřed ani vzad",
+   "jak": "V předklonu s rovnými zády se lokty ohnou do stran a vozík přijede blíž, pak paže propnout. Břicho nahoru.",
+   "vychozi": "2:39",
+   "provedeni": "2:59",
+   "poza": {
+    "vychozi": "1p",
+    "provedeni": "2p"
+   },
+   "sipky_snimky": [
+    [
+     [
+      0.52,
+      0.18
+     ],
+     [
+      0.52,
+      0.38
+     ]
+    ]
+   ],
+   "puvodni": 2
+  },
+  {
+   "c": 3,
+   "blok": 2,
+   "nazev": "Předklon u boxu – výpony na špičky",
+   "pruziny": "2",
+   "opakovani": "6×",
+   "strany": false,
+   "nohy": "jako u cviku 1 – z celých chodidel vzhůru na bříška a zpět na paty, vozík zůstává odtlačený",
+   "jak": "Paže dál tlačí vozík od těla, záda dlouhá. Zvednout se na špičky a spustit paty. Zahřívají se lýtka.",
+   "vychozi": "3:59",
+   "provedeni": "4:09",
+   "poza": {
+    "vychozi": "1p",
+    "provedeni": "3p"
+   },
+   "sipky_snimky": [
+    [
+     [
+      0.115,
+      0.95
+     ],
+     [
+      0.115,
+      0.77
+     ]
+    ]
+   ],
+   "puvodni": 3
+  },
+  {
+   "c": 4,
+   "blok": 3,
+   "nazev": "Sed na boxu – půl roll back",
+   "pruziny": "1",
+   "opakovani": "4×",
+   "strany": false,
+   "nohy": "sed na boxu u přední hrany, chodidla na opěrce hlavy a nezvednou se; sedací kosti těžké",
+   "jak": "Popruhy zkřížené v propnutých pažích. Podsadit pánev a odrolovat se vzad, kde je to těžké, zastavit. Pomalu zpět do vzpřímeného sedu.",
+   "vychozi": "41:32",
+   "provedeni": "41:52",
+   "poza": {
+    "vychozi": "21v",
+    "provedeni": "21p"
+   },
+   "sipky_snimky": [
+    [
+     [
+      0.33,
+      0.2
+     ],
+     [
+      0.24,
+      0.32
+     ],
+     [
+      0.29,
+      0.48
+     ]
+    ]
+   ],
+   "puvodni": 21
+  },
+  {
+   "c": 5,
+   "blok": 3,
+   "nazev": "Roll back – koleno k bradě",
+   "pruziny": "1",
+   "opakovani": "10× střídavě",
+   "strany": false,
+   "nohy": "jedno chodidlo zůstává na opěrce hlavy, druhá noha se zvedne do stolečku (koleno k bradě), střídavě",
+   "jak": "V roll backu s rovnými pažemi střídavě zvedat kolena k bradě. Břicho se při tom víc vtahuje, nepřepadávat z půlky na půlku.",
+   "vychozi": "44:11",
+   "provedeni": "44:21",
+   "poza": {
+    "vychozi": "21p",
+    "provedeni": "23p"
+   },
+   "sipky_snimky": [
+    [
+     [
+      0.62,
+      0.56
+     ],
+     [
+      0.6,
+      0.4
+     ]
+    ]
+   ],
+   "puvodni": 23
+  },
+  {
+   "c": 6,
+   "blok": 4,
+   "nazev": "Na čtyřech – rotace s paží vzhůru",
+   "pruziny": "1",
+   "opakovani": "5× na stranu",
+   "strany": false,
+   "nohy": "kolena na vozíku pod kyčlemi, prsty podvrtnuté, chodidla vzadu opřená o opěrky ramen; dlaně na stupačce",
+   "jak": "Paže vzhůru a rotace z hrudníku, pohled za rukou, zpět dlaň dolů. Střídat strany, boky se nehoupou.",
+   "vychozi": "5:29",
+   "provedeni": "5:38",
+   "poza": {
+    "vychozi": "4v",
+    "provedeni": "4p"
+   },
+   "sipky_snimky": [
+    [
+     [
+      0.24,
+      0.52
+     ],
+     [
+      0.21,
+      0.28
+     ],
+     [
+      0.3,
+      0.1
+     ]
+    ]
+   ],
+   "puvodni": 4
+  },
+  {
+   "c": 7,
+   "blok": 4,
+   "nazev": "Na čtyřech – vznos kolen",
+   "pruziny": "1",
+   "opakovani": "6× + výdrž",
+   "strany": false,
+   "nohy": "jako u cviku 6 – kolena se zvednou pár centimetrů nad vozík, paty tlačí vzad",
+   "jak": "S výdechem kolena nad vozík, s nádechem dolů. Na konci výdrž nahoře na 3 výdechy.",
+   "vychozi": "6:48",
+   "provedeni": "6:58",
+   "poza": {
+    "vychozi": "4v",
+    "provedeni": "5p"
+   },
+   "sipky_snimky": [
+    [
+     [
+      0.5,
+      0.62
+     ],
+     [
+      0.5,
+      0.47
+     ]
+    ]
+   ],
+   "puvodni": 5
+  },
+  {
+   "c": 8,
+   "blok": 4,
+   "nazev": "Předloktí na stupačce – odtlačení vozíku",
+   "pruziny": "1",
+   "opakovani": "2× výdrž + 8× houpání",
+   "strany": false,
+   "nohy": "kolena na vozíku pod kyčlemi, prsty podvrtnuté, paty u opěrek ramen; předloktí na stupačce, lokty pod rameny",
+   "jak": "Nohama pomalu odtlačit vozík, stehna klesají, hýždě zapnuté, břicho nahoru. Pak tvar držet a houpat se vpřed a vzad z loktů.",
+   "vychozi": "10:08",
+   "provedeni": "10:28",
+   "poza": {
+    "vychozi": "8v",
+    "provedeni": "8p"
+   },
+   "sipky_snimky": [
+    [
+     [
+      0.62,
+      0.84
+     ],
+     [
+      0.8,
+      0.84
+     ]
+    ]
+   ],
+   "puvodni": 8
+  },
+  {
+   "c": 9,
+   "blok": 5,
+   "nazev": "Nohy v popruzích – nahoru a tlak dolů",
+   "pruziny": "4",
+   "opakovani": "6×",
+   "strany": false,
+   "nohy": "popruhy kolem chodidel, nohy natažené na 45°; kostrč těžká, v bedrech malá mezera – záda se nepřitlačí",
+   "jak": "Nohy pomalu ke stropu, kostrč se neodlepí, protažení zadních stehen. Zadní strana nohou pak zatlačí dolů.",
+   "vychozi": "47:01",
+   "provedeni": "47:31",
+   "poza": {
+    "vychozi": "24v",
+    "provedeni": "24p"
+   },
+   "sipky_snimky": [
+    [
+     [
+      0.18,
+      0.14
+     ],
+     [
+      0.24,
+      -0.02
+     ],
+     [
+      0.36,
+      0.03
+     ]
+    ]
+   ],
+   "puvodni": 24
+  },
+  {
+   "c": 10,
+   "blok": 5,
+   "nazev": "Nohy v popruzích – žabka",
+   "pruziny": "4",
+   "opakovani": "6×",
+   "strany": false,
+   "nohy": "paty u sebe, špičky od sebe; kolena se ohnou jen nad kyčle; kostrč těžká",
+   "jak": "Kolena pomalu pokrčit s patami u sebe, pak propnout – zip od pat ke stydké kosti. Vnitřní stehna a hýždě pracují.",
+   "vychozi": "48:11",
+   "provedeni": "48:01",
+   "poza": {
+    "vychozi": "25v",
+    "provedeni": "25p"
+   },
+   "sipky_snimky": [
+    [
+     [
+      0.42,
+      0.56
+     ],
+     [
+      0.27,
+      0.38
+     ]
+    ]
+   ],
+   "puvodni": 25
+  },
+  {
+   "c": 11,
+   "blok": 5,
+   "nazev": "Nohy v popruzích – roznožení a přitažení",
+   "pruziny": "4",
+   "opakovani": "5×",
+   "strany": false,
+   "nohy": "nohy propnuté v turnoutu ve výšce jako na konci žabky; rozevřou se jen o kousek víc než hrazda a paty se zase dotknou",
+   "jak": "Roznožit a vnitřními stehny přitáhnout paty k sobě. Výška nohou se nemění, popruhy stále napnuté.",
+   "vychozi": "49:11",
+   "provedeni": "49:21",
+   "poza": {
+    "vychozi": "25p",
+    "provedeni": "26p"
+   },
+   "sipky_snimky": [],
+   "schema": "roznozeni",
+   "puvodni": 26
+  },
+  {
+   "c": 12,
+   "blok": 6,
+   "nazev": "Roll up – závěr",
+   "pruziny": "4",
+   "opakovani": "1× pomalu",
+   "strany": false,
+   "nohy": "stoj na vozíku, chodidla na šířku pánve, paty u opěrek ramen, kolena měkká",
+   "jak": "Ruce k chodidlům, svěsit se přes nohy, pár výdechů. Pak se pomalu, asi 10 vteřin, odrolovat nahoru, hlava poslední. Komu se na vozíku nestojí jistě, udělá roll up na zemi vedle stroje.",
+   "vychozi": "54:10",
+   "provedeni": "54:30",
+   "poza": {
+    "vychozi": "30v",
+    "provedeni": "30p"
+   },
+   "sipky_snimky": [
+    [
+     [
+      0.62,
+      0.62
+     ],
+     [
+      0.64,
+      0.32
+     ],
+     [
+      0.57,
+      0.08
+     ]
+    ]
+   ],
+   "puvodni": 30
+  }
+ ]
+}

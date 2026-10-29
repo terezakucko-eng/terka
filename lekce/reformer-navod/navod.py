@@ -361,6 +361,9 @@ def prehled(data):
             rows.append([para(str(cv['c']), ST['tdb']), para(cv['nazev'], ST['tdb']),
                          para('Nohy: ' + cv['nohy'], ST['tdn']), para(opak, ST['td']),
                          para(cv['vychozi'], ST['td'])])
+        if not rows:  # blok bez cviků (např. seznámení se strojem)
+            out += [hl, Spacer(1, 2.2 * mm)]
+            continue
         t = Table(rows, colWidths=sirky)
         t.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('LINEBELOW', (0, 0), (-1, -1), 0.4, LIGHT),
                                ('TOPPADDING', (0, 0), (-1, -1), 1.6), ('BOTTOMPADDING', (0, 0), (-1, -1), 1.6)]))
