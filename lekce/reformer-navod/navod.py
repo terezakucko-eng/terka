@@ -320,9 +320,10 @@ class CvikRadek(Flowable):
             c.setFillColor(INK)
             c.setFont('DejaVu-Bold', 7.6)
             c.drawString(x, iy - 3.6 * mm, popisek)
-            c.setFillColor(GREY)
-            c.setFont('DejaVu', 7.2)
-            c.drawRightString(x + img_w, iy - 3.6 * mm, f"video {cv[poloha]}")
+            if cv[poloha]:  # cvik přidaný mimo video čas nemá
+                c.setFillColor(GREY)
+                c.setFont('DejaVu', 7.2)
+                c.drawRightString(x + img_w, iy - 3.6 * mm, f"video {cv[poloha]}")
 
         c.setStrokeColor(LIGHT)
         c.setLineWidth(0.8)
