@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ButtonLink, Container, Eyebrow } from "@/components/ui";
 import { getContent } from "@/content";
 import { getDb } from "@/db";
-import { myPassCard, passCardByCode, startPassCardClock } from "@/domain/pass-cards";
+import { CARD_PLACES, myPassCard, passCardByCode, startPassCardClock } from "@/domain/pass-cards";
 import { getCurrentUser } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
 import { pluralCs } from "@/lib/money";
@@ -50,15 +50,15 @@ export default async function PassCardPage({ params, searchParams }: PageProps<"
   const validUntil = card.validUntil ?? (await startPassCardClock(db, card.id));
 
   if (ne !== undefined) {
-    // scanned it, not for her – nothing taken, the card just goes on
+    // scanned it, not for her – nothing taken, the card just goes on (and a thank-you for keeping the chain going)
     return (
       <section className="bg-forest text-papir">
         <Container className="max-w-2xl py-20 text-center">
           <p className="text-6xl">💛</p>
           <Eyebrow className="mt-6 text-zlato">Pošli to dál</Eyebrow>
-          <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">Nevadí, díky!</h1>
+          <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">Díky, že ji pošleš dál!</h1>
           <p className="mx-auto mt-6 max-w-lg text-lg text-papir/80">
-            Kartičku pošli dál někomu, koho by pohyb potěšil – nebo ji vrať tomu, od koho ji máš. Na kartičce se nic nezměnilo, místa na ní zůstávají
+            Jsme rádi, že řetězec bude pokračovat 🐙 Předej kartičku někomu, koho by pohyb potěšil. Místa na ní zůstávají
             {validUntil && <> – jen ať ji někdo využije do {formatDate(validUntil)}, pak propadne</>}.
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
@@ -99,7 +99,8 @@ export default async function PassCardPage({ params, searchParams }: PageProps<"
     );
   }
 
-  // people don't read: the free lesson, one line, and the sign-up form right here
+  // people don't read: the free lesson, one line, and the sign-up form right here (texts in Obsah webu → Pošli to dál)
+  const full = card.placesLeft === CARD_PLACES;
   return (
     <section className="bg-forest text-papir">
       <Container className="max-w-lg py-10 sm:py-14">
@@ -107,12 +108,20 @@ export default async function PassCardPage({ params, searchParams }: PageProps<"
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/symbol-gold.svg" alt="" className="mx-auto h-16 w-16" />
           <Eyebrow className="mt-4 text-zlato">Pošli to dál 💛</Eyebrow>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Máš u nás lekci zdarma</h1>
-          <p className="mt-3 text-lg text-papir/80">Zaregistruj se a hned si vyber lekci.</p>
+          {/* a full card: one entry for her, one for a friend; the friend coming second gets her own */}
+          <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">{full ? c("passCard.title") : c("passCard.titleOne")}</h1>
+          <p className="mt-3 text-lg text-papir/80">{full ? c("passCard.intro") : c("passCard.introOne")}</p>
+          <p className="mt-5 text-sm text-papir/70">
+            {c("passCard.about")} {c.raw("site.street")}, {c.raw("site.city")} · <Link href="/lekce" className="underline">Podívat se na lekce</Link>
+          </p>
         </div>
 
         <div className="mt-8 rounded-3xl bg-papir p-6 text-les sm:p-8">
           <RegisterForm cardCode={card.code} submitLabel="Chci lekci zdarma" compact />
+          {/* the other way out, right under the first – nothing taken, the card goes on */}
+          <ButtonLink href={`/karticka/${card.code}?ne`} variant="danger" className="mt-3 w-full bg-chyba text-center text-papir hover:bg-chyba/90">
+            Nezajímá mě – pošlu kartičku dál
+          </ButtonLink>
           <p className="mt-5 text-center text-sm">
             Už máš účet? <Link href="/prihlaseni" className="font-semibold text-zeme underline underline-offset-4">Přihlas se</Link>
           </p>
@@ -120,17 +129,7 @@ export default async function PassCardPage({ params, searchParams }: PageProps<"
         <p className="mt-4 text-center text-xs text-papir/60">
           Lekci si vyber do 14 dní. Kartička je jen pro nové klienty.
           {validUntil && <> Platí do {formatDate(validUntil)}.</>}
-        </p>
-        <details className="mt-6 rounded-2xl border border-zlato/30 p-4 text-sm text-papir/80">
-          <summary className="cursor-pointer font-semibold text-zlato-light">Co je OCTOPUSH?</summary>
-          <p className="mt-2">
-            Studio pohybu – tanec, pilates, silový trénink a další lekce v malých skupinách. Najdeš nás na adrese {c.raw("site.street")},{" "}
-            {c.raw("site.city")}. <Link href="/lekce" className="underline">Podívat se na lekce</Link>
-          </p>
-          {card.people > 0 && <p className="mt-2">Kartička už rozhýbala {pluralCs(card.people, "chobotničku", "chobotničky", "chobotniček")} 🐙</p>}
-        </details>
-        <p className="mt-6 text-center text-sm">
-          <Link href={`/karticka/${card.code}?ne`} className="text-papir/60 underline">Nezajímá mě – pošlu kartičku dál</Link>
+          {card.people > 0 && <> Už rozhýbala {pluralCs(card.people, "chobotničku", "chobotničky", "chobotniček")} 🐙</>}
         </p>
       </Container>
     </section>
