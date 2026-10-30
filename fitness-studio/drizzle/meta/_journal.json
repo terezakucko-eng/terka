@@ -904,6 +904,13 @@
       "when": 1793390231413,
       "tag": "0128_pass_card_scans",
       "breakpoints": true
+    },
+    {
+      "idx": 129,
+      "version": "7",
+      "when": 1793390574556,
+      "tag": "0129_pass_card_welcome_email",
+      "breakpoints": true
     }
   ]
 }
