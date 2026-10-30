@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
-import { comeAlone } from "@/domain/pass-cards";
-import { requireUser } from "@/lib/auth";
+import { comeAlone, recordPassCardScan } from "@/domain/pass-cards";
+import { getCurrentUser, requireUser } from "@/lib/auth";
 import { attempt, type FormState } from "@/lib/form";
 import { UserError } from "@/lib/errors";
 
@@ -16,4 +16,11 @@ export async function comeAloneAction(): Promise<FormState> {
   });
   revalidatePath("/ucet");
   return res;
+}
+
+/** The card's page was opened (scanned, or a link to it followed) – the studio's own looks don't count. */
+export async function passCardScanAction(code: string) {
+  const user = await getCurrentUser();
+  if (user && user.role !== "client") return;
+  await recordPassCardScan(await getDb(), code, user?.id ?? null);
 }

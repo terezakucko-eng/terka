@@ -897,6 +897,13 @@
       "when": 1793384309673,
       "tag": "0127_pass_card_about",
       "breakpoints": true
+    },
+    {
+      "idx": 128,
+      "version": "7",
+      "when": 1793390231413,
+      "tag": "0128_pass_card_scans",
+      "breakpoints": true
     }
   ]
 }

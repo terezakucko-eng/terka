@@ -1,6 +1,7 @@
-import { and, eq, gte, inArray, lt, min } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, lt, min } from "drizzle-orm";
 import type { Executor } from "@/db";
-import { bookings, classSessions, classTypes, orders, products, users } from "@/db/schema";
+import { bookings, classSessions, classTypes, entitlements, orders, products, users } from "@/db/schema";
+import { PRESALE_RESERVED } from "./grant";
 import { addDays, dateKey, pragueHour, pragueLocalToDate, weekdayOf } from "@/lib/dates";
 import { currentPeriod, shiftPeriod } from "./membership-fees";
 
@@ -269,3 +270,29 @@ export async function dailyStats(db: Executor, period: string, now = new Date())
 }
 
 export type DailyStats = Awaited<ReturnType<typeof dailyStats>>;
+
+/**
+ * Admin overview: memberships signed up for lately, newest first – ordered on the web (paid, or still
+ * waiting for the transfer), reserved in presale (paid with the December fee request) or set up in the
+ * studio (reception, a voucher, by hand).
+ */
+export async function newMemberships(db: Executor, since: Date) {
+  const [ordered, without] = await Promise.all([
+    db
+      .select({ id: orders.id, at: orders.createdAt, userId: users.id, name: users.name, product: products.name, status: orders.status })
+      .from(orders)
+      .innerJoin(products, eq(orders.productId, products.id))
+      .innerJoin(users, eq(orders.userId, users.id))
+      .where(and(eq(orders.kind, "product"), eq(products.kind, "membership"), inArray(orders.status, ["pending", "paid"]), gte(orders.createdAt, since))),
+    db
+      .select({ id: entitlements.id, at: entitlements.createdAt, userId: users.id, name: users.name, product: entitlements.name, note: entitlements.note })
+      .from(entitlements)
+      .innerJoin(users, eq(entitlements.userId, users.id))
+      .where(and(eq(entitlements.kind, "membership"), eq(entitlements.status, "active"), isNull(entitlements.orderId), gte(entitlements.createdAt, since)))
+      .orderBy(desc(entitlements.createdAt)),
+  ]);
+  return [
+    ...ordered.map(({ status, ...o }) => ({ ...o, how: status === "paid" ? ("paid" as const) : ("waiting" as const) })),
+    ...without.map(({ note, ...e }) => ({ ...e, how: note === PRESALE_RESERVED ? ("presale" as const) : ("studio" as const) })),
+  ].sort((a, b) => b.at.getTime() - a.at.getTime());
+}

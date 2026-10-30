@@ -16,7 +16,9 @@ import {
   markSignUpAnnounced,
   myPassCard,
   passCardByCode,
+  passCardActivity,
   passCardOf,
+  recordPassCardScan,
   renewPassCard,
   resetPassCard,
   setPassCardActive,
@@ -233,6 +235,27 @@ describe("Pošli to dál – a plastic card with two places that goes on right a
     const bea = await signUp("Bea Poresetová", c.code);
     expect((await mine(bea.id)).map((e) => e.name)).toEqual([CARD_ENTRY_NAME]);
     expect(await card(c.id)).toMatchObject({ placesLeft: 1 });
+  });
+
+  it("the studio sees the scans of any card that exists, with the sign-ups, newest first – and how often each card was scanned", async () => {
+    const c = await addPassCard(h.db);
+    expect(await recordPassCardScan(h.db, "nope", null)).toBe(false);
+    expect(await recordPassCardScan(h.db, "000000", null)).toBe(false); // no such card
+    expect(await recordPassCardScan(h.db, c.code.toLowerCase(), null, hours(1))).toBe(true);
+    const eva = await signUp("Eva Skenovaná", c.code, hours(2));
+    expect(await recordPassCardScan(h.db, c.code, eva.id, hours(3))).toBe(true);
+    await setPassCardActive(h.db, c.id, false);
+    expect(await recordPassCardScan(h.db, c.code, null, hours(4))).toBe(true); // out of the game – still worth knowing
+
+    const { scans, signUps } = await passCardActivity(h.db, NOW);
+    expect(scans.filter((x) => x.label === c.label).map((x) => [x.at.getTime(), x.name])).toEqual([
+      [hours(4).getTime(), null],
+      [hours(3).getTime(), "Eva Skenovaná"],
+      [hours(1).getTime(), null],
+    ]);
+    expect(signUps.filter((x) => x.label === c.label).map((x) => x.name)).toEqual(["Eva Skenovaná"]);
+    expect((await passCardActivity(h.db, hours(5))).scans).toEqual([]);
+    expect((await listPassCards(h.db)).find((x) => x.id === c.id)!.scans).toMatchObject({ n: 3, last: hours(4) });
   });
 
   it("prints front and back of every card in the payment-card size", async () => {

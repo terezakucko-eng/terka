@@ -1,8 +1,8 @@
 import { randomBytes } from "node:crypto";
-import { and, asc, count, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, isNull, max, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { Executor } from "@/db";
-import { bookings, classSessions, classTypes, entitlements, passCardUses, passCards, users } from "@/db/schema";
+import { bookings, classSessions, classTypes, entitlements, passCardScans, passCardUses, passCards, users } from "@/db/schema";
 import { sessionNameSql } from "@/lib/session-name";
 
 /**
@@ -187,8 +187,10 @@ export async function listPassCards(db: Executor) {
     .leftJoin(entitlements, eq(passCardUses.entitlementId, entitlements.id))
     .orderBy(asc(passCardUses.createdAt));
   const lessons = await cardBookings(db, uses.flatMap((u) => (u.entitlementId ? [u.entitlementId] : [])));
+  const scans = await db.select({ cardId: passCardScans.cardId, n: count(), last: max(passCardScans.createdAt) }).from(passCardScans).groupBy(passCardScans.cardId);
   return cards.map((card) => ({
     ...card,
+    scans: scans.find((x) => x.cardId === card.id) ?? { n: 0, last: null },
     chain: uses
       .filter((u) => u.cardId === card.id)
       .map((u) => ({ ...u, lesson: lessons.find((l) => l.entitlementId === u.entitlementId) ?? null })),
@@ -234,6 +236,39 @@ export async function chargePassCard(db: Executor, id: string, now = new Date())
 export async function resetPassCard(db: Executor, id: string, now = new Date()) {
   await chargePassCard(db, id, now);
   await db.update(passCards).set({ isActive: true, validUntil: null, expiredNotifiedAt: null }).where(eq(passCards.id, id));
+}
+
+/**
+ * Someone opened the card's page – scanned its QR code, or followed a link to it. Any card that exists
+ * counts, even one out of the game or expired (the studio may want to bring it back).
+ */
+export async function recordPassCardScan(db: Executor, code: string, userId: string | null, now = new Date()) {
+  if (!isCardCode(code)) return false;
+  const [card] = await db.select({ id: passCards.id }).from(passCards).where(eq(passCards.code, norm(code)));
+  if (!card) return false;
+  await db.insert(passCardScans).values({ cardId: card.id, userId, createdAt: now });
+  return true;
+}
+
+/** Admin overview: the cards' scans and the sign-ups with them since then, newest first. */
+export async function passCardActivity(db: Executor, since: Date) {
+  const [scans, signUps] = await Promise.all([
+    db
+      .select({ at: passCardScans.createdAt, label: passCards.label, userId: users.id, name: users.name })
+      .from(passCardScans)
+      .innerJoin(passCards, eq(passCardScans.cardId, passCards.id))
+      .leftJoin(users, eq(passCardScans.userId, users.id))
+      .where(gte(passCardScans.createdAt, since))
+      .orderBy(desc(passCardScans.createdAt)),
+    db
+      .select({ at: passCardUses.createdAt, label: passCards.label, userId: users.id, name: users.name })
+      .from(passCardUses)
+      .innerJoin(passCards, eq(passCardUses.cardId, passCards.id))
+      .innerJoin(users, eq(passCardUses.userId, users.id))
+      .where(gte(passCardUses.createdAt, since))
+      .orderBy(desc(passCardUses.createdAt)),
+  ]);
+  return { scans, signUps };
 }
 
 /* ---------------------------------------------------- notices for the studio */
