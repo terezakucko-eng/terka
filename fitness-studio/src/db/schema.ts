@@ -435,8 +435,10 @@ export const entitlements = pgTable(
     renewalCancelled: boolean("renewal_cancelled").notNull().default(false),
     /** membership: vlastní měsíční příspěvek v haléřích; null = výchozí z Nastavení */
     monthlyFee: integer("monthly_fee"),
-    /** …do kterého měsíce ("YYYY-MM") vlastní příspěvek platí, pak výchozí z Nastavení (speciální cena na pár měsíců); null = bez konce */
+    /** …do kterého měsíce ("YYYY-MM") vlastní příspěvek platí, pak monthlyFeeAfter (speciální cena na pár měsíců); null = bez konce */
     monthlyFeeUntil: text("monthly_fee_until"),
+    /** …příspěvek po monthlyFeeUntil v haléřích (např. 2 000 Kč do prosince, pak 1 000 Kč); null = výchozí z Nastavení */
+    monthlyFeeAfter: integer("monthly_fee_after"),
     /** membership přepnutá na vyšší od pozdějšího měsíce (includedFrom): příspěvek za měsíce před přechodem; null = výchozí z Nastavení */
     monthlyFeeBefore: integer("monthly_fee_before"),
     /** membership: lekce v ceně bez doplatku (např. 4× Reformer měsíčně) – typ lekce a počet za kalendářní měsíc */

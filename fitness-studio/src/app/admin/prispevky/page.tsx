@@ -18,6 +18,7 @@ const statusBadge = {
   none: <Badge tone="red">Bez výzvy</Badge>,
   auto: <Badge>Kartou automaticky</Badge>,
   purchase: <Badge tone="green">Zaplaceno při koupi</Badge>,
+  free: <Badge>Bez příspěvku</Badge>,
 };
 
 export default async function FeesPage({ searchParams }: PageProps<"/admin/prispevky">) {

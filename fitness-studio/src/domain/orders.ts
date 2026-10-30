@@ -316,6 +316,7 @@ export async function renewMembership(
         massageServiceId: prev.massageServiceId,
         monthlyFee: prev.monthlyFee,
         monthlyFeeUntil: prev.monthlyFeeUntil,
+        monthlyFeeAfter: prev.monthlyFeeAfter,
         includedClassTypeId: prev.includedClassTypeId,
         includedPerMonth: prev.includedPerMonth,
         sameDayOnly: prev.sameDayOnly,

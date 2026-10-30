@@ -420,7 +420,10 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
                           měsíčně
                           <Input name="monthlyFee" type="number" min={0} defaultValue={e.monthlyFee !== null ? e.monthlyFee / 100 : ""} placeholder="výchozí" className="w-24 px-2 py-1" aria-label="Měsíční příspěvek (Kč)" />
                           Kč do
-                          <Input name="monthlyFeeUntil" type="month" defaultValue={e.monthlyFeeUntil ?? ""} className="w-36 px-2 py-1" aria-label="Vlastní příspěvek platí do měsíce (prázdné = bez konce)" title="Prázdné = bez konce. Po tomto měsíci platí výchozí příspěvek z Nastavení." />
+                          <Input name="monthlyFeeUntil" type="month" defaultValue={e.monthlyFeeUntil ?? ""} className="w-36 px-2 py-1" aria-label="Vlastní příspěvek platí do měsíce (prázdné = bez konce)" title="Prázdné = bez konce. Po tomto měsíci platí příspěvek „pak“." />
+                          pak
+                          <Input name="monthlyFeeAfter" type="number" min={0} defaultValue={e.monthlyFeeAfter !== null ? e.monthlyFeeAfter / 100 : ""} placeholder="výchozí" className="w-24 px-2 py-1" aria-label="Příspěvek po tomto měsíci (Kč)" title="Prázdné = výchozí příspěvek z Nastavení." />
+                          Kč
                         </label>
                       )}
                       <button className="font-semibold text-zeme underline">Uložit</button>

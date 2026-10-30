@@ -806,6 +806,13 @@
       "when": 1793169604564,
       "tag": "0114_brunch_poster_mobile_final",
       "breakpoints": true
+    },
+    {
+      "idx": 115,
+      "version": "7",
+      "when": 1793350709230,
+      "tag": "0115_monthly_fee_after",
+      "breakpoints": true
     }
   ]
 }
