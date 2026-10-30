@@ -5,7 +5,7 @@ Stáhne denní data z Power BI přes REST API a uloží je jako CSV.
 Nahrazuje ruční klikání v Power BI. Běží kdekoli — nepotřebuje prohlížeč,
 přihlášení ani zapnutý počítač.
 
-PŘED PRVNÍM SPUŠTĚNÍM potřebuješ od IT / Milana:
+PŘED PRVNÍM SPUŠTĚNÍM potřebuješ od IT / Miloše:
   1. App registration v Azure AD (service principal)
   2. Zapnuté tenant settings "Service principals can use Power BI APIs"
      (Developer settings) a "Dataset Execute Queries REST API" (Integration settings)
