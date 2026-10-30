@@ -65,6 +65,8 @@ export async function grantProduct(
         entriesTotal: p.entries,
         weeklyLimit: p.kind === "membership" ? p.weeklyLimit : null,
         massageServiceId: p.kind === "massage_pass" ? p.massageServiceId : null,
+        // a pass just for one class (Permanentka Reformer)
+        classTypeId: p.kind === "pass" ? p.classTypeId : null,
         validFrom: from,
         validUntil: periodEnd ?? yearEnd ?? new Date(from.getTime() + (p.validityDays ?? 30) * DAY),
         subscriptionId: to.subscriptionId ?? null,

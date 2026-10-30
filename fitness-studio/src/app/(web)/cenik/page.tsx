@@ -7,7 +7,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { credits, entriesLabel, formatPrice } from "@/lib/money";
 import { activeClassTypes, priceListProducts } from "@/lib/queries";
 import Link from "next/link";
-import { membershipPlacesTaken, switchableTo } from "@/domain/membership-fees";
+import { placesLeft as placesLeftFor, switchableTo } from "@/domain/membership-fees";
 import { dateKey } from "@/lib/dates";
 import { dayLabel, inPresale, onSale, priceListStart, priceListYears, priceNoteOn, productsForYear, saleStartsLater, surchargeSteps, yearStart } from "@/lib/price-list";
 import { getSettings } from "@/lib/settings";
@@ -53,9 +53,9 @@ export default async function PricingPage({ searchParams }: PageProps<"/cenik">)
   const onSaleFrom = presale.length
     ? `${presale.join(" a ")} ${presale.length > 1 ? "jsou" : "je"} v předprodeji – koupíš ${presale.length > 1 ? "je" : "ho"} už teď. Ostatní položky jsou v prodeji od ${dayLabel(day)}.`
     : `Položky z tohoto ceníku jsou v prodeji od ${dayLabel(day)}.`;
-  const limited = list.filter((p) => p.maxActive !== null);
-  const taken = await membershipPlacesTaken(db, limited.map((p) => p.id), now);
-  const placesLeft = (p: (typeof list)[number]) => (p.maxActive === null ? null : Math.max(0, p.maxActive - (taken.get(p.id) ?? 0)));
+  // limited memberships and passes taking places from them (Permanentka Reformer)
+  const left = await placesLeftFor(db, list.filter((p) => p.maxActive !== null || p.sharesPlacesWith), now);
+  const placesLeft = (p: (typeof list)[number]) => left.get(p.id) ?? null;
   // a member moves up to a membership with lessons included in Můj účet instead of buying it
   const switchable = user ? await switchableTo(db, user.id, now) : new Set<string>();
 
@@ -171,7 +171,7 @@ export default async function PricingPage({ searchParams }: PageProps<"/cenik">)
                     passNotes={passNotes}
                     passExclusions={passExclusions}
                     creditNotes={creditNotes}
-                    includedClass={types.find((t) => t.id === p.includedClassTypeId)?.name}
+                    includedClass={types.find((t) => t.id === (p.includedClassTypeId ?? p.classTypeId))?.name}
                     priorityWeeks={cfg.includedPriorityWeeks}
                     placesLeft={placesLeft(p)}
                     switchInAccount={switchable.has(p.id)}

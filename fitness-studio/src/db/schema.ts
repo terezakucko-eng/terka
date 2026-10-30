@@ -335,6 +335,12 @@ export const products = pgTable("products", {
   presaleFrom: timestamp("presale_from", { withTimezone: true }),
   /** membership: nejvýš tolik platných členství najednou (omezený počet členství); null = bez limitu */
   maxActive: integer("max_active"),
+  /** pass: platí jen na tento typ lekce (Permanentka Reformer) – 1 vstup = 1 lekce a rezervace se otevírá
+   *  stejně brzy jako u členství s touto lekcí v ceně; null = na kteroukoli */
+  classTypeId: uuid("class_type_id").references((): AnyPgColumn => classTypes.id, { onDelete: "set null" }),
+  /** Bere místo z omezeného počtu jiného produktu (Permanentka Reformer z Členství Reformer): platná a nevyčerpaná
+   *  se počítá do jeho limitu; null = vlastní limit (maxActive) */
+  sharesPlacesWith: uuid("shares_places_with").references((): AnyPgColumn => products.id, { onDelete: "set null" }),
   /** massage_pass: na kterou masáž; null = na kteroukoli */
   massageServiceId: uuid("massage_service_id").references((): AnyPgColumn => massageServices.id),
   sortOrder: integer("sort_order").notNull().default(0),

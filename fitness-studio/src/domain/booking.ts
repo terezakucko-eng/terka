@@ -1,5 +1,5 @@
 import { isStudent } from "@/lib/student";
-import { and, asc, count, desc, eq, gte, inArray, isNull, lt, lte, ne, gt, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, isNotNull, isNull, lt, lte, ne, gt, or, sql } from "drizzle-orm";
 import type { DB, Executor } from "@/db";
 import {
   bookings,
@@ -165,24 +165,41 @@ async function includedMemberships(tx: Executor, userIds: string[], s: SessionKe
 /**
  * The viewer's booking window for each class: their usual one, and for a
  * class included in their membership (e.g. Reformer in Členství Reformer)
- * the priority window – they can book it a week before other members.
+ * or one their pass is just for (Permanentka Reformer) the priority window –
+ * they can book it a week before other members.
  */
 export async function viewerWindows(tx: Executor, cfg: Settings, userId: string | null, now: Date) {
   const base = await bookingWindowFor(tx, cfg, userId, now);
   const none = { base, widest: base, forSession: ((): BookingWindow => base) as (s: SessionKey) => BookingWindow };
   if (!userId || cfg.includedPriorityWeeks <= 0) return none;
-  const tiers = await tx
-    .select({ classTypeId: entitlements.includedClassTypeId, from: entitlements.includedFrom, validFrom: entitlements.validFrom, validUntil: entitlements.validUntil })
-    .from(entitlements)
-    .where(
-      and(
-        eq(entitlements.userId, userId),
-        eq(entitlements.kind, "membership"),
-        eq(entitlements.status, "active"),
-        gt(entitlements.includedPerMonth, 0),
-        gt(entitlements.validUntil, now),
+  const [included, passes] = await Promise.all([
+    tx
+      .select({ classTypeId: entitlements.includedClassTypeId, from: entitlements.includedFrom, validFrom: entitlements.validFrom, validUntil: entitlements.validUntil })
+      .from(entitlements)
+      .where(
+        and(
+          eq(entitlements.userId, userId),
+          eq(entitlements.kind, "membership"),
+          eq(entitlements.status, "active"),
+          gt(entitlements.includedPerMonth, 0),
+          gt(entitlements.validUntil, now),
+        ),
       ),
-    );
+    tx
+      .select({ classTypeId: entitlements.classTypeId, validFrom: entitlements.validFrom, validUntil: entitlements.validUntil })
+      .from(entitlements)
+      .where(
+        and(
+          eq(entitlements.userId, userId),
+          eq(entitlements.kind, "pass"),
+          eq(entitlements.status, "active"),
+          isNotNull(entitlements.classTypeId),
+          gt(entitlements.validUntil, now),
+          or(isNull(entitlements.entriesTotal), lt(entitlements.entriesUsed, entitlements.entriesTotal)),
+        ),
+      ),
+  ]);
+  const tiers = [...included, ...passes.map((p) => ({ ...p, from: null }))];
   if (!tiers.length) return none;
   const prio = priorityWindow(cfg);
   return {
@@ -529,7 +546,7 @@ export async function recomputeSurcharges(
         b.method === "membership" && !!e && e.includedClassTypeId === s.classTypeId && e.includedPerMonth > 0 && !(e.includedFrom && month < e.includedFrom);
       if (included) continue;
       if (!rulesOf.has(s.classTypeId)) rulesOf.set(s.classTypeId, await classRules(tx, s));
-      const want = surchargeFor(b.method!, rulesOf.get(s.classTypeId)!, s, b.seats);
+      const want = surchargeFor(b.method!, rulesOf.get(s.classTypeId)!, s, b.seats, e);
       if (want === b.surcharge) continue;
       changed.push({ ...b, surcharge: want });
       if (opts.dryRun) continue;
@@ -811,16 +828,19 @@ function includedNote(left: number, s: Pick<ClassSession, "startsAt">) {
 /** Surcharge for booking with a pass – per seat, on top of the entries (0 = none). */
 export const passSurchargeFor = (rules: Pick<ClassRules, "passSurcharge">, seats = 1) => (rules.passSurcharge ?? 0) * seats;
 
-/** What a booking paid with this method costs on top (members' and pass holders' surcharge). */
-function surchargeFor(method: Method, rules: ClassRules, s: Pick<ClassSession, "startsAt">, seats: number) {
+/** What a booking paid with this method costs on top (members' and pass holders' surcharge) – none with a pass just for this class. */
+function surchargeFor(method: Method, rules: ClassRules, s: Pick<ClassSession, "startsAt">, seats: number, e?: Pick<Entitlement, "classTypeId"> | null) {
   if (method === "membership") return memberSurchargeFor(rules, s);
-  if (method === "pass") return passSurchargeFor(rules, seats);
+  if (method === "pass") return e?.classTypeId ? 0 : passSurchargeFor(rules, seats);
   return 0;
 }
 
-/** Entries a booking takes from this entitlement: passes may cost more (Reformer = 2), a friend doubles it (free entries too). */
-function entriesFor(e: Pick<Entitlement, "kind">, rules: Pick<ClassRules, "passEntries">, seats = 1) {
-  return (e.kind === "pass" ? Math.max(1, rules.passEntries) : 1) * seats;
+/**
+ * Entries a booking takes from this entitlement: passes may cost more (Reformer = 2), a friend doubles it (free entries too).
+ * A pass just for this class (Permanentka Reformer) is one entry a lesson.
+ */
+function entriesFor(e: Pick<Entitlement, "kind" | "classTypeId">, rules: Pick<ClassRules, "passEntries">, seats = 1) {
+  return (e.kind === "pass" && !e.classTypeId ? Math.max(1, rules.passEntries) : 1) * seats;
 }
 
 /** A friend (+1) can come along only to group classes, not to individual ones. */
@@ -863,7 +883,8 @@ async function entitlementProblem(
   if (e.status !== "active") return "Oprávnění není aktivní.";
   if (seats > 1 && e.kind === "membership")
     return "Kamarádku můžeš vzít s permanentkou, vstupem zdarma, kreditem nebo jednorázově.";
-  if (e.kind === "pass" && (await classRules(tx, s)).noPass)
+  // a pass just for this class (Permanentka Reformer) is made for it
+  if (e.kind === "pass" && !e.classTypeId && (await classRules(tx, s)).noPass)
     return "Permanentka na tuhle lekci neplatí.";
   if (e.classTypeId && e.classTypeId !== s.classTypeId) return "Platí jen na jinou lekci.";
   if (e.beforeHour !== null && pragueHour(s.startsAt) >= e.beforeHour) return `Platí jen na lekce začínající do ${e.beforeHour}:00.`;
@@ -947,7 +968,7 @@ export async function bookingOptions(
         ? "neomezeně"
         : `zbývá ${e.entriesTotal - e.entriesUsed} z ${e.entriesTotal}` +
           (need > 1 ? ` · strhnou se ${need} vstupy` : "");
-    let extra = surchargeFor(methodForKind[e.kind], rules, s, seats);
+    let extra = surchargeFor(methodForKind[e.kind], rules, s, seats, e);
     let included = "";
     if (e.kind === "membership" && extra > 0) {
       const n = await includedLeft(tx, e, s, rules);
@@ -1079,7 +1100,7 @@ async function charge(
   }
 
   const rules = await classRules(tx, s);
-  let surcharge = surchargeFor(method, rules, s, booking.seats);
+  let surcharge = surchargeFor(method, rules, s, booking.seats, ent);
   // lessons included in the membership (e.g. 4× Reformer a month) need no surcharge
   if (surcharge > 0 && method === "membership" && ent && (await includedLeft(tx, ent, s, rules, booking.id))) surcharge = 0;
   // credit on the account (bought for surcharges) pays it right away – no transfer, no VS; 1 Kč = 1 kredit

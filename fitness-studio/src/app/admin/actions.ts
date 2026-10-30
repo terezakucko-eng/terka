@@ -276,7 +276,13 @@ export async function saveProductAction(_: FormState, fd: FormData): Promise<For
       isActive: field.bool(fd, "isActive"),
       sortOrder: field.int(fd, "sortOrder") ?? 0,
       massageServiceId: kind === "massage_pass" ? field.str(fd, "massageServiceId") || null : null,
+      classTypeId: kind === "pass" ? field.str(fd, "classTypeId") || null : null,
+      sharesPlacesWith: kind === "pass" ? field.str(fd, "sharesPlacesWith") || null : null,
     };
+    if (values.sharesPlacesWith) {
+      const [m] = await db.select({ kind: products.kind, maxActive: products.maxActive }).from(products).where(eq(products.id, values.sharesPlacesWith));
+      if (m?.kind !== "membership" || m.maxActive === null) throw new UserError("Místo jde brát jen z členství s omezeným počtem.");
+    }
     if (kind === "massage_pass" && !values.entries) throw new UserError("Vyplň počet masáží na permanentce.");
     if (kind === "pass" && !values.entries) throw new UserError("Permanentka potřebuje počet vstupů.");
     if (kind === "solarium" && !values.entries) throw new UserError("Vyplň počet minut solária.");
