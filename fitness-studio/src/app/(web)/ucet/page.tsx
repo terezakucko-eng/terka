@@ -45,7 +45,8 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
   const fees = await openFees(db, user.id);
   const [upcoming, ents, massages, unpaid, visits, review, content, insuranceYrs] = await Promise.all([
     userBookings(db, user.id, "upcoming", new Date(), 50, true),
-    userEntitlements(db, user.id, true),
+    // a gift starting later (4× Reformer bez doplatku from 1. 1. 2027) shows once it starts
+    userEntitlements(db, user.id, true).then((list) => list.filter((e) => e.kind !== "free" || e.validFrom <= new Date())),
     db
       .select()
       .from(massageBookings)

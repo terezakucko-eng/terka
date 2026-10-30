@@ -10,13 +10,23 @@ import { nbsp } from "@/lib/typography";
 export type PassCardDoc = { label: string; code: string; url: string };
 
 const png = (width: number) => (svg: Buffer) => sharp(svg, { density: 600 }).resize({ width }).png().toBuffer();
+// at card size the screen logo's fine lines get lost in print – the outlines a little bolder
+const bolderSymbol = (svg: Buffer) =>
+  Buffer.from(svg.toString("utf8").replace('fill="url(#gold)"', 'fill="url(#gold)" stroke="url(#gold)" stroke-width="2.4" stroke-linejoin="round"'));
+const bolderWordmark = (svg: Buffer) =>
+  Buffer.from(
+    svg
+      .toString("utf8")
+      .replace('<g fill="#D2A772" color="#D2A772">', '<g fill="#D2A772" color="#D2A772" stroke="#D2A772" stroke-width="1.4" stroke-linejoin="round">')
+      .replace('stroke-width="3.6"', 'stroke-width="5.2"'),
+  );
 const assets = () =>
   Promise.all([
     readFile(join(process.cwd(), "assets/fonts/DMSans-Regular.ttf")),
     readFile(join(process.cwd(), "assets/fonts/DMSans-SemiBold.ttf")),
     readFile(join(process.cwd(), "assets/fonts/Allura-Regular.ttf")),
-    readFile(join(process.cwd(), "public/brand/symbol-gold.svg")).then(png(500)),
-    readFile(join(process.cwd(), "public/brand/wordmark-gold.svg")).then(png(700)),
+    readFile(join(process.cwd(), "public/brand/symbol-gold.svg")).then(bolderSymbol).then(png(600)),
+    readFile(join(process.cwd(), "public/brand/wordmark-gold.svg")).then(bolderWordmark).then(png(900)),
   ]);
 
 const FOREST = rgb(0.106, 0.145, 0.086);
@@ -57,90 +67,170 @@ function wrap(text: string, font: PDFFont, size: number, width: number) {
   return lines;
 }
 
-/** All the cards in one PDF – front and back of each, in order. */
-export async function passCardsPdf(cards: PassCardDoc[], footer: string) {
+type Ctx = Awaited<ReturnType<typeof embedAssets>>;
+
+async function embedAssets(pdf: PDFDocument) {
   const [regularBytes, boldBytes, scriptBytes, symbolPng, wordmarkPng] = await assets();
-  const pdf = await PDFDocument.create();
   pdf.registerFontkit(fontkit);
   pdf.setTitle("Pošli to dál – kartičky OCTOPUSH");
   pdf.setCreator("OCTOPUSH");
-  const regular = await pdf.embedFont(regularBytes);
-  const bold = await pdf.embedFont(boldBytes);
-  const script = await pdf.embedFont(scriptBytes);
-  const symbol = await pdf.embedPng(symbolPng);
-  const wordmark = await pdf.embedPng(wordmarkPng);
-  const frame = (page: PDFPage) =>
-    page.drawRectangle({ x: BLEED + 6, y: BLEED + 6, width: TW - 12, height: TH - 12, borderColor: GOLD, borderWidth: 0.6 });
+  return {
+    regular: await pdf.embedFont(regularBytes),
+    bold: await pdf.embedFont(boldBytes),
+    script: await pdf.embedFont(scriptBytes),
+    symbol: await pdf.embedPng(symbolPng),
+    wordmark: await pdf.embedPng(wordmarkPng),
+  };
+}
 
+/** The gold frame inside the card whose trim box starts at (ox, oy). */
+const frame = (page: PDFPage, ox: number, oy: number) =>
+  page.drawRectangle({ x: ox + 6, y: oy + 6, width: TW - 12, height: TH - 12, borderColor: GOLD, borderWidth: 0.6 });
+
+/** Front (forest, the gold octopus, „Pošli to dál“) on the trim box at (ox, oy) – the background is drawn by the caller. */
+function drawFront(page: PDFPage, ox: number, oy: number, { bold, script, symbol, wordmark }: Ctx) {
+  frame(page, ox, oy);
+  // the logo, bigger: the octopus above the wordmark, together centred on the card's height
+  const symW = 72;
+  const symH = (symbol.height / symbol.width) * symW;
+  const wmW = 80;
+  const wmH = (wordmark.height / wordmark.width) * wmW;
+  const centre = ox + 14 + wmW / 2;
+  const symY = oy + TH / 2 + (symH + 6 + wmH) / 2 - symH;
+  page.drawImage(symbol, { x: centre - symW / 2, y: symY, width: symW, height: symH });
+  page.drawImage(wordmark, { x: centre - wmW / 2, y: symY - 6 - wmH, width: wmW, height: wmH });
+
+  const x = ox + 104;
+  const room = ox + TW - 12 - x;
+  const title = "Pošli to dál";
+  // the script's last stroke swings past its width – keep clear of the frame
+  const titleSize = Math.min(34, (34 * (room - 8)) / script.widthOfTextAtSize(title, 34));
+  page.drawText(title, { x, y: oy + TH / 2 + 14, size: titleSize, font: script, color: GOLD });
+  // the offer on two lines, so it can be big
+  const offer = ["LEKCE ZDARMA", "PRO DVĚ OSOBY"];
+  const offerSize = Math.min(11, ...offer.map((l) => (11 * room) / spacedWidth(l, bold, 11, 1)));
+  offer.forEach((l, i) => spaced(page, l, { x, y: oy + TH / 2 - 4 - i * (offerSize + 3), size: offerSize, font: bold, color: CREAM, spacing: offerSize / 11 }));
+  let y = oy + TH / 2 - 4 - 2 * (offerSize + 3) - 6;
+  for (const l of wrap(clean("Díky, že pomáháš rozhýbat svět – jednoho člověka po druhém."), bold, 7.5, room)) {
+    page.drawText(l, { x, y, size: 7.5, font: bold, color: GOLD_LIGHT });
+    y -= 9.5;
+  }
+}
+
+/** Back (cream, how it works, the QR code) on the trim box at (ox, oy) – the background is drawn by the caller. */
+async function drawBack(pdf: PDFDocument, page: PDFPage, ox: number, oy: number, card: PassCardDoc, footer: string, { regular, bold }: Ctx) {
+  frame(page, ox, oy);
+  const qrSize = 80;
+  const qrX = ox + TW - 14 - qrSize;
+  const qrY = oy + TH / 2 - qrSize / 2 + 6;
+  const qr = await pdf.embedPng(
+    await QRCode.toBuffer(card.url, { margin: 0, width: 400, errorCorrectionLevel: "M", color: { dark: "#1b2516", light: "#00000000" } }),
+  );
+  page.drawImage(qr, { x: qrX, y: qrY, width: qrSize, height: qrSize });
+  const tag = `${card.label.toUpperCase()} · ${card.code}`;
+  const tagSize = 5.5;
+  spaced(page, clean(tag), {
+    x: qrX + (qrSize - spacedWidth(tag, bold, tagSize, 0.8)) / 2,
+    y: qrY - 10,
+    size: tagSize,
+    font: bold,
+    color: MUTED,
+    spacing: 0.8,
+  });
+
+  const lx = ox + 16;
+  const lw = qrX - lx - 10;
+  spaced(page, "JAK NA TO", { x: lx, y: oy + TH - 24, size: 6.5, font: bold, color: GOLD, spacing: 1.4 });
+  const steps = ["Naskenuj QR kód a zaregistruj se.", "Kartička má 2 místa – udělej někomu radost a vezmi ho s sebou.", "Lekci si rezervuješ online, web tě povede.", "Po rezervaci můžeš kartičku hned poslat dál."];
+  let y = oy + TH - 34.5;
+  steps.forEach((s, i) => {
+    page.drawText(`${i + 1}`, { x: lx, y, size: 7, font: bold, color: GOLD });
+    for (const l of wrap(clean(s), i === 3 ? bold : regular, 7, lw - 9)) {
+      page.drawText(l, { x: lx + 9, y, size: 7, font: i === 3 ? bold : regular, color: INK });
+      y -= 7.9;
+    }
+    y -= 1.2;
+  });
+  // the rules, right above the address
+  const rules = wrap(clean("Jen pro nováčky – každý jeden vstup zdarma. Využij ho do 14 dní od registrace. Nepoužitá kartička po měsíci propadne."), regular, 6, lw);
+  rules.forEach((l, i) => page.drawText(l, { x: lx, y: oy + 33 + 7.4 * (rules.length - 1 - i), size: 6, font: regular, color: MUTED }));
+  const web = card.url.replace(/^https?:\/\/(www\.)?/, "");
+  page.drawText(web, { x: lx, y: oy + 22, size: 6, font: bold, color: INK });
+  page.drawText(clean(footer), { x: lx, y: oy + 13, size: 5.2, font: regular, color: MUTED });
+}
+
+/** All the cards in one PDF for the print shop – front and back of each, in order, card size with bleed. */
+export async function passCardsPdf(cards: PassCardDoc[], footer: string) {
+  const pdf = await PDFDocument.create();
+  const ctx = await embedAssets(pdf);
   for (const card of cards) {
-    // front: forest, the gold octopus, „Pošli to dál“
     const front = pdf.addPage([W, H]);
     front.drawRectangle({ x: 0, y: 0, width: W, height: H, color: FOREST });
-    frame(front);
-    const symW = 62;
-    const symH = (symbol.height / symbol.width) * symW;
-    const symX = BLEED + 18;
-    const symY = H / 2 - symH / 2 + 9;
-    front.drawImage(symbol, { x: symX, y: symY, width: symW, height: symH });
-    const wmW = 58;
-    const wmH = (wordmark.height / wordmark.width) * wmW;
-    front.drawImage(wordmark, { x: symX + (symW - wmW) / 2, y: symY - wmH - 5, width: wmW, height: wmH });
-
-    const x = BLEED + 98;
-    const room = BLEED + TW - 14 - x;
-    const title = "Pošli to dál";
-    const titleSize = Math.min(32, (32 * room) / script.widthOfTextAtSize(title, 32));
-    front.drawText(title, { x, y: H / 2 + 10, size: titleSize, font: script, color: GOLD });
-    const offer = "LEKCE PRO DVA ZDARMA";
-    const offerSize = Math.min(9.5, (9.5 * room) / spacedWidth(offer, bold, 9.5, 1));
-    spaced(front, offer, { x, y: H / 2 - 8, size: offerSize, font: bold, color: CREAM, spacing: (1 * offerSize) / 9.5 });
-    let y = H / 2 - 21;
-    for (const l of wrap(clean("Díky, že pomáháš rozhýbat svět – jednoho člověka po druhém."), regular, 7, room)) {
-      front.drawText(l, { x, y, size: 7, font: regular, color: GOLD_LIGHT });
-      y -= 9;
-    }
-
-    // back: cream, how it works, the QR code
+    drawFront(front, BLEED, BLEED, ctx);
     const back = pdf.addPage([W, H]);
     back.drawRectangle({ x: 0, y: 0, width: W, height: H, color: CREAM });
-    frame(back);
-    const qrSize = 80;
-    const qrX = BLEED + TW - 14 - qrSize;
-    const qrY = H / 2 - qrSize / 2 + 6;
-    const qr = await pdf.embedPng(
-      await QRCode.toBuffer(card.url, { margin: 0, width: 400, errorCorrectionLevel: "M", color: { dark: "#1b2516", light: "#00000000" } }),
-    );
-    back.drawImage(qr, { x: qrX, y: qrY, width: qrSize, height: qrSize });
-    const tag = `${card.label.toUpperCase()} · ${card.code}`;
-    const tagSize = 5.5;
-    spaced(back, clean(tag), {
-      x: qrX + (qrSize - spacedWidth(tag, bold, tagSize, 0.8)) / 2,
-      y: qrY - 10,
-      size: tagSize,
-      font: bold,
-      color: MUTED,
-      spacing: 0.8,
-    });
+    await drawBack(pdf, back, BLEED, BLEED, card, footer, ctx);
+  }
+  return pdf.save();
+}
 
-    const lx = BLEED + 16;
-    const lw = qrX - lx - 10;
-    spaced(back, "JAK NA TO", { x: lx, y: BLEED + TH - 24, size: 6.5, font: bold, color: GOLD, spacing: 1.4 });
-    const steps = ["Naskenuj QR kód a zaregistruj se.", "Kartička má 2 místa – udělej někomu radost a vezmi ho s sebou.", "Lekci si rezervuješ online, web tě povede.", "Po rezervaci můžeš kartičku hned poslat dál."];
-    y = BLEED + TH - 36;
-    steps.forEach((s, i) => {
-      back.drawText(`${i + 1}`, { x: lx, y, size: 7, font: bold, color: GOLD });
-      for (const l of wrap(clean(s), i === 3 ? bold : regular, 7, lw - 9)) {
-        back.drawText(l, { x: lx + 9, y, size: 7, font: i === 3 ? bold : regular, color: INK });
-        y -= 8.4;
+// A4 sheets to print at home or in the office: 2 × 5 cards side by side (one cut between neighbours), fronts on one page,
+// backs on the next mirrored left–right – duplex flipped on the long edge puts each back right behind its front
+const A4W = 210 * MM;
+const A4H = 297 * MM;
+const COLS = 2;
+const ROWS = 5;
+export const CARDS_PER_SHEET = COLS * ROWS;
+
+/**
+ * The cards on A4 for duplex printing: per sheet a page of fronts and a page of backs, with cut marks.
+ * Print at 100 % (actual size), both sides, flipped on the long edge.
+ */
+export async function passCardsSheetPdf(cards: PassCardDoc[], footer: string) {
+  const pdf = await PDFDocument.create();
+  const ctx = await embedAssets(pdf);
+  const left = (A4W - COLS * TW) / 2;
+  const bottom = (A4H - ROWS * TH) / 2;
+  // trim box of the slot, front side: row 0 at the top
+  const slot = (i: number, mirrored: boolean) => {
+    const col = i % COLS;
+    return { x: left + (mirrored ? COLS - 1 - col : col) * TW, y: bottom + (ROWS - 1 - Math.floor(i / COLS)) * TH };
+  };
+  const marks = (page: PDFPage) => {
+    // short enough to stay inside what an office printer prints (≈ 5 mm from the edge)
+    const len = 4 * MM;
+    const gap = BLEED + 1 * MM;
+    const ink = { thickness: 0.4, color: rgb(0.3, 0.3, 0.3) };
+    for (let c = 0; c <= COLS; c++) {
+      const x = left + c * TW;
+      page.drawLine({ start: { x, y: bottom - gap }, end: { x, y: bottom - gap - len }, ...ink });
+      page.drawLine({ start: { x, y: bottom + ROWS * TH + gap }, end: { x, y: bottom + ROWS * TH + gap + len }, ...ink });
+    }
+    for (let r = 0; r <= ROWS; r++) {
+      const y = bottom + r * TH;
+      page.drawLine({ start: { x: left - gap, y }, end: { x: left - gap - len, y }, ...ink });
+      page.drawLine({ start: { x: left + COLS * TW + gap, y }, end: { x: left + COLS * TW + gap + len, y }, ...ink });
+    }
+  };
+  for (let from = 0; from < cards.length; from += CARDS_PER_SHEET) {
+    const sheet = cards.slice(from, from + CARDS_PER_SHEET);
+    const front = pdf.addPage([A4W, A4H]);
+    const back = pdf.addPage([A4W, A4H]);
+    // backgrounds first (with bleed into the neighbours – the same colour), then the cards on top
+    sheet.forEach((_, i) => {
+      for (const [page, mirrored, color] of [[front, false, FOREST], [back, true, CREAM]] as const) {
+        const s = slot(i, mirrored);
+        page.drawRectangle({ x: s.x - BLEED, y: s.y - BLEED, width: W, height: H, color });
       }
-      y -= 1.8;
     });
-    // the rules, right above the address
-    const rules = wrap(clean("Jen pro nové klienty, každý jednou. Kartička platí měsíc, lekce 14 dní."), regular, 6, lw);
-    rules.forEach((l, i) => back.drawText(l, { x: lx, y: BLEED + 33 + 7.4 * (rules.length - 1 - i), size: 6, font: regular, color: MUTED }));
-    const web = card.url.replace(/^https?:\/\/(www\.)?/, "");
-    back.drawText(web, { x: lx, y: BLEED + 22, size: 6, font: bold, color: INK });
-    back.drawText(clean(footer), { x: lx, y: BLEED + 13, size: 5.2, font: regular, color: MUTED });
+    for (const [i, card] of sheet.entries()) {
+      const f = slot(i, false);
+      drawFront(front, f.x, f.y, ctx);
+      const b = slot(i, true);
+      await drawBack(pdf, back, b.x, b.y, card, footer, ctx);
+    }
+    marks(front);
+    marks(back);
   }
   return pdf.save();
 }

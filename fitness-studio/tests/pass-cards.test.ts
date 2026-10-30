@@ -25,7 +25,7 @@ import {
   unannouncedSignUps,
 } from "@/domain/pass-cards";
 import { registerUser } from "@/domain/users";
-import { passCardsPdf } from "@/lib/pass-card-pdf";
+import { CARDS_PER_SHEET, passCardsPdf, passCardsSheetPdf } from "@/lib/pass-card-pdf";
 import { NOW, hours, makeSession, testDb } from "./helpers";
 
 let h: Awaited<ReturnType<typeof testDb>>;
@@ -210,5 +210,14 @@ describe("Pošli to dál – a plastic card with two places that goes on right a
     const { width, height } = doc.getPage(0).getSize();
     expect(width).toBeCloseTo((91.6 * 72) / 25.4, 1);
     expect(height).toBeCloseTo((60 * 72) / 25.4, 1);
+  });
+
+  it("prints them on A4 for duplex printing: a page of fronts and a page of backs per 10 cards", async () => {
+    const cards = Array.from({ length: CARDS_PER_SHEET + 2 }, (_, i) => ({ label: `Kartička ${i + 1}`, code: `C${i}`, url: `https://www.octopush.fit/karticka/C${i}` }));
+    const doc = await PDFDocument.load(await passCardsSheetPdf(cards, "OCTOPUSH · Pospolitá 699/16, Ostrava"));
+    expect(doc.getPageCount()).toBe(4);
+    const { width, height } = doc.getPage(0).getSize();
+    expect(width).toBeCloseTo((210 * 72) / 25.4, 1);
+    expect(height).toBeCloseTo((297 * 72) / 25.4, 1);
   });
 });

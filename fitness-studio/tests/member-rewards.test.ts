@@ -122,11 +122,17 @@ describe("board post and the next pop-up", () => {
   it("the post is pinned and ends with buttons to the price list and to booking", async () => {
     const [post] = await h.db.select().from(announcements).where(eq(announcements.id, "ec9596c8-12e0-4cf2-97ff-d54610740a2d"));
     expect(post).toMatchObject({ isPinned: true, isPublished: true });
-    // 0121 rewrote it: new memberships only, Členství Reformer too, Zmražení členství
-    expect(post.title).toBe("🎁 Členství 2027: dárky za včasnou rezervaci a zmražení členství");
-    expect(post.body).toContain("Fitness Ježíšek");
-    expect(post.body).toContain("Platí i pro <strong>Členství Reformer</strong>");
-    expect(post.body).toContain("Zmražení členství");
+    // 0124: written plainly
+    expect(post.title).toBe("🎁 Členství 2027: dárky za včasné přihlášení a novinka – zmražení členství");
+    for (const text of [
+      "Fitness Ježíšek s dárkem",
+      "sjedná nové členství se závazkem na rok 2027, dostane 4 lekce Reformer fusion bez doplatku",
+      "Platí i pro Členství Reformer – k 8 lekcím měsíčně máš 4 navíc. Klidně na ně pozvi kamarádku.",
+      "Dárek dostáváš taky – lekce uvidíš v účtu od 1. 1. 2027.",
+      "nejdříve od následujícího dne",
+      "Je-li platba za daný měsíc už uhrazena, sleva se odečte z následujícího měsíce.",
+    ])
+      expect(post.body).toContain(text);
     expect(post.body).not.toContain("Program Dovolená");
     const html = withButtons(post.body);
     expect(html).toContain('<a class="cta" href="/cenik?rok=2027">');
@@ -139,7 +145,7 @@ describe("board post and the next pop-up", () => {
     const rows = await h.db.select().from(content).where(sql`${content.key} like 'popupNext.%'`);
     const next = Object.fromEntries(rows.map((r) => [r.key.slice("popupNext.".length), r.value]));
     expect(next.buttonUrl).toBe("/nastenka#ec9596c8-12e0-4cf2-97ff-d54610740a2d");
-    expect(next.text).toContain("zmražení členství – 2× ročně týden zdarma");
+    expect(next.text).toContain("dvakrát ročně si můžeš zmrazit členství na týden");
     expect(popupSlot({ title: next.title, from: next.from }, "2026-10-30")).toBe("popup");
     expect(popupSlot({ title: next.title, from: next.from }, "2026-10-31")).toBe("popupNext");
     expect(popupSlot({ title: "", from: next.from }, "2026-11-01")).toBe("popup");
@@ -192,5 +198,17 @@ describe("price list cards", () => {
     expect(memberRewardNotes({ ...m, commitmentMonths: 0 }, NOW)).toEqual([]);
     expect(memberRewardNotes({ ...m, kind: "pass" }, NOW)).toEqual([]);
     expect(memberRewardNotes(m, JAN)).toEqual(["❄️ Zmražení členství: 2× ročně týden zdarma – dovolená, nemoc…"]);
+  });
+});
+
+describe("Barre Brunch pop-up", () => {
+  it("migration 0122: ends tonight – the membership 2027 one follows from Saturday", async () => {
+    await h.db.insert(content).values([{ key: "popup.title", value: "🥐 Barre + Brunch už tuto sobotu 31. 10." }, { key: "popup.until", value: "2026-10-31" }]).onConflictDoNothing();
+    await h.db.execute(sql.raw(readFileSync("drizzle/0122_brunch_popup_ends_tonight.sql", "utf8")));
+    const until = (await h.db.select().from(content).where(eq(content.key, "popup.until")))[0].value;
+    expect(until).toBe("2026-10-30");
+    expect(popupOver(until, "2026-10-30")).toBe(false);
+    expect(popupOver(until, "2026-10-31")).toBe(true);
+    expect(popupSlot({ title: "🎁 Dárky pro členy na rok 2027", from: "2026-10-31" }, "2026-10-31")).toBe("popupNext");
   });
 });
