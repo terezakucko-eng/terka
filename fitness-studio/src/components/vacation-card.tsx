@@ -17,7 +17,7 @@ export function VacationCard({ list, canPlan, now = new Date() }: { list: Awaite
       <Eyebrow className="text-zeme">Zmražení členství</Eyebrow>
       <p className="mt-3 text-sm text-les/70">
         Dovolená, nemoc nebo cokoli jiného? {VACATION.perYear}× za rok si zmraz členství na týden ({VACATION.days} dní po sobě) a za ten měsíc
-        zaplatíš méně – poměrně podle dní. Když je platba za ten měsíc už zaplacená, sleva se odečte z té příští. V tom týdnu se na lekce
+        zaplatíš méně – poměrně podle dní. Je-li platba za daný měsíc už uhrazena, sleva se odečte z následujícího měsíce. V tom týdnu se na lekce
         nepřihlašuješ; rezervace na ty dny se zruší a vstupy se vrátí.
         {now < VACATION.from && ` Platí od ${formatDate(VACATION.from)} – leden si můžeš zmrazit už teď.`}
       </p>

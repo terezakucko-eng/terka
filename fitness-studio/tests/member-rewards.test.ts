@@ -126,6 +126,13 @@ describe("board post and the next pop-up", () => {
     expect(post.title).toBe("🎁 Členství 2027: dárky za včasnou rezervaci a zmražení členství");
     expect(post.body).toContain("Fitness Ježíšek");
     expect(post.body).toContain("Platí i pro <strong>Členství Reformer</strong>");
+    // 0123: shorter wording, a friend can come on the Reformer lessons
+    expect(post.body).toContain("sjedná nové členství se závazkem na rok 2027, dostane do účtu");
+    expect(post.body).toContain("klidně na ně pozvi třeba kamarádku");
+    expect(post.body).not.toContain("v předprodeji");
+    expect(post.body).toContain("Dárek dostáváš taky. Lekce na Reformer zdarma uvidíš v účtu od 1. 1. 2027 🙂");
+    expect(post.body).toContain("7 dní po sobě, nejdříve od následujícího dne.");
+    expect(post.body).toContain("Zmrazíš si ho v Můj účet. Je-li platba za daný měsíc už uhrazena, sleva se odečte z následujícího měsíce.");
     expect(post.body).toContain("Zmražení členství");
     expect(post.body).not.toContain("Program Dovolená");
     const html = withButtons(post.body);
@@ -192,5 +199,17 @@ describe("price list cards", () => {
     expect(memberRewardNotes({ ...m, commitmentMonths: 0 }, NOW)).toEqual([]);
     expect(memberRewardNotes({ ...m, kind: "pass" }, NOW)).toEqual([]);
     expect(memberRewardNotes(m, JAN)).toEqual(["❄️ Zmražení členství: 2× ročně týden zdarma – dovolená, nemoc…"]);
+  });
+});
+
+describe("Barre Brunch pop-up", () => {
+  it("migration 0122: ends tonight – the membership 2027 one follows from Saturday", async () => {
+    await h.db.insert(content).values([{ key: "popup.title", value: "🥐 Barre + Brunch už tuto sobotu 31. 10." }, { key: "popup.until", value: "2026-10-31" }]).onConflictDoNothing();
+    await h.db.execute(sql.raw(readFileSync("drizzle/0122_brunch_popup_ends_tonight.sql", "utf8")));
+    const until = (await h.db.select().from(content).where(eq(content.key, "popup.until")))[0].value;
+    expect(until).toBe("2026-10-30");
+    expect(popupOver(until, "2026-10-30")).toBe(false);
+    expect(popupOver(until, "2026-10-31")).toBe(true);
+    expect(popupSlot({ title: "🎁 Dárky pro členy na rok 2027", from: "2026-10-31" }, "2026-10-31")).toBe("popupNext");
   });
 });
