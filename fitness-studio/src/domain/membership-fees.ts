@@ -26,6 +26,19 @@ function periodRange(p: string) {
   return { start: pragueLocalToDate(`${p}-01T00:00`), end: pragueLocalToDate(`${shiftPeriod(p, 1)}-01T00:00`) };
 }
 
+type FeeTerms = Pick<Entitlement, "monthlyFee" | "monthlyFeeUntil" | "monthlyFeeAfter" | "monthlyFeeBefore" | "includedFrom">;
+
+/**
+ * The member's own fee for the month (haléře); null = the default one from Nastavení.
+ * Switched to a higher membership from a later month: the old fee until then;
+ * a special price for a few months: then the fee after it.
+ */
+export function ownFee(e: FeeTerms, period: string) {
+  if (e.includedFrom && period < e.includedFrom) return e.monthlyFeeBefore;
+  if (e.monthlyFeeUntil && period > e.monthlyFeeUntil) return e.monthlyFeeAfter;
+  return e.monthlyFee;
+}
+
 /**
  * Members whose membership overlaps the month, one row per client (the
  * latest-ending membership decides the fee). Stripe subscriptions pay by
@@ -65,14 +78,7 @@ export async function membersInMonth(db: Executor, period: string) {
       userId: r.e.userId,
       name: r.name,
       email: r.email,
-      // switched to a higher membership from a later month: the old fee until then;
-      // a special price for a few months: then the default one
-      monthlyFee:
-        r.e.includedFrom && period < r.e.includedFrom
-          ? r.e.monthlyFeeBefore
-          : r.e.monthlyFeeUntil && period > r.e.monthlyFeeUntil
-            ? null
-            : r.e.monthlyFee,
+      monthlyFee: ownFee(r.e, period),
       auto: !!r.e.subscriptionId,
       purchaseOrderId: bought ? r.e.orderId : null,
     });
@@ -140,8 +146,8 @@ export type FeeRow = {
   userId: string;
   name: string;
   email: string;
-  /** purchase: the month is paid by buying the membership */
-  status: "paid" | "pending" | "none" | "auto" | "purchase";
+  /** purchase: the month is paid by buying the membership; free: her fee for the month is 0 (paid by someone else) */
+  status: "paid" | "pending" | "none" | "auto" | "purchase" | "free";
   amount: number | null;
   order: Order | null;
 };
@@ -168,7 +174,17 @@ export async function feeOverview(db: Executor, period: string) {
       return { userId: m.userId, name: m.name, email: m.email, status: "purchase", amount: purchase.amount, order: purchase };
     const order = mine.find((o) => o.status === "paid") ?? mine.find((o) => o.status === "pending") ?? mine[0] ?? null;
     const status: FeeRow["status"] =
-      order?.status === "paid" ? "paid" : order?.status === "pending" ? "pending" : m.auto ? "auto" : order ? "pending" : "none";
+      order?.status === "paid"
+        ? "paid"
+        : order?.status === "pending"
+          ? "pending"
+          : m.auto
+            ? "auto"
+            : order
+              ? "pending"
+              : m.monthlyFee === 0
+                ? "free"
+                : "none";
     return { userId: m.userId, name: m.name, email: m.email, status, amount: order?.amount ?? m.monthlyFee, order };
   });
   const paid = rows.filter((r) => r.status === "paid" || r.status === "purchase");
@@ -198,6 +214,8 @@ export async function followMonthlyFee(
   now = new Date(),
   /** the new fee applies only through this month ("YYYY-MM") */
   until: string | null = null,
+  /** …and only after this month (the fee after a special price) */
+  from: string | null = null,
 ) {
   if (after <= 0 || before === after) return [];
   const rows = await db
@@ -208,7 +226,7 @@ export async function followMonthlyFee(
         eq(orders.userId, userId),
         eq(orders.kind, "membership_fee"),
         eq(orders.status, "pending"),
-        gt(orders.period, currentPeriod(now)),
+        gt(orders.period, from && from > currentPeriod(now) ? from : currentPeriod(now)),
         until ? lte(orders.period, until) : undefined,
         eq(orders.amount, before),
       ),

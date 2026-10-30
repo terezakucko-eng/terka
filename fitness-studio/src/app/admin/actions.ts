@@ -829,26 +829,41 @@ export async function updateEntitlementAction(_: FormState, fd: FormData): Promi
     }
     let monthlyFee = e.monthlyFee;
     let monthlyFeeUntil = e.monthlyFeeUntil;
+    let monthlyFeeAfter = e.monthlyFeeAfter;
     if (e.kind === "membership") {
-      const fee = field.str(fd, "monthlyFee").replace(/\s/g, "");
-      if (fee && !/^\d+$/.test(fee)) throw new UserError("Měsíční příspěvek zadej v celých korunách.");
-      monthlyFee = fee ? Number(fee) * 100 : null;
+      const kc = (name: string) => {
+        const v = field.str(fd, name).replace(/\s/g, "");
+        if (v && !/^\d+$/.test(v)) throw new UserError("Měsíční příspěvek zadej v celých korunách.");
+        return v ? Number(v) * 100 : null;
+      };
+      monthlyFee = kc("monthlyFee");
       const feeUntil = field.str(fd, "monthlyFeeUntil");
       if (feeUntil && !isPeriod(feeUntil)) throw new UserError("Měsíc, do kdy platí příspěvek, zadej jako rok a měsíc.");
       monthlyFeeUntil = monthlyFee !== null && feeUntil ? feeUntil : null;
+      monthlyFeeAfter = monthlyFeeUntil ? kc("monthlyFeeAfter") : null;
     }
     await db
       .update(entitlements)
-      .set({ validFrom: from, validUntil: until, entriesTotal, monthlyFee, monthlyFeeUntil })
+      .set({ validFrom: from, validUntil: until, entriesTotal, monthlyFee, monthlyFeeUntil, monthlyFeeAfter })
       .where(eq(entitlements.id, e.id));
     // a new monthly fee: unpaid requests for the coming months follow it
-    let note = "";
-    if (e.kind === "membership" && monthlyFee !== e.monthlyFee) {
+    const notes: string[] = [];
+    if (e.kind === "membership") {
       const base = (await getSettings(db)).membershipMonthlyFee * 100;
-      const after = monthlyFee ?? base;
-      const followed = await followMonthlyFee(db, e.userId, e.monthlyFee ?? base, after, undefined, monthlyFeeUntil);
-      if (followed.length) note = ` Nezaplacené výzvy (${followed.map(periodLabel).join(", ")}) jsou teď na ${formatPrice(after)}.`;
+      if (monthlyFee !== e.monthlyFee) {
+        const after = monthlyFee ?? base;
+        const followed = await followMonthlyFee(db, e.userId, e.monthlyFee ?? base, after, undefined, monthlyFeeUntil);
+        if (followed.length) notes.push(`Nezaplacené výzvy (${followed.map(periodLabel).join(", ")}) jsou teď na ${formatPrice(after)}.`);
+      }
+      // …and the months after the special price
+      const later = monthlyFeeAfter ?? base;
+      const before = (e.monthlyFeeUntil ? e.monthlyFeeAfter : e.monthlyFee) ?? base;
+      if (monthlyFeeUntil && later !== before) {
+        const followed = await followMonthlyFee(db, e.userId, before, later, undefined, null, monthlyFeeUntil);
+        if (followed.length) notes.push(`Výzvy (${followed.map(periodLabel).join(", ")}) jsou teď na ${formatPrice(later)}.`);
+      }
     }
+    const note = notes.length ? ` ${notes.join(" ")}` : "";
     return done(`Uloženo – platí ${formatDate(from)} – ${formatDate(until)}.${note}`);
   });
 }
