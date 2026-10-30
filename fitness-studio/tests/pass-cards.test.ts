@@ -18,6 +18,7 @@ import {
   passCardByCode,
   passCardOf,
   renewPassCard,
+  resetPassCard,
   setPassCardActive,
   startPassCardClock,
   unannouncedBookings,
@@ -213,6 +214,25 @@ describe("Pošli to dál – a plastic card with two places that goes on right a
     await chargePassCard(h.db, d.id, NOW);
     expect(await card(d.id)).toMatchObject({ placesLeft: 2 });
     expect(await myPassCard(h.db, dana.id)).toMatchObject({ open: false, canComeAlone: false });
+  });
+
+  it("a reset brings any card back – in the game, both places, its month from the next scan – and keeps its chain", async () => {
+    const c = await addPassCard(h.db);
+    const rita = await signUp("Rita Resetová", c.code);
+    // stuck every way at once: a place still waiting for the friend, expired, the studio told, and out of the game
+    await h.db.update(passCards).set({ validUntil: hours(-24), expiredNotifiedAt: NOW }).where(eq(passCards.id, c.id));
+    await setPassCardActive(h.db, c.id, false);
+    expect(await card(c.id)).toMatchObject({ isActive: false, placesLeft: 1 });
+
+    await resetPassCard(h.db, c.id, NOW);
+    expect(await card(c.id)).toMatchObject({ isActive: true, placesLeft: 2, validUntil: null, expiredNotifiedAt: null });
+    expect(await myPassCard(h.db, rita.id)).toMatchObject({ open: false, canComeAlone: false });
+    expect((await listPassCards(h.db)).find((x) => x.id === c.id)!.chain.map((u) => u.name)).toEqual(["Rita Resetová"]);
+
+    // and it works again: the next one gets the card's lesson and takes a place
+    const bea = await signUp("Bea Poresetová", c.code);
+    expect((await mine(bea.id)).map((e) => e.name)).toEqual([CARD_ENTRY_NAME]);
+    expect(await card(c.id)).toMatchObject({ placesLeft: 1 });
   });
 
   it("prints front and back of every card in the payment-card size", async () => {

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
-import { addPassCard, chargePassCard, renewPassCard, setPassCardActive } from "@/domain/pass-cards";
+import { addPassCard, chargePassCard, renewPassCard, resetPassCard, setPassCardActive } from "@/domain/pass-cards";
 import { requireAdmin } from "@/lib/auth";
 import { attempt, field, type FormState } from "@/lib/form";
 
@@ -46,6 +46,17 @@ export async function renewPassCardAction(_: FormState, fd: FormData): Promise<F
   const res = await attempt(async () => {
     await renewPassCard(await getDb(), field.str(fd, "id"));
     return "Kartička je zase ve hře – měsíc se začne počítat, až ji někdo naskenuje.";
+  });
+  revalidatePath("/admin/karticky");
+  return res;
+}
+
+/** Reset a card by hand, whatever happened to it – in the game, both places, its month from the next scan. */
+export async function resetPassCardAction(_: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  const res = await attempt(async () => {
+    await resetPassCard(await getDb(), field.str(fd, "id"));
+    return "Kartička je resetovaná 🔋 – je ve hře, má 2 místa a měsíc se začne počítat, až ji někdo naskenuje.";
   });
   revalidatePath("/admin/karticky");
   return res;

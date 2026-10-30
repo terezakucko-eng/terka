@@ -226,6 +226,16 @@ export async function chargePassCard(db: Executor, id: string, now = new Date())
   await db.update(passCards).set({ placesLeft: CARD_PLACES }).where(eq(passCards.id, id));
 }
 
+/**
+ * Reset by hand – whatever state it got into, the card works again: in the game,
+ * charged with both places (an open round is closed) and its month starting at
+ * the next scan. Whoever came on it stays in its chain.
+ */
+export async function resetPassCard(db: Executor, id: string, now = new Date()) {
+  await chargePassCard(db, id, now);
+  await db.update(passCards).set({ isActive: true, validUntil: null, expiredNotifiedAt: null }).where(eq(passCards.id, id));
+}
+
 /* ---------------------------------------------------- notices for the studio */
 
 const cardUseRows = (db: Executor) => {
