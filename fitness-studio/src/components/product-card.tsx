@@ -35,7 +35,7 @@ function perks(p: Product, includedClass?: string, priorityWeeks = 0): string[] 
         // a pass just for one class (Permanentka Reformer)
         ...(p.classTypeId ? [`Platí jen na ${includedClass ?? "jednu lekci"} – 1 vstup = 1 lekce`] : []),
         ...(p.classTypeId && priorityWeeks > 0
-          ? [`Přednostní rezervace na ${includedClass ?? "tyto lekce"} – stejně brzy jako s členstvím, o ${weeks(priorityWeeks)} dřív než ostatní`]
+          ? [`Přednostní rezervace na ${includedClass ?? "tyto lekce"} – o ${weeks(priorityWeeks)} dřív i než členové`]
           : []),
         `Platnost ${p.validityDays} dní`,
         ...((p.entries ?? 0) > 1 ? [`Cena za vstup ${formatPrice(Math.round(p.price / (p.entries ?? 1)))}`] : []),

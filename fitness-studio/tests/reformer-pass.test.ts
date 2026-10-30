@@ -1,4 +1,5 @@
-import { eq } from "drizzle-orm";
+import { readFileSync } from "node:fs";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { classTypes, entitlements, products } from "@/db/schema";
 import { bookSession, bookingOptions, cancelBooking, priorityWindow, viewerWindows, windowOf } from "@/domain/booking";
@@ -99,5 +100,36 @@ describe("Permanentka Reformer – a pass just for one class", () => {
     const ids = (await giftableProducts(h.db)).map((p) => p.id);
     expect(ids).toContain(plain.id);
     expect(ids).not.toContain(pass.id);
+  });
+});
+
+describe("migration 0118: Permanentka Reformer", () => {
+  it("is created hidden, just for Reformer fusion and taking places from Členství Reformer", async () => {
+    const run = async () => h.db.execute(sql.raw(readFileSync("drizzle/0118_reformer_pass_product.sql", "utf8")));
+    const find = () => h.db.select().from(products).where(eq(products.id, "6bdbf271-9d5f-4260-b60b-946da3e254db"));
+    await run(); // a fresh database without the class or the membership: nothing to create
+    expect(await find()).toEqual([]);
+
+    const [ct] = await h.db.insert(classTypes).values({ name: "Reformer fusion", slug: "reformer-fusion" }).onConflictDoNothing().returning();
+    await h.db
+      .insert(products)
+      .values({ id: "b09203a4-b468-4653-be2b-01d41922d888", kind: "membership", name: "Členství Reformer", price: 250000, maxActive: 3, includedClassTypeId: ct.id, includedPerMonth: 8 })
+      .onConflictDoNothing();
+    await run();
+    await run(); // safe to repeat
+    const rows = await find();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      kind: "pass",
+      name: "Permanentka Reformer",
+      price: 349000,
+      entries: 8,
+      validityDays: 45,
+      isActive: false,
+      saleFrom: null,
+      saleUntil: null,
+      classTypeId: ct.id,
+      sharesPlacesWith: "b09203a4-b468-4653-be2b-01d41922d888",
+    });
   });
 });
