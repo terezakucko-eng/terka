@@ -517,6 +517,20 @@ Máte právo na přístup, opravu, výmaz, omezení zpracování, přenositelnos
       ),
     },
   },
+  passCard: {
+    title: "Pošli to dál – stránka z QR kartičky",
+    page: "/admin/karticky",
+    fields: {
+      title: t("Nadpis – kartička s oběma místy", "Máš u nás 1+1 vstup zdarma"),
+      intro: t("Podnadpis – kartička s oběma místy", "Jeden pro tebe, druhý pro kamarádku. Zaregistruj se a hned si vyber lekci."),
+      titleOne: t("Nadpis – zbývá jen místo pro kamarádku", "Máš u nás vstup zdarma"),
+      introOne: t("Podnadpis – zbývá jen místo pro kamarádku", "Zaregistruj se a hned si vyber lekci."),
+      about: ta(
+        "O studiu (pod nadpisem, pak adresa a odkaz na lekce)",
+        "OCTOPUSH je malé rodinné studio v Ostravě. Přátelská parta, malé skupiny a nikdo se tu s nikým nesrovnává. Zumba, Reformer fusion, silový a kardio trénink, BOSU, DeepWork, kettlebell i fitness brunch se snídaní přímo ve studiu.",
+      ),
+    },
+  },
   notFound: {
     title: "Stránka nenalezena (404)",
     page: "*",

@@ -27,8 +27,8 @@ export function PopupShell({
   const box = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // not on login/registration and payment pages – don't get in the way there
-    if (/^\/(prihlaseni|registrace|platba)/.test(pathname)) return;
+    // not on login/registration (a Pošli to dál card's page is one too) and payment pages – don't get in the way there
+    if (/^\/(prihlaseni|registrace|karticka|platba)/.test(pathname)) return;
     let due = true;
     try {
       due = popupDue(localStorage.getItem(KEY), id, repeatDay);
