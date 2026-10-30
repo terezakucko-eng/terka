@@ -41,6 +41,9 @@ async function purchasable(db: Executor, input: PurchaseInput, now: Date) {
     throw new UserError(saleStartsLater(p, now) ? `Tohle je z ceníku na další rok – v prodeji od ${formatDate(p.saleFrom!)}.` : "Tohle už není v prodeji.");
   if (p.kind === "membership" && (await membershipFull(db, p, now)))
     throw new UserError(`${p.name} má omezený počet členství a teď jsou všechna obsazená. Napiš nám, dáme ti vědět, až se nějaké uvolní.`);
+  // a pass taking a place from a limited membership (Permanentka Reformer)
+  if (p.kind !== "membership" && p.sharesPlacesWith && (await membershipFull(db, p, now)))
+    throw new UserError(`${p.name} má omezený počet míst a teď jsou všechna obsazená. Napiš nám, dáme ti vědět, až se nějaké uvolní.`);
   if (p.kind === "membership" && p.commitmentMonths > 0 && input.commitmentAccepted === false)
     throw new UserError(`Před zaplacením prosím potvrď, že bereš na vědomí závazek na ${p.commitmentMonths} měsíců.`);
   // a member moves up in Můj účet (same membership, no new commitment) instead of buying a second one –

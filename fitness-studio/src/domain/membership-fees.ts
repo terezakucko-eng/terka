@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gt, gte, inArray, isNull, lt, lte, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, gte, inArray, isNull, lt, lte, ne, or } from "drizzle-orm";
 import type { DB, Executor } from "@/db";
 import { bookings, classSessions, entitlements, orders, products, users, type Entitlement, type Order, type Product } from "@/db/schema";
 import { dateKey, pragueLocalToDate } from "@/lib/dates";
@@ -343,31 +343,70 @@ export async function endFlexibleMembership(db: DB, userId: string, entitlementI
 }
 
 /**
- * Places taken in memberships with a limited number (Členství Reformer):
- * valid memberships of the product (switches from next month included) and
- * orders still waiting for payment, by product id.
+ * Places taken in products with a limited number (Členství Reformer), by product id: valid
+ * memberships of the product (switches from next month included), valid passes taking a place
+ * from it (Permanentka Reformer) until they're used up, and orders still waiting for payment.
+ * A product that takes places from another one reports the whole shared count.
  */
 export async function membershipPlacesTaken(db: Executor, productIds: string[], now = new Date()) {
   const out = new Map<string, number>(productIds.map((id) => [id, 0]));
   if (!productIds.length) return out;
+  const asked = await db.select({ id: products.id, shares: products.sharesPlacesWith }).from(products).where(inArray(products.id, productIds));
+  const rootOf = new Map(asked.map((p) => [p.id, p.shares ?? p.id]));
+  const roots = [...new Set(productIds.map((id) => rootOf.get(id) ?? id))];
+  const pool = await db
+    .select({ id: products.id, shares: products.sharesPlacesWith })
+    .from(products)
+    .where(or(inArray(products.id, roots), inArray(products.sharesPlacesWith, roots)));
+  const poolOf = new Map(pool.map((p) => [p.id, p.shares && roots.includes(p.shares) ? p.shares : p.id]));
+  const ids = [...new Set([...roots, ...pool.map((p) => p.id)])];
   const [ents, pending] = await Promise.all([
     db
       .select({ productId: entitlements.productId })
       .from(entitlements)
-      .where(and(inArray(entitlements.productId, productIds), eq(entitlements.status, "active"), gt(entitlements.validUntil, now))),
+      .where(
+        and(
+          inArray(entitlements.productId, ids),
+          eq(entitlements.status, "active"),
+          gt(entitlements.validUntil, now),
+          // a used-up pass gives its place back
+          or(ne(entitlements.kind, "pass"), isNull(entitlements.entriesTotal), lt(entitlements.entriesUsed, entitlements.entriesTotal)),
+        ),
+      ),
     db
       .select({ productId: orders.productId })
       .from(orders)
-      .where(and(inArray(orders.productId, productIds), eq(orders.status, "pending"), or(isNull(orders.expiresAt), gt(orders.expiresAt, now)))),
+      .where(and(inArray(orders.productId, ids), eq(orders.status, "pending"), or(isNull(orders.expiresAt), gt(orders.expiresAt, now)))),
   ]);
-  for (const r of [...ents, ...pending]) if (r.productId) out.set(r.productId, (out.get(r.productId) ?? 0) + 1);
+  const byRoot = new Map<string, number>();
+  for (const r of [...ents, ...pending]) {
+    if (!r.productId) continue;
+    const root = poolOf.get(r.productId) ?? r.productId;
+    byRoot.set(root, (byRoot.get(root) ?? 0) + 1);
+  }
+  for (const id of productIds) out.set(id, byRoot.get(rootOf.get(id) ?? id) ?? 0);
   return out;
 }
 
-/** A limited membership has no place left. */
-export async function membershipFull(db: Executor, p: Pick<Product, "id" | "maxActive">, now = new Date()) {
-  if (p.maxActive === null) return false;
-  return ((await membershipPlacesTaken(db, [p.id], now)).get(p.id) ?? 0) >= p.maxActive;
+type Limited = Pick<Product, "id" | "maxActive" | "sharesPlacesWith">;
+
+/** Places left in products with a limited number – their own, or the ones they take from; null = unlimited. */
+export async function placesLeft(db: Executor, list: Limited[], now = new Date()) {
+  const rootIds = [...new Set(list.flatMap((p) => (p.sharesPlacesWith ? [p.sharesPlacesWith] : [])))];
+  const roots = rootIds.length ? await db.select({ id: products.id, maxActive: products.maxActive }).from(products).where(inArray(products.id, rootIds)) : [];
+  const limitOf = (p: Limited) => (p.sharesPlacesWith ? (roots.find((r) => r.id === p.sharesPlacesWith)?.maxActive ?? null) : p.maxActive);
+  const limited = list.filter((p) => limitOf(p) !== null);
+  const taken = await membershipPlacesTaken(db, limited.map((p) => p.id), now);
+  return new Map<string, number | null>(list.map((p) => {
+    const limit = limitOf(p);
+    return [p.id, limit === null ? null : Math.max(0, limit - (taken.get(p.id) ?? 0))];
+  }));
+}
+
+/** A product with a limited number (or taking places from one) has no place left. */
+export async function membershipFull(db: Executor, p: Limited, now = new Date()) {
+  if (p.maxActive === null && !p.sharesPlacesWith) return false;
+  return (await placesLeft(db, [p], now)).get(p.id) === 0;
 }
 
 /**

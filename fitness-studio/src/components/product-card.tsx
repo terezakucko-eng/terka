@@ -32,6 +32,11 @@ function perks(p: Product, includedClass?: string, priorityWeeks = 0): string[] 
     case "pass":
       return [
         entries(p.entries ?? 0),
+        // a pass just for one class (Permanentka Reformer)
+        ...(p.classTypeId ? [`Platí jen na ${includedClass ?? "jednu lekci"} – 1 vstup = 1 lekce`] : []),
+        ...(p.classTypeId && priorityWeeks > 0
+          ? [`Přednostní rezervace na ${includedClass ?? "tyto lekce"} – o ${weeks(priorityWeeks)} dřív i než členové`]
+          : []),
         `Platnost ${p.validityDays} dní`,
         ...((p.entries ?? 0) > 1 ? [`Cena za vstup ${formatPrice(Math.round(p.price / (p.entries ?? 1)))}`] : []),
       ];
@@ -83,7 +88,7 @@ export function ProductCard({
   passExclusions?: string[];
   /** e.g. "Většina lekcí: 220 kreditů" – shown on credit pack cards */
   creditNotes?: string[];
-  /** membership with lessons included: the class name (e.g. "Reformer fusion") */
+  /** membership with lessons included / pass just for one class: the class name (e.g. "Reformer fusion") */
   includedClass?: string;
   /** Settings → priority booking of the included class (weeks before other members) */
   priorityWeeks?: number;
@@ -91,7 +96,7 @@ export function ProductCard({
   saleNote?: string;
   /** In presale: bought now, it starts on this day ("1. 1. 2027") */
   startsOn?: string;
-  /** Limited membership: places left (null = no limit) */
+  /** Limited membership, or a pass taking places from one: places left (null = no limit) */
   placesLeft?: number | null;
   /** Student price and the client isn't verified yet – she confirms she studies when buying */
   studentUnverified?: boolean;
@@ -115,20 +120,21 @@ export function ProductCard({
                       {formatPrice(p.price)}
                       {p.kind === "membership" && p.recurring && <span className="text-base"> / měsíc</span>}
                     </p>
-                    {p.maxActive !== null && placesLeft !== null && (
+                    {placesLeft !== null && (
                       <p className={cx("mt-3 text-sm font-semibold", p.highlight ? "text-zlato-light" : "text-zeme")}>
                         {placesLeft > 0
-                          ? placesLeftLabel(placesLeft)
+                          ? placesLeftLabel(placesLeft, p.kind !== "membership")
                           : "Teď obsazeno"}
                       </p>
                     )}
                     <ul className="mt-5 flex-1 space-y-2 text-sm">
-                      {[...(p.studentsOnly ? ["Studentská cena – s ISIC nebo potvrzením o studiu"] : []), ...perks(p, includedClass, priorityWeeks), ...(p.kind === "pass" ? passNotes : p.kind === "credit_pack" ? creditNotes : [])].map((x) => (
+                      {[...(p.studentsOnly ? ["Studentská cena – s ISIC nebo potvrzením o studiu"] : []), ...perks(p, includedClass, priorityWeeks), ...(p.kind === "pass" && !p.classTypeId ? passNotes : p.kind === "credit_pack" ? creditNotes : [])].map((x) => (
                         <li key={x} className="flex gap-2">
                           <Check className={cx("mt-0.5 size-4 shrink-0", p.highlight ? "text-zlato" : "text-salvej")} /> {x}
                         </li>
                       ))}
                       {p.kind === "pass" &&
+                        !p.classTypeId &&
                         passExclusions.map((x) => (
                           <li key={x} className="flex gap-2">
                             <Minus className={cx("mt-0.5 size-4 shrink-0", p.highlight ? "text-[#e8836b]" : "text-chyba")} /> {x}
@@ -159,7 +165,7 @@ export function ProductCard({
                       </div>
                     ) : placesLeft === 0 ? (
                       <p className={cx("mt-6 rounded-xl px-4 py-3 text-center text-sm", p.highlight ? "bg-papir/10" : "bg-krem/60")}>
-                        Všechna členství jsou obsazená – napiš nám a dáme ti vědět, až se nějaké uvolní.
+                        {p.kind === "membership" ? "Všechna členství jsou obsazená" : "Všechna místa jsou obsazená"} – napiš nám a dáme ti vědět, až se nějaké uvolní.
                       </p>
                     ) : loggedIn ? (
                       <ActionForm action={buyProductAction} className="mt-6 space-y-2">
