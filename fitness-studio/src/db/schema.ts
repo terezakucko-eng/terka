@@ -249,6 +249,8 @@ export const classTypes = pgTable("class_types", {
   passSurcharge: integer("pass_surcharge"),
   /** Úvodní vstup zdarma na tuto lekci nejde použít */
   noFreeEntry: boolean("no_free_entry").notNull().default(false),
+  /** Lekce zdarma z kartičky Pošli to dál sem platí, i když úvodní vstup zdarma ne (Reformer) */
+  passCardEntry: boolean("pass_card_entry").notNull().default(false),
   /** Cena první lekce tohoto typu pro klienta, který na ní ještě nebyl (haléře) */
   firstVisitPrice: integer("first_visit_price"),
   /** Cena první lekce jen pro nováčky – kdo u nás ještě nebyl na žádné lekci */
