@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { eq, sql } from "drizzle-orm";
 import { PDFDocument } from "pdf-lib";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { entitlements, passCardUses, passCards } from "@/db/schema";
+import { classTypes, entitlements, passCardUses, passCards } from "@/db/schema";
 import { bookSession, bookingOptions } from "@/domain/booking";
 import {
   CARD_ENTRY_DAYS,
@@ -137,6 +137,25 @@ describe("Pošli to dál – a plastic card with two places that goes on right a
       ["Alena Dvořáková", true, true, true],
       ["Bára Dvořáková", true, true, true],
     ]);
+  });
+
+  it("the card's lesson counts on Reformer (a class marked for it), where the welcome lesson doesn't", async () => {
+    const c = await addPassCard(h.db);
+    const withCard = await signUp("Reformer Nováčková", c.code);
+    const welcome = await signUp("Uvítací Klientka");
+    const reformer = await makeSession(h.db, { capacity: 10, startsAt: hours(30) });
+    await h.db.update(classTypes).set({ name: "Reformer fusion", noFreeEntry: true, passCardEntry: true }).where(eq(classTypes.id, reformer.classTypeId));
+    const brunch = await makeSession(h.db, { capacity: 10, startsAt: hours(32) });
+    await h.db.update(classTypes).set({ name: "Fitness brunch", noFreeEntry: true }).where(eq(classTypes.id, brunch.classTypeId));
+    const free = async (userId: string, s: typeof reformer) =>
+      (await h.db.transaction((tx) => bookingOptions(tx, userId, s))).find((o) => o.method === "free")!;
+
+    expect((await free(withCard.id, reformer)).disabled).toBeUndefined();
+    expect((await free(welcome.id, reformer)).disabled).toMatch(/nejde/);
+    expect((await free(withCard.id, brunch)).disabled).toMatch(/nejde/); // only where the class lets the card in
+
+    await book(withCard.id, reformer.id, (await mine(withCard.id))[0].id);
+    await expect(book(welcome.id, reformer.id, (await mine(welcome.id))[0].id)).rejects.toThrow(/nejde/);
   });
 
   it("in the account it's one lesson only – no second booking, no friend (+1) on it, nobody on a card twice", async () => {

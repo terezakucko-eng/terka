@@ -7,6 +7,7 @@ import {
   classTypes,
   entitlements,
   orders,
+  passCardUses,
   products,
   users,
   vacations,
@@ -717,6 +718,12 @@ async function weeklyUsage(tx: Executor, entitlementId: string, s: ClassSession)
   return r.n;
 }
 
+/** The free lesson a client got with a Pošli to dál card. */
+async function isPassCardEntry(tx: Executor, entitlementId: string) {
+  const [use] = await tx.select({ id: passCardUses.id }).from(passCardUses).where(eq(passCardUses.entitlementId, entitlementId)).limit(1);
+  return !!use;
+}
+
 /** Why an entitlement can't pay for this session, or null if it can. */
 /** Per-class-type pricing rules (member / pass surcharge, first visit, free entry). */
 async function classRules(tx: Executor, s: Pick<ClassSession, "classTypeId">) {
@@ -728,6 +735,7 @@ async function classRules(tx: Executor, s: Pick<ClassSession, "classTypeId">) {
       memberSurchargeNextFrom: classTypes.memberSurchargeNextFrom,
       passSurcharge: classTypes.passSurcharge,
       noFreeEntry: classTypes.noFreeEntry,
+      passCardEntry: classTypes.passCardEntry,
       noPass: classTypes.noPass,
       firstVisitPrice: classTypes.firstVisitPrice,
       firstVisitNewOnly: classTypes.firstVisitNewOnly,
@@ -737,7 +745,7 @@ async function classRules(tx: Executor, s: Pick<ClassSession, "classTypeId">) {
     })
     .from(classTypes)
     .where(eq(classTypes.id, s.classTypeId));
-  return ct ?? { memberSurcharge: null, memberSurchargeFrom: null, memberSurchargeNext: null, memberSurchargeNextFrom: null, passSurcharge: null, noFreeEntry: false, noPass: false, firstVisitPrice: null, firstVisitNewOnly: false, passEntries: 1, duoPrice: null, studentDropInPrice: null };
+  return ct ?? { memberSurcharge: null, memberSurchargeFrom: null, memberSurchargeNext: null, memberSurchargeNextFrom: null, passSurcharge: null, noFreeEntry: false, passCardEntry: false, noPass: false, firstVisitPrice: null, firstVisitNewOnly: false, passEntries: 1, duoPrice: null, studentDropInPrice: null };
 }
 type ClassRules = Awaited<ReturnType<typeof classRules>>;
 
@@ -891,9 +899,12 @@ async function entitlementProblem(
   if (e.classTypeId && e.classTypeId !== s.classTypeId) return "Platí jen na jinou lekci.";
   if (e.beforeHour !== null && pragueHour(s.startsAt) >= e.beforeHour) return `Platí jen na lekce začínající do ${e.beforeHour}:00.`;
   if (e.sameDayOnly && dateKey(s.startsAt) !== dateKey(now)) return "Platí jen v den lekce, když zbývá volné místo.";
-  // a free entry given for this very class counts even where intro entries don't
-  if (e.kind === "free" && !e.classTypeId && (await classRules(tx, s)).noFreeEntry)
-    return "Úvodní vstup zdarma na tuhle lekci použít nejde.";
+  // a free entry given for this very class counts even where intro entries don't; so does a Pošli to dál card's lesson where the class lets it
+  if (e.kind === "free" && !e.classTypeId) {
+    const rules = await classRules(tx, s);
+    if (rules.noFreeEntry && !(rules.passCardEntry && (await isPassCardEntry(tx, e.id))))
+      return "Úvodní vstup zdarma na tuhle lekci použít nejde.";
+  }
   if (e.validFrom > s.startsAt) return `Platí až od ${formatDate(e.validFrom)}.`;
   if (e.validUntil <= s.startsAt) return "Na datum lekce už neplatí.";
   if (e.entriesTotal !== null) {

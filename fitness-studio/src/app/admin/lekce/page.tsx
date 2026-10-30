@@ -85,6 +85,9 @@ function ClassTypeForm({ t }: { t?: ClassType }) {
           <input type="checkbox" name="noFreeEntry" defaultChecked={t?.noFreeEntry ?? false} /> Úvodní vstup zdarma na tuhle lekci nejde použít
         </label>
         <label className="mt-2 flex items-center gap-2 text-sm">
+          <input type="checkbox" name="passCardEntry" defaultChecked={t?.passCardEntry ?? false} /> Lekce zdarma z kartičky Pošli to dál sem platí (i když úvodní vstup ne)
+        </label>
+        <label className="mt-2 flex items-center gap-2 text-sm">
           <input type="checkbox" name="noPass" defaultChecked={t?.noPass ?? false} /> Permanentka na tuhle lekci neplatí
         </label>
       </fieldset>

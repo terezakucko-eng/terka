@@ -55,7 +55,7 @@ export default async function ClassesPage() {
                   ? hasPass && " · permanentka neplatí"
                   : (hasPass || t.passEntries > 1) &&
                     ` · permanentka: ${entriesLabel(t.passEntries)}${t.passSurcharge ? ` + doplatek ${formatPrice(t.passSurcharge)}` : ""}`}
-                {t.noFreeEntry && " · úvodní vstup zdarma na tuto lekci neplatí"}
+                {t.noFreeEntry && (t.passCardEntry ? " · úvodní vstup zdarma neplatí, kartička Pošli to dál ano" : " · úvodní vstup zdarma na tuto lekci neplatí")}
               </p>
               {t.memberSurcharge !== null && t.memberSurcharge > 0 && (
                 <p className="mt-1 text-sm text-les/60">
