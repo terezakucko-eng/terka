@@ -63,6 +63,50 @@
   background: linear-gradient(90deg, #d2a772, #f7dbb4 52%, #c19966);
 }
 
+/* The seek bar under a video: a thin gold line, played part in --p, a thumb big enough for a finger. */
+@utility video-seek {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  &::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 9999px;
+    background: linear-gradient(to right, #d2a772 var(--p, 0%), rgb(243 235 222 / 0.35) var(--p, 0%));
+  }
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    margin-top: -7px;
+    border-radius: 9999px;
+    background: #f7dbb4;
+    box-shadow: 0 1px 6px rgb(0 0 0 / 0.45);
+  }
+  &::-moz-range-track {
+    height: 4px;
+    border-radius: 9999px;
+    background: rgb(243 235 222 / 0.35);
+  }
+  &::-moz-range-progress {
+    height: 4px;
+    border-radius: 9999px;
+    background: #d2a772;
+  }
+  &::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border: 0;
+    border-radius: 9999px;
+    background: #f7dbb4;
+    box-shadow: 0 1px 6px rgb(0 0 0 / 0.45);
+  }
+  &:disabled {
+    cursor: default;
+    opacity: 0.5;
+  }
+}
+
 /* Admin-edited rich text (RichText component and the editor). */
 @utility rich {
   & > * + * {
