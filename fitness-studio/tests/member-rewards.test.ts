@@ -122,18 +122,17 @@ describe("board post and the next pop-up", () => {
   it("the post is pinned and ends with buttons to the price list and to booking", async () => {
     const [post] = await h.db.select().from(announcements).where(eq(announcements.id, "ec9596c8-12e0-4cf2-97ff-d54610740a2d"));
     expect(post).toMatchObject({ isPinned: true, isPublished: true });
-    // 0121 rewrote it: new memberships only, Členství Reformer too, Zmražení členství
-    expect(post.title).toBe("🎁 Členství 2027: dárky za včasnou rezervaci a zmražení členství");
-    expect(post.body).toContain("Fitness Ježíšek");
-    expect(post.body).toContain("Platí i pro <strong>Členství Reformer</strong>");
-    // 0123: shorter wording, a friend can come on the Reformer lessons
-    expect(post.body).toContain("sjedná nové členství se závazkem na rok 2027, dostane do účtu");
-    expect(post.body).toContain("klidně na ně pozvi třeba kamarádku");
-    expect(post.body).not.toContain("v předprodeji");
-    expect(post.body).toContain("Dárek dostáváš taky. Lekce na Reformer zdarma uvidíš v účtu od 1. 1. 2027 🙂");
-    expect(post.body).toContain("7 dní po sobě, nejdříve od následujícího dne.");
-    expect(post.body).toContain("Zmrazíš si ho v Můj účet. Je-li platba za daný měsíc už uhrazena, sleva se odečte z následujícího měsíce.");
-    expect(post.body).toContain("Zmražení členství");
+    // 0124: written plainly
+    expect(post.title).toBe("🎁 Členství 2027: dárky za včasné přihlášení a novinka – zmražení členství");
+    for (const text of [
+      "Fitness Ježíšek s dárkem",
+      "sjedná nové členství se závazkem na rok 2027, dostane 4 lekce Reformer fusion bez doplatku",
+      "Platí i pro Členství Reformer – k 8 lekcím měsíčně máš 4 navíc. Klidně na ně pozvi kamarádku.",
+      "Dárek dostáváš taky – lekce uvidíš v účtu od 1. 1. 2027.",
+      "nejdříve od následujícího dne",
+      "Je-li platba za daný měsíc už uhrazena, sleva se odečte z následujícího měsíce.",
+    ])
+      expect(post.body).toContain(text);
     expect(post.body).not.toContain("Program Dovolená");
     const html = withButtons(post.body);
     expect(html).toContain('<a class="cta" href="/cenik?rok=2027">');
@@ -146,7 +145,7 @@ describe("board post and the next pop-up", () => {
     const rows = await h.db.select().from(content).where(sql`${content.key} like 'popupNext.%'`);
     const next = Object.fromEntries(rows.map((r) => [r.key.slice("popupNext.".length), r.value]));
     expect(next.buttonUrl).toBe("/nastenka#ec9596c8-12e0-4cf2-97ff-d54610740a2d");
-    expect(next.text).toContain("zmražení členství – 2× ročně týden zdarma");
+    expect(next.text).toContain("dvakrát ročně si můžeš zmrazit členství na týden");
     expect(popupSlot({ title: next.title, from: next.from }, "2026-10-30")).toBe("popup");
     expect(popupSlot({ title: next.title, from: next.from }, "2026-10-31")).toBe("popupNext");
     expect(popupSlot({ title: "", from: next.from }, "2026-11-01")).toBe("popup");

@@ -10,13 +10,23 @@ import { nbsp } from "@/lib/typography";
 export type PassCardDoc = { label: string; code: string; url: string };
 
 const png = (width: number) => (svg: Buffer) => sharp(svg, { density: 600 }).resize({ width }).png().toBuffer();
+// at card size the screen logo's fine lines get lost in print – the outlines a little bolder
+const bolderSymbol = (svg: Buffer) =>
+  Buffer.from(svg.toString("utf8").replace('fill="url(#gold)"', 'fill="url(#gold)" stroke="url(#gold)" stroke-width="2.4" stroke-linejoin="round"'));
+const bolderWordmark = (svg: Buffer) =>
+  Buffer.from(
+    svg
+      .toString("utf8")
+      .replace('<g fill="#D2A772" color="#D2A772">', '<g fill="#D2A772" color="#D2A772" stroke="#D2A772" stroke-width="1.4" stroke-linejoin="round">')
+      .replace('stroke-width="3.6"', 'stroke-width="5.2"'),
+  );
 const assets = () =>
   Promise.all([
     readFile(join(process.cwd(), "assets/fonts/DMSans-Regular.ttf")),
     readFile(join(process.cwd(), "assets/fonts/DMSans-SemiBold.ttf")),
     readFile(join(process.cwd(), "assets/fonts/Allura-Regular.ttf")),
-    readFile(join(process.cwd(), "public/brand/symbol-gold.svg")).then(png(500)),
-    readFile(join(process.cwd(), "public/brand/wordmark-gold.svg")).then(png(700)),
+    readFile(join(process.cwd(), "public/brand/symbol-gold.svg")).then(bolderSymbol).then(png(600)),
+    readFile(join(process.cwd(), "public/brand/wordmark-gold.svg")).then(bolderWordmark).then(png(900)),
   ]);
 
 const FOREST = rgb(0.106, 0.145, 0.086);
@@ -78,29 +88,32 @@ const frame = (page: PDFPage, ox: number, oy: number) =>
   page.drawRectangle({ x: ox + 6, y: oy + 6, width: TW - 12, height: TH - 12, borderColor: GOLD, borderWidth: 0.6 });
 
 /** Front (forest, the gold octopus, „Pošli to dál“) on the trim box at (ox, oy) – the background is drawn by the caller. */
-function drawFront(page: PDFPage, ox: number, oy: number, { regular, bold, script, symbol, wordmark }: Ctx) {
+function drawFront(page: PDFPage, ox: number, oy: number, { bold, script, symbol, wordmark }: Ctx) {
   frame(page, ox, oy);
-  const symW = 62;
+  // the logo, bigger: the octopus above the wordmark, together centred on the card's height
+  const symW = 72;
   const symH = (symbol.height / symbol.width) * symW;
-  const symX = ox + 18;
-  const symY = oy + TH / 2 - symH / 2 + 9;
-  page.drawImage(symbol, { x: symX, y: symY, width: symW, height: symH });
-  const wmW = 58;
+  const wmW = 80;
   const wmH = (wordmark.height / wordmark.width) * wmW;
-  page.drawImage(wordmark, { x: symX + (symW - wmW) / 2, y: symY - wmH - 5, width: wmW, height: wmH });
+  const centre = ox + 14 + wmW / 2;
+  const symY = oy + TH / 2 + (symH + 6 + wmH) / 2 - symH;
+  page.drawImage(symbol, { x: centre - symW / 2, y: symY, width: symW, height: symH });
+  page.drawImage(wordmark, { x: centre - wmW / 2, y: symY - 6 - wmH, width: wmW, height: wmH });
 
-  const x = ox + 98;
-  const room = ox + TW - 14 - x;
+  const x = ox + 104;
+  const room = ox + TW - 12 - x;
   const title = "Pošli to dál";
-  const titleSize = Math.min(32, (32 * room) / script.widthOfTextAtSize(title, 32));
-  page.drawText(title, { x, y: oy + TH / 2 + 10, size: titleSize, font: script, color: GOLD });
-  const offer = "LEKCE PRO DVA ZDARMA";
-  const offerSize = Math.min(9.5, (9.5 * room) / spacedWidth(offer, bold, 9.5, 1));
-  spaced(page, offer, { x, y: oy + TH / 2 - 8, size: offerSize, font: bold, color: CREAM, spacing: (1 * offerSize) / 9.5 });
-  let y = oy + TH / 2 - 21;
-  for (const l of wrap(clean("Díky, že pomáháš rozhýbat svět – jednoho člověka po druhém."), regular, 7, room)) {
-    page.drawText(l, { x, y, size: 7, font: regular, color: GOLD_LIGHT });
-    y -= 9;
+  // the script's last stroke swings past its width – keep clear of the frame
+  const titleSize = Math.min(34, (34 * (room - 8)) / script.widthOfTextAtSize(title, 34));
+  page.drawText(title, { x, y: oy + TH / 2 + 14, size: titleSize, font: script, color: GOLD });
+  // the offer on two lines, so it can be big
+  const offer = ["LEKCE ZDARMA", "PRO DVĚ OSOBY"];
+  const offerSize = Math.min(11, ...offer.map((l) => (11 * room) / spacedWidth(l, bold, 11, 1)));
+  offer.forEach((l, i) => spaced(page, l, { x, y: oy + TH / 2 - 4 - i * (offerSize + 3), size: offerSize, font: bold, color: CREAM, spacing: offerSize / 11 }));
+  let y = oy + TH / 2 - 4 - 2 * (offerSize + 3) - 6;
+  for (const l of wrap(clean("Díky, že pomáháš rozhýbat svět – jednoho člověka po druhém."), bold, 7.5, room)) {
+    page.drawText(l, { x, y, size: 7.5, font: bold, color: GOLD_LIGHT });
+    y -= 9.5;
   }
 }
 
