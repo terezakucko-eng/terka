@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { Volume2, VolumeX, RotateCcw } from "lucide-react";
 
 /**
- * A short explainer that starts by itself – phones only allow that muted, so the captions are part of the picture
- * and one tap turns the sound on. No autoplay for those who ask for less motion or save data.
+ * A short explainer that starts by itself – with sound where the browser lets it, else muted (phones never allow
+ * sound before a tap), so the captions are part of the picture and one tap plays it again with sound.
+ * No autoplay for those who ask for less motion or save data.
  */
 export function AutoplayVideo({ src, poster, label }: { src: string; poster?: string; label: string }) {
   const ref = useRef<HTMLVideoElement>(null);
@@ -18,7 +19,15 @@ export function AutoplayVideo({ src, poster, label }: { src: string; poster?: st
     if (!v) return;
     const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
-    if (!calm && !saveData) v.play().catch(() => {});
+    if (calm || saveData) return;
+    v.muted = false;
+    v.play()
+      .then(() => setMuted(false))
+      .catch(() => {
+        v.muted = true;
+        setMuted(true);
+        v.play().catch(() => {});
+      });
   }, []);
 
   const sound = () => {
@@ -27,6 +36,16 @@ export function AutoplayVideo({ src, poster, label }: { src: string; poster?: st
     v.muted = !muted;
     setMuted(!muted);
     if (v.paused) v.play().catch(() => {});
+  };
+  // the first tap: from the start, with sound
+  const withSound = () => {
+    const v = ref.current;
+    if (!v) return;
+    v.currentTime = 0;
+    v.muted = false;
+    setMuted(false);
+    setEnded(false);
+    v.play().catch(() => {});
   };
   const again = () => {
     const v = ref.current;
@@ -57,6 +76,15 @@ export function AutoplayVideo({ src, poster, label }: { src: string; poster?: st
           else v.pause();
         }}
       />
+      {muted && playing && !ended && (
+        <button
+          type="button"
+          onClick={withSound}
+          className="absolute left-1/2 top-[16%] flex -translate-x-1/2 animate-pulse items-center gap-2 whitespace-nowrap rounded-full bg-gold px-6 py-3.5 text-sm font-semibold text-les shadow-xl"
+        >
+          <Volume2 className="size-5" /> Klepni pro zvuk
+        </button>
+      )}
       {ended ? (
         <button type="button" onClick={again} className="absolute inset-0 grid place-items-center bg-les/50 text-papir">
           <span className="flex items-center gap-2 rounded-full bg-gold px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-les">
