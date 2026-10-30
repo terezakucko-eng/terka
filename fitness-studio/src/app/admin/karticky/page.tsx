@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { addPassCardAction, chargePassCardAction, renewPassCardAction, togglePassCardAction } from "@/app/admin/pass-card-actions";
+import { addPassCardAction, chargePassCardAction, renewPassCardAction, resetPassCardAction, togglePassCardAction } from "@/app/admin/pass-card-actions";
 import { AdminTitle } from "@/components/admin";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { Badge, Card } from "@/components/ui";
@@ -39,7 +39,7 @@ export default async function AdminPassCards() {
         (typicky kamarádky). Každý se přes ni zaregistruje, dostane místo úvodní lekce lekci zdarma na 14 dní a u rezervace ji zaplatí
         „Kartičkou Pošli to dál“ (stávající klienti tu možnost nevidí). Jakmile jsou obě místa obsazená – nebo první klikne v účtu „Přijdu
         sama“ – kartička má hned zase 2 místa a putuje dál. Kartička platí měsíc od posledního použití (nová od prvního naskenování) – když ji
-        nikdo nevyužije, propadne a tady ji můžeš obnovit. O registraci, rezervaci i propadnutí ti přijde upozornění do mobilu.
+        nikdo nevyužije, propadne a tady ji můžeš obnovit. Když se s kartičkou cokoli zasekne, tlačítko „Resetovat“ ji vrátí na začátek: je ve hře, má 2 místa a měsíc se jí začne počítat od dalšího naskenování (kdo už přes ni přišel, v přehledu zůstane). O registraci, rezervaci i propadnutí ti přijde upozornění do mobilu.
         Zatím přes kartičky přišlo {pluralCs(people, "člověk", "lidi", "lidí")}. Tisk na A4: 10 kartiček na list, tiskni oboustranně s otočením podél dlouhé hrany a v měřítku 100 % (skutečná velikost), pak stříhej podle značek. Když zadní strana na tiskárně ujíždí, nastav posun v Nastavení (Tisk). PDF pro tiskárnu karet je ve formátu platební karty 85,6 × 54 mm se spadávkou 3 mm.
       </p>
 
@@ -102,6 +102,13 @@ export default async function AdminPassCards() {
                   <SubmitButton variant="ghost" className="px-3 py-1.5 text-[0.65rem]">Nabít ručně</SubmitButton>
                 </ActionForm>
               )}
+              <ActionForm
+                action={resetPassCardAction}
+                confirm="Resetovat kartičku? Bude ve hře, nabitá na 2 místa a měsíc se jí začne počítat od dalšího naskenování. Když teď na volné místo čeká kamarádka, to místo propadne. Kdo už přes kartičku přišel, v přehledu zůstane."
+              >
+                <input type="hidden" name="id" value={c.id} />
+                <SubmitButton variant="ghost" className="px-3 py-1.5 text-[0.65rem]">Resetovat</SubmitButton>
+              </ActionForm>
               <ActionForm
                 action={togglePassCardAction}
                 confirm={c.isActive ? "Vyřadit kartičku ze hry? Registrace přes ni pak lekce navíc nedá." : undefined}
