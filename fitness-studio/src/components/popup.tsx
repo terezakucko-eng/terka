@@ -3,30 +3,35 @@ import { getContent } from "@/content";
 import { getDb } from "@/db";
 import { seatsLeft } from "@/domain/booking";
 import { dateKey } from "@/lib/dates";
-import { weekdayIndex } from "@/lib/popup-seen";
+import { popupOver, popupSlot, weekdayIndex } from "@/lib/popup-seen";
 import { nbsp } from "@/lib/typography";
 import { isYes, sessionOf, spotsHint } from "@/lib/spots";
 import { ContentImage } from "./content-image";
 import { PopupShell } from "./popup-shell";
 
 
-/** One-off announcement window, edited in Obsah webu → Vyskakovací okno. */
+/**
+ * One-off announcement window, edited in Obsah webu → Vyskakovací okno. The next one
+ * (Další vyskakovací okno) takes its place from its date on, so it can be prepared ahead.
+ */
 export async function Popup() {
   const c = await getContent();
-  const title = c("popup.title").trim();
-  const until = c("popup.until").trim();
-  if (!title || (/^\d{4}-\d{2}-\d{2}$/.test(until) && dateKey(new Date()) > until)) return null;
-  const text = c("popup.text").trim();
-  const image = c("popup.image").trim();
+  const today = dateKey(new Date());
+  const s = popupSlot({ title: c("popupNext.title"), from: c("popupNext.from") }, today);
+  const title = c(`${s}.title`).trim();
+  const until = c(`${s}.until`).trim();
+  if (!title || popupOver(until, today)) return null;
+  const text = c(`${s}.text`).trim();
+  const image = c(`${s}.image`).trim();
   // a poster's text is too small on a phone – a portrait version shows there instead
-  const imageMobile = image ? c("popup.imageMobile").trim() : "";
-  const url = c("popup.buttonUrl").trim();
+  const imageMobile = image ? c(`${s}.imageMobile`).trim() : "";
+  const url = c(`${s}.buttonUrl`).trim();
   const buttons = [
-    { label: c("popup.buttonLabel").trim(), url },
-    { label: c("popup.buttonLabel2").trim(), url: c("popup.buttonUrl2").trim() },
+    { label: c(`${s}.buttonLabel`).trim(), url },
+    { label: c(`${s}.buttonLabel2`).trim(), url: c(`${s}.buttonUrl2`).trim() },
   ].filter((b) => b.label && b.url);
   // a button leading to a class can show how many spots are left – live, so "last spots" is always true
-  const showSpots = isYes(c("popup.showSpots"));
+  const showSpots = isYes(c(`${s}.showSpots`));
   const ids = showSpots ? buttons.map((b) => sessionOf(b.url)).filter((id): id is string => !!id) : [];
   const none = new Map<string, number>();
   // the pop-up is on every page – a hiccup here must not take the site down
@@ -89,7 +94,7 @@ export async function Popup() {
     <PopupShell
       id={`${title}|${text}|${image}|${until}|${buttons.map((b) => b.label).join("|")}`}
       wide={imageOnly}
-      repeatDay={weekdayIndex(c("popup.repeatDay"))}
+      repeatDay={weekdayIndex(c(`${s}.repeatDay`))}
     >
       {image &&
         (url && buttons.length < 2 ? (

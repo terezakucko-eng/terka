@@ -9,7 +9,7 @@ import { Badge, ButtonLink, Card, Empty, Eyebrow, Input } from "@/components/ui"
 import { getDb } from "@/db";
 import { userBookings, userEntitlements } from "@/lib/account";
 import { requireUser } from "@/lib/auth";
-import { formatDate, formatDateTime, formatDay, formatRange, formatTime } from "@/lib/dates";
+import { dateKey, formatDate, formatDateTime, formatDay, formatRange, formatTime } from "@/lib/dates";
 import { credits, formatPrice, pluralCs } from "@/lib/money";
 import { SurchargePay } from "@/components/surcharge-pay";
 import { flexibleMemberships, membershipPlacesTaken, membershipSwitches, openFees, periodStartLabel } from "@/domain/membership-fees";
@@ -35,6 +35,8 @@ import { getSettings } from "@/lib/settings";
 import { site } from "@/config/site";
 import { resetCalendarAction } from "@/app/actions/calendar";
 import { comeAloneAction } from "@/app/actions/pass-card";
+import { VacationCard } from "@/components/vacation-card";
+import { vacationEligible, vacationsOf } from "@/domain/vacations";
 
 export default async function AccountPage({ searchParams }: PageProps<"/ucet">) {
   const { vitej, clenstvi } = await searchParams;
@@ -69,7 +71,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
     getContent(),
     insuranceYears(db, user.id),
   ]);
-  const [cfg, invited, gifts, flexible, switches, included, passCard, dropIns] = await Promise.all([
+  const [cfg, invited, gifts, flexible, switches, included, passCard, dropIns, canPlanVacation, myVacations] = await Promise.all([
     getSettings(db),
     myReferrals(db, user.id),
     boughtVouchers(db, user.id),
@@ -79,6 +81,8 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
     includedSummary(db, ents),
     myPassCard(db, user.id),
     dropInNotices(db, user.id, new Date()),
+    vacationEligible(db, user.id),
+    vacationsOf(db, user.id),
   ]);
   // drop-ins waiting for their transfer have their own banner at the top
   const waitingIds = new Set(dropIns.waiting.map((w) => w.orderId));
@@ -276,6 +280,10 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
           )}
         </Card>
       </div>
+
+      {(canPlanVacation || myVacations.some((v) => v.endsOn >= dateKey(new Date()))) && (
+        <VacationCard list={myVacations} canPlan={canPlanVacation} />
+      )}
 
       {otherUnpaid.length > 0 && (
         <section>

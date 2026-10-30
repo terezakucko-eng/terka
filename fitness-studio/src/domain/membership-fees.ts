@@ -1,8 +1,9 @@
 import { and, asc, count, desc, eq, gt, gte, inArray, isNull, lt, lte, ne, or } from "drizzle-orm";
 import type { DB, Executor } from "@/db";
-import { bookings, classSessions, entitlements, orders, products, users, type Entitlement, type Order, type Product } from "@/db/schema";
+import { bookings, classSessions, entitlements, orders, products, users, vacationDiscounts, vacations, type Entitlement, type Order, type Product } from "@/db/schema";
 import { dateKey, pragueLocalToDate } from "@/lib/dates";
 import { UserError } from "@/lib/errors";
+import { discountNote, vacationLabel } from "@/lib/vacation";
 
 /**
  * Monthly membership fee: members commit for 12 months and pay each month,
@@ -117,6 +118,19 @@ export async function createMonthlyFees(
   );
   if (!members.length) return [];
   const existing = await feeOrders(db, input.period, members.map((m) => m.userId));
+  // Zmražení členství: discounts waiting for this month's request
+  const off = await db
+    .select({ d: vacationDiscounts, startsOn: vacations.startsOn, endsOn: vacations.endsOn })
+    .from(vacationDiscounts)
+    .innerJoin(vacations, eq(vacationDiscounts.vacationId, vacations.id))
+    .where(
+      and(
+        eq(vacationDiscounts.feePeriod, input.period),
+        isNull(vacationDiscounts.orderId),
+        isNull(vacations.cancelledAt),
+        inArray(vacationDiscounts.userId, members.map((m) => m.userId)),
+      ),
+    );
   // a fee the studio called off (waived) isn't issued again by the monthly run – only for one member on purpose
   const has = new Set(existing.filter((o) => o.status !== "cancelled" || !input.userIds).map((o) => o.userId));
   const created: Order[] = [];
@@ -124,19 +138,23 @@ export async function createMonthlyFees(
     if (has.has(m.userId)) continue;
     const base = m.monthlyFee ?? Math.round(input.amountKc * 100);
     if (base <= 0) continue;
-    const amount = Math.round((base * (100 - discount)) / 100);
+    const away = off.filter((r) => r.d.userId === m.userId);
+    const amount = Math.max(0, Math.round((base * (100 - discount)) / 100) - away.reduce((sum, r) => sum + r.d.amount, 0));
     const [o] = await db
       .insert(orders)
       .values({
         userId: m.userId,
         kind: "membership_fee",
         period: input.period,
-        description: `Členský příspěvek – ${periodLabel(input.period)}${discount ? ` (sleva ${discount} %)` : ""}`,
+        description:
+          `Členský příspěvek – ${periodLabel(input.period)}${discount ? ` (sleva ${discount} %)` : ""}` +
+          away.map((r) => discountNote(vacationLabel(r.startsOn, r.endsOn), r.d.amount)).join(""),
         amount,
         provider: "transfer",
         expiresAt: null,
       })
       .returning();
+    if (away.length) await db.update(vacationDiscounts).set({ orderId: o.id }).where(inArray(vacationDiscounts.id, away.map((r) => r.d.id)));
     created.push(o);
   }
   return created;

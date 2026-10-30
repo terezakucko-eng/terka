@@ -44,6 +44,67 @@ const value = (n: number, title: string, sub: string) => ({
   [`v${n}Sub`]: t(`Hodnota ${n} – podtitul`, sub),
 });
 
+/** The pop-up's fields – the current one and the next one planned from a date. */
+const POPUP_FIELDS = {
+  title: {
+    label: "Nadpis",
+    type: "text",
+    default: "",
+    optional: true,
+    hint: "Prázdné = okno se nezobrazuje. Každý návštěvník ho uvidí jednou; po změně textu znovu.",
+  },
+  text: optArea("Text", ""),
+  image: {
+    label: "Obrázek (nepovinný)",
+    type: "image",
+    default: "",
+    optional: true,
+    hint: "Na šířku 16 : 9 (např. 1600 × 900). Hotový plakát? Nech text prázdný – ukáže se jen obrázek (klik vede na odkaz prvního tlačítka) a pod ním tlačítka.",
+  },
+  imageMobile: {
+    label: "Obrázek na mobil (nepovinný)",
+    type: "image",
+    default: "",
+    optional: true,
+    hint: "Na výšku 4 : 5 (např. 1080 × 1350) s větším písmem – na telefonu se ukáže místo obrázku na šířku, jehož text je tam moc drobný. Prázdné = i na mobilu ten na šířku.",
+  },
+  buttonLabel: opt("Text tlačítka", "Chci to"),
+  buttonUrl: t(
+    "Kam tlačítko vede",
+    "/cenik",
+    "Stránka webu (/cenik, /rozvrh…) nebo celá adresa https://…. Vede na konkrétní lekci (/rozvrh/…)? Pod tlačítkem můžeš ukázat počet volných míst (pole níže).",
+  ),
+  buttonLabel2: {
+    label: "Druhé tlačítko – text (nepovinné)",
+    type: "text",
+    default: "",
+    optional: true,
+    hint: "Stačí jedno tlačítko? Nech druhé tlačítko prázdné (text i odkaz) – ukáže se jen první.",
+  },
+  buttonUrl2: opt("Druhé tlačítko – kam vede", ""),
+  repeatDay: {
+    label: "Ukázat znovu každý (den v týdnu)",
+    type: "text",
+    default: "",
+    optional: true,
+    hint: "Např. „středa“ – ten den okno vyskočí znovu i těm, kdo ho už zavřeli (jednou za den). Prázdné = každému jen jednou.",
+  },
+  showSpots: {
+    label: "Ukázat volná místa pod tlačítkem",
+    type: "text",
+    default: "",
+    optional: true,
+    hint: "Napiš „ano“ a u tlačítka, které vede na lekci (/rozvrh/…), se ukáže, kolik zbývá volných míst. Prázdné = neukazovat.",
+  },
+  until: {
+    label: "Zobrazovat do (včetně)",
+    type: "text",
+    default: "",
+    optional: true,
+    hint: "Datum ve tvaru 2026-10-31. Po něm okno samo zmizí. Prázdné = pořád.",
+  },
+} satisfies Record<string, FieldDef>;
+
 export const SECTIONS = {
   site: {
     title: "Kontakty a značka",
@@ -109,64 +170,20 @@ export const SECTIONS = {
   popup: {
     title: "Vyskakovací okno (pop-up)",
     page: "/",
+    fields: POPUP_FIELDS,
+  },
+  popupNext: {
+    title: "Další vyskakovací okno (naplánované)",
+    page: "/",
     fields: {
-      title: {
-        label: "Nadpis",
+      from: {
+        label: "Zobrazovat od",
         type: "text",
         default: "",
         optional: true,
-        hint: "Prázdné = okno se nezobrazuje. Každý návštěvník ho uvidí jednou; po změně textu znovu.",
+        hint: "Datum ve tvaru 2026-10-31. Od toho dne se ukáže místo okna výše. Prázdné = nezobrazuje se.",
       },
-      text: optArea("Text", ""),
-      image: {
-        label: "Obrázek (nepovinný)",
-        type: "image",
-        default: "",
-        optional: true,
-        hint: "Na šířku 16 : 9 (např. 1600 × 900). Hotový plakát? Nech text prázdný – ukáže se jen obrázek (klik vede na odkaz prvního tlačítka) a pod ním tlačítka.",
-      },
-      imageMobile: {
-        label: "Obrázek na mobil (nepovinný)",
-        type: "image",
-        default: "",
-        optional: true,
-        hint: "Na výšku 4 : 5 (např. 1080 × 1350) s větším písmem – na telefonu se ukáže místo obrázku na šířku, jehož text je tam moc drobný. Prázdné = i na mobilu ten na šířku.",
-      },
-      buttonLabel: opt("Text tlačítka", "Chci to"),
-      buttonUrl: t(
-        "Kam tlačítko vede",
-        "/cenik",
-        "Stránka webu (/cenik, /rozvrh…) nebo celá adresa https://…. Vede na konkrétní lekci (/rozvrh/…)? Pod tlačítkem můžeš ukázat počet volných míst (pole níže).",
-      ),
-      buttonLabel2: {
-        label: "Druhé tlačítko – text (nepovinné)",
-        type: "text",
-        default: "",
-        optional: true,
-        hint: "Stačí jedno tlačítko? Nech druhé tlačítko prázdné (text i odkaz) – ukáže se jen první.",
-      },
-      buttonUrl2: opt("Druhé tlačítko – kam vede", ""),
-      repeatDay: {
-        label: "Ukázat znovu každý (den v týdnu)",
-        type: "text",
-        default: "",
-        optional: true,
-        hint: "Např. „středa“ – ten den okno vyskočí znovu i těm, kdo ho už zavřeli (jednou za den). Prázdné = každému jen jednou.",
-      },
-      showSpots: {
-        label: "Ukázat volná místa pod tlačítkem",
-        type: "text",
-        default: "",
-        optional: true,
-        hint: "Napiš „ano“ a u tlačítka, které vede na lekci (/rozvrh/…), se ukáže, kolik zbývá volných míst. Prázdné = neukazovat.",
-      },
-      until: {
-        label: "Zobrazovat do (včetně)",
-        type: "text",
-        default: "",
-        optional: true,
-        hint: "Datum ve tvaru 2026-10-31. Po něm okno samo zmizí. Prázdné = pořád.",
-      },
+      ...POPUP_FIELDS,
     },
   },
   nav: {
@@ -446,6 +463,8 @@ Napiš sem, jak studio vzniklo a co pro tebe pohyb znamená.
 - Ceny lekcí a doplatků se řídí ceníkem platným v den lekce – i u členství a permanentek koupených dříve. Zaváděcí ceny platí do data uvedeného v ceníku.
 - Produkty z ceníku na další rok mohou být v předprodeji: koupit je lze dříve, platit začínají až dnem uvedeným v ceníku (např. 1. 1.). U členství je platbou při nákupu uhrazen první měsíc.
 - Členství v účtu klienta spravuje studio – o změnu požádej na recepci.
+- Zmražení členství (od 1. 1. 2027): člen se závazkem si může 2× za kalendářní rok v Můj účet zmrazit členství na týden (7 dní po sobě) – kvůli dovolené, nemoci nebo z jiného důvodu – nejdříve od následujícího dne. Platba za měsíc, do kterého týden spadá, se sníží poměrně podle dní v tom měsíci (měsíční platba ÷ počet dní měsíce × dny zmražení). Je-li platba za ten měsíc už uhrazená, sleva se odečte z nejbližší další platby. Během zmražení se klient na lekce přihlásit nemůže; rezervace na tyto dny se při zmražení zruší a vstupy, kredity i doplatky se vrátí. Zmražení lze zrušit do jeho začátku; byla-li snížená platba už uhrazená, vznikne doplatek. Počet lekcí v ceně členství (např. Členství Reformer) se v měsíci se zmražením nemění.
+- Dárek za včasnou rezervaci: kdo si sjedná nové členství se závazkem s počátkem od 1. 11. 2026 do 1. 1. 2027 (i v předprodeji na rok 2027, včetně Členství Reformer), dostane 4 vstupy na Reformer fusion bez doplatku, platné od 1. 1. do 31. 12. 2027; kdo si ho sjedná do 30. 11. 2026, dostane v prosinci navíc dárek od Fitness Ježíška. Členství sjednaná dříve ani od ledna 2027 se dárku netýkají. Nevyužité vstupy propadají.
 
 ## 5. Platby
 Platby přijímáme pouze bezhotovostně přes rezervační systém na webu – kartou online nebo převodem (QR platbou). Hotovost nepřijímáme. Online platby zpracovává Stripe Payments Europe, Ltd. Ceny jsou uvedeny v Kč včetně DPH (je-li provozovatel plátcem).

@@ -36,3 +36,13 @@ export function popupDue(stored: string | null, id: string, repeatDay: number | 
   if (seenId !== id) return true;
   return repeatDay !== null && now.getDay() === repeatDay && on !== localDay(now);
 }
+
+const isDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
+
+/** Which pop-up shows today: the next one (Další vyskakovací okno) from its date on, else the current one. */
+export function popupSlot(next: { title: string; from: string }, today: string): "popup" | "popupNext" {
+  return next.title.trim() && isDate(next.from.trim()) && today >= next.from.trim() ? "popupNext" : "popup";
+}
+
+/** The pop-up has ended (its "until" day is over). */
+export const popupOver = (until: string, today: string) => isDate(until) && today > until;

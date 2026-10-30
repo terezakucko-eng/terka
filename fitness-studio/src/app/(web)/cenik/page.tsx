@@ -8,6 +8,7 @@ import { credits, entriesLabel, formatPrice } from "@/lib/money";
 import { activeClassTypes, priceListProducts } from "@/lib/queries";
 import Link from "next/link";
 import { placesLeft as placesLeftFor, switchableTo } from "@/domain/membership-fees";
+import { memberRewardNotes } from "@/domain/member-rewards";
 import { dateKey } from "@/lib/dates";
 import { dayLabel, inPresale, onSale, priceListStart, priceListYears, priceNoteOn, productsForYear, saleStartsLater, surchargeSteps, yearStart } from "@/lib/price-list";
 import { getSettings } from "@/lib/settings";
@@ -173,6 +174,7 @@ export default async function PricingPage({ searchParams }: PageProps<"/cenik">)
                     creditNotes={creditNotes}
                     includedClass={types.find((t) => t.id === (p.includedClassTypeId ?? p.classTypeId))?.name}
                     priorityWeeks={cfg.includedPriorityWeeks}
+                    memberNotes={memberRewardNotes(p, now)}
                     placesLeft={placesLeft(p)}
                     switchInAccount={switchable.has(p.id)}
                     saleNote={!onSale(p, now) && saleStartsLater(p, now) ? `V prodeji od ${dayLabel(dateKey(p.saleFrom!))}` : undefined}

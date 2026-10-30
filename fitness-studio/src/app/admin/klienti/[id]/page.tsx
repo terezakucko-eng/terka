@@ -20,7 +20,9 @@ import {
   resendAccountInviteAction,
 } from "@/app/admin/actions";
 import { adminCancelMassageAction } from "@/app/admin/massage-actions";
-import { recordPastFeesAction } from "@/app/admin/fee-actions";
+import { adminCancelVacationAction, adminPlanVacationAction, recordPastFeesAction } from "@/app/admin/fee-actions";
+import { discountText, vacationsOf } from "@/domain/vacations";
+import { VACATION } from "@/lib/vacation";
 import { insuranceYears } from "@/domain/insurance";
 import { paidLateOk } from "@/domain/orders";
 import { currentPeriod, periodStartLabel, shiftPeriod } from "@/domain/membership-fees";
@@ -89,6 +91,7 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
     referralInfo(db, u.id),
     passCardOf(db, u.id),
   ]);
+  const vacationList = await vacationsOf(db, u.id);
   const sunLeft = sunPasses.reduce((s, p) => s + p.left, 0);
   const now = new Date();
   const attended = past.filter(({ b }) => b.status === "attended").length;
@@ -447,6 +450,39 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
           })}
           {ents.length === 0 && <tr><Td className="text-les/50">Žádné.</Td></tr>}
         </Table>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="mb-3 text-lg font-semibold">Zmražení členství</h2>
+        {vacationList.length > 0 && (
+          <Table head={["Týden", "Sleva", ""]}>
+            {vacationList.map((v) => (
+              <tr key={v.id} className={v.endsOn < dateKey(now) ? "opacity-50" : ""}>
+                <Td>
+                  <strong>{v.label}</strong>
+                  {v.byStudio && <span className="text-xs text-les/50"> · zadalo studio</span>}
+                </Td>
+                <Td>{v.discount > 0 ? discountText(v.discounts) : "—"}</Td>
+                <Td>
+                  <ActionForm action={adminCancelVacationAction} confirm={`Zrušit zmražení ${v.label}? Snížená platba se vrátí na plnou (zaplacená dostane výzvu na doplatek).`}>
+                    <input type="hidden" name="id" value={v.id} />
+                    <input type="hidden" name="userId" value={u.id} />
+                    <button className="text-xs font-semibold text-chyba underline">Zrušit</button>
+                  </ActionForm>
+                </Td>
+              </tr>
+            ))}
+          </Table>
+        )}
+        <ActionForm action={adminPlanVacationAction} className="mt-3 flex flex-wrap items-end gap-3">
+          <input type="hidden" name="userId" value={u.id} />
+          <Field label="Zmrazit od (7 dní)"><Input name="startsOn" type="date" min={VACATION.firstDay} required /></Field>
+          <SubmitButton variant="outline">Zmrazit</SubmitButton>
+          <p className="w-full text-xs text-les/60">
+            Členové se závazkem si týden zmrazí sami v Můj účet (2× ročně, nejdřív od zítřka) – dovolená, nemoc… Studio ho může zadat kdykoli i nad limit. Platba za měsíc se sníží
+            poměrně podle dní a rezervace v tom týdnu se zruší.
+          </p>
+        </ActionForm>
       </section>
 
       <div className="mt-10 grid gap-8 xl:grid-cols-2">

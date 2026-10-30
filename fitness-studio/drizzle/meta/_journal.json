@@ -834,6 +834,27 @@
       "when": 1793354966309,
       "tag": "0118_reformer_pass_product",
       "breakpoints": true
+    },
+    {
+      "idx": 119,
+      "version": "7",
+      "when": 1793356168194,
+      "tag": "0119_member_rewards_2027",
+      "breakpoints": true
+    },
+    {
+      "idx": 120,
+      "version": "7",
+      "when": 1793356848092,
+      "tag": "0120_vacations",
+      "breakpoints": true
+    },
+    {
+      "idx": 121,
+      "version": "7",
+      "when": 1793360258028,
+      "tag": "0121_early_bookings",
+      "breakpoints": true
     }
   ]
 }

@@ -63,7 +63,7 @@ export default async function BoardPage() {
                 {formatDate(p.createdAt)} {p.isPinned && <Badge tone="gold">Připnuto</Badge>}
               </p>
               <h2 className="mt-2 text-2xl font-semibold">{nbsp(p.title)}</h2>
-              <RichText text={p.body} className="mt-3 text-les/80" />
+              <RichText text={p.body} className="mt-3 text-les/80" buttons />
 
               <div className="mt-5 flex flex-wrap gap-1.5">
                 {REACTIONS.map((e) => {

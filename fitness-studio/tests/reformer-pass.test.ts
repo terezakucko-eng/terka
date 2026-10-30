@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { classTypes, entitlements, products } from "@/db/schema";
+import { bookings, classTypes, entitlements, products } from "@/db/schema";
 import { bookSession, bookingOptions, cancelBooking, priorityWindow, viewerWindows, windowOf } from "@/domain/booking";
 import { membershipPlacesTaken, placesLeft } from "@/domain/membership-fees";
 import { createProductOrder, fulfillOrder } from "@/domain/orders";
@@ -39,7 +39,7 @@ describe("Permanentka Reformer – a pass just for one class", () => {
     expect(opt.detail).not.toContain("strhnou se");
 
     const { booking } = await bookSession(h.db, { userId: u.id, sessionId: s.id, method: "pass", entitlementId: e.id }, NOW);
-    expect(booking.surcharge).toBe(0);
+    expect((await h.db.select().from(bookings).where(eq(bookings.id, booking.id)))[0].surcharge).toBe(0);
     const used = async () => (await h.db.select().from(entitlements).where(eq(entitlements.id, e.id)))[0].entriesUsed;
     expect(await used()).toBe(1);
     await cancelBooking(h.db, { bookingId: booking.id, actorId: u.id }, NOW);

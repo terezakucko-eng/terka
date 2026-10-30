@@ -390,6 +390,78 @@ export const orders = pgTable(
   ],
 );
 
+/** Zmražení členství: a week a member freezes (holiday, illness…) – no classes then, that month's fee is lower. */
+export const vacations = pgTable(
+  "vacations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** first and last day, Prague ("YYYY-MM-DD") */
+    startsOn: text("starts_on").notNull(),
+    endsOn: text("ends_on").notNull(),
+    /** planned by the studio (no notice or yearly limit) */
+    byStudio: boolean("by_studio").notNull().default(false),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("vacations_user_idx").on(t.userId)],
+);
+
+/**
+ * A vacation's discount for the days in one month. It lowers that month's fee, or the next
+ * one when that was paid already; without an order yet, the monthly run takes it off.
+ */
+export const vacationDiscounts = pgTable(
+  "vacation_discounts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    vacationId: uuid("vacation_id")
+      .notNull()
+      .references(() => vacations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** the month the days are in */
+    period: text("period").notNull(),
+    days: integer("days").notNull(),
+    /** the month whose fee it lowers */
+    feePeriod: text("fee_period").notNull(),
+    amount: integer("amount").notNull(),
+    /** the fee order it lowered (null = not issued yet) */
+    orderId: uuid("order_id").references(() => orders.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("vacation_discounts_fee_idx").on(t.feePeriod, t.userId)],
+);
+
+/**
+ * Dárek za včasnou rezervaci 2027: who signed up for a new membership in time, and when –
+ * by 30. 11. Fitness Ježíšek brings a gift in December (the studio ticks it off here).
+ */
+export const earlyBookings = pgTable("early_bookings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .unique()
+    .references(() => users.id, { onDelete: "cascade" }),
+  /** the membership they signed up with */
+  membershipId: uuid("membership_id").references((): AnyPgColumn => entitlements.id, { onDelete: "set null" }),
+  /** when they signed up: ordered, or the studio set the membership up */
+  signedUpAt: timestamp("signed_up_at", { withTimezone: true }).notNull(),
+  /** the 4 Reformer lessons without the surcharge */
+  giftId: uuid("gift_id").references((): AnyPgColumn => entitlements.id, { onDelete: "set null" }),
+  /** Fitness Ježíšek's gift handed over */
+  santaGivenAt: timestamp("santa_given_at", { withTimezone: true }),
+  createdAt: createdAt(),
+});
+
+export type EarlyBooking = typeof earlyBookings.$inferSelect;
+
+export type Vacation = typeof vacations.$inferSelect;
+export type VacationDiscount = typeof vacationDiscounts.$inferSelect;
+
 /**
  * Vydaná potvrzení pro zdravotní pojišťovnu. Kód z dokladu ověří kdokoli na
  * /overeni – doklad tak platí i bez razítka a podpisu.
