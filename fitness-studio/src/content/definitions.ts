@@ -525,9 +525,16 @@ Máte právo na přístup, opravu, výmaz, omezení zpracování, přenositelnos
       intro: t("Podnadpis – kartička s oběma místy", "Jeden pro tebe, druhý pro kamarádku. Zaregistruj se a hned si vyber lekci."),
       titleOne: t("Nadpis – zbývá jen místo pro kamarádku", "Máš u nás vstup zdarma"),
       introOne: t("Podnadpis – zbývá jen místo pro kamarádku", "Zaregistruj se a hned si vyber lekci."),
+      video: {
+        label: "Video s chobotničkou (spustí se samo, bez zvuku)",
+        type: "text", // the web's own /video/… path – a url input would refuse it
+        default: "/video/posli-to-dal.mp4",
+        hint: "Adresa videa .mp4. Prázdné = stránka bez videa. Náhled se bere ze stejnojmenného .jpg.",
+        optional: true,
+      },
       about: ta(
         "O studiu (pod nadpisem, pak adresa a odkaz na lekce)",
-        "OCTOPUSH je malé rodinné studio v Ostravě. Přátelská parta, malé skupiny a nikdo se tu s nikým nesrovnává. Zumba, Reformer fusion, silový a kardio trénink, BOSU, DeepWork, kettlebell i fitness brunch se snídaní přímo ve studiu.",
+        "OCTOPUSH je rodinné fitness studio v Ostravě se širokým výběrem skupinových lekcí. Přátelská parta, malé skupiny a nikdo se tu s nikým nesrovnává.",
       ),
     },
   },
