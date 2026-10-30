@@ -1344,7 +1344,7 @@ async function assertNotOnVacation(tx: Executor, userId: string, s: Pick<ClassSe
     .limit(1);
   if (v)
     throw new UserError(
-      `Máš naplánovanou dovolenou (${vacationLabel(v.startsOn, v.endsOn)}) – v tom týdnu se na lekce přihlásit nejde. Změnily se plány? Dovolenou zrušíš v Můj účet.`,
+      `Máš naplánovanou dovolenou (${vacationLabel(v.startsOn, v.endsOn)}) – v tom týdnu se na lekce přihlásit nejde. Změnily se plány? Do jejího začátku ji zrušíš v Můj účet, potom nám napiš.`,
     );
 }
 
