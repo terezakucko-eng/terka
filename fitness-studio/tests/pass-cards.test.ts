@@ -18,6 +18,7 @@ import {
   passCardByCode,
   passCardActivity,
   passCardOf,
+  passOnUnused,
   recordPassCardScan,
   renewPassCard,
   resetPassCard,
@@ -256,6 +257,28 @@ describe("Pošli to dál – a plastic card with two places that goes on right a
     expect(signUps.filter((x) => x.label === c.label).map((x) => x.name)).toEqual(["Eva Skenovaná"]);
     expect((await passCardActivity(h.db, hours(5))).scans).toEqual([]);
     expect((await listPassCards(h.db)).find((x) => x.id === c.id)!.scans).toMatchObject({ n: 3, last: hours(4) });
+  });
+
+  it("„Nezajímá mě – pošlu kartičku dál“ sends the card on with both places – the place left over goes too", async () => {
+    const c = await addPassCard(h.db);
+    expect(await passOnUnused(h.db, c.code)).toBe(false); // both places there – nothing to do
+    const ivana = await signUp("Ivana První", c.code);
+    expect(await card(c.id)).toMatchObject({ placesLeft: 1 });
+    const until = (await card(c.id)).validUntil;
+
+    expect(await passOnUnused(h.db, c.code.toLowerCase(), NOW)).toBe(true);
+    expect(await card(c.id)).toMatchObject({ placesLeft: 2, validUntil: until }); // its month stays
+    expect(await myPassCard(h.db, ivana.id)).toMatchObject({ open: false, canComeAlone: false });
+    const next = await signUp("Nela Další", c.code);
+    expect((await mine(next.id)).map((e) => e.name)).toEqual([CARD_ENTRY_NAME]);
+    expect(await card(c.id)).toMatchObject({ placesLeft: 1 });
+
+    // an expired card or one out of the game stays as it is
+    await h.db.update(passCards).set({ validUntil: hours(-1) }).where(eq(passCards.id, c.id));
+    expect(await passOnUnused(h.db, c.code, NOW)).toBe(false);
+    await h.db.update(passCards).set({ validUntil: null, isActive: false }).where(eq(passCards.id, c.id));
+    expect(await passOnUnused(h.db, c.code, NOW)).toBe(false);
+    expect(await passOnUnused(h.db, "000000", NOW)).toBe(false);
   });
 
   it("prints front and back of every card in the payment-card size", async () => {

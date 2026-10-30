@@ -98,6 +98,22 @@ export async function comeAlone(db: Executor, userId: string, now = new Date()) 
   return true;
 }
 
+/**
+ * „Nezajímá mě – pošlu kartičku dál“: whoever scanned the card won't use it. A place left over from an
+ * open round goes too – the card is charged again, so the next one gets both places. Its month stays.
+ * False when there was nothing to charge (both places there, out of the game, expired, no such card).
+ */
+export async function passOnUnused(db: Executor, code: string, now = new Date()) {
+  if (!isCardCode(code)) return false;
+  const [card] = await db
+    .select()
+    .from(passCards)
+    .where(and(eq(passCards.code, norm(code)), eq(passCards.isActive, true)));
+  if (!card || expired(card, now) || card.placesLeft >= CARD_PLACES) return false;
+  await chargePassCard(db, card.id, now);
+  return true;
+}
+
 /** The free lesson she got with the card (paid for at booking with „Kartička Pošli to dál“). */
 export const linkPassEntitlement = (tx: Executor, useId: string, entitlementId: string) =>
   tx.update(passCardUses).set({ entitlementId }).where(eq(passCardUses.id, useId));
