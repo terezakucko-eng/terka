@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { ProductCard } from "@/components/product-card";
+import { memberRewardNotes } from "@/domain/member-rewards";
 import { isStudent } from "@/lib/student";
 import { Container, Eyebrow } from "@/components/ui";
 import { getDb } from "@/db";
@@ -28,7 +29,7 @@ export default async function ProductLinkPage({ params }: PageProps<"/cenik/[id]
     <Container className="max-w-md py-14">
       <Eyebrow className="text-zeme">{p.linkOnly ? "Nabídka jen pro tebe" : "Ceník"}</Eyebrow>
       <div className="mt-6">
-        <ProductCard p={p} loggedIn={!!user} next={`/cenik/${p.id}`} includedClass={included?.name} studentUnverified={!!user && !isStudent(user)} />
+        <ProductCard p={p} loggedIn={!!user} next={`/cenik/${p.id}`} includedClass={included?.name} memberNotes={memberRewardNotes(p, new Date())} studentUnverified={!!user && !isStudent(user)} />
       </div>
       <Link href="/cenik" className="eyebrow mt-8 inline-block text-zeme underline underline-offset-4">Celý ceník</Link>
     </Container>

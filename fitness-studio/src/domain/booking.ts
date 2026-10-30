@@ -958,7 +958,9 @@ export async function bookingOptions(
   const classEnts = ents.flatMap((e) =>
     isClassKind(e.kind) && (!e.classTypeId || e.classTypeId === s.classTypeId) ? [{ ...e, kind: e.kind }] : [],
   );
-  classEnts.sort((a, b) => rank[a.kind] - rank[b.kind]);
+  // one just for this class (a Reformer gift or pass) goes first – it costs no surcharge
+  const order = (e: (typeof classEnts)[number]) => (e.classTypeId ? -1 : rank[e.kind]);
+  classEnts.sort((a, b) => order(a) - order(b));
   const [credit] = await tx.select({ creditBalance: users.creditBalance, creditExpiresAt: users.creditExpiresAt }).from(users).where(eq(users.id, userId));
   for (const e of classEnts) {
     const problem = await entitlementProblem(tx, e, s, seats, now);

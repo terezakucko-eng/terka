@@ -834,6 +834,13 @@
       "when": 1793354966309,
       "tag": "0118_reformer_pass_product",
       "breakpoints": true
+    },
+    {
+      "idx": 119,
+      "version": "7",
+      "when": 1793356168194,
+      "tag": "0119_member_rewards_2027",
+      "breakpoints": true
     }
   ]
 }
