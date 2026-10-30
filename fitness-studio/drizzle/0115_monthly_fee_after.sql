@@ -77,13 +77,29 @@ FROM "pair_fee" t
 WHERE o."user_id" = t."user_id"
   AND o."kind"::text = 'membership_fee' AND o."status"::text = 'pending' AND o."period" > '2026-12';--> statement-breakpoint
 -- Listopadová výzva první klientky, pokud ještě žádná není (měsíční běh pro listopad už proběhl).
-INSERT INTO "orders" ("user_id", "kind", "period", "description", "amount", "provider")
-SELECT t."user_id", 'membership_fee', '2026-11', 'Členský příspěvek – listopad 2026', 200000, 'transfer'
-FROM "pair_fee" t
-WHERE t."payer"
-  AND NOT EXISTS (
-    SELECT 1 FROM "orders" o
-    WHERE o."user_id" = t."user_id" AND o."kind"::text = 'membership_fee' AND o."period" = '2026-11' AND o."status"::text IN ('pending', 'paid')
-  );--> statement-breakpoint
+-- Dynamicky a jen když je co vložit: na čisté databázi běží všechny migrace v jedné transakci s ALTER TYPE,
+-- který 'membership_fee' přidal, a tam by ji Postgres použít nedovolil.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM "pair_fee" t
+    WHERE t."payer"
+      AND NOT EXISTS (
+        SELECT 1 FROM "orders" o
+        WHERE o."user_id" = t."user_id" AND o."kind"::text = 'membership_fee' AND o."period" = '2026-11' AND o."status"::text IN ('pending', 'paid')
+      )
+  ) THEN
+    EXECUTE $q$
+      INSERT INTO "orders" ("user_id", "kind", "period", "description", "amount", "provider")
+      SELECT t."user_id", 'membership_fee', '2026-11', 'Členský příspěvek – listopad 2026', 200000, 'transfer'
+      FROM "pair_fee" t
+      WHERE t."payer"
+        AND NOT EXISTS (
+          SELECT 1 FROM "orders" o
+          WHERE o."user_id" = t."user_id" AND o."kind"::text = 'membership_fee' AND o."period" = '2026-11' AND o."status"::text IN ('pending', 'paid')
+        )
+    $q$;
+  END IF;
+END $$;--> statement-breakpoint
 DROP TABLE "pair_fee";--> statement-breakpoint
 DROP TABLE "pair_fee_users";
