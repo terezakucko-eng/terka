@@ -40,7 +40,7 @@ export default async function AdminPassCards() {
         „Kartičkou Pošli to dál“ (stávající klienti tu možnost nevidí). Jakmile jsou obě místa obsazená – nebo první klikne v účtu „Přijdu
         sama“ – kartička má hned zase 2 místa a putuje dál. Kartička platí měsíc od posledního použití (nová od prvního naskenování) – když ji
         nikdo nevyužije, propadne a tady ji můžeš obnovit. O registraci, rezervaci i propadnutí ti přijde upozornění do mobilu.
-        Zatím přes kartičky přišlo {pluralCs(people, "člověk", "lidi", "lidí")}. Tisk na A4: 10 kartiček na list, tiskni oboustranně s otočením podél dlouhé hrany a v měřítku 100 % (skutečná velikost), pak stříhej podle značek. PDF pro tiskárnu karet je ve formátu platební karty 85,6 × 54 mm se spadávkou 3 mm.
+        Zatím přes kartičky přišlo {pluralCs(people, "člověk", "lidi", "lidí")}. Tisk na A4: 10 kartiček na list, tiskni oboustranně s otočením podél dlouhé hrany a v měřítku 100 % (skutečná velikost), pak stříhej podle značek. Když zadní strana na tiskárně ujíždí, nastav posun v Nastavení (Tisk). PDF pro tiskárnu karet je ve formátu platební karty 85,6 × 54 mm se spadávkou 3 mm.
       </p>
 
       <div className="grid gap-5 lg:grid-cols-2">

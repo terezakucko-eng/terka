@@ -57,7 +57,7 @@ import { afterMemberStrike, clearPause, reconsiderPause } from "@/domain/strikes
 import { storeImage, uploadedFile } from "@/lib/media";
 import { credits, formatPrice } from "@/lib/money";
 import { normalizePhone } from "@/lib/phone";
-import { defaultSettings, getSettings, saveSettings, type Settings } from "@/lib/settings";
+import { defaultSettings, getSettings, saveSettings, type Settings, SIGNED_SETTINGS } from "@/lib/settings";
 import { cancelEntitlement, followMonthlyFee, isPeriod, periodLabel } from "@/domain/membership-fees";
 import { cleanBirthDate, cleanNameDay } from "@/lib/profile";
 import { videoEmbedUrl } from "@/lib/video";
@@ -333,7 +333,7 @@ export async function saveSettingsAction(_: FormState, fd: FormData): Promise<Fo
     const values: Partial<Settings> = {};
     for (const key of Object.keys(defaultSettings) as (keyof Settings)[]) {
       const v = field.int(fd, key);
-      if (v === null || v < 0) throw new UserError("Hodnoty musí být nezáporná čísla.");
+      if (v === null || (v < 0 && !SIGNED_SETTINGS.has(key))) throw new UserError("Hodnoty musí být nezáporná čísla.");
       values[key] = v;
     }
     if (values.pendingPaymentMinutes! < 30)

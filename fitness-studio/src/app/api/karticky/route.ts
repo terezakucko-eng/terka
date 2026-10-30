@@ -4,6 +4,7 @@ import { site } from "@/config/site";
 import { getDb } from "@/db";
 import { passCards } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
+import { getSettings } from "@/lib/settings";
 import { passCardsPdf, passCardsSheetPdf } from "@/lib/pass-card-pdf";
 
 /**
@@ -23,10 +24,12 @@ export async function GET(req: Request) {
   if (!cards.length) return new Response("Kartička nenalezena.", { status: 404 });
   const c = await getContent();
   const sheet = new URL(req.url).searchParams.get("arch") === "a4";
-  const pdf = await (sheet ? passCardsSheetPdf : passCardsPdf)(
-    cards.map((k) => ({ label: k.label, code: k.code, url: `${site.url}/karticka/${k.code}` })),
-    `OCTOPUSH · ${c.raw("site.street")}, ${c.raw("site.city")}`,
-  );
+  const docs = cards.map((k) => ({ label: k.label, code: k.code, url: `${site.url}/karticka/${k.code}` }));
+  const footer = `OCTOPUSH · ${c.raw("site.street")}, ${c.raw("site.city")}`;
+  // the studio's printer shifts the backs a little – Nastavení says by how much
+  const pdf = sheet
+    ? await passCardsSheetPdf(docs, footer, { backShiftMm: (await getSettings(db)).passCardBackShiftMm })
+    : await passCardsPdf(docs, footer);
   const name = (cards.length === 1 ? `Posli-to-dal-${cards[0].code}` : "Posli-to-dal-karticky") + (sheet ? "-A4" : "");
   return new Response(Buffer.from(pdf), {
     headers: {
