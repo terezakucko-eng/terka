@@ -3,10 +3,12 @@ import Link from "next/link";
 import { ButtonLink, Container, Eyebrow } from "@/components/ui";
 import { getContent } from "@/content";
 import { getDb } from "@/db";
-import { passCardByCode, startPassCardClock } from "@/domain/pass-cards";
+import { myPassCard, passCardByCode, startPassCardClock } from "@/domain/pass-cards";
 import { getCurrentUser } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
 import { pluralCs } from "@/lib/money";
+import { PassCardSteps } from "@/components/pass-card-steps";
+import { RegisterForm } from "@/components/register-form";
 import { getSettings } from "@/lib/settings";
 
 export const metadata: Metadata = {
@@ -67,78 +69,69 @@ export default async function PassCardPage({ params, searchParams }: PageProps<"
     );
   }
 
-  return (
-    <section className="bg-forest text-papir">
-      <Container className="max-w-2xl py-16 text-center sm:py-20">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/symbol-gold.svg" alt="" className="mx-auto h-24 w-24" />
-        <Eyebrow className="mt-6 text-zlato">Pošli to dál 💛</Eyebrow>
-        <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-6xl">
-          {card.placesLeft === 1 ? "Máš štěstí – poslední místo je tvoje" : "Máš štěstí – dobij si baterky zdarma"}
-        </h1>
-        <p className="mx-auto mt-6 max-w-lg text-lg text-papir/80">
-          {card.placesLeft === 1 ? (
+  // someone with an account: either she signed up with this very card (her lesson and the friend's place), or it's for new people
+  const mine = user ? await myPassCard(db, user.id) : null;
+  const hers = mine?.id === card.id && mine.open ? mine : null;
+
+  if (user) {
+    return (
+      <section className="bg-forest text-papir">
+        <Container className="max-w-lg py-14 text-center sm:py-20">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/symbol-gold.svg" alt="" className="mx-auto h-16 w-16" />
+          <Eyebrow className="mt-4 text-zlato">Pošli to dál 💛</Eyebrow>
+          {hers ? (
             <>
-              Někdo na tebe myslel a nechal ti místo 💛 A my v OCTOPUSH myslíme na tvoje zdraví a pohodu, takže tě u nás čeká{" "}
-              <strong className="text-zlato-light">lekce zdarma</strong>. Domluv se s tím, kdo ti kartičku dal, a přijďte spolu.
+              <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Lekci zdarma máš na účtu</h1>
+              <div className="mt-8">
+                <PassCardSteps code={card.code} friendPlace={hers.canComeAlone} center />
+              </div>
             </>
           ) : (
             <>
-              Tuhle kartičku ti dal někdo, kdo na tebe myslí 💛 A my v OCTOPUSH myslíme na tvoje zdraví a pohodu, takže tě u nás čeká{" "}
-              <strong className="text-zlato-light">lekce zdarma</strong>.
+              <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Tahle kartička je pro nové 🙂</h1>
+              <p className="mt-4 text-lg text-papir/80">Účet u nás už máš. Pošli ji dál někomu, kdo u nás ještě nebyl.</p>
+              <ButtonLink href="/rozvrh" variant="outline-light" className="mt-8">Do rozvrhu</ButtonLink>
             </>
           )}
-        </p>
-        {card.placesLeft !== 1 && (
-          <p className="mx-auto mt-4 max-w-lg text-papir/70">
-            🔋 Kartička má 2 místa – vezmi s sebou někoho, komu chceš udělat radost. Zaregistruje se taky: naskenuje kartičku, nebo mu pošleš odkaz
-            z účtu.
-          </p>
-        )}
-        <div className="mx-auto mt-8 max-w-lg rounded-2xl border border-zlato/30 bg-papir/5 p-5 text-left text-sm text-papir/80">
-          <p className="font-semibold text-zlato-light">Co je OCTOPUSH?</p>
-          <p className="mt-1">
-            Studio pohybu – tanec, pilates, silový trénink a další lekce v malých skupinách, kde se ti lektoři opravdu věnují. Najdeš nás na adrese{" "}
-            {c.raw("site.street")}, {c.raw("site.city")}.
-          </p>
-          <p className="mt-3 font-semibold text-zlato-light">Co získáš?</p>
-          <p className="mt-1">
-            Jednu lekci zdarma podle sebe – vybereš si v rozvrhu a rezervuješ online. Bez závazku, nic neplatíš.
+        </Container>
+      </section>
+    );
+  }
+
+  // people don't read: the free lesson, one line, and the sign-up form right here
+  return (
+    <section className="bg-forest text-papir">
+      <Container className="max-w-lg py-10 sm:py-14">
+        <div className="text-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/symbol-gold.svg" alt="" className="mx-auto h-16 w-16" />
+          <Eyebrow className="mt-4 text-zlato">Pošli to dál 💛</Eyebrow>
+          <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Máš u nás lekci zdarma</h1>
+          <p className="mt-3 text-lg text-papir/80">Zaregistruj se a hned si vyber lekci.</p>
+        </div>
+
+        <div className="mt-8 rounded-3xl bg-papir p-6 text-les sm:p-8">
+          <RegisterForm cardCode={card.code} submitLabel="Chci lekci zdarma" compact />
+          <p className="mt-5 text-center text-sm">
+            Už máš účet? <Link href="/prihlaseni" className="font-semibold text-zeme underline underline-offset-4">Přihlas se</Link>
           </p>
         </div>
-        {card.people > 0 && (
-          <p className="mt-4 text-sm text-papir/60">
-            Kartička už rozhýbala {pluralCs(card.people, "chobotničku", "chobotničky", "chobotniček")} 🐙
-          </p>
-        )}
-
-        <ol className="mx-auto mt-10 grid max-w-xl gap-3 text-left sm:grid-cols-3">
-          {["Zaregistruj se – lekci zdarma máš hned na účtu", "Do 14 dní si rezervuj lekci a zaplať Kartičkou Pošli to dál", "Po rezervaci můžeš kartičku hned poslat dál"].map((s, i) => (
-            <li key={s} className="rounded-2xl border border-zlato/30 p-4 text-sm text-papir/80">
-              <span className="block font-serif text-2xl text-zlato">{i + 1}.</span>
-              {s}
-            </li>
-          ))}
-        </ol>
-        <p className="mt-4 text-xs text-papir/60">
-          Kartička platí jen pro nové klienty – každý ji může využít jen jednou.
-          {validUntil && <> Tahle platí do {formatDate(validUntil)}, pak propadne.</>}
+        <p className="mt-4 text-center text-xs text-papir/60">
+          Lekci si vyber do 14 dní. Kartička je jen pro nové klienty.
+          {validUntil && <> Platí do {formatDate(validUntil)}.</>}
         </p>
-
-        {user ? (
-          <div className="mt-10">
-            <p className="text-papir/70">Účet u nás už máš 🙂 Kartička je pro nové – pošli ji dál někomu, kdo u nás ještě nebyl.</p>
-            <ButtonLink href="/rozvrh" variant="gold" className="mt-4">Vybrat lekci</ButtonLink>
-          </div>
-        ) : (
-          <div className="mt-10">
-            <div className="flex flex-wrap justify-center gap-3">
-              <ButtonLink href={`/registrace?karta=${card.code}`} variant="gold">Zajímá mě – chci lekci zdarma</ButtonLink>
-              <ButtonLink href={`/karticka/${card.code}?ne`} variant="outline-light">Nezajímá mě</ButtonLink>
-            </div>
-            <Link href="/lekce" className="mt-5 inline-block text-sm text-papir/70 underline">Nejdřív se podívám na lekce</Link>
-          </div>
-        )}
+        <details className="mt-6 rounded-2xl border border-zlato/30 p-4 text-sm text-papir/80">
+          <summary className="cursor-pointer font-semibold text-zlato-light">Co je OCTOPUSH?</summary>
+          <p className="mt-2">
+            Studio pohybu – tanec, pilates, silový trénink a další lekce v malých skupinách. Najdeš nás na adrese {c.raw("site.street")},{" "}
+            {c.raw("site.city")}. <Link href="/lekce" className="underline">Podívat se na lekce</Link>
+          </p>
+          {card.people > 0 && <p className="mt-2">Kartička už rozhýbala {pluralCs(card.people, "chobotničku", "chobotničky", "chobotniček")} 🐙</p>}
+        </details>
+        <p className="mt-6 text-center text-sm">
+          <Link href={`/karticka/${card.code}?ne`} className="text-papir/60 underline">Nezajímá mě – pošlu kartičku dál</Link>
+        </p>
       </Container>
     </section>
   );

@@ -29,6 +29,7 @@ import { feedLinks } from "@/lib/ics";
 import { CopyButton, ShareButton } from "@/components/copy-button";
 import { myReferrals } from "@/domain/referrals";
 import { myPassCard } from "@/domain/pass-cards";
+import { PassCardSteps } from "@/components/pass-card-steps";
 import { VOUCHER_STATUS, boughtVouchers, formatVoucherCode, voucherStatus } from "@/domain/vouchers";
 import { redeemVoucherAction } from "@/app/actions/vouchers";
 import { getSettings } from "@/lib/settings";
@@ -145,7 +146,8 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
           </ActionForm>
         </div>
       ))}
-      {!user.onboardedAt && user.role === "client" && (
+      {/* came with a Pošli to dál card: the lesson first – the tour waits for the next visit */}
+      {!user.onboardedAt && user.role === "client" && !(vitej && passCard) && (
         <WelcomeTour
           firstName={vocative(splitName(user.name).first || user.name)}
           publicKey={(await vapidKeys(db)).publicKey}
@@ -162,20 +164,22 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
           <strong>{formatDate(user.bookingPausedUntil)}</strong>. Na lekce, na které už jsi přihlášený/á, chodit můžeš.
         </p>
       )}
-      {vitej && (
-        <p className="rounded-2xl bg-forest p-6 text-papir">
-          <span className="text-gold text-xl font-semibold">Vítej v OCTOPUSH!</span>
-          <br />
-          {passCard?.open ? (
-            <>
-              Díky kartičce Pošli to dál máš na účtu lekci zdarma. Vyber si lekci a u rezervace zaplať <strong>Kartičkou Pošli to dál</strong>.{" "}
-              <Link href="/rozvrh" className="underline">Vybrat lekci v rozvrhu →</Link>
-            </>
+      {vitej && passCard && (
+        // came with a Pošli to dál card: nothing to read – the lesson, then (while there's one) the friend's place
+        <div className="rounded-2xl bg-forest p-6 text-papir">
+          <p className="text-gold mb-5 text-xl font-semibold">Vítej v OCTOPUSH! Lekci zdarma máš na účtu 💛</p>
+          {passCard.open ? (
+            <PassCardSteps code={passCard.code} friendPlace={passCard.canComeAlone} />
           ) : (
-            <>
-              Na účtu máš připravenou úvodní lekci zdarma. <Link href="/rozvrh" className="underline">Vyber si ji v rozvrhu →</Link>
-            </>
+            <ButtonLink href="/rozvrh" variant="gold">Vybrat lekci →</ButtonLink>
           )}
+        </div>
+      )}
+      {vitej && !passCard && (
+        <p className="rounded-2xl bg-forest p-6 text-papir">
+          <span className="text-gold text-xl font-semibold">Vítej v OCTOPUSH!</span>
+          <br />
+          Na účtu máš připravenou úvodní lekci zdarma. <Link href="/rozvrh" className="underline">Vyber si ji v rozvrhu →</Link>
         </p>
       )}
 
