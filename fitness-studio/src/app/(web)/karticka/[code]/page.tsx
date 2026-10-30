@@ -7,6 +7,7 @@ import { CARD_PLACES, myPassCard, passCardByCode, startPassCardClock } from "@/d
 import { getCurrentUser } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
 import { pluralCs } from "@/lib/money";
+import { AutoplayVideo } from "@/components/autoplay-video";
 import { PassCardSteps } from "@/components/pass-card-steps";
 import { RegisterForm } from "@/components/register-form";
 import { getSettings } from "@/lib/settings";
@@ -101,6 +102,7 @@ export default async function PassCardPage({ params, searchParams }: PageProps<"
 
   // people don't read: the free lesson, one line, and the sign-up form right here (texts in Obsah webu → Pošli to dál)
   const full = card.placesLeft === CARD_PLACES;
+  const video = c.raw("passCard.video").trim();
   return (
     <section className="bg-forest text-papir">
       <Container className="max-w-lg py-10 sm:py-14">
@@ -111,6 +113,12 @@ export default async function PassCardPage({ params, searchParams }: PageProps<"
           {/* a full card: one entry for her, one for a friend; the friend coming second gets her own */}
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">{full ? c("passCard.title") : c("passCard.titleOne")}</h1>
           <p className="mt-3 text-lg text-papir/80">{full ? c("passCard.intro") : c("passCard.introOne")}</p>
+          {/* the octopus explains it all – starts by itself, muted, captions in the picture */}
+          {video && (
+            <div className="mt-6">
+              <AutoplayVideo src={video} poster={video.endsWith(".mp4") ? video.replace(/\.mp4$/, ".jpg") : undefined} label="Chobotnice Octopush vysvětluje, jak kartička Pošli to dál funguje" />
+            </div>
+          )}
           <p className="mt-5 text-sm text-papir/70">
             {c("passCard.about")} {c.raw("site.street")}, {c.raw("site.city")} · <Link href="/lekce" className="underline">Podívat se na lekce</Link>
           </p>
