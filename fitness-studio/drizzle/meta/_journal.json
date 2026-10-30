@@ -848,6 +848,13 @@
       "when": 1793356848092,
       "tag": "0120_vacations",
       "breakpoints": true
+    },
+    {
+      "idx": 121,
+      "version": "7",
+      "when": 1793360258028,
+      "tag": "0121_early_bookings",
+      "breakpoints": true
     }
   ]
 }

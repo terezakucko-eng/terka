@@ -1334,7 +1334,7 @@ export type BookInput = {
   studentConfirmed?: boolean;
 };
 
-/** Program Dovolená: no classes in the member's vacation week. */
+/** Zmražení členství: no classes in the member's frozen week. */
 async function assertNotOnVacation(tx: Executor, userId: string, s: Pick<ClassSession, "startsAt">) {
   const day = dateKey(s.startsAt);
   const [v] = await tx
@@ -1344,7 +1344,7 @@ async function assertNotOnVacation(tx: Executor, userId: string, s: Pick<ClassSe
     .limit(1);
   if (v)
     throw new UserError(
-      `Máš naplánovanou dovolenou (${vacationLabel(v.startsOn, v.endsOn)}) – v tom týdnu se na lekce přihlásit nejde. Změnily se plány? Do jejího začátku ji zrušíš v Můj účet, potom nám napiš.`,
+      `Máš zmražené členství (${vacationLabel(v.startsOn, v.endsOn)}) – v tom týdnu se na lekce přihlásit nejde. Změnily se plány? Do začátku zmražení ho zrušíš v Můj účet, potom nám napiš.`,
     );
 }
 

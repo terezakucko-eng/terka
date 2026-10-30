@@ -453,7 +453,7 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
       </section>
 
       <section className="mt-10">
-        <h2 className="mb-3 text-lg font-semibold">Program Dovolená</h2>
+        <h2 className="mb-3 text-lg font-semibold">Zmražení členství</h2>
         {vacationList.length > 0 && (
           <Table head={["Týden", "Sleva", ""]}>
             {vacationList.map((v) => (
@@ -464,7 +464,7 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
                 </Td>
                 <Td>{v.discount > 0 ? discountText(v.discounts) : "—"}</Td>
                 <Td>
-                  <ActionForm action={adminCancelVacationAction} confirm={`Zrušit dovolenou ${v.label}? Snížená platba se vrátí na plnou (zaplacená dostane výzvu na doplatek).`}>
+                  <ActionForm action={adminCancelVacationAction} confirm={`Zrušit zmražení ${v.label}? Snížená platba se vrátí na plnou (zaplacená dostane výzvu na doplatek).`}>
                     <input type="hidden" name="id" value={v.id} />
                     <input type="hidden" name="userId" value={u.id} />
                     <button className="text-xs font-semibold text-chyba underline">Zrušit</button>
@@ -476,10 +476,10 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
         )}
         <ActionForm action={adminPlanVacationAction} className="mt-3 flex flex-wrap items-end gap-3">
           <input type="hidden" name="userId" value={u.id} />
-          <Field label="Dovolená od (7 dní)"><Input name="startsOn" type="date" min={VACATION.firstDay} required /></Field>
-          <SubmitButton variant="outline">Naplánovat</SubmitButton>
+          <Field label="Zmrazit od (7 dní)"><Input name="startsOn" type="date" min={VACATION.firstDay} required /></Field>
+          <SubmitButton variant="outline">Zmrazit</SubmitButton>
           <p className="w-full text-xs text-les/60">
-            Členové se závazkem si dovolenou plánují sami v Můj účet (2× ročně, aspoň 7 dní předem). Studio ji může zadat kdykoli i nad limit. Platba za měsíc se sníží
+            Členové se závazkem si týden zmrazí sami v Můj účet (2× ročně, nejdřív od zítřka) – dovolená, nemoc… Studio ho může zadat kdykoli i nad limit. Platba za měsíc se sníží
             poměrně podle dní a rezervace v tom týdnu se zruší.
           </p>
         </ActionForm>

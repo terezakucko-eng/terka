@@ -118,7 +118,7 @@ export async function createMonthlyFees(
   );
   if (!members.length) return [];
   const existing = await feeOrders(db, input.period, members.map((m) => m.userId));
-  // Program Dovolená: discounts waiting for this month's request
+  // Zmražení členství: discounts waiting for this month's request
   const off = await db
     .select({ d: vacationDiscounts, startsOn: vacations.startsOn, endsOn: vacations.endsOn })
     .from(vacationDiscounts)

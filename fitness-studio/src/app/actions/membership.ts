@@ -43,7 +43,7 @@ export async function switchMembershipAction(_: FormState, fd: FormData): Promis
   return res;
 }
 
-/** Můj účet: Program Dovolená – the member plans a week away. */
+/** Můj účet: Zmražení členství – the member freezes a week. */
 export async function planVacationAction(_: FormState, fd: FormData): Promise<FormState> {
   const user = await requireUser("/ucet");
   const res = await attempt(async () => {
@@ -51,20 +51,20 @@ export async function planVacationAction(_: FormState, fd: FormData): Promise<Fo
     const saved = r.discount > 0 ? ` Ušetříš ${discountText(r.discounts)}.` : "";
     const n = r.cancelled.length;
     const classes = n ? ` ${n === 1 ? "Lekci" : "Lekce"} v tom týdnu (${n}) jsme ti zrušili a vstupy vrátili.` : "";
-    return `Hotovo! Dovolená ${r.label} je naplánovaná.${saved}${classes} Užij si ji 🏖️`;
+    return `Hotovo! Členství máš zmražené ${r.label}.${saved}${classes} Ať se ti daří a brzy na viděnou 💛`;
   });
   revalidatePath("/ucet");
   return res;
 }
 
-/** Můj účet: the member calls a planned vacation off (until it starts). */
+/** Můj účet: the member calls a frozen week off (until it starts). */
 export async function cancelVacationAction(_: FormState, fd: FormData): Promise<FormState> {
   const user = await requireUser("/ucet");
   const res = await attempt(async () => {
     const r = await cancelVacation(await getDb(), { vacationId: field.str(fd, "id"), userId: user.id });
     return r.topUp > 0
-      ? `Dovolená ${r.label} je zrušená. Sníženou platbu už máš zaplacenou, tak ti přišla výzva na doplatek ${formatPrice(r.topUp)}.`
-      : `Dovolená ${r.label} je zrušená – platba je zase v plné výši a na lekce se můžeš přihlásit.`;
+      ? `Zmražení ${r.label} je zrušené. Sníženou platbu už máš zaplacenou, tak ti přišla výzva na doplatek ${formatPrice(r.topUp)}.`
+      : `Zmražení ${r.label} je zrušené – platba je zase v plné výši a na lekce se můžeš přihlásit.`;
   });
   revalidatePath("/ucet");
   return res;

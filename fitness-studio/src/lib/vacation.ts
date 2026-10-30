@@ -2,9 +2,9 @@ import { addDays, pragueLocalToDate } from "@/lib/dates";
 import { formatPrice } from "@/lib/money";
 
 /**
- * Program Dovolená: a member with commitment plans a week away twice a year
- * (from 2027), can't book classes that week and pays that month less – the
- * week's share of the monthly fee by days.
+ * Zmražení členství (internally "vacation"): a member with commitment freezes a week twice a
+ * year (from 2027) – holiday, illness, anything – can't book classes that week and pays that
+ * month less, the week's share of the monthly fee by days.
  */
 export const VACATION = {
   /** the first day one can start */
@@ -12,8 +12,8 @@ export const VACATION = {
   from: pragueLocalToDate("2027-01-01T00:00"),
   perYear: 2,
   days: 7,
-  /** planned at least this many days ahead (the studio may plan it any time) */
-  noticeDays: 7,
+  /** from tomorrow at the earliest – illness can't wait (the studio may set it any time) */
+  noticeDays: 1,
 };
 
 /** The last day of a vacation starting that day ("YYYY-MM-DD"). */
@@ -45,5 +45,5 @@ export function daysByMonth(startsOn: string, endsOn: string) {
 /** The fee's share for those days, in whole crowns (haléře): 1 400 Kč × 7 / 31 → 316 Kč. */
 export const daysShare = (fee: number, days: number, of: number) => Math.round((fee * days) / of / 100) * 100;
 
-/** What a fee request says about the discount: " · dovolená 8.–14. 2. 2027 −316 Kč" */
-export const discountNote = (label: string, amount: number) => ` · dovolená ${label} −${formatPrice(amount)}`;
+/** What a fee request says about the discount: " · zmražení 8.–14. 2. 2027 −316 Kč" */
+export const discountNote = (label: string, amount: number) => ` · zmražení ${label} −${formatPrice(amount)}`;

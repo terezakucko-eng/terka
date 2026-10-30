@@ -10,7 +10,7 @@ import { cancelBooking, surchargeCredits } from "./booking";
 import { membersInMonth, periodLabel, shiftPeriod } from "./membership-fees";
 import { changeCredits } from "./wallet";
 
-/** Program Dovolená – see VACATION in lib/vacation. */
+/** Zmražení členství (a "vacation" in the code) – see VACATION in lib/vacation. */
 
 const dayStart = (key: string) => pragueLocalToDate(`${key}T00:00`);
 /** A discount paid out as credit: the membership has no later fee to take it off. */
@@ -86,7 +86,7 @@ async function applyDiscount(tx: Executor, userId: string, period: string, amoun
     if (fees.length || row.purchaseOrderId || row.monthlyFee === 0) continue;
     return { feePeriod: p, orderId: null };
   }
-  await changeCredits(tx, { userId, delta: surchargeCredits(amount), reason: "refund", note: `Program Dovolená${note} (členství už nemá další platbu)` });
+  await changeCredits(tx, { userId, delta: surchargeCredits(amount), reason: "refund", note: `Zmražení členství${note} (členství už nemá další platbu)` });
   return { feePeriod: AS_CREDIT, orderId: null };
 }
 
@@ -116,22 +116,22 @@ async function cancelClassesIn(db: DB, userId: string, startsOn: string, endsOn:
  */
 export async function planVacation(db: DB, input: { userId: string; startsOn: string; byStudio?: boolean }, now = new Date()) {
   const startsOn = input.startsOn.trim();
-  if (!isDateKey(startsOn)) throw new UserError("Vyber den, kdy dovolená začíná.");
-  if (startsOn < VACATION.firstDay) throw new UserError(`Program Dovolená platí od ${formatDate(VACATION.from)} – dovolenou naplánuješ nejdřív od toho dne.`);
+  if (!isDateKey(startsOn)) throw new UserError("Vyber den, od kdy si členství zmrazíš.");
+  if (startsOn < VACATION.firstDay) throw new UserError(`Zmražení členství platí od ${formatDate(VACATION.from)} – zmrazit si ho můžeš nejdřív od toho dne.`);
   const endsOn = vacationEnd(startsOn);
   if (!input.byStudio && startsOn < firstVacationDay(now))
-    throw new UserError(`Dovolenou je potřeba naplánovat aspoň ${VACATION.noticeDays} dní předem – nejdřív od ${formatDate(dayStart(firstVacationDay(now)))}.`);
+    throw new UserError(`Členství si zmrazíš nejdřív od ${formatDate(dayStart(firstVacationDay(now)))}.`);
   const label = vacationLabel(startsOn, endsOn);
 
   const planned = await db.transaction(async (tx) => {
     const ms = (await memberships(tx, input.userId, dayStart(endsOn))).filter((e) => e.validFrom <= dayStart(startsOn));
-    if (!ms.length) throw new UserError("Dovolenou si naplánuje člen se závazkem – na celý ten týden ale platné členství nemáš.");
-    if (ms.every((e) => e.subscriptionId)) throw new UserError("Členství placené automaticky kartou – dovolenou ti rádi nastavíme na recepci.");
+    if (!ms.length) throw new UserError("Zmrazit si ho může člen se závazkem – na celý ten týden ale platné členství nemáš.");
+    if (ms.every((e) => e.subscriptionId)) throw new UserError("Členství placené automaticky kartou – zmražení ti rádi nastavíme na recepci.");
     const mine = await tx.select().from(vacations).where(and(eq(vacations.userId, input.userId), isNull(vacations.cancelledAt))).for("update");
-    if (mine.some((v) => v.startsOn <= endsOn && v.endsOn >= startsOn)) throw new UserError("V tu dobu už dovolenou naplánovanou máš.");
+    if (mine.some((v) => v.startsOn <= endsOn && v.endsOn >= startsOn)) throw new UserError("V tu dobu už máš členství zmražené.");
     const year = startsOn.slice(0, 4);
     if (!input.byStudio && vacationsLeft(mine, year) === 0)
-      throw new UserError(`V roce ${year} už máš naplánované ${VACATION.perYear} dovolené – víc jich program nemá.`);
+      throw new UserError(`V roce ${year} už máš ${VACATION.perYear} zmražení – víc jich za rok nejde.`);
 
     const [v] = await tx.insert(vacations).values({ userId: input.userId, startsOn, endsOn, byStudio: !!input.byStudio }).returning();
     const cfg = await getSettings(tx);
@@ -159,8 +159,8 @@ export async function planVacation(db: DB, input: { userId: string; startsOn: st
 export async function cancelVacation(db: DB, input: { vacationId: string; userId?: string; byStudio?: boolean }, now = new Date()) {
   return db.transaction(async (tx) => {
     const [v] = await tx.select().from(vacations).where(eq(vacations.id, input.vacationId)).for("update");
-    if (!v || v.cancelledAt || (!input.byStudio && v.userId !== input.userId)) throw new UserError("Dovolená nenalezena.");
-    if (!input.byStudio && v.startsOn <= dateKey(now)) throw new UserError("Dovolená už začala – zrušit jde jen do jejího začátku.");
+    if (!v || v.cancelledAt || (!input.byStudio && v.userId !== input.userId)) throw new UserError("Zmražení nenalezeno.");
+    if (!input.byStudio && v.startsOn <= dateKey(now)) throw new UserError("Zmražení už začalo – zrušit jde jen do jeho začátku.");
     const label = vacationLabel(v.startsOn, v.endsOn);
     const topUps: number[] = [];
     for (const d of await tx.select().from(vacationDiscounts).where(eq(vacationDiscounts.vacationId, v.id))) {
@@ -176,7 +176,7 @@ export async function cancelVacation(db: DB, input: { vacationId: string; userId
           userId: v.userId,
           kind: "membership_fee",
           period,
-          description: `Doplatek členského příspěvku – ${periodLabel(period)} (zrušená dovolená ${label})`,
+          description: `Doplatek členského příspěvku – ${periodLabel(period)} (zrušené zmražení ${label})`,
           amount: d.amount,
           provider: "transfer",
           expiresAt: null,

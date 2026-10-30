@@ -390,7 +390,7 @@ export const orders = pgTable(
   ],
 );
 
-/** Program Dovolená: a week a member plans away – no classes then, that month's fee is lower. */
+/** Zmražení členství: a week a member freezes (holiday, illness…) – no classes then, that month's fee is lower. */
 export const vacations = pgTable(
   "vacations",
   {
@@ -435,6 +435,29 @@ export const vacationDiscounts = pgTable(
   },
   (t) => [index("vacation_discounts_fee_idx").on(t.feePeriod, t.userId)],
 );
+
+/**
+ * Dárek za včasnou rezervaci 2027: who signed up for a new membership in time, and when –
+ * by 30. 11. Fitness Ježíšek brings a gift in December (the studio ticks it off here).
+ */
+export const earlyBookings = pgTable("early_bookings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .unique()
+    .references(() => users.id, { onDelete: "cascade" }),
+  /** the membership they signed up with */
+  membershipId: uuid("membership_id").references((): AnyPgColumn => entitlements.id, { onDelete: "set null" }),
+  /** when they signed up: ordered, or the studio set the membership up */
+  signedUpAt: timestamp("signed_up_at", { withTimezone: true }).notNull(),
+  /** the 4 Reformer lessons without the surcharge */
+  giftId: uuid("gift_id").references((): AnyPgColumn => entitlements.id, { onDelete: "set null" }),
+  /** Fitness Ježíšek's gift handed over */
+  santaGivenAt: timestamp("santa_given_at", { withTimezone: true }),
+  createdAt: createdAt(),
+});
+
+export type EarlyBooking = typeof earlyBookings.$inferSelect;
 
 export type Vacation = typeof vacations.$inferSelect;
 export type VacationDiscount = typeof vacationDiscounts.$inferSelect;

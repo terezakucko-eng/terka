@@ -93,7 +93,7 @@ export function ProductCard({
   includedClass?: string;
   /** Settings → priority booking of the included class (weeks before other members) */
   priorityWeeks?: number;
-  /** What a membership with commitment brings on top (Program Dovolená, the early-booking gift) */
+  /** What a membership with commitment brings on top (Zmražení členství, the early-booking gift) */
   memberNotes?: string[];
   /** Not sold yet (next year's price list): "V prodeji od 1. 1. 2027" instead of the buy buttons */
   saleNote?: string;
