@@ -5,10 +5,11 @@ import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { orders } from "@/db/schema";
 import { createMonthlyFees, isPeriod, periodLabel, recordPastFees } from "@/domain/membership-fees";
+import { cancelVacation, discountText, planVacation } from "@/domain/vacations";
 import { requireAdmin } from "@/lib/auth";
 import { UserError } from "@/lib/errors";
 import { attempt, field, type FormState } from "@/lib/form";
-import { pluralCs } from "@/lib/money";
+import { formatPrice, pluralCs } from "@/lib/money";
 import { notifyFee } from "@/lib/notify";
 
 const period = (fd: FormData) => {
@@ -75,5 +76,29 @@ export async function recordPastFeesAction(_: FormState, fd: FormData): Promise<
   });
   revalidatePath(`/admin/klienti/${userId}`);
   revalidatePath("/admin/prispevky");
+  return res;
+}
+
+/** Admin → klient: Program Dovolená planned by the studio – any time, beyond the yearly limit. */
+export async function adminPlanVacationAction(_: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  const userId = field.str(fd, "userId");
+  const res = await attempt(async () => {
+    const r = await planVacation(await getDb(), { userId, startsOn: field.str(fd, "startsOn"), byStudio: true });
+    const n = r.cancelled.length;
+    return `Dovolená ${r.label} naplánovaná.${r.discount > 0 ? ` Sleva ${discountText(r.discounts)}.` : ""}${n ? ` Zrušeno ${pluralCs(n, "lekce", "lekce", "lekcí")} v tom týdnu.` : ""}`;
+  });
+  revalidatePath(`/admin/klienti/${userId}`);
+  return res;
+}
+
+/** Admin → klient: calls a vacation off – a paid lower fee gets a top-up request. */
+export async function adminCancelVacationAction(_: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  const res = await attempt(async () => {
+    const r = await cancelVacation(await getDb(), { vacationId: field.str(fd, "id"), byStudio: true });
+    return `Dovolená ${r.label} zrušená.${r.topUp > 0 ? ` Výzva na doplatek ${formatPrice(r.topUp)}.` : ""}`;
+  });
+  revalidatePath(`/admin/klienti/${field.str(fd, "userId")}`);
   return res;
 }

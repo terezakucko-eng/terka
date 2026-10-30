@@ -1,6 +1,6 @@
 import type { Product } from "@/db/schema";
 import { EARLY_BIRD } from "./early-bird";
-import { VACATION } from "./vacations";
+import { VACATION } from "@/lib/vacation";
 
 /** What a membership with commitment brings on top (price list cards): Program Dovolená and, until 2027, the early-booking gift. */
 export function memberRewardNotes(p: Pick<Product, "kind" | "commitmentMonths" | "includedPerMonth">, now: Date) {

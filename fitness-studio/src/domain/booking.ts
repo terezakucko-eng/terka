@@ -9,6 +9,7 @@ import {
   orders,
   products,
   users,
+  vacations,
   type Booking,
   type ClassSession,
   type Entitlement,
@@ -21,6 +22,7 @@ import { changeCredits, creditExpired, dropInCredit } from "./wallet";
 import { periodLabel, shiftPeriod } from "./membership-fees";
 import { surchargeOn } from "@/lib/price-list";
 import { sessionNameSql } from "@/lib/session-name";
+import { vacationLabel } from "@/lib/vacation";
 
 /** Statuses that take up a spot in the class. */
 export const OCCUPYING = [
@@ -1332,10 +1334,25 @@ export type BookInput = {
   studentConfirmed?: boolean;
 };
 
+/** Program Dovolená: no classes in the member's vacation week. */
+async function assertNotOnVacation(tx: Executor, userId: string, s: Pick<ClassSession, "startsAt">) {
+  const day = dateKey(s.startsAt);
+  const [v] = await tx
+    .select()
+    .from(vacations)
+    .where(and(eq(vacations.userId, userId), isNull(vacations.cancelledAt), lte(vacations.startsOn, day), gte(vacations.endsOn, day)))
+    .limit(1);
+  if (v)
+    throw new UserError(
+      `Máš naplánovanou dovolenou (${vacationLabel(v.startsOn, v.endsOn)}) – v tom týdnu se na lekce přihlásit nejde. Změnily se plány? Dovolenou zrušíš v Můj účet.`,
+    );
+}
+
 export async function bookSession(db: DB, input: BookInput, now = new Date()) {
   return db.transaction(async (tx) => {
     const cfg = await getSettings(tx);
     const s = await lockSession(tx, input.sessionId);
+    await assertNotOnVacation(tx, input.userId, s);
     await expireStalePending(tx, now, s.id);
 
     const window = (await viewerWindows(tx, cfg, input.userId, now)).forSession(s);
@@ -1452,6 +1469,7 @@ export async function joinWaitlist(
   return db.transaction(async (tx) => {
     const cfg = await getSettings(tx);
     const s = await lockSession(tx, input.sessionId);
+    await assertNotOnVacation(tx, input.userId, s);
     await expireStalePending(tx, now, s.id);
     const window = (await viewerWindows(tx, cfg, input.userId, now)).forSession(s);
     const cap = await capacityFor(tx, s, input.userId, now);

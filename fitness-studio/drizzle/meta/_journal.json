@@ -841,6 +841,13 @@
       "when": 1793356168194,
       "tag": "0119_member_rewards_2027",
       "breakpoints": true
+    },
+    {
+      "idx": 120,
+      "version": "7",
+      "when": 1793356848092,
+      "tag": "0120_vacations",
+      "breakpoints": true
     }
   ]
 }
