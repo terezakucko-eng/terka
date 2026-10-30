@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { and, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { announcements, bookings, classTypes, content, earlyBookings, entitlements, orders, type ClassType } from "@/db/schema";
+import { announcements, bookings, campaigns, classTypes, content, earlyBookings, entitlements, orders, type ClassType } from "@/db/schema";
 import { bookSession, bookingOptions } from "@/domain/booking";
 import { EARLY_BIRD, earlyBookingList, grantEarlyBirdGift, markSantaGiven } from "@/domain/early-bird";
 import { createProductOrder, fulfillOrder } from "@/domain/orders";
@@ -9,6 +9,7 @@ import { withButtons } from "@/components/rich-text";
 import { memberRewardNotes } from "@/domain/member-rewards";
 import { pragueLocalToDate } from "@/lib/dates";
 import { popupOver, popupSlot } from "@/lib/popup-seen";
+import { getSettings } from "@/lib/settings";
 import { NOW, makeProduct, makeSession, makeUser, testDb } from "./helpers";
 
 let h: Awaited<ReturnType<typeof testDb>>;
@@ -210,5 +211,16 @@ describe("Barre Brunch pop-up", () => {
     expect(popupOver(until, "2026-10-30")).toBe(false);
     expect(popupOver(until, "2026-10-31")).toBe(true);
     expect(popupSlot({ title: "🎁 Dárky pro členy na rok 2027", from: "2026-10-31" }, "2026-10-31")).toBe("popupNext");
+  });
+});
+
+describe("migration 0125", () => {
+  it("the e-mail about membership 2027 waits as a draft in Zprávy; the card backs move 3 mm", async () => {
+    const [c] = await h.db.select().from(campaigns).where(eq(campaigns.id, "1b19f3f2-85a4-450e-a725-1e2a51640f4f"));
+    expect(c).toMatchObject({ channel: "email", purpose: "marketing", status: "draft", audience: { segment: "all" }, sentCount: 0 });
+    expect(c.subject).toBe("🎁 Členství 2027: dárky za včasné přihlášení a zmražení členství");
+    expect(c.body).toContain("Ahoj {{osloveni}},");
+    expect(c.body).toContain("https://www.octopush.fit/cenik?rok=2027");
+    expect((await getSettings(h.db)).passCardBackShiftMm).toBe(3);
   });
 });

@@ -61,9 +61,15 @@ export const defaultSettings = {
   voucherCreditsPer100Kc: 110,
   /** Členství s lekcemi v ceně (Členství Reformer): na tyto lekce rezervuje o X týdnů dřív než ostatní členové */
   includedPriorityWeeks: 1,
+  /** Pošli to dál – tisk na A4: posun zadní strany v mm podle tiskárny (+ doprava, − doleva) */
+  passCardBackShiftMm: 0,
 };
 
 export type Settings = typeof defaultSettings;
+
+/** Settings that may be negative (the rest are counts and times). */
+export const SIGNED_SETTINGS = new Set<keyof Settings>(["passCardBackShiftMm"]);
+
 
 export async function getSettings(db: Executor): Promise<Settings> {
   const rows = await db.select().from(settings);

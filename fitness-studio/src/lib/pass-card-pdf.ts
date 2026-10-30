@@ -118,8 +118,8 @@ function drawFront(page: PDFPage, ox: number, oy: number, { bold, script, symbol
 }
 
 /** Back (cream, how it works, the QR code) on the trim box at (ox, oy) – the background is drawn by the caller. */
-async function drawBack(pdf: PDFDocument, page: PDFPage, ox: number, oy: number, card: PassCardDoc, footer: string, { regular, bold }: Ctx) {
-  frame(page, ox, oy);
+async function drawBack(pdf: PDFDocument, page: PDFPage, ox: number, oy: number, card: PassCardDoc, footer: string, { regular, bold }: Ctx, framed = true) {
+  if (framed) frame(page, ox, oy);
   const qrSize = 80;
   const qrX = ox + TW - 14 - qrSize;
   const qrY = oy + TH / 2 - qrSize / 2 + 6;
@@ -184,53 +184,65 @@ export const CARDS_PER_SHEET = COLS * ROWS;
 
 /**
  * The cards on A4 for duplex printing: per sheet a page of fronts and a page of backs, with cut marks.
- * Print at 100 % (actual size), both sides, flipped on the long edge.
+ * Print at 100 % (actual size), both sides, flipped on the long edge. An office printer's duplex
+ * rarely lines up exactly, so the backs forgive a few millimetres (no frame, the cream well past the
+ * edges) and `backShiftMm` moves them to make up for a printer's own shift (+ to the right).
  */
-export async function passCardsSheetPdf(cards: PassCardDoc[], footer: string) {
+export async function passCardsSheetPdf(cards: PassCardDoc[], footer: string, { backShiftMm = 0 } = {}) {
   const pdf = await PDFDocument.create();
   const ctx = await embedAssets(pdf);
   const left = (A4W - COLS * TW) / 2;
   const bottom = (A4H - ROWS * TH) / 2;
+  const shift = backShiftMm * MM;
   // trim box of the slot, front side: row 0 at the top
   const slot = (i: number, mirrored: boolean) => {
     const col = i % COLS;
-    return { x: left + (mirrored ? COLS - 1 - col : col) * TW, y: bottom + (ROWS - 1 - Math.floor(i / COLS)) * TH };
+    return { x: left + (mirrored ? COLS - 1 - col : col) * TW + (mirrored ? shift : 0), y: bottom + (ROWS - 1 - Math.floor(i / COLS)) * TH };
   };
-  const marks = (page: PDFPage) => {
+  const marks = (page: PDFPage, dx: number) => {
     // short enough to stay inside what an office printer prints (≈ 5 mm from the edge)
-    const len = 4 * MM;
-    const gap = BLEED + 1 * MM;
+    const len = 3 * MM;
+    // past the cream that reaches 5 mm beyond the backs
+    const gap = 5.5 * MM;
     const ink = { thickness: 0.4, color: rgb(0.3, 0.3, 0.3) };
+    const l = left + dx;
     for (let c = 0; c <= COLS; c++) {
-      const x = left + c * TW;
+      const x = l + c * TW;
       page.drawLine({ start: { x, y: bottom - gap }, end: { x, y: bottom - gap - len }, ...ink });
       page.drawLine({ start: { x, y: bottom + ROWS * TH + gap }, end: { x, y: bottom + ROWS * TH + gap + len }, ...ink });
     }
     for (let r = 0; r <= ROWS; r++) {
       const y = bottom + r * TH;
-      page.drawLine({ start: { x: left - gap, y }, end: { x: left - gap - len, y }, ...ink });
-      page.drawLine({ start: { x: left + COLS * TW + gap, y }, end: { x: left + COLS * TW + gap + len, y }, ...ink });
+      page.drawLine({ start: { x: l - gap, y }, end: { x: l - gap - len, y }, ...ink });
+      page.drawLine({ start: { x: l + COLS * TW + gap, y }, end: { x: l + COLS * TW + gap + len, y }, ...ink });
     }
   };
   for (let from = 0; from < cards.length; from += CARDS_PER_SHEET) {
     const sheet = cards.slice(from, from + CARDS_PER_SHEET);
     const front = pdf.addPage([A4W, A4H]);
     const back = pdf.addPage([A4W, A4H]);
-    // backgrounds first (with bleed into the neighbours – the same colour), then the cards on top
+    // fronts: forest with bleed into the neighbours (the same colour); backs: cream well past the cut lines
     sheet.forEach((_, i) => {
-      for (const [page, mirrored, color] of [[front, false, FOREST], [back, true, CREAM]] as const) {
-        const s = slot(i, mirrored);
-        page.drawRectangle({ x: s.x - BLEED, y: s.y - BLEED, width: W, height: H, color });
-      }
+      const s = slot(i, false);
+      front.drawRectangle({ x: s.x - BLEED, y: s.y - BLEED, width: W, height: H, color: FOREST });
+    });
+    const rows = Math.ceil(sheet.length / COLS);
+    const reach = 5 * MM;
+    back.drawRectangle({
+      x: left + shift - reach,
+      y: bottom + (ROWS - rows) * TH - reach,
+      width: COLS * TW + 2 * reach,
+      height: rows * TH + 2 * reach,
+      color: CREAM,
     });
     for (const [i, card] of sheet.entries()) {
       const f = slot(i, false);
       drawFront(front, f.x, f.y, ctx);
       const b = slot(i, true);
-      await drawBack(pdf, back, b.x, b.y, card, footer, ctx);
+      await drawBack(pdf, back, b.x, b.y, card, footer, ctx, false);
     }
-    marks(front);
-    marks(back);
+    marks(front, 0);
+    marks(back, shift);
   }
   return pdf.save();
 }

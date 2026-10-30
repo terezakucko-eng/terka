@@ -216,6 +216,9 @@ describe("Pošli to dál – a plastic card with two places that goes on right a
     const cards = Array.from({ length: CARDS_PER_SHEET + 2 }, (_, i) => ({ label: `Kartička ${i + 1}`, code: `C${i}`, url: `https://www.octopush.fit/karticka/C${i}` }));
     const doc = await PDFDocument.load(await passCardsSheetPdf(cards, "OCTOPUSH · Pospolitá 699/16, Ostrava"));
     expect(doc.getPageCount()).toBe(4);
+    // the printer's shift made up for on the backs – the same pages
+    const shifted = await PDFDocument.load(await passCardsSheetPdf(cards, "OCTOPUSH · Pospolitá 699/16, Ostrava", { backShiftMm: 3 }));
+    expect(shifted.getPageCount()).toBe(4);
     const { width, height } = doc.getPage(0).getSize();
     expect(width).toBeCloseTo((210 * 72) / 25.4, 1);
     expect(height).toBeCloseTo((297 * 72) / 25.4, 1);
