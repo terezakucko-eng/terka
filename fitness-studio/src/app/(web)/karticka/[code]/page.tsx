@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ButtonLink, Container, Eyebrow } from "@/components/ui";
+import { SubmitButton } from "@/components/forms";
+import { passOnCardAction } from "@/app/actions/pass-card";
 import { getContent } from "@/content";
 import { getDb } from "@/db";
 import { CARD_PLACES, myPassCard, passCardByCode, startPassCardClock } from "@/domain/pass-cards";
@@ -51,7 +53,7 @@ export default async function PassCardPage({ params, searchParams }: PageProps<"
   const validUntil = card.validUntil ?? (await startPassCardClock(db, card.id));
 
   if (ne !== undefined) {
-    // scanned it, not for her – nothing taken, the card just goes on (and a thank-you for keeping the chain going)
+    // scanned it, not for her – nothing taken, the card goes on charged (and a thank-you for keeping the chain going)
     return (
       <section className="bg-forest text-papir">
         <Container className="max-w-2xl py-20 text-center">
@@ -59,7 +61,8 @@ export default async function PassCardPage({ params, searchParams }: PageProps<"
           <Eyebrow className="mt-6 text-zlato">Pošli to dál</Eyebrow>
           <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">Díky, že ji pošleš dál!</h1>
           <p className="mx-auto mt-6 max-w-lg text-lg text-papir/80">
-            Jsme rádi, že řetězec bude pokračovat 🐙 Předej kartičku někomu, koho by pohyb potěšil. Místa na ní zůstávají
+            Jsme rádi, že řetězec bude pokračovat 🐙 Předej kartičku někomu, koho by pohyb potěšil.{" "}
+            {card.placesLeft === CARD_PLACES ? "Je nabitá na obě místa 🔋" : "Místo na ní zůstává"}
             {validUntil && <> – jen ať ji někdo využije do {formatDate(validUntil)}, pak propadne</>}.
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
@@ -126,10 +129,13 @@ export default async function PassCardPage({ params, searchParams }: PageProps<"
 
         <div className="mt-8 rounded-3xl bg-papir p-6 text-les sm:p-8">
           <RegisterForm cardCode={card.code} submitLabel="Chci lekci zdarma" compact />
-          {/* the other way out, right under the first – nothing taken, the card goes on */}
-          <ButtonLink href={`/karticka/${card.code}?ne`} variant="danger" className="mt-3 w-full bg-chyba text-center text-papir hover:bg-chyba/90">
-            Nezajímá mě – pošlu kartičku dál
-          </ButtonLink>
+          {/* the other way out, right under the first – nothing taken, the card goes on with both places */}
+          <form action={passOnCardAction}>
+            <input type="hidden" name="code" value={card.code} />
+            <SubmitButton variant="danger" className="mt-3 w-full bg-chyba text-center text-papir hover:bg-chyba/90">
+              Nezajímá mě – pošlu kartičku dál
+            </SubmitButton>
+          </form>
           <p className="mt-5 text-center text-sm">
             Už máš účet? <Link href="/prihlaseni" className="font-semibold text-zeme underline underline-offset-4">Přihlas se</Link>
           </p>

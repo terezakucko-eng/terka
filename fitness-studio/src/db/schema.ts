@@ -708,6 +708,21 @@ export const passCardUses = pgTable(
   (t) => [index("pass_card_uses_card_idx").on(t.cardId)],
 );
 
+/** Kdy někdo otevřel stránku kartičky – naskenoval QR kód, nebo přišel přes odkaz z ní (přehled v adminu). */
+export const passCardScans = pgTable(
+  "pass_card_scans",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    cardId: uuid("card_id")
+      .notNull()
+      .references(() => passCards.id, { onDelete: "cascade" }),
+    /** přihlášený klient, který ji otevřel; jinak null */
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("pass_card_scans_card_idx").on(t.cardId), index("pass_card_scans_created_idx").on(t.createdAt)],
+);
+
 export const announcements = pgTable("announcements", {
   id: uuid("id").primaryKey().defaultRandom(),
   title: text("title").notNull(),

@@ -37,7 +37,7 @@ import { getContent } from "@/content";
 import { sendMail } from "@/lib/mail";
 import { birthDateLocked, hasConfirmation } from "@/domain/insurance";
 import { linkReferral } from "@/domain/referrals";
-import { CARD_ENTRY_DAYS, passCardOf } from "@/domain/pass-cards";
+import { CARD_ENTRY_DAYS, myPassCard, passCardOf } from "@/domain/pass-cards";
 
 /** Only allow local redirects after login. */
 function safeNext(v: string) {
@@ -109,8 +109,9 @@ export async function registerAction(_: FormState, fd: FormData): Promise<FormSt
     await startSession(user.id);
     const vars = { osloveni: greetName(user.name), odkaz: `${site.url}/rozvrh`, karta: `${site.url}/ucet/karta` };
     const card = await passCardOf(db, user.id);
+    // her place left one for a friend – or it was the last one and the card goes on right away
     if (card)
-      await sendEmail(user.email, "welcomePassCard", {
+      await sendEmail(user.email, (await myPassCard(db, user.id))?.canComeAlone ? "welcomePassCard" : "welcomePassCardNext", {
         ...vars,
         platnost: formatDate(new Date(card.at.getTime() + CARD_ENTRY_DAYS * 86_400_000)),
         ucet: `${site.url}/ucet#posli-to-dal`,

@@ -57,6 +57,9 @@ export default async function AdminPassCards() {
                 <p className="mt-2 flex flex-wrap gap-2">
                   {c.isActive ? <Badge tone="green">Ve hře</Badge> : <Badge tone="red">Mimo hru</Badge>}
                   <Badge tone="gold">{c.placesLeft === 1 ? "🔋 Zbývá 1 místo" : "🔋 Nabitá – 2 místa"}</Badge>
+                  <Badge tone="neutral">
+                    📱 {c.scans.n ? `Naskenovaná ${c.scans.n}×${c.scans.last ? ` · naposledy ${formatDate(c.scans.last)}` : ""}` : "Zatím nenaskenovaná"}
+                  </Badge>
                   {c.isActive &&
                     (c.validUntil && c.validUntil <= now ? (
                       <Badge tone="red">⌛ Propadla {formatDate(c.validUntil)}</Badge>
