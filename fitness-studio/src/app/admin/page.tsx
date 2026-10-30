@@ -12,8 +12,9 @@ import { formatPrice, pluralCs } from "@/lib/money";
 import { formatDayMonth, upcomingCelebrations } from "@/lib/profile";
 import { listSessions } from "@/lib/queries";
 import { pendingStudentProofs } from "@/domain/students";
-import { passCardActivity } from "@/domain/pass-cards";
-import { newMemberships } from "@/domain/stats";
+import { passCardActivity, passCardStatsFrom } from "@/domain/pass-cards";
+import { nextYearMemberships } from "@/domain/stats";
+import { resetPassCardStatsAction } from "@/app/admin/pass-card-actions";
 import { transfersToCheck, unpaidBookings } from "@/domain/booking";
 import { markOrderPaidAction } from "@/app/admin/actions";
 import { RemindPayment } from "@/components/remind-payment";
@@ -46,15 +47,18 @@ export default async function AdminDashboard() {
   // every unpaid lesson (surcharges too) – the full list with reminders is in Platby
   const unpaid = user.role === "admin" ? await unpaidBookings(db) : [];
   const unpaidSurcharges = unpaid.filter((b) => b.kind === "surcharge").length;
-  // Pošli to dál over the last week, new memberships over the last month
-  const since7 = new Date(now.getTime() - 7 * 86_400_000);
-  const cardsWeek = user.role === "admin" ? await passCardActivity(db, since7) : null;
+  // Pošli to dál over the last week (or since the studio zeroed it), and who's signed up for next year
+  const statsFrom = user.role === "admin" ? await passCardStatsFrom(db) : null;
+  const zeroed = !!statsFrom && statsFrom.getTime() > now.getTime() - 7 * 86_400_000;
+  const cardsWeek = user.role === "admin" ? await passCardActivity(db, zeroed ? statsFrom : new Date(now.getTime() - 7 * 86_400_000)) : null;
   const cardEvents = cardsWeek
     ? [...cardsWeek.scans.map((e) => ({ ...e, signUp: false })), ...cardsWeek.signUps.map((e) => ({ ...e, signUp: true }))]
         .sort((a, b) => b.at.getTime() - a.at.getTime())
         .slice(0, 8)
     : [];
-  const memberships = user.role === "admin" ? await newMemberships(db, since30) : [];
+  const nextYear = Number(today.slice(0, 4)) + 1;
+  const memberships = user.role === "admin" ? await nextYearMemberships(db, nextYear, now) : [];
+  const byHow = (how: (typeof memberships)[number]["how"]) => memberships.filter((m) => m.how === how).length;
   const cfg = await getSettings(db);
 
   const capacity = weekSessions.reduce((a, s) => a + s.capacity, 0);
@@ -130,15 +134,20 @@ export default async function AdminDashboard() {
       {cardsWeek && (
         <div className="mt-10 grid gap-5 lg:grid-cols-2">
           <section className="rounded-2xl border border-zlato/50 bg-zlato/10 p-5">
-            <div className="flex items-end justify-between gap-4">
-              <h2 className="font-semibold">🐙 Pošli to dál · 7 dní</h2>
-              <Link href="/admin/karticky" className="eyebrow text-zeme underline underline-offset-4">Kartičky</Link>
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+              <h2 className="font-semibold">🐙 Pošli to dál · {zeroed ? `od ${formatDateTime(statsFrom!)}` : "7 dní"}</h2>
+              <span className="flex items-center gap-3">
+                <ActionForm action={resetPassCardStatsAction} confirm="Vynulovat počítadla Pošli to dál? Přehled i počty naskenování u kartiček se začnou počítat od teď. Kartičky ani registrace se nemění.">
+                  <SubmitButton variant="ghost" className="px-3 py-1.5 text-[0.65rem]">Vynulovat</SubmitButton>
+                </ActionForm>
+                <Link href="/admin/karticky" className="eyebrow text-zeme underline underline-offset-4">Kartičky</Link>
+              </span>
             </div>
             <p className="mt-1 text-sm text-les/60">
               Naskenováno {cardsWeek.scans.length}× · {pluralCs(cardsWeek.signUps.length, "registrace", "registrace", "registrací")}
             </p>
             {cardEvents.length === 0 ? (
-              <p className="mt-3 text-sm text-les/60">Za posledních 7 dní kartičku nikdo nenaskenoval.</p>
+              <p className="mt-3 text-sm text-les/60">{zeroed ? "Od vynulování" : "Za posledních 7 dní"} kartičku nikdo nenaskenoval.</p>
             ) : (
               <ul className="mt-3 divide-y divide-linka/50 text-sm">
                 {cardEvents.map((e, i) => (
@@ -167,12 +176,17 @@ export default async function AdminDashboard() {
             )}
           </section>
           <section className="rounded-2xl border border-linka/60 bg-white/60 p-5">
-            <h2 className="font-semibold">🆕 Nová členství · 30 dní ({memberships.length})</h2>
+            <h2 className="font-semibold">📅 Členství na rok {nextYear} ({memberships.length})</h2>
+            <p className="mt-1 text-sm text-les/60">
+              Předprodej a nová členství, která platí aspoň do listopadu {nextYear}
+              {memberships.length > 0 &&
+                ` · zaplaceno ${byHow("paid")} · rezervace ${byHow("presale")} · ve studiu ${byHow("studio")}${byHow("waiting") ? ` · čeká na platbu ${byHow("waiting")}` : ""}`}
+            </p>
             {memberships.length === 0 ? (
-              <p className="mt-3 text-sm text-les/60">Za posledních 30 dní žádné nové členství.</p>
+              <p className="mt-3 text-sm text-les/60">Na rok {nextYear} zatím nikdo.</p>
             ) : (
-              <ul className="mt-3 divide-y divide-linka/50 text-sm">
-                {memberships.slice(0, 10).map((m) => (
+              <ul className="mt-3 max-h-[28rem] divide-y divide-linka/50 overflow-y-auto pr-1 text-sm">
+                {memberships.map((m) => (
                   <li key={m.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2">
                     <span>
                       <Link href={`/admin/klienti/${m.userId}`} className="font-semibold underline">{m.name}</Link>
@@ -184,7 +198,7 @@ export default async function AdminDashboard() {
                       ) : m.how === "waiting" ? (
                         <Badge tone="gold">Čeká na platbu</Badge>
                       ) : m.how === "presale" ? (
-                        <Badge tone="neutral">Předprodej</Badge>
+                        <Badge tone="neutral">Rezervace – zaplatí výzvou</Badge>
                       ) : (
                         <Badge tone="neutral">Zadáno ve studiu</Badge>
                       )}
@@ -194,7 +208,6 @@ export default async function AdminDashboard() {
                 ))}
               </ul>
             )}
-            {memberships.length > 10 && <p className="mt-2 text-xs text-les/60">… a {memberships.length - 10} dalších</p>}
           </section>
         </div>
       )}

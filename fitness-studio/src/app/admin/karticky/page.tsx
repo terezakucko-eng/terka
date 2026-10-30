@@ -5,7 +5,7 @@ import { ActionForm, SubmitButton } from "@/components/forms";
 import { Badge, Card } from "@/components/ui";
 import { site } from "@/config/site";
 import { getDb } from "@/db";
-import { listPassCards } from "@/domain/pass-cards";
+import { listPassCards, passCardStatsFrom } from "@/domain/pass-cards";
 import { requireAdmin } from "@/lib/auth";
 import { formatDate, formatDay, formatTime } from "@/lib/dates";
 import { pluralCs } from "@/lib/money";
@@ -16,7 +16,7 @@ const dataUri = (svg: string) => `data:image/svg+xml;base64,${Buffer.from(svg).t
 export default async function AdminPassCards() {
   await requireAdmin();
   const db = await getDb();
-  const cards = await listPassCards(db);
+  const cards = await listPassCards(db, await passCardStatsFrom(db));
   const now = new Date();
   const qrs = await Promise.all(cards.map((c) => qrSvg(`${site.url}/karticka/${c.code}`)));
   const people = cards.reduce((n, c) => n + c.chain.length, 0);

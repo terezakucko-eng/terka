@@ -18,10 +18,12 @@ import {
   passCardByCode,
   passCardActivity,
   passCardOf,
+  passCardStatsFrom,
   passOnUnused,
   recordPassCardScan,
   renewPassCard,
   resetPassCard,
+  resetPassCardStats,
   setPassCardActive,
   startPassCardClock,
   unannouncedBookings,
@@ -257,6 +259,14 @@ describe("Pošli to dál – a plastic card with two places that goes on right a
     expect(signUps.filter((x) => x.label === c.label).map((x) => x.name)).toEqual(["Eva Skenovaná"]);
     expect((await passCardActivity(h.db, hours(5))).scans).toEqual([]);
     expect((await listPassCards(h.db)).find((x) => x.id === c.id)!.scans).toMatchObject({ n: 3, last: hours(4) });
+
+    // „Vynulovat“: the counts start again, the history stays
+    await resetPassCardStats(h.db, hours(5));
+    expect(await passCardStatsFrom(h.db)).toEqual(hours(5));
+    expect((await listPassCards(h.db, await passCardStatsFrom(h.db))).find((x) => x.id === c.id)!.scans).toMatchObject({ n: 0, last: null });
+    await recordPassCardScan(h.db, c.code, null, hours(6));
+    expect((await listPassCards(h.db, hours(5))).find((x) => x.id === c.id)!.scans).toMatchObject({ n: 1, last: hours(6) });
+    expect((await listPassCards(h.db)).find((x) => x.id === c.id)!.scans).toMatchObject({ n: 4 });
   });
 
   it("„Nezajímá mě – pošlu kartičku dál“ sends the card on with both places – the place left over goes too", async () => {

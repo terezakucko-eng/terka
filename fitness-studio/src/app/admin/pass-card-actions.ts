@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
-import { addPassCard, chargePassCard, renewPassCard, resetPassCard, setPassCardActive } from "@/domain/pass-cards";
+import { addPassCard, chargePassCard, renewPassCard, resetPassCard, resetPassCardStats, setPassCardActive } from "@/domain/pass-cards";
 import { requireAdmin } from "@/lib/auth";
 import { attempt, field, type FormState } from "@/lib/form";
 
@@ -58,6 +58,18 @@ export async function resetPassCardAction(_: FormState, fd: FormData): Promise<F
     await resetPassCard(await getDb(), field.str(fd, "id"));
     return "Kartička je resetovaná 🔋 – je ve hře, má 2 místa a měsíc se začne počítat, až ji někdo naskenuje.";
   });
+  revalidatePath("/admin/karticky");
+  return res;
+}
+
+/** Přehled: the Pošli to dál numbers start again from now (the cards and their chains stay). */
+export async function resetPassCardStatsAction(): Promise<FormState> {
+  await requireAdmin();
+  const res = await attempt(async () => {
+    await resetPassCardStats(await getDb());
+    return "Vynulováno – počítá se od teď.";
+  });
+  revalidatePath("/admin");
   revalidatePath("/admin/karticky");
   return res;
 }

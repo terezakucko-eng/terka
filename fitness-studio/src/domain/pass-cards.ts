@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { and, asc, count, desc, eq, gte, inArray, isNull, max, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { Executor } from "@/db";
-import { bookings, classSessions, classTypes, entitlements, passCardScans, passCardUses, passCards, users } from "@/db/schema";
+import { bookings, classSessions, classTypes, entitlements, passCardScans, passCardUses, passCards, settings, users } from "@/db/schema";
 import { sessionNameSql } from "@/lib/session-name";
 
 /**
@@ -181,8 +181,8 @@ async function cardBookings(db: Executor, entitlementIds: string[]) {
     .orderBy(asc(classSessions.startsAt));
 }
 
-/** Admin overview: every card, its places and the whole chain with what each one did. */
-export async function listPassCards(db: Executor) {
+/** Admin overview: every card, its places, its scans (since the last „Vynulovat“) and the whole chain with what each one did. */
+export async function listPassCards(db: Executor, scansFrom?: Date | null) {
   const cards = await db.select().from(passCards).orderBy(asc(passCards.createdAt), asc(passCards.label));
   const from = alias(users, "from_user");
   const uses = await db
@@ -203,7 +203,11 @@ export async function listPassCards(db: Executor) {
     .leftJoin(entitlements, eq(passCardUses.entitlementId, entitlements.id))
     .orderBy(asc(passCardUses.createdAt));
   const lessons = await cardBookings(db, uses.flatMap((u) => (u.entitlementId ? [u.entitlementId] : [])));
-  const scans = await db.select({ cardId: passCardScans.cardId, n: count(), last: max(passCardScans.createdAt) }).from(passCardScans).groupBy(passCardScans.cardId);
+  const scans = await db
+    .select({ cardId: passCardScans.cardId, n: count(), last: max(passCardScans.createdAt) })
+    .from(passCardScans)
+    .where(scansFrom ? gte(passCardScans.createdAt, scansFrom) : undefined)
+    .groupBy(passCardScans.cardId);
   return cards.map((card) => ({
     ...card,
     scans: scans.find((x) => x.cardId === card.id) ?? { n: 0, last: null },
@@ -264,6 +268,20 @@ export async function recordPassCardScan(db: Executor, code: string, userId: str
   if (!card) return false;
   await db.insert(passCardScans).values({ cardId: card.id, userId, createdAt: now });
   return true;
+}
+
+const STATS_FROM = "passCardStatsFrom";
+
+/** When the studio last zeroed the Pošli to dál numbers in the overview (null = never). */
+export async function passCardStatsFrom(db: Executor) {
+  const [row] = await db.select().from(settings).where(eq(settings.key, STATS_FROM));
+  return typeof row?.value === "string" ? new Date(row.value) : null;
+}
+
+/** „Vynulovat“: the overview and the cards' scan counts start again from now (the history stays). */
+export async function resetPassCardStats(db: Executor, now = new Date()) {
+  const value = now.toISOString();
+  await db.insert(settings).values({ key: STATS_FROM, value }).onConflictDoUpdate({ target: settings.key, set: { value } });
 }
 
 /** Admin overview: the cards' scans and the sign-ups with them since then, newest first. */

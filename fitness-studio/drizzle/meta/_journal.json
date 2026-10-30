@@ -911,6 +911,13 @@
       "when": 1793390574556,
       "tag": "0129_pass_card_welcome_email",
       "breakpoints": true
+    },
+    {
+      "idx": 130,
+      "version": "7",
+      "when": 1793393365565,
+      "tag": "0130_pass_card_stats_reset",
+      "breakpoints": true
     }
   ]
 }
