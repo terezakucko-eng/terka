@@ -172,7 +172,9 @@ export async function feeOverview(db: Executor, period: string) {
     const purchase = purchases.find((o) => o.id === m.purchaseOrderId);
     if (!mine.length && purchase)
       return { userId: m.userId, name: m.name, email: m.email, status: "purchase", amount: purchase.amount, order: purchase };
-    const order = mine.find((o) => o.status === "paid") ?? mine.find((o) => o.status === "pending") ?? mine[0] ?? null;
+    // a top-up (doplatek) waiting next to a paid fee: the month isn't settled yet – show what's still due
+    const paidFees = mine.filter((o) => o.status === "paid");
+    const order = mine.find((o) => o.status === "pending") ?? paidFees[0] ?? mine[0] ?? null;
     const status: FeeRow["status"] =
       order?.status === "paid"
         ? "paid"
@@ -185,7 +187,8 @@ export async function feeOverview(db: Executor, period: string) {
               : m.monthlyFee === 0
                 ? "free"
                 : "none";
-    return { userId: m.userId, name: m.name, email: m.email, status, amount: order?.amount ?? m.monthlyFee, order };
+    const amount = status === "paid" ? paidFees.reduce((s, o) => s + o.amount, 0) : order?.amount ?? m.monthlyFee;
+    return { userId: m.userId, name: m.name, email: m.email, status, amount, order };
   });
   const paid = rows.filter((r) => r.status === "paid" || r.status === "purchase");
   return {
