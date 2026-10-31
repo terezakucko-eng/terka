@@ -932,6 +932,13 @@
       "when": 1793443194267,
       "tag": "0132_brunch_12_12_830",
       "breakpoints": true
+    },
+    {
+      "idx": 133,
+      "version": "7",
+      "when": 1793445115277,
+      "tag": "0133_member_email_board_link",
+      "breakpoints": true
     }
   ]
 }
