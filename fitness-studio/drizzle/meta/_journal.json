@@ -974,6 +974,13 @@
       "when": 1793520291331,
       "tag": "0138_barre_photo_ai",
       "breakpoints": true
+    },
+    {
+      "idx": 139,
+      "version": "7",
+      "when": 1793523624155,
+      "tag": "0139_barre_photo_props",
+      "breakpoints": true
     }
   ]
 }
