@@ -960,6 +960,13 @@
       "when": 1793513810205,
       "tag": "0136_barre_5_11",
       "breakpoints": true
+    },
+    {
+      "idx": 137,
+      "version": "7",
+      "when": 1793514072006,
+      "tag": "0137_barre_price",
+      "breakpoints": true
     }
   ]
 }
