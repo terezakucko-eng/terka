@@ -967,6 +967,27 @@
       "when": 1793514072006,
       "tag": "0137_barre_price",
       "breakpoints": true
+    },
+    {
+      "idx": 138,
+      "version": "7",
+      "when": 1793520291331,
+      "tag": "0138_barre_photo_ai",
+      "breakpoints": true
+    },
+    {
+      "idx": 139,
+      "version": "7",
+      "when": 1793523624155,
+      "tag": "0139_barre_photo_props",
+      "breakpoints": true
+    },
+    {
+      "idx": 140,
+      "version": "7",
+      "when": 1793523918934,
+      "tag": "0140_barre_photo_space",
+      "breakpoints": true
     }
   ]
 }
