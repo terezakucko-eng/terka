@@ -79,7 +79,9 @@ describe("migration 0115: two clients share a membership deal", () => {
   it("the payer's membership is set from November for 12 months, the other one gets a new one", async () => {
     const payer = await client("Petra Platílková");
     const other = await client("Olga Druhovská");
-    const e = await grantEntitlement(h.db, { userId: payer.id, kind: "membership", name: "Členství 2026", entries: null, validityDays: 1, validUntil: NOV }, NOW);
+    // still running when the migration runs – it only takes memberships valid at that moment (real clock)
+    const running = new Date(Date.now() + 30 * 86_400_000);
+    const e = await grantEntitlement(h.db, { userId: payer.id, kind: "membership", name: "Členství 2026", entries: null, validityDays: 1, validUntil: running }, NOW);
     await h.db.update(entitlements).set({ productId: classic.id, monthlyFee: 100000 }).where(eq(entitlements.id, e.id));
     // her November request at the old fee is already out
     await h.db.insert(orders).values({ userId: payer.id, kind: "membership_fee", period: "2026-11", description: "listopad", amount: 100000, provider: "transfer" });

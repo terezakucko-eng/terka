@@ -5,7 +5,6 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { entitlements, orders, users } from "@/db/schema";
 import { feeOverview } from "@/domain/membership-fees";
 import { grantEntitlement } from "@/domain/users";
-import { pragueLocalToDate } from "@/lib/dates";
 import { NOW, testDb } from "./helpers";
 
 let h: Awaited<ReturnType<typeof testDb>>;
@@ -31,7 +30,8 @@ describe("migration 0116: November top-up for the member who pays for both", () 
   it("paid 1 400 Kč for November before the deal: a top-up request for the remaining 600 Kč", async () => {
     const [payer] = await h.db.insert(users).values({ email: "top1@test.cz", name: "Petra Platílková", passwordHash: "x" }).returning();
     await h.db.insert(users).values({ email: "top2@test.cz", name: "Olga Druhovská", passwordHash: "x" });
-    await grantEntitlement(h.db, { userId: payer.id, kind: "membership", name: "Členství 2026", entries: null, validityDays: 1, validUntil: pragueLocalToDate("2026-11-01T00:00") }, NOW);
+    // still running when 0115 runs – it only takes memberships valid at that moment (real clock)
+    await grantEntitlement(h.db, { userId: payer.id, kind: "membership", name: "Členství 2026", entries: null, validityDays: 1, validUntil: new Date(Date.now() + 30 * 86_400_000) }, NOW);
     await h.db.insert(orders).values({ userId: payer.id, kind: "membership_fee", period: "2026-11", description: "listopad", amount: 140000, provider: "transfer", status: "paid", paidAt: NOW });
 
     await run("drizzle/0115_monthly_fee_after.sql", 1); // the column is there already
