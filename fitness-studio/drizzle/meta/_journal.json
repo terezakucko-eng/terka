@@ -967,6 +967,13 @@
       "when": 1793514072006,
       "tag": "0137_barre_price",
       "breakpoints": true
+    },
+    {
+      "idx": 138,
+      "version": "7",
+      "when": 1793520291331,
+      "tag": "0138_barre_photo_ai",
+      "breakpoints": true
     }
   ]
 }
