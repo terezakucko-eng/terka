@@ -946,6 +946,13 @@
       "when": 1793445204918,
       "tag": "0134_promo_bar_membership",
       "breakpoints": true
+    },
+    {
+      "idx": 135,
+      "version": "7",
+      "when": 1793512994628,
+      "tag": "0135_barre_lesson",
+      "breakpoints": true
     }
   ]
 }
