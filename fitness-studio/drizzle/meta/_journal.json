@@ -981,6 +981,13 @@
       "when": 1793523624155,
       "tag": "0139_barre_photo_props",
       "breakpoints": true
+    },
+    {
+      "idx": 140,
+      "version": "7",
+      "when": 1793523918934,
+      "tag": "0140_barre_photo_space",
+      "breakpoints": true
     }
   ]
 }
