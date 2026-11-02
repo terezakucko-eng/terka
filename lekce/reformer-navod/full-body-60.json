@@ -1,0 +1,677 @@
+{
+ "nazev": "Full Body Reformer – 60 min",
+ "podtitul": "Podle videa Alysia Pope Pilates (Full Body Reformer Pilates Workout, 40 min), přepsáno na TRINFIT Light pro 6 lidí a doplněno na 60 minut: rozehřátí u boxu, přestavby a závěr ve stoje.",
+ "video": {
+  "url": "https://www.youtube.com/watch?v=L-CE0dAxnKU",
+  "titulek": "Full Body Reformer Pilates Workout 40 Minutes",
+  "autor": "Alysia Pope Pilates",
+  "nahled_krok_s": 10
+ },
+ "zdroj_snimku": "vektorové obrázky; cviky 1–3 a 32–36 ilustrace z Canvy",
+ "vybaveni": [
+  "reformer TRINFIT Light, popruhy, pilates box, stupačka",
+  "bez dalšího náčiní"
+ ],
+ "pruziny": [
+  [
+   "všechny kromě jedné",
+   "3 pružiny"
+  ],
+  [
+   "dvě / střední",
+   "2 pružiny"
+  ],
+  [
+   "jedna / lehká",
+   "1 pružina"
+  ],
+  [
+   "mezistupeň",
+   "místo pružiny přidat gumičku"
+  ]
+ ],
+ "poznamky": [
+  "Video je pro středně pokročilé až pokročilé. Začátečníci: kratší pulzy, u břicha hlava na opěrce, prkno z kolen.",
+  "Doplněno na 60 min: 1–3 a 35–36 z lekce Začátečníci 1 (proto bez času ve videu). Stupačku potřebují 26–27 a 30–31.",
+  "Ve stoje a v kleku na vozíku je víc pružin snazší. Na obě strany se cvičí 18, 20–22 a 28–31."
+ ],
+ "bloky": [
+  {
+   "id": 1,
+   "nazev": "Rozehřátí u boxu (doplněno)",
+   "cas": "0–5 min",
+   "pruziny": "2",
+   "nastaveni": "box nadél na vozíku, hrazda dole, stoj na zemi před hrazdou",
+   "barva": "#E39B6B"
+  },
+  {
+   "id": 2,
+   "nazev": "Footwork",
+   "cas": "5–11 min",
+   "pruziny": "3",
+   "nastaveni": "box pryč, hrazda nahoře (komu je stroj krátký, o zářez níž); leh na zádech, ramena u opěrek, paže podél těla",
+   "barva": "#5B7FB8"
+  },
+  {
+   "id": 3,
+   "nazev": "Břicho s popruhy v rukou",
+   "cas": "11–18 min",
+   "pruziny": "2",
+   "nastaveni": "zůstat ležet, hlava na opěrce, ruce v malých smyčkách popruhů, paže nad rameny",
+   "barva": "#7A9A4A"
+  },
+  {
+   "id": 4,
+   "nazev": "Most",
+   "cas": "18–25 min",
+   "pruziny": "2",
+   "nastaveni": "popruhy na opěrky ramen, paty na hrazdě na šířku pánve, paže podél těla, opěrka hlavy dole",
+   "barva": "#2E8BB0"
+  },
+  {
+   "id": 5,
+   "nazev": "Klek s popruhy",
+   "cas": "26–37 min",
+   "pruziny": "1",
+   "nastaveni": "přestavba 1 min: klek na vozíku, kolena u opěrek ramen; 20–22 bokem ke kladkám – celé na jednu stranu, druhá strana až po prkně (jako ve videu); 23–25 čelem ke kladkám na 2 pružiny",
+   "barva": "#3FA597"
+  },
+  {
+   "id": 6,
+   "nazev": "Prkno",
+   "cas": "37–40 min",
+   "pruziny": "1",
+   "nastaveni": "předloktí na vozíku před opěrkami ramen, špičky na stupačce; po prkně druhá strana cviků 20–22",
+   "barva": "#B9789A"
+  },
+  {
+   "id": 7,
+   "nazev": "Výpady a stoj bokem",
+   "cas": "40–50 min",
+   "pruziny": "2",
+   "nastaveni": "pořadí jako ve videu: výpad pravá (28, 29) → hrazda dolů, stoj bokem pravá (30, 31) → otočit se, stoj bokem levá → hrazda nahoru, výpad levá",
+   "barva": "#D9694F"
+  },
+  {
+   "id": 8,
+   "nazev": "Nohy v popruzích",
+   "cas": "51–55 min",
+   "pruziny": "2",
+   "nastaveni": "hrazda úplně dolů, leh na zádech, popruhy kolem chodidel",
+   "barva": "#2E8BB0"
+  },
+  {
+   "id": 9,
+   "nazev": "Závěr ve stoje a dech (doplněno)",
+   "cas": "55–60 min",
+   "pruziny": "4",
+   "nastaveni": "stoj na vozíku, dlaně na hrazdě (nebo na zemi vedle stroje); na konec sed bokem a dech",
+   "barva": "#C0506A"
+  }
+ ],
+ "cviky": [
+  {
+   "nazev": "Předklon u boxu – odtlačení vozíku",
+   "pruziny": "2",
+   "opakovani": "4×",
+   "strany": false,
+   "nohy": "stoj na zemi před hrazdou, chodidla celou plochou na šířku pánve, paralelně; boky zůstávají nad patami; dlaně na rozích boxu",
+   "jak": "Paže vzhůru a malý záklon, pak předklon, dlaně na rozích boxu a vozík odtlačit, záda rovná. Zpět sbalit a pomalu se odrolovat nahoru.",
+   "sipky_snimky": [
+    [
+     [
+      0.22,
+      0.6
+     ],
+     [
+      0.42,
+      0.6
+     ]
+    ]
+   ],
+   "c": 1,
+   "blok": 1,
+   "vychozi": "",
+   "provedeni": "",
+   "obrazky": "zacatecnici-1:1"
+  },
+  {
+   "nazev": "Předklon u boxu – kliky v předklonu",
+   "pruziny": "2",
+   "opakovani": "8×",
+   "strany": false,
+   "nohy": "jako u cviku 1 – váha v patách, tělo se nepřesouvá vpřed ani vzad",
+   "jak": "V předklonu s rovnými zády se lokty ohnou do stran a vozík přijede blíž, pak paže propnout. Břicho nahoru.",
+   "sipky_snimky": [
+    [
+     [
+      0.52,
+      0.18
+     ],
+     [
+      0.52,
+      0.38
+     ]
+    ]
+   ],
+   "c": 2,
+   "blok": 1,
+   "vychozi": "",
+   "provedeni": "",
+   "obrazky": "zacatecnici-1:2"
+  },
+  {
+   "nazev": "Předklon u boxu – výpony na špičky",
+   "pruziny": "2",
+   "opakovani": "6×",
+   "strany": false,
+   "nohy": "jako u cviku 1 – z celých chodidel vzhůru na bříška a zpět na paty, vozík zůstává odtlačený",
+   "jak": "Paže dál tlačí vozík od těla, záda dlouhá. Zvednout se na špičky a spustit paty. Zahřívají se lýtka.",
+   "sipky_snimky": [
+    [
+     [
+      0.115,
+      0.95
+     ],
+     [
+      0.115,
+      0.77
+     ]
+    ]
+   ],
+   "c": 3,
+   "blok": 1,
+   "vychozi": "",
+   "provedeni": "",
+   "obrazky": "zacatecnici-1:3"
+  },
+  {
+   "c": 4,
+   "blok": 2,
+   "nazev": "Footwork – paty paralelně",
+   "pruziny": "3",
+   "opakovani": "10× + 8 pulzů",
+   "strany": false,
+   "nohy": "paty na hrazdě na šířku pánve, chodidla paralelně a flexovaná; kostrč těžká",
+   "jak": "Odtlačit vozík do propnutých nohou a pomalu zpět – vozík nesmí bouchnout. Na konci držet v půlce a pulzovat.",
+   "vychozi": "1:20",
+   "provedeni": "1:30",
+   "sipky_snimky": []
+  },
+  {
+   "c": 5,
+   "blok": 2,
+   "nazev": "Footwork – špičky",
+   "pruziny": "3",
+   "opakovani": "10× + 7 pulzů",
+   "strany": false,
+   "nohy": "bříška chodidel na hrazdě na šířku ramen, paty vysoko jako v podpatcích",
+   "jak": "Nahoře nechat v kolenou mikroohyb, cestou zpět brzdit břichem.",
+   "vychozi": "2:30",
+   "provedeni": "2:40",
+   "sipky_snimky": []
+  },
+  {
+   "c": 6,
+   "blok": 2,
+   "nazev": "Footwork – běh",
+   "pruziny": "3",
+   "opakovani": "16× střídavě",
+   "strany": false,
+   "nohy": "bříška chodidel na hrazdě; jedna pata pod hrazdu, druhá nahoru, střídat jako při běhu",
+   "jak": "Vozík zůstává odtlačený, kolena propnutá, pánev se nehoupe.",
+   "vychozi": "3:45",
+   "provedeni": "3:55",
+   "sipky_snimky": []
+  },
+  {
+   "c": 7,
+   "blok": 2,
+   "nazev": "Footwork – Pilates V",
+   "pruziny": "3",
+   "opakovani": "10× + 10 pulzů",
+   "strany": false,
+   "nohy": "paty u sebe, špičky od sebe asi na šířku pěsti, bříška chodidel na hrazdě, kolena nad špičkami",
+   "jak": "Při odtlačení se nohy „zipují“ k sobě, pracují vnitřní stehna.",
+   "vychozi": "4:15",
+   "provedeni": "4:25",
+   "sipky_snimky": []
+  },
+  {
+   "c": 8,
+   "blok": 2,
+   "nazev": "Footwork – široké paty",
+   "pruziny": "3",
+   "opakovani": "8× + 8 pulzů",
+   "strany": false,
+   "nohy": "paty na krajích hrazdy, špičky ven po diagonále, kolena ve směru špiček",
+   "jak": "Při odtlačení zatnout hýždě. Nakonec chytit stehna a vyrolovat se do sedu.",
+   "vychozi": "5:16",
+   "provedeni": "5:25",
+   "sipky_snimky": []
+  },
+  {
+   "c": 9,
+   "blok": 3,
+   "nazev": "Zvedání trupu v tabletopu",
+   "pruziny": "2",
+   "opakovani": "8×",
+   "strany": false,
+   "nohy": "nohy v tabletopu – kolena nad kyčlemi, bérce vodorovně, nohy u sebe",
+   "jak": "S výdechem zvednout hlavu, krk a hrudník a natáhnout paže k hrazdě, pohled do stehen. Lehčí: hlava na opěrce.",
+   "vychozi": "6:30",
+   "provedeni": "6:40",
+   "sipky_snimky": []
+  },
+  {
+   "c": 10,
+   "blok": 3,
+   "nazev": "Střídání nohou",
+   "pruziny": "2",
+   "opakovani": "8× na každou nohu",
+   "strany": false,
+   "nohy": "z tabletopu jedno koleno k hrudníku, druhá noha natažená šikmo vpřed, špičky natažené; střídat",
+   "jak": "Trup zůstává zvednutý, pánev stabilní.",
+   "vychozi": "7:15",
+   "provedeni": "7:20",
+   "sipky_snimky": []
+  },
+  {
+   "c": 11,
+   "blok": 3,
+   "nazev": "Nůžky",
+   "pruziny": "2",
+   "opakovani": "8× na každou nohu",
+   "strany": false,
+   "nohy": "jedna noha natažená ke stropu, druhá nízko nad hrazdou; střídat, kolena propnutá",
+   "jak": "Lehčí: hlava, krk a hrudník dolů na opěrku.",
+   "vychozi": "7:35",
+   "provedeni": "7:45",
+   "sipky_snimky": []
+  },
+  {
+   "c": 12,
+   "blok": 3,
+   "nazev": "Koordinace",
+   "pruziny": "2",
+   "opakovani": "8×",
+   "strany": false,
+   "nohy": "z tabletopu propnout nohy šikmo vzhůru, nohy u sebe jako jedna, pak zpět do tabletopu",
+   "jak": "Paže jdou zároveň do upažení (T) a zpět ke stehnům. Bedra zůstávají u podložky.",
+   "vychozi": "8:05",
+   "provedeni": "8:15",
+   "sipky_snimky": []
+  },
+  {
+   "c": 13,
+   "blok": 3,
+   "nazev": "Stovka",
+   "pruziny": "2",
+   "opakovani": "10 nádechů (5 dob nádech, 5 výdech)",
+   "strany": false,
+   "nohy": "nohy propnuté šikmo vzhůru, paty u sebe, špičky lehce od sebe",
+   "jak": "Trup zvednutý, propnuté paže pumpují malými pohyby u boků. Lehčí: kolena v tabletopu.",
+   "vychozi": "9:08",
+   "provedeni": "9:15",
+   "sipky_snimky": []
+  },
+  {
+   "c": 14,
+   "blok": 3,
+   "nazev": "Šikmé zkracovačky",
+   "pruziny": "2",
+   "opakovani": "8× střídavě + 8 pulzů na stranu",
+   "strany": false,
+   "nohy": "nohy v diamantu – kolena od sebe, paty u sebe, chodidla ve výšce kolen",
+   "jak": "S výdechem zvednout trup a natáhnout se vedle stehna – opačné žebro k boku.",
+   "vychozi": "9:58",
+   "provedeni": "10:15",
+   "sipky_snimky": []
+  },
+  {
+   "c": 15,
+   "blok": 3,
+   "nazev": "Ťukání patami",
+   "pruziny": "2",
+   "opakovani": "8×",
+   "strany": false,
+   "nohy": "nohy v tabletopu, kolena stále v pravém úhlu; z kyčlí spustit paty k hrazdě a zpět",
+   "jak": "Pohyb jde jen z kyčlí, bedra se neprohýbají, paže tlačí do popruhů.",
+   "vychozi": "12:00",
+   "provedeni": "12:10",
+   "sipky_snimky": []
+  },
+  {
+   "c": 16,
+   "blok": 4,
+   "nazev": "Most s odvíjením",
+   "pruziny": "2",
+   "opakovani": "10× + 10 pulzů nahoře",
+   "strany": false,
+   "nohy": "paty na hrazdě na šířku pánve, chodidla paralelně; vozík se nehýbe",
+   "jak": "Po obratlích nahoru (bedra, střed, horní záda) a stejně dolů. Váha na lopatkách, ne na krku.",
+   "vychozi": "12:40",
+   "provedeni": "13:00",
+   "sipky_snimky": []
+  },
+  {
+   "c": 17,
+   "blok": 4,
+   "nazev": "Most – vozík ven a zpět",
+   "pruziny": "2",
+   "opakovani": "8×",
+   "strany": false,
+   "nohy": "jako u cviku 16 – v mostu odtlačit vozík patami a přitáhnout zpět",
+   "jak": "Boky zůstávají nahoře, kostrč podsazená, vozík nesmí bouchnout. Na konci se odrolovat dolů.",
+   "vychozi": "14:29",
+   "provedeni": "14:35",
+   "sipky_snimky": []
+  },
+  {
+   "c": 18,
+   "blok": 4,
+   "nazev": "Most na jedné noze",
+   "pruziny": "2",
+   "opakovani": "8× ťuknutí + 8 pulzů + 8× špička/flex",
+   "strany": true,
+   "nohy": "jedna pata na hrazdě, druhá noha v tabletopu (koleno v pravém úhlu); boky v jedné rovině",
+   "jak": "Z mostu ťuknout zvednutou nohou o hrazdu a zvednout ji, pak propnout ke stropu a pulzovat.",
+   "vychozi": "15:05",
+   "provedeni": "15:35",
+   "sipky_snimky": []
+  },
+  {
+   "c": 19,
+   "blok": 4,
+   "nazev": "Most – otevírání kolen",
+   "pruziny": "2",
+   "opakovani": "8× + 10 pulzů",
+   "strany": false,
+   "nohy": "paty u sebe na hrazdě, kolena se v mostu otevírají a zavírají",
+   "jak": "Boky nahoře, jako by mezi koleny byly magnety. Pak se odrolovat dolů a obejmout kolena.",
+   "vychozi": "17:50",
+   "provedeni": "18:00",
+   "sipky_snimky": [],
+   "schema": "roznozeni"
+  },
+  {
+   "c": 20,
+   "blok": 5,
+   "nazev": "Klek bokem – tasení meče",
+   "pruziny": "1",
+   "opakovani": "8×",
+   "strany": true,
+   "nohy": "klek na vozíku, kolena na šířku pánve u opěrek ramen, nárty nebo prsty na vozíku; pánev podsazená",
+   "jak": "Popruh v ruce dál od kladek, tah po diagonále od opačného boku nahoru, jako když tasíš meč. Lehčí: chyť popruh výš.",
+   "vychozi": "19:00",
+   "provedeni": "19:10",
+   "sipky_snimky": []
+  },
+  {
+   "c": 21,
+   "blok": 5,
+   "nazev": "Klek bokem – objetí stromu s rotací",
+   "pruziny": "1",
+   "opakovani": "8× + 10 pulzů",
+   "strany": true,
+   "nohy": "jako u cviku 20 – boky se netočí",
+   "jak": "Paže v kruhu před hrudníkem jako kolem stromu, rotace z hrudníku od kladek a zpět. Paže se nehýbou.",
+   "vychozi": "19:58",
+   "provedeni": "20:10",
+   "sipky_snimky": []
+  },
+  {
+   "c": 22,
+   "blok": 5,
+   "nazev": "Klek bokem – tlak nad hlavu",
+   "pruziny": "1",
+   "opakovani": "8×",
+   "strany": true,
+   "nohy": "jako u cviku 20",
+   "jak": "Ruka blíž ke kladkám tlačí popruh nad hlavu a zpět k žebrům. Tělo se nenechá táhnout.",
+   "vychozi": "20:50",
+   "provedeni": "21:00",
+   "sipky_snimky": []
+  },
+  {
+   "c": 23,
+   "blok": 5,
+   "nazev": "Klek čelem ke kladkám – přítah s lokty nahoru",
+   "pruziny": "2",
+   "opakovani": "8× + 10 pulzů",
+   "strany": false,
+   "nohy": "klek čelem ke kladkám, kolena u opěrek ramen, pánev podsazená",
+   "jak": "Popruhy zkřížené, držet nad kovovou částí. Lokty vytáhnout do stran a nahoru, břicho dovnitř.",
+   "vychozi": "21:56",
+   "provedeni": "22:05",
+   "sipky_snimky": []
+  },
+  {
+   "c": 24,
+   "blok": 5,
+   "nazev": "Klek – rozpažení vzad",
+   "pruziny": "2",
+   "opakovani": "8×",
+   "strany": false,
+   "nohy": "jako u cviku 23",
+   "jak": "Propnuté paže tlačí popruhy dozadu k bokům, hrudník otevřený, krk dlouhý.",
+   "vychozi": "23:05",
+   "provedeni": "23:10",
+   "sipky_snimky": []
+  },
+  {
+   "c": 25,
+   "blok": 5,
+   "nazev": "Kolena k zápěstím",
+   "pruziny": "2",
+   "opakovani": "8×",
+   "strany": false,
+   "nohy": "kolena na vozíku, prsty podvrtnuté; dlaně na kovovém rámu u kladek",
+   "jak": "Spodní břicho přitáhne kolena k zápěstím, záda se zakulatí, pomalu zpět. Pak uber na 1 pružinu.",
+   "vychozi": "23:35",
+   "provedeni": "23:45",
+   "sipky_snimky": []
+  },
+  {
+   "c": 26,
+   "blok": 6,
+   "nazev": "Prkno na předloktích → pike",
+   "pruziny": "1",
+   "opakovani": "8×",
+   "strany": false,
+   "nohy": "špičky paralelně na stupačce na šířku pánve, hýždě zatnuté, žebra dolů",
+   "jak": "Z prkna na předloktích zvednout boky do pike, pohled ke kolenům. Lehčí: prkno z kolen bez pike.",
+   "vychozi": "24:20",
+   "provedeni": "24:35",
+   "sipky_snimky": []
+  },
+  {
+   "c": 27,
+   "blok": 6,
+   "nazev": "Prkno – pilování",
+   "pruziny": "1",
+   "opakovani": "8×",
+   "strany": false,
+   "nohy": "jako u cviku 26 – tělo v jedné linii",
+   "jak": "V prkně dlaně k sobě a předloktími posouvat vozík vpřed a vzad. Boky se nehoupou.",
+   "vychozi": "25:00",
+   "provedeni": "25:05",
+   "sipky_snimky": []
+  },
+  {
+   "c": 28,
+   "blok": 7,
+   "nazev": "Výpad s rukama na hrazdě",
+   "pruziny": "2",
+   "opakovani": "8×",
+   "strany": true,
+   "nohy": "přední chodidlo na rámu u hrazdy, koleno nad kotníkem a za špičkou; zadní chodidlo na vozíku u opěrky ramen",
+   "jak": "Hluboko do předního stehna, zadní noha odtlačí vozík vzad a zpět. Dlaně na hrazdě, ramena dolů.",
+   "vychozi": "28:38",
+   "provedeni": "28:45",
+   "sipky_snimky": []
+  },
+  {
+   "c": 29,
+   "blok": 7,
+   "nazev": "Výpad – koleno k lokti",
+   "pruziny": "2",
+   "opakovani": "8×",
+   "strany": true,
+   "nohy": "jako u cviku 28; zadní koleno se přitáhne k opačnému lokti a chodidlo se vrátí na vozík",
+   "jak": "Pomalu, z kyčlí do pike, ne švihem.",
+   "vychozi": "29:10",
+   "provedeni": "29:25",
+   "sipky_snimky": []
+  },
+  {
+   "c": 30,
+   "blok": 7,
+   "nazev": "Stoj bokem – bruslařský dřep",
+   "pruziny": "2",
+   "opakovani": "8×",
+   "strany": true,
+   "nohy": "stojná noha celým chodidlem na stupačce, druhé chodidlo na okraji vozíku; stojné koleno ve směru špičky",
+   "jak": "Hrazda dole. Podřep na stojné noze, druhou nohou odsunout vozík do strany a vrátit se do stoje. Boky nad stojnou nohou. Lehčí: menší rozsah, ruka na rámu.",
+   "vychozi": "30:15",
+   "provedeni": "30:25",
+   "sipky_snimky": []
+  },
+  {
+   "c": 31,
+   "blok": 7,
+   "nazev": "Stoj bokem – roznožení s pažemi",
+   "pruziny": "2",
+   "opakovani": "8×",
+   "strany": true,
+   "nohy": "jako u cviku 30, obě kolena s mikroohybem; vnitřní stehna přitahují vozík zpět",
+   "jak": "Ve stoje odsunout vozík do roznožení a paže natáhnout vpřed, se zatnutým břichem zpět.",
+   "vychozi": "31:30",
+   "provedeni": "31:40",
+   "sipky_snimky": []
+  },
+  {
+   "nazev": "Nohy v popruzích – V spustit a zvednout",
+   "pruziny": "2",
+   "opakovani": "8×",
+   "strany": false,
+   "nohy": "paty u sebe, špičky od sebe, nohy propnuté; kostrč těžká",
+   "jak": "Spustit nohy k hrazdě a zvednout ke stropu, žebra dolů, záda u podložky.",
+   "sipky_snimky": [
+    [
+     [
+      0.18,
+      0.14
+     ],
+     [
+      0.24,
+      -0.02
+     ],
+     [
+      0.36,
+      0.03
+     ]
+    ]
+   ],
+   "c": 32,
+   "blok": 8,
+   "vychozi": "37:15",
+   "provedeni": "37:25",
+   "obrazky": "zacatecnici-1:24"
+  },
+  {
+   "nazev": "Nohy v popruzích – kroužení oběma směry",
+   "pruziny": "2",
+   "opakovani": "5× každým směrem",
+   "strany": false,
+   "nohy": "nohy propnuté, roznožit jen na šířku stroje, nahoře spojit",
+   "jak": "Malé kontrolované kruhy: dolů, roznožit, nahoru a spojit; pak opačně.",
+   "sipky_snimky": [],
+   "c": 33,
+   "blok": 8,
+   "vychozi": "37:56",
+   "provedeni": "38:10",
+   "obrazky": "zacatecnici-1:27",
+   "schema": "kruh"
+  },
+  {
+   "nazev": "Nohy v popruzích – žabka a protažení",
+   "pruziny": "2",
+   "opakovani": "5× + protažení",
+   "strany": false,
+   "nohy": "paty u sebe, kolena se ohnou nad kyčle, chodidla flexovaná",
+   "jak": "Pokrčit a propnout. Nakonec střídavě protáhnout zadní stehna a motýlek – chodidla k sobě, kolena do stran.",
+   "sipky_snimky": [
+    [
+     [
+      0.42,
+      0.56
+     ],
+     [
+      0.27,
+      0.38
+     ]
+    ]
+   ],
+   "c": 34,
+   "blok": 8,
+   "vychozi": "39:35",
+   "provedeni": "39:45",
+   "obrazky": "zacatecnici-1:25"
+  },
+  {
+   "nazev": "Stoj na vozíku – odtlačení vozíku nohama",
+   "pruziny": "4",
+   "opakovani": "6×",
+   "strany": false,
+   "nohy": "dlaně na hrazdě, chodidla celou plochou na vozíku, paty opřené o opěrky ramen, váha v patách",
+   "jak": "Nohama odtlačit vozík tak daleko, aby paty zůstaly dole, a přitáhnout zpět. Ramena se nehýbou, břicho brzdí vozík.",
+   "sipky_snimky": [
+    [
+     [
+      0.62,
+      0.86
+     ],
+     [
+      0.78,
+      0.86
+     ]
+    ]
+   ],
+   "c": 35,
+   "blok": 9,
+   "vychozi": "",
+   "provedeni": "",
+   "obrazky": "zacatecnici-1:28"
+  },
+  {
+   "nazev": "Roll up a dech",
+   "pruziny": "4",
+   "opakovani": "1× pomalu",
+   "strany": false,
+   "nohy": "stoj na vozíku, chodidla na šířku pánve, paty u opěrek ramen, kolena měkká",
+   "jak": "Ruce k chodidlům, svěsit se přes nohy, pár výdechů. Pak se pomalu, asi 10 vteřin, odrolovat nahoru, hlava poslední. Pak sed bokem na vozíku, dlaně na žebra, 4 hluboké nádechy do žeber jako na konci videa.",
+   "sipky_snimky": [
+    [
+     [
+      0.62,
+      0.62
+     ],
+     [
+      0.64,
+      0.32
+     ],
+     [
+      0.57,
+      0.08
+     ]
+    ]
+   ],
+   "c": 36,
+   "blok": 9,
+   "vychozi": "",
+   "provedeni": "",
+   "obrazky": "zacatecnici-1:30"
+  }
+ ]
+}
