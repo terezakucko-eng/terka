@@ -988,6 +988,27 @@
       "when": 1793523918934,
       "tag": "0140_barre_photo_space",
       "breakpoints": true
+    },
+    {
+      "idx": 141,
+      "version": "7",
+      "when": 1793804572947,
+      "tag": "0141_zumba_special_16_11",
+      "breakpoints": true
+    },
+    {
+      "idx": 142,
+      "version": "7",
+      "when": 1793805576028,
+      "tag": "0142_zumba_special_open",
+      "breakpoints": true
+    },
+    {
+      "idx": 143,
+      "version": "7",
+      "when": 1793805851129,
+      "tag": "0143_silovy_16_11_off",
+      "breakpoints": true
     }
   ]
 }
