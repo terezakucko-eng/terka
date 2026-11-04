@@ -30,6 +30,9 @@ export async function Popup() {
     { label: c(`${s}.buttonLabel`).trim(), url },
     { label: c(`${s}.buttonLabel2`).trim(), url: c(`${s}.buttonUrl2`).trim() },
   ].filter((b) => b.label && b.url);
+  // a featured offer over the whole width above the others (e.g. both lessons at a better price) – they get smaller then
+  const top = { label: c(`${s}.buttonLabel3`).trim(), url: c(`${s}.buttonUrl3`).trim() };
+  const featured = top.label && top.url ? top : null;
   // a button leading to a class can show how many spots are left – live, so "last spots" is always true
   const showSpots = isYes(c(`${s}.showSpots`));
   const ids = showSpots ? buttons.map((b) => sessionOf(b.url)).filter((id): id is string => !!id) : [];
@@ -46,22 +49,32 @@ export async function Popup() {
   const equal = buttons.length > 1 && buttons.every((b) => !!sessionOf(b.url));
   // a finished poster says it all – without text only the (clickable) picture and the buttons show
   const imageOnly = !!image && !text;
-  const buttonRow = buttons.length > 0 && (
-    <div className={imageOnly ? "flex flex-col gap-2 p-4 sm:flex-row sm:p-5" : "mt-6 flex flex-col gap-2 sm:flex-row"}>
+  const big =
+    "bg-gold inline-flex animate-[cta_2.4s_ease-in-out_infinite] items-center justify-center gap-2 rounded-full px-7 py-4 text-center text-sm font-bold uppercase tracking-[0.14em] text-les shadow-[0_10px_28px_-10px_rgba(103,67,41,.7)]";
+  const buttonRow = (buttons.length > 0 || featured) && (
+    <div className={imageOnly ? "flex flex-col gap-2 p-4 sm:p-5" : "mt-6 flex flex-col gap-2"}>
+      {featured && (
+        <Link {...linkProps(featured.url)} className={big}>
+          {featured.label}
+          <span aria-hidden>→</span>
+        </Link>
+      )}
+      <div className="flex flex-col gap-2 sm:flex-row">
       {buttons.map((b, i) => {
         const n = left.get(sessionOf(b.url) ?? "");
+        const primary = !featured && (i === 0 || equal);
         return (
           <div key={b.url + b.label} className="flex flex-1 flex-col items-stretch gap-1.5">
             <Link
               {...linkProps(b.url)}
               className={
-                i === 0 || equal
-                  ? "bg-gold inline-flex animate-[cta_2.4s_ease-in-out_infinite] items-center justify-center gap-2 rounded-full px-7 py-4 text-center text-sm font-bold uppercase tracking-[0.14em] text-les shadow-[0_10px_28px_-10px_rgba(103,67,41,.7)]"
+                primary
+                  ? big
                   : "bg-gold inline-flex items-center justify-center rounded-full px-6 py-3 text-center text-xs font-semibold uppercase tracking-[0.15em] text-les"
               }
             >
               {b.label}
-              {(i === 0 || equal) && <span aria-hidden>→</span>}
+              {primary && <span aria-hidden>→</span>}
             </Link>
             {n !== undefined && (
               <span
@@ -78,6 +91,7 @@ export async function Popup() {
           </div>
         );
       })}
+      </div>
     </div>
   );
   const picture = (
@@ -94,7 +108,7 @@ export async function Popup() {
   );
   return (
     <PopupShell
-      id={`${title}|${text}|${image}|${until}|${buttons.map((b) => b.label).join("|")}`}
+      id={`${title}|${text}|${image}|${until}|${[featured, ...buttons].flatMap((b) => (b ? [b.label] : [])).join("|")}`}
       wide={imageOnly}
       repeatDay={weekdayIndex(c(`${s}.repeatDay`))}
     >

@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { announcements, bookings, orders, sessionBundles, users, type ClassSession } from "@/db/schema";
+import { announcements, bookings, content, orders, sessionBundles, users, type ClassSession } from "@/db/schema";
 import {
   bookSession,
   bookingOptions,
@@ -75,6 +75,7 @@ describe("a bundle: both lessons of an event by one payment", () => {
     expect(await occupancy(h.db, toning.id)).toBe(1);
     // the page of either lesson waits for the same payment – cancelling there says it goes for both
     expect((await sessionForUser(h.db, toning.id, u.id, NOW))!.unpaid).toMatchObject({ id: order!.id, lessons: 2 });
+    expect((await sessionForUser(h.db, fitness.id, null, NOW))!.bundle).toMatchObject({ price: 30000, sessions: [{ id: toning.id }, { id: fitness.id }] });
 
     const paid = await fulfillOrder(h.db, { orderId: order!.id, provider: "test" }, NOW);
     expect(paid.dropIn).toMatchObject({ outcome: "confirmed", credit: 0 });
@@ -153,14 +154,26 @@ describe("a bundle: both lessons of an event by one payment", () => {
   });
 });
 
-describe("migrations 0146–0147: the Zumba SPECIAL bundle, members free", () => {
+describe("migrations 0146–0149: the Zumba SPECIAL bundle, members free, the links", () => {
   it("is 300 Kč for both lessons and the board post says so", async () => {
     const [b] = await h.db.select().from(sessionBundles).where(eq(sessionBundles.id, "3ba8adce-7a55-4a8c-a417-8cc60cc88cea"));
     expect(b).toMatchObject({ name: "Zumba SPECIAL – obě lekce", price: 30000 });
     const [post] = await h.db.select().from(announcements).where(eq(announcements.id, "146aa9e2-80ab-437c-b082-47ecb7403616"));
     expect(post.body).toContain("<li>jednorázově 250 Kč či 220 kreditů</li><li>balíček na obě za <strong>300 Kč</strong> – zaplatíš kartou nebo převodem</li>");
-    expect(post.body.match(/300 Kč/g)).toHaveLength(1);
     // 0147: members don't pay – said first
     expect(post.body).toContain("<li>členové nic neplatí – obě lekce mají v ceně členství</li>");
+    // 0148: „Rezervovat výhodně obě lekce“ right after the two lessons' links, once
+    expect(post.body).toContain(
+      '18:00 Zumba fitness SPECIAL</a></p><p>💃 <a href="/rozvrh/5ea2983c-b146-45ae-b4b6-f86c43acc4c4?balicek=1"><strong>Rezervovat výhodně obě lekce</strong></a> za 300 Kč</p>',
+    );
+    expect(post.body.match(/balicek=1/g)).toHaveLength(1);
+  });
+
+  it("puts the same link in the pop-up, as the featured button", async () => {
+    const c = Object.fromEntries((await h.db.select().from(content)).map((r) => [r.key, r.value]));
+    expect(c["popup.buttonLabel3"]).toBe("Rezervovat výhodně obě lekce");
+    expect(c["popup.buttonUrl3"]).toBe("/rozvrh/5ea2983c-b146-45ae-b4b6-f86c43acc4c4?balicek=1");
+    // 0149: no free places under the buttons for now
+    expect(c["popup.showSpots"]).toBe("");
   });
 });
