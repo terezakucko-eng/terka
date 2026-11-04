@@ -42,6 +42,8 @@ export async function Popup() {
     ...(/^https?:\/\//.test(href) ? { target: "_blank", rel: "noreferrer" } : {}),
   });
   const first = left.get(sessionOf(buttons[0]?.url ?? "") ?? "");
+  // two classes to choose from (17:00 / 18:00) are equal choices – same size, both with the arrow
+  const equal = buttons.length > 1 && buttons.every((b) => !!sessionOf(b.url));
   // a finished poster says it all – without text only the (clickable) picture and the buttons show
   const imageOnly = !!image && !text;
   const buttonRow = buttons.length > 0 && (
@@ -53,13 +55,13 @@ export async function Popup() {
             <Link
               {...linkProps(b.url)}
               className={
-                i === 0
+                i === 0 || equal
                   ? "bg-gold inline-flex animate-[cta_2.4s_ease-in-out_infinite] items-center justify-center gap-2 rounded-full px-7 py-4 text-center text-sm font-bold uppercase tracking-[0.14em] text-les shadow-[0_10px_28px_-10px_rgba(103,67,41,.7)]"
                   : "bg-gold inline-flex items-center justify-center rounded-full px-6 py-3 text-center text-xs font-semibold uppercase tracking-[0.15em] text-les"
               }
             >
               {b.label}
-              {i === 0 && <span aria-hidden>→</span>}
+              {(i === 0 || equal) && <span aria-hidden>→</span>}
             </Link>
             {n !== undefined && (
               <span
