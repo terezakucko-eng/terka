@@ -1009,6 +1009,20 @@
       "when": 1793805851129,
       "tag": "0143_silovy_16_11_off",
       "breakpoints": true
+    },
+    {
+      "idx": 144,
+      "version": "7",
+      "when": 1793806010759,
+      "tag": "0144_zumba_special_board",
+      "breakpoints": true
+    },
+    {
+      "idx": 145,
+      "version": "7",
+      "when": 1793807150132,
+      "tag": "0145_special_no_free_entry",
+      "breakpoints": true
     }
   ]
 }

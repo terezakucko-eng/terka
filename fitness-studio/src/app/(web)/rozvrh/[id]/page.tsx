@@ -124,6 +124,7 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
               credit={user ? usableCredit(user) : 0}
               card={cardPayments()}
               sessionId={s.id}
+              freeIntro={!s.noFreeEntry && !ct.noFreeEntry}
               gcal={googleCalendarLink(lessonEvent(s, ct, `${c.raw("site.street")}, ${c.raw("site.city")}`))}
             />
           </Card>
@@ -141,6 +142,7 @@ function BookingPanel({
   credit,
   card,
   sessionId,
+  freeIntro,
   gcal,
 }: {
   /** "Student do" still valid – no need to confirm the student drop-in */
@@ -152,6 +154,8 @@ function BookingPanel({
   loggedIn: boolean;
   needsHealth: boolean;
   sessionId: string;
+  /** the welcome lesson is free here – not on a special class or one the welcome entry doesn't cover */
+  freeIntro: boolean;
   gcal: string;
 }) {
   const b = view.myBooking;
@@ -256,7 +260,7 @@ function BookingPanel({
     return (
       <div>
         <h2 className="text-2xl font-semibold">Rezervuj si místo</h2>
-        <p className="mt-3 text-les/70">Pro rezervaci se přihlas. Nový? Registrace trvá minutu a první lekce je zdarma.</p>
+        <p className="mt-3 text-les/70">Pro rezervaci se přihlas. Nový? Registrace trvá minutu{freeIntro ? " a první lekce je zdarma" : ""}.</p>
         <div className="mt-6 flex flex-col gap-3">
           <ButtonLink href={`/prihlaseni?next=/rozvrh/${sessionId}`}>Přihlásit se</ButtonLink>
           <ButtonLink href={`/registrace?next=/rozvrh/${sessionId}`} variant="outline">Vytvořit účet</ButtonLink>

@@ -364,6 +364,7 @@ async function sessionValues(fd: FormData) {
       creditCost: field.int(fd, "creditCost") ?? ct.creditCost,
       dropInPrice: isFree ? null : (field.money(fd, "dropInPrice") ?? ct.dropInPrice),
       isFree,
+      noFreeEntry: field.bool(fd, "noFreeEntry"),
       room: field.optional(fd, "room"),
       title: field.optional(fd, "title"),
       note: field.optional(fd, "note"),
