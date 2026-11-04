@@ -1044,6 +1044,13 @@
       "when": 1793820852462,
       "tag": "0148_bundle_links",
       "breakpoints": true
+    },
+    {
+      "idx": 149,
+      "version": "7",
+      "when": 1793821187734,
+      "tag": "0149_popup_no_spots",
+      "breakpoints": true
     }
   ]
 }

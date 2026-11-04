@@ -154,7 +154,7 @@ describe("a bundle: both lessons of an event by one payment", () => {
   });
 });
 
-describe("migrations 0146–0148: the Zumba SPECIAL bundle, members free, the links", () => {
+describe("migrations 0146–0149: the Zumba SPECIAL bundle, members free, the links", () => {
   it("is 300 Kč for both lessons and the board post says so", async () => {
     const [b] = await h.db.select().from(sessionBundles).where(eq(sessionBundles.id, "3ba8adce-7a55-4a8c-a417-8cc60cc88cea"));
     expect(b).toMatchObject({ name: "Zumba SPECIAL – obě lekce", price: 30000 });
@@ -173,5 +173,7 @@ describe("migrations 0146–0148: the Zumba SPECIAL bundle, members free, the li
     const c = Object.fromEntries((await h.db.select().from(content)).map((r) => [r.key, r.value]));
     expect(c["popup.buttonLabel3"]).toBe("Rezervovat výhodně obě lekce");
     expect(c["popup.buttonUrl3"]).toBe("/rozvrh/5ea2983c-b146-45ae-b4b6-f86c43acc4c4?balicek=1");
+    // 0149: no free places under the buttons for now
+    expect(c["popup.showSpots"]).toBe("");
   });
 });
