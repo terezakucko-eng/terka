@@ -2105,8 +2105,11 @@ export async function sessionForUser(
       lapsedPayBy = l ? transferPayBy(cfg, l) : null;
     }
   }
+  const b = await bundleOf(db, s);
   return {
     session: s,
+    /** the lessons booked together at one price (all of them, this one too) */
+    bundle: b && { price: b.bundle.price, sessions: b.sessions.map((p) => ({ id: p.s.id, name: p.name, startsAt: p.s.startsAt })) },
     occupied,
     state,
     canBringFriend,

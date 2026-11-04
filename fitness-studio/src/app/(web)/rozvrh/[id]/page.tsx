@@ -12,7 +12,7 @@ import { VideoEmbed } from "@/components/video-embed";
 import { Badge, ButtonLink, Card, Container, Eyebrow, cx } from "@/components/ui";
 import { memberSurchargeFor, membershipIncluding, passSurchargeFor, sessionForUser, stateMessage, usableCredit } from "@/domain/booking";
 import { getCurrentUser } from "@/lib/auth";
-import { dateKey, formatDateTime, formatDay, formatOpens, formatRange } from "@/lib/dates";
+import { dateKey, formatDateTime, formatDay, formatOpens, formatRange, formatTime } from "@/lib/dates";
 import { priceNoteOn } from "@/lib/price-list";
 
 /** "5. 10." already ends the sentence, "5. 10. v 18:00" needs its full stop */
@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: PageProps<"/rozvrh/[id]">): P
 
 export default async function SessionPage({ params, searchParams }: PageProps<"/rozvrh/[id]">) {
   const { id } = await params;
-  const { plus1 } = await searchParams;
+  const { plus1, balicek } = await searchParams;
   if (!UUID.test(id)) notFound();
   const db = await getDb();
   const detail = await sessionDetail(db, id);
@@ -125,6 +125,7 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
               card={cardPayments()}
               sessionId={s.id}
               freeIntro={!s.noFreeEntry && !ct.noFreeEntry}
+              preferBundle={balicek === "1"}
               gcal={googleCalendarLink(lessonEvent(s, ct, `${c.raw("site.street")}, ${c.raw("site.city")}`))}
             />
           </Card>
@@ -133,6 +134,9 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
     </section>
   );
 }
+
+/** „17:00 + 18:00“ */
+const bundleTimes = (b: { sessions: { startsAt: Date }[] }) => b.sessions.map((x) => formatTime(x.startsAt)).join(" + ");
 
 function BookingPanel({
   view,
@@ -143,6 +147,7 @@ function BookingPanel({
   card,
   sessionId,
   freeIntro,
+  preferBundle,
   gcal,
 }: {
   /** "Student do" still valid – no need to confirm the student drop-in */
@@ -156,6 +161,8 @@ function BookingPanel({
   sessionId: string;
   /** the welcome lesson is free here – not on a special class or one the welcome entry doesn't cover */
   freeIntro: boolean;
+  /** came by „Rezervovat výhodně obě lekce“ (?balicek=1) – the bundle is picked */
+  preferBundle: boolean;
   gcal: string;
 }) {
   const b = view.myBooking;
@@ -257,13 +264,19 @@ function BookingPanel({
   }
 
   if (!loggedIn) {
+    const next = encodeURIComponent(`/rozvrh/${sessionId}${preferBundle ? "?balicek=1" : ""}`);
     return (
       <div>
         <h2 className="text-2xl font-semibold">Rezervuj si místo</h2>
         <p className="mt-3 text-les/70">Pro rezervaci se přihlas. Nový? Registrace trvá minutu{freeIntro ? " a první lekce je zdarma" : ""}.</p>
+        {view.bundle && (
+          <p className="mt-3 rounded-xl bg-zlato/15 p-4 text-sm">
+            Jdeš na obě? Po přihlášení si vybereš balíček <strong>{bundleTimes(view.bundle)} za {formatPrice(view.bundle.price)}</strong> – kartou nebo převodem. Členové je mají v ceně.
+          </p>
+        )}
         <div className="mt-6 flex flex-col gap-3">
-          <ButtonLink href={`/prihlaseni?next=/rozvrh/${sessionId}`}>Přihlásit se</ButtonLink>
-          <ButtonLink href={`/registrace?next=/rozvrh/${sessionId}`} variant="outline">Vytvořit účet</ButtonLink>
+          <ButtonLink href={`/prihlaseni?next=${next}`}>Přihlásit se</ButtonLink>
+          <ButtonLink href={`/registrace?next=${next}`} variant="outline">Vytvořit účet</ButtonLink>
         </div>
       </div>
     );
@@ -314,6 +327,10 @@ function BookingPanel({
       : [{ ...o, pay: "" }],
   );
   const firstEnabled = options.find((o) => !o.disabled);
+  // „Rezervovat výhodně obě lekce“ – the bundle by card is picked (when it's offered and can be had)
+  const picked = (preferBundle && options.find((o) => o.bundle && !o.disabled)) || firstEnabled;
+  // a member came for both: they're in the membership, each booked on its own
+  const memberBoth = preferBundle && !!view.bundle && options.some((o) => o.method === "membership" && !o.disabled);
   return (
     // remount on switch so the preselected payment follows the new options
     <ActionForm key={view.withFriend ? "duo" : "solo"} action={bookAction}>
@@ -332,6 +349,20 @@ function BookingPanel({
         </label>
       )}
       <h2 className="text-2xl font-semibold">{view.withFriend ? "Jak zaplatíš za obě místa?" : "Jak chceš zaplatit?"}</h2>
+      {memberBoth && view.bundle && (
+        <p className="mt-3 rounded-xl bg-zlato/15 p-4 text-sm">
+          S členstvím máš obě lekce v ceně, nic neplatíš. Zarezervuj si tuhle a pak i{" "}
+          {view.bundle.sessions
+            .filter((x) => x.id !== sessionId)
+            .map((x, i) => (
+              <span key={x.id}>
+                {i > 0 && " a "}
+                <Link href={`/rozvrh/${x.id}`} className="font-semibold underline">{x.name} v {formatTime(x.startsAt)}</Link>
+              </span>
+            ))}
+          .
+        </p>
+      )}
       <fieldset className="mt-5 space-y-2">
         <legend className="sr-only">Způsob platby</legend>
         {options.map((o) => {
@@ -350,7 +381,7 @@ function BookingPanel({
                 value={value}
                 data-student={o.student ? "" : undefined}
                 disabled={!!o.disabled}
-                defaultChecked={o === firstEnabled}
+                defaultChecked={o === picked}
                 className="mt-1 accent-[#674329]"
               />
               <span>

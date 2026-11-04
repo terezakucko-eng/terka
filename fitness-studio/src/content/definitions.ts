@@ -82,6 +82,14 @@ const POPUP_FIELDS = {
     hint: "Stačí jedno tlačítko? Nech druhé tlačítko prázdné (text i odkaz) – ukáže se jen první.",
   },
   buttonUrl2: opt("Druhé tlačítko – kam vede", ""),
+  buttonLabel3: {
+    label: "Hlavní tlačítko navrch – text (nepovinné)",
+    type: "text",
+    default: "",
+    optional: true,
+    hint: "Ukáže se přes celou šířku nad ostatními tlačítky a ta pak budou menší – např. „Rezervovat výhodně obě lekce“. Prázdné = nic navrch.",
+  },
+  buttonUrl3: opt("Hlavní tlačítko navrch – kam vede", ""),
   repeatDay: {
     label: "Ukázat znovu každý (den v týdnu)",
     type: "text",
