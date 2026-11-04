@@ -36,9 +36,10 @@ export async function bookAction(_: FormState, fd: FormData): Promise<FormState>
   const sessionId = field.str(fd, "sessionId");
   const user = await requireUser(`/rozvrh/${sessionId}`);
   const [method, ref, pay] = field.str(fd, "option").split(":");
-  // "drop_in:student:…" = the student drop-in, otherwise the second part is the entitlement
+  // "drop_in:student:…" = the student drop-in, "drop_in:bundle:…" = all lessons of the bundle, otherwise the second part is the entitlement
   const student = method === "drop_in" && ref === "student";
-  const entitlementId = student ? "" : ref;
+  const bundle = method === "drop_in" && ref === "bundle";
+  const entitlementId = student || bundle ? "" : ref;
   const payMethod: PayMethod = pay === "card" && cardPayments() ? "card" : "transfer";
   let checkoutUrl: string | null = null;
 
@@ -57,6 +58,7 @@ export async function bookAction(_: FormState, fd: FormData): Promise<FormState>
       guestName: field.str(fd, "guestName") || undefined,
       student,
       studentConfirmed: fd.get("student") === "on",
+      bundle,
     });
     // a free first visit needs no payment, otherwise the place waits for it
     if (order && order.status === "pending") {
@@ -107,7 +109,10 @@ export async function cancelBookingAction(_: FormState, fd: FormData): Promise<F
     const r = await cancelBooking(db, { bookingId: field.str(fd, "bookingId"), actorId: user.id });
     if (r.booking.status !== "waitlist") await notifyCancelled(db, r.booking, r.refunded);
     // an unpaid drop-in costs nothing to cancel
-    if (r.booking.status === "pending_payment") return "Rezervace zrušena – nic neplatíš.";
+    if (r.booking.status === "pending_payment")
+      return r.released.length
+        ? `Rezervace zrušena i s ${r.released.length === 1 ? "druhou lekcí" : "ostatními lekcemi"} z balíčku – nic neplatíš.`
+        : "Rezervace zrušena – nic neplatíš.";
     await notifyPromoted(db, r.promoted);
     if (r.booking.method === "membership" && r.booking.status === "confirmed" && r.late && !r.refunded)
       await notifyStrike(db, user.id, await afterMemberStrike(db, user.id));

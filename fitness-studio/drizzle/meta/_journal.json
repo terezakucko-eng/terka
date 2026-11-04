@@ -1023,6 +1023,13 @@
       "when": 1793807150132,
       "tag": "0145_special_no_free_entry",
       "breakpoints": true
+    },
+    {
+      "idx": 146,
+      "version": "7",
+      "when": 1793818961463,
+      "tag": "0146_session_bundles",
+      "breakpoints": true
     }
   ]
 }

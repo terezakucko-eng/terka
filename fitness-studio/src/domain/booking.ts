@@ -9,13 +9,15 @@ import {
   orders,
   passCardUses,
   products,
+  sessionBundles,
   users,
   vacations,
   type Booking,
   type ClassSession,
   type Entitlement,
+  type Order,
 } from "@/db/schema";
-import { addDays, dateKey, formatDate, formatDateTime, mondayOf, pragueLocalToDate, weekRange, pragueHour } from "@/lib/dates";
+import { addDays, dateKey, formatDate, formatDateTime, formatTime, mondayOf, pragueLocalToDate, weekRange, pragueHour } from "@/lib/dates";
 import { UserError } from "@/lib/errors";
 import { credits as creditsLabel, formatPrice } from "@/lib/money";
 import { getSettings, type Settings } from "@/lib/settings";
@@ -44,6 +46,8 @@ export type BookingOption = {
   disabled?: string;
   /** drop_in at the student price (the client confirms she studies unless verified) */
   student?: boolean;
+  /** drop_in for all lessons of the session's bundle at once, one payment at the bundle price */
+  bundle?: boolean;
 };
 
 export type SessionState =
@@ -386,6 +390,38 @@ export function transferTooLate(cfg: Settings, s: Pick<ClassSession, "startsAt">
     : `Lekce začíná za méně než ${cfg.transferCutoffHours} h – převod by nestihl dorazit. Zaplať kartou.`;
 }
 
+/** The lessons drop-in orders hold places on (a bundle's: all of them), by time – for e-mails and the payment lists. */
+export async function orderLessons(db: Executor, orderIds: string[]) {
+  const map = new Map<string, { sessionId: string; name: string; startsAt: Date }[]>();
+  if (!orderIds.length) return map;
+  const rows = await db
+    .select({ orderId: bookings.orderId, sessionId: classSessions.id, name: sessionNameSql, startsAt: classSessions.startsAt })
+    .from(bookings)
+    .innerJoin(classSessions, eq(bookings.sessionId, classSessions.id))
+    .innerJoin(classTypes, eq(classSessions.classTypeId, classTypes.id))
+    .where(inArray(bookings.orderId, orderIds))
+    .orderBy(asc(classSessions.startsAt));
+  for (const r of rows) {
+    const list = map.get(r.orderId!) ?? [];
+    if (!list.some((l) => l.sessionId === r.sessionId)) list.push({ sessionId: r.sessionId, name: r.name, startsAt: r.startsAt });
+    map.set(r.orderId!, list);
+  }
+  return map;
+}
+
+/** One line per drop-in order in the lists: a bundle's lessons go under its first one, named together („Toning + fitness“). */
+async function oneRowPerOrder<T extends { orderId: string | null; name: string }>(db: Executor, rows: T[], dropIn: (r: T) => boolean) {
+  const lessons = await orderLessons(db, [...new Set(rows.filter(dropIn).map((r) => r.orderId!))]);
+  const seen = new Set<string>();
+  return rows.flatMap((r) => {
+    if (!dropIn(r)) return [r];
+    if (seen.has(r.orderId!)) return [];
+    seen.add(r.orderId!);
+    const all = lessons.get(r.orderId!) ?? [];
+    return [all.length > 1 ? { ...r, name: all.map((l) => l.name).join(" + ") } : r];
+  });
+}
+
 /**
  * Drop-ins by transfer whose payment didn't arrive in time: their place is
  * gone and the client hasn't been told yet (recent ones only).
@@ -454,9 +490,11 @@ export async function dropInNotices(db: Executor, userId: string, now: Date) {
       )
     : new Set<string>();
   const cfg = await getSettings(db);
+  const lessons = await orderLessons(db, rows.map((r) => r.orderId));
   const withPayBy = (r: (typeof rows)[number]) => {
     const payBy = transferPayBy(cfg, r);
-    return { ...r, payBy, overdue: payBy <= now };
+    const all = lessons.get(r.orderId) ?? [];
+    return { ...r, ...(all.length > 1 ? { name: all.map((l) => l.name).join(" + ") } : {}), payBy, overdue: payBy <= now };
   };
   return {
     waiting: rows.filter((r) => r.status === "pending" && r.expiresAt).map(withPayBy),
@@ -605,7 +643,7 @@ export async function unpaidBookings(db: Executor) {
       ),
     )
     .orderBy(asc(classSessions.startsAt));
-  return rows.map((r) => {
+  return (await oneRowPerOrder(db, rows, (r) => r.method === "drop_in" && r.orderStatus === "pending")).map((r) => {
     const dropIn = r.method === "drop_in" && r.orderStatus === "pending";
     return {
       ...r,
@@ -660,8 +698,8 @@ export async function transfersToCheck(db: Executor, now: Date) {
         gt(orders.expiresAt, now),
       ),
     )
-    .orderBy(asc(orders.expiresAt));
-  return rows.map((r) => ({ ...r, payBy: transferPayBy(cfg, r) }));
+    .orderBy(asc(orders.expiresAt), asc(bookings.createdAt));
+  return (await oneRowPerOrder(db, rows, () => true)).map((r) => ({ ...r, payBy: transferPayBy(cfg, r) }));
 }
 
 export async function markTransferNotice(db: Executor, orderId: string, kind: "new" | "reminder", now: Date) {
@@ -684,7 +722,13 @@ export async function expireStalePending(
       and(
         eq(orders.status, "pending"),
         lt(orders.expiresAt, now),
-        sessionId ? eq(orders.sessionId, sessionId) : undefined,
+        // a bundle's order is on its first lesson – it holds places on the others too
+        sessionId
+          ? or(
+              eq(orders.sessionId, sessionId),
+              inArray(orders.id, tx.select({ id: sql<string>`${bookings.orderId}` }).from(bookings).where(and(eq(bookings.sessionId, sessionId), eq(bookings.status, "pending_payment"), isNotNull(bookings.orderId)))),
+            )
+          : undefined,
       ),
     );
   if (!stale.length) return 0;
@@ -855,6 +899,140 @@ function entriesFor(e: Pick<Entitlement, "kind" | "classTypeId">, rules: Pick<Cl
 
 /** A friend (+1) can come along only to group classes, not to individual ones. */
 export const guestAllowed = (s: Pick<ClassSession, "capacity">) => s.capacity > 2;
+
+/* -------------------------------------------------------------- bundles */
+
+/** The lessons of this session's bundle that still take place, by time – null when it's in none (or the others are gone). */
+async function bundleOf(tx: Executor, s: Pick<ClassSession, "bundleId">) {
+  if (!s.bundleId) return null;
+  const [bundle] = await tx.select().from(sessionBundles).where(eq(sessionBundles.id, s.bundleId));
+  if (!bundle) return null;
+  const sessions = await tx
+    .select({ s: classSessions, name: sessionNameSql })
+    .from(classSessions)
+    .innerJoin(classTypes, eq(classSessions.classTypeId, classTypes.id))
+    .where(and(eq(classSessions.bundleId, bundle.id), eq(classSessions.status, "scheduled")))
+    .orderBy(asc(classSessions.startsAt));
+  return sessions.length > 1 ? { bundle, sessions } : null;
+}
+
+/** Locks every lesson of the bundle in one order – two clients booking it from different lessons never wait on each other. */
+async function lockBundle(tx: Executor, sessionId: string) {
+  const [one] = await tx.select({ bundleId: classSessions.bundleId }).from(classSessions).where(eq(classSessions.id, sessionId));
+  if (one?.bundleId)
+    await tx.select({ id: classSessions.id }).from(classSessions).where(eq(classSessions.bundleId, one.bundleId)).orderBy(asc(classSessions.id)).for("update");
+}
+
+/** Why the client can't have this other lesson of the bundle right now – null when she can. */
+async function bundlePartnerProblem(tx: Executor, cfg: Settings, userId: string, p: ClassSession, name: string, now: Date) {
+  const mine = await activeBooking(tx, userId, p.id);
+  if (mine && mine.status !== "waitlist") return `Na lekci ${name} už jsi přihlášená/ý – tuhle si zaplať zvlášť.`;
+  const window = (await viewerWindows(tx, cfg, userId, now)).forSession(p);
+  const cap = await capacityFor(tx, p, userId, now);
+  const state = sessionState({ ...p, capacity: cap.capacity }, await occupancy(tx, p.id), cfg, now, window);
+  if (state === "full") return `Lekce ${name} je už plná – tuhle si zaplať zvlášť.`;
+  if (state !== "bookable") return `${name}: ${stateMessage[state]}`;
+  return null;
+}
+
+/** All lessons of the bundle by one payment (card or transfer) at the bundle price – offered on each of them. */
+async function bundleOption(tx: Executor, userId: string, s: ClassSession, now: Date): Promise<BookingOption | null> {
+  const b = await bundleOf(tx, s);
+  if (!b) return null;
+  const cfg = await getSettings(tx);
+  let problem: string | null = null;
+  for (const p of b.sessions) if (p.s.id !== s.id) problem ??= await bundlePartnerProblem(tx, cfg, userId, p.s, p.name, now);
+  const n = b.sessions.length;
+  return {
+    method: "drop_in",
+    bundle: true,
+    label: `${n === 2 ? "Obě lekce" : n < 5 ? `Všechny ${n} lekce` : `Všech ${n} lekcí`} (${b.sessions.map((p) => formatTime(p.s.startsAt)).join(" + ")}) za ${formatPrice(b.bundle.price)}`,
+    detail: `${listNames(b.sessions.map((p) => p.name))} jednou platbou.`,
+    ...(problem ? { disabled: problem } : {}),
+  };
+}
+
+/** „A i B“, „A, B a C“ */
+const listNames = (names: string[]) => (names.length === 2 ? names.join(" i ") : `${names.slice(0, -1).join(", ")} a ${names.at(-1)}`);
+
+/** Books every lesson of the bundle at once: one order at the bundle price holds all the places until it's paid. */
+async function bookBundle(tx: Executor, cfg: Settings, input: BookInput, s: ClassSession, now: Date) {
+  const b = await bundleOf(tx, s);
+  if (!b) throw new UserError("Tahle lekce už v balíčku není – vyber prosím jiný způsob platby.");
+  for (const p of b.sessions) {
+    if (p.s.id === s.id) continue;
+    await assertNotOnVacation(tx, input.userId, p.s);
+    await expireStalePending(tx, now, p.s.id);
+    const problem = await bundlePartnerProblem(tx, cfg, input.userId, p.s, p.name, now);
+    if (problem) throw new UserError(problem);
+  }
+  // the payment is due by the first lesson's deadline
+  const first = b.sessions[0].s;
+  let expiresAt = new Date(now.getTime() + cfg.pendingPaymentMinutes * MIN);
+  if (input.payLater) {
+    const until = transferDeadline(cfg, first, now);
+    if (!until && input.cardAvailable !== false) throw new UserError(transferTooLate(cfg, first));
+    expiresAt = until ?? first.startsAt;
+  }
+  const [order] = await tx
+    .insert(orders)
+    .values({ userId: input.userId, kind: "drop_in", sessionId: first.id, description: b.bundle.name, amount: b.bundle.price, createdAt: now, provider: "pending", expiresAt })
+    .returning();
+  let booking: Booking | undefined;
+  for (const p of b.sessions) {
+    // a place on the other lesson's waitlist becomes the booking
+    const waiting = p.s.id === s.id ? null : await activeBooking(tx, input.userId, p.s.id);
+    if (waiting?.status === "waitlist") await tx.update(bookings).set({ status: "cancelled", cancelledAt: now }).where(eq(bookings.id, waiting.id));
+    const [row] = await tx
+      .insert(bookings)
+      .values({ userId: input.userId, sessionId: p.s.id, status: "pending_payment", method: "drop_in", orderId: order.id, seats: 1 })
+      .returning();
+    if (p.s.id === s.id) booking = row;
+  }
+  return { booking: booking!, order };
+}
+
+/**
+ * An unpaid drop-in is called off: its order won't be paid and – a bundle holds more than one
+ * place – the other places it held go too. Returns those other bookings.
+ */
+async function callOffDropIn(tx: Executor, orderId: string, bookingId: string, now: Date) {
+  const [o] = await tx
+    .update(orders)
+    .set({ status: "cancelled" })
+    .where(and(eq(orders.id, orderId), eq(orders.status, "pending")))
+    .returning({ id: orders.id });
+  if (!o) return [];
+  return tx
+    .update(bookings)
+    .set({ status: "cancelled", cancelledAt: now })
+    .where(and(eq(bookings.orderId, orderId), ne(bookings.id, bookingId), eq(bookings.status, "pending_payment")))
+    .returning();
+}
+
+/** Locks the lessons a drop-in order holds places on, in one order (see lockBundle). */
+async function lockOrderSessions(tx: Executor, orderId: string) {
+  await tx
+    .select({ id: classSessions.id })
+    .from(classSessions)
+    .where(inArray(classSessions.id, tx.select({ id: bookings.sessionId }).from(bookings).where(eq(bookings.orderId, orderId))))
+    .orderBy(asc(classSessions.id))
+    .for("update");
+}
+
+/** A drop-in order for more lessons (a bundle) still waiting for its payment. */
+async function unpaidBundle(tx: Executor, orderId: string) {
+  const [o] = await tx.select({ status: orders.status }).from(orders).where(eq(orders.id, orderId));
+  if (o?.status !== "pending") return false;
+  const [r] = await tx.select({ n: count() }).from(bookings).where(eq(bookings.orderId, orderId));
+  return (r?.n ?? 0) > 1;
+}
+
+/** The part of a drop-in order one booking paid for – a bundle's price split evenly between its lessons. */
+export async function orderShare(tx: Executor, o: Pick<Order, "id" | "amount">) {
+  const [r] = await tx.select({ n: count() }).from(bookings).where(eq(bookings.orderId, o.id));
+  return Math.round(o.amount / Math.max(1, r?.n ?? 1));
+}
 
 /** Drop-in price for the client and a friend: the class type's price for two, else both single prices. */
 async function duoDropInPriceFor(tx: Executor, userId: string, s: ClassSession, rules: ClassRules) {
@@ -1033,11 +1211,15 @@ export async function bookingOptions(
       });
     return opts;
   }
+  // all lessons of the bundle (an event with more of them) for one price – before the single drop-in, it's the better deal
+  const bundle = await bundleOption(tx, userId, s, now);
+  if (bundle) opts.push(bundle);
   const dropIn = await dropInPriceFor(tx, userId, s, rules);
   if (dropIn) {
     opts.push({
       method: "drop_in",
-      label: dropIn.intro ? `První lekce ${formatPrice(dropIn.price)}` : `Jednorázový vstup ${formatPrice(dropIn.price)}`,
+      // next to the bundle it's clear this one is for the single lesson
+      label: dropIn.intro ? `První lekce ${formatPrice(dropIn.price)}` : `${bundle ? "Jen tahle lekce" : "Jednorázový vstup"} ${formatPrice(dropIn.price)}`,
       detail: "Zaplatíš online kartou.",
     });
   }
@@ -1210,8 +1392,9 @@ async function refund(tx: Executor, b: Booking, s: ClassSession, note: string) {
         if (o?.status === "pending") await tx.update(orders).set({ status: "cancelled" }).where(eq(orders.id, o.id));
         break;
       }
-      // What was paid comes back as credit – never more than the class costs (a free first visit gives nothing).
-      const credit = dropInCredit(o.amount, s.creditCost, b.seats);
+      // What was paid comes back as credit – never more than the class costs (a free first visit gives nothing);
+      // a bundle's lesson gets back its share of the bundle price.
+      const credit = dropInCredit(await orderShare(tx, o), s.creditCost, b.seats);
       if (credit > 0)
         await changeCredits(tx, {
           userId: b.userId,
@@ -1345,6 +1528,8 @@ export type BookInput = {
   student?: boolean;
   /** …which a client not verified yet confirms she studies for (undefined = reception) */
   studentConfirmed?: boolean;
+  /** drop_in for every lesson of the session's bundle – one order at the bundle price */
+  bundle?: boolean;
 };
 
 /** Zmražení členství: no classes in the member's frozen week. */
@@ -1364,6 +1549,7 @@ async function assertNotOnVacation(tx: Executor, userId: string, s: Pick<ClassSe
 export async function bookSession(db: DB, input: BookInput, now = new Date()) {
   return db.transaction(async (tx) => {
     const cfg = await getSettings(tx);
+    if (input.bundle) await lockBundle(tx, input.sessionId);
     const s = await lockSession(tx, input.sessionId);
     await assertNotOnVacation(tx, input.userId, s);
     await expireStalePending(tx, now, s.id);
@@ -1397,6 +1583,10 @@ export async function bookSession(db: DB, input: BookInput, now = new Date()) {
       throw new UserError("Na tuhle lekci už jsi přihlášená/ý.");
     }
 
+    if (input.method === "drop_in" && input.bundle) {
+      if (guestName || input.student) throw new UserError("Balíček lekcí je jen pro tebe – kamarádka i studentský vstup se platí zvlášť.");
+      return bookBundle(tx, cfg, input, s, now);
+    }
     if (input.method === "drop_in") {
       const rules = await classRules(tx, s);
       const student = !!input.student && !guestName;
@@ -1592,6 +1782,8 @@ export async function cancelBooking(
     if (!b || (!input.isAdmin && b.userId !== input.actorId))
       throw new UserError("Rezervace nenalezena.");
     if (b.status === "cancelled") throw new UserError("Rezervace už je zrušená.");
+    // an unpaid bundle lets go of all its lessons – locked in one order, like when it was booked
+    if (b.status === "pending_payment" && b.orderId) await lockOrderSessions(tx, b.orderId);
     const s = await lockSession(tx, b.sessionId);
     if (!input.isAdmin && s.startsAt <= now)
       throw new UserError("Lekce už začala, rezervaci nelze zrušit.");
@@ -1602,12 +1794,10 @@ export async function cancelBooking(
 
     const late = isLateCancel(s, await cancellationHoursFor(tx, s, cfg), now);
     let refunded = false;
+    let released: Booking[] = [];
 
     if (b.status === "pending_payment" && b.orderId) {
-      await tx
-        .update(orders)
-        .set({ status: "cancelled" })
-        .where(and(eq(orders.id, b.orderId), eq(orders.status, "pending")));
+      released = await callOffDropIn(tx, b.orderId, b.id, now);
     } else if (b.status !== "waitlist") {
       refunded = input.isAdmin ? (input.refund ?? true) : !late;
       // a late cancel keeps what was paid (entry, surcharge) – an unpaid surcharge is just called off
@@ -1627,7 +1817,9 @@ export async function cancelBooking(
 
     const promoted =
       b.status === "waitlist" ? [] : await promoteWaitlist(tx, s, now);
-    return { booking: b, session: s, refunded, late, promoted };
+    // the other lessons of the unpaid bundle came free too
+    for (const r of released) promoted.push(...(await promoteWaitlist(tx, await lockSession(tx, r.sessionId), now)));
+    return { booking: b, session: s, refunded, late, promoted, released };
   });
 }
 
@@ -1677,6 +1869,12 @@ export async function holdSeats(
   });
 }
 
+/** For loops cancelling a client's bookings one by one: cancelling an unpaid bundle's lesson takes its other lessons along. */
+export async function alreadyCancelled(db: Executor, bookingId: string) {
+  const [b] = await db.select({ status: bookings.status }).from(bookings).where(eq(bookings.id, bookingId));
+  return !b || b.status === "cancelled";
+}
+
 /** Studio cancels a class – everyone gets their entry back. */
 export async function cancelSession(db: DB, sessionId: string, now = new Date()) {
   return db.transaction(async (tx) => {
@@ -1692,12 +1890,11 @@ export async function cancelSession(db: DB, sessionId: string, now = new Date())
       .from(bookings)
       .where(and(eq(bookings.sessionId, s.id), ne(bookings.status, "cancelled")))
       .for("update");
+    const released: Booking[] = [];
     for (const b of affected) {
       if (b.status === "pending_payment" && b.orderId) {
-        await tx
-          .update(orders)
-          .set({ status: "cancelled" })
-          .where(and(eq(orders.id, b.orderId), eq(orders.status, "pending")));
+        // an unpaid bundle goes as a whole – its other lessons' places come free
+        released.push(...(await callOffDropIn(tx, b.orderId, b.id, now)));
       } else if (b.status !== "waitlist") {
         await refund(tx, b, s, "Lekce zrušena studiem");
       }
@@ -1708,7 +1905,7 @@ export async function cancelSession(db: DB, sessionId: string, now = new Date())
       // a lesson included in the membership isn't lost – it goes to the next surcharged one that month
       if (b.status === "confirmed") await passIncludedOn(tx, b, s);
     }
-    return { session: s, affected };
+    return { session: s, affected, released };
   });
 }
 
@@ -1739,6 +1936,8 @@ export async function changeBookingPayment(
     const entitlementId = pay === "admin" ? undefined : pay.entitlementId;
     if (method === "drop_in") throw new UserError("Vyber, z čeho se má strhnout.");
     if (method === b.method && (entitlementId ?? null) === b.entitlementId) throw new UserError("Rezervace už je placená takhle.");
+    if (b.method === "drop_in" && b.orderId && (await unpaidBundle(tx, b.orderId)))
+      throw new UserError("Rezervace je v balíčku s další lekcí, který čeká na jednu platbu. Zruš nejdřív celou nezaplacenou platbu (u klienta v Platby) a lekce pak přidej znovu.");
 
     await refund(tx, b, s, "Změna platby");
     // the old payment is gone: no order (a transfer paid anyway comes back as credit), nothing charged
@@ -1871,7 +2070,7 @@ export async function sessionForUser(
   let myBooking: Booking | undefined;
   let waitlistPosition: number | null = null;
   let options: BookingOption[] = [];
-  let unpaid: { id: string; createdAt: Date; expiresAt: Date | null; provider: string; payBy?: Date; overdue?: boolean } | undefined;
+  let unpaid: { id: string; createdAt: Date; expiresAt: Date | null; provider: string; payBy?: Date; overdue?: boolean; lessons?: number } | undefined;
   let lapsedPayBy: Date | null = null;
   const transferUntil = transferDeadline(cfg, s, now);
   if (userId) {
@@ -1891,6 +2090,8 @@ export async function sessionForUser(
       unpaid.payBy = transferPayBy(cfg, unpaid);
       unpaid.overdue = unpaid.payBy <= now;
     }
+    // a bundle's payment holds places on more lessons – cancelling lets go of all of them
+    if (unpaid) unpaid.lessons = (await orderLessons(db, [unpaid.id])).get(unpaid.id)?.length ?? 1;
     // an earlier drop-in here whose transfer didn't arrive in time – said on the page, not just by e-mail
     if (!myBooking || myBooking.status === "waitlist") {
       const [l] = await db

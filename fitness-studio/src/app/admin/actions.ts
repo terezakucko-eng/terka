@@ -489,9 +489,15 @@ export async function cancelSessionAction(_: FormState, fd: FormData): Promise<F
     const db = await getDb();
     const r = await cancelSession(db, field.str(fd, "id"));
     await notifySessionCancelled(db, r.session.id, r.affected);
+    await fillReleased(db, r.released);
     const n = cancelledRecipients(r.affected).length;
     return done(n ? `Lekce zrušena, dali jsme vědět ${n} ${n === 1 ? "klientovi" : "klientům"} a vrátili, co zaplatili.` : "Lekce zrušena.");
   });
+}
+
+/** An unpaid bundle went with a cancelled class – the waitlists of its other lessons move up. */
+async function fillReleased(db: DB, released: { sessionId: string }[]) {
+  for (const id of new Set(released.map((r) => r.sessionId))) await notifyPromoted(db, await fillFromWaitlist(db, id)).catch(() => {});
 }
 
 /** Deletes classes; upcoming ones with clients are cancelled (refund + e-mail) first. */
@@ -505,6 +511,7 @@ async function removeSessions(ids: string[]) {
     if (s.status !== "cancelled" && s.startsAt > now && (await occupancy(db, id)) > 0) {
       const r = await cancelSession(db, id, now);
       await notifySessionCancelled(db, id, r.affected);
+      await fillReleased(db, r.released);
       notified += cancelledRecipients(r.affected).length;
     }
     await purgeSession(db, id);
@@ -691,6 +698,7 @@ export async function adminCancelBookingAction(_: FormState, fd: FormData): Prom
     if (!b.isHold && b.status !== "waitlist" && r.session.startsAt > new Date()) await notifyCancelled(db, b, r.refunded, true).catch(() => {});
     if (b.method === "membership" && b.status === "confirmed" && r.late && !r.refunded)
       await notifyStrike(db, b.userId, await afterMemberStrike(db, b.userId));
+    if (r.released.length) return done(`Zrušeno i s ${r.released.length === 1 ? "druhou lekcí" : "ostatními lekcemi"} z nezaplaceného balíčku.`);
     if (!r.refunded) return done(b.method === "membership" && b.status === "confirmed" && r.late ? "Zrušeno bez vrácení – pozdní storno se počítá do upozornění/pauzy." : "Zrušeno bez vrácení.");
     return done(b.method === "drop_in" && b.status !== "pending_payment" ? "Zrušeno – zaplacená částka se vrátila jako kredit." : "Zrušeno s vrácením.");
   });

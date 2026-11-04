@@ -295,12 +295,28 @@ export const classSessions = pgTable(
     note: text("note"),
     /** Rezervace otevřít už od (akce, brunch…); null = podle běžného rezervačního okna */
     bookingOpensAt: timestamp("booking_opens_at", { withTimezone: true }),
+    /** Balíček lekcí (např. obě lekce Zumba SPECIAL jednou platbou za zvýhodněnou cenu) */
+    bundleId: uuid("bundle_id").references((): AnyPgColumn => sessionBundles.id, { onDelete: "set null" }),
     status: sessionStatus("status").notNull().default("scheduled"),
     seriesId: uuid("series_id"),
     createdAt: createdAt(),
   },
   (t) => [index("class_sessions_starts_at_idx").on(t.startsAt)],
 );
+
+/**
+ * Několik termínů najednou za jednu cenu (akce s víc lekcemi za sebou): jednorázově
+ * jednou platbou kartou nebo převodem za všechny. Kredity, permanentky a členství
+ * se strhávají za každou lekci zvlášť jako obvykle.
+ */
+export const sessionBundles = pgTable("session_bundles", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  /** Název do objednávky a platby (např. „Zumba SPECIAL – obě lekce“) */
+  name: text("name").notNull(),
+  /** Cena za všechny lekce balíčku dohromady v haléřích */
+  price: integer("price").notNull(),
+  createdAt: createdAt(),
+});
 
 export const products = pgTable("products", {
   id: uuid("id").primaryKey().defaultRandom(),
