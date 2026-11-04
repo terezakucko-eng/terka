@@ -6,7 +6,7 @@ import { UserError } from "@/lib/errors";
 import { formatPrice } from "@/lib/money";
 import { getSettings, type Settings } from "@/lib/settings";
 import { VACATION, daysByMonth, daysShare, discountNote, vacationEnd, vacationLabel } from "@/lib/vacation";
-import { cancelBooking, surchargeCredits } from "./booking";
+import { alreadyCancelled, cancelBooking, surchargeCredits } from "./booking";
 import { membersInMonth, periodLabel, shiftPeriod } from "./membership-fees";
 import { changeCredits } from "./wallet";
 
@@ -106,7 +106,11 @@ async function cancelClassesIn(db: DB, userId: string, startsOn: string, endsOn:
       ),
     )
     .orderBy(asc(classSessions.startsAt));
-  for (const r of rows) await cancelBooking(db, { bookingId: r.id, actorId: userId, isAdmin: true, refund: true }, now);
+  for (const r of rows) {
+    // an unpaid bundle's other lesson went with the first one
+    if (await alreadyCancelled(db, r.id)) continue;
+    await cancelBooking(db, { bookingId: r.id, actorId: userId, isAdmin: true, refund: true }, now);
+  }
   return rows;
 }
 

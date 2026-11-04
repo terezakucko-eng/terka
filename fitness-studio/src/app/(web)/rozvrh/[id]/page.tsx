@@ -209,7 +209,7 @@ function BookingPanel({
               <input type="hidden" name="bookingId" value={b.id} />
               <p className="mb-3 text-sm text-les/70">
                 {unpaid
-                  ? "Nezaplacenou rezervaci můžeš zrušit kdykoli – nic neplatíš."
+                  ? `Nezaplacenou rezervaci můžeš zrušit kdykoli – nic neplatíš.${(unpaid.lessons ?? 1) > 1 ? " Je v balíčku, takže se zruší i ostatní lekce z něj." : ""}`
                   : view.lateCancel
                     ? `Do lekce zbývá méně než ${view.cancellationHours} h – při zrušení vstup${b.surchargePaidAt ? " i doplatek propadají" : " propadá"}.`
                     : `Zrušit můžeš zdarma do ${view.cancellationHours} h před začátkem${b.surcharge > 0 && b.surchargePaidAt ? " – doplatek se ti vrátí jako kredit" : ""}.`}
@@ -307,10 +307,10 @@ function BookingPanel({
     o.method === "drop_in"
       ? card
         ? [
-            { ...o, pay: "card", detail: "Zaplatíš hned kartou a místo je tvoje." },
-            { ...o, pay: "transfer", label: `${o.label} – převodem`, detail: transfer, disabled: o.disabled ?? tooLate },
+            { ...o, pay: "card", detail: o.bundle ? `${o.detail} Zaplatíš hned kartou a místa jsou tvoje.` : "Zaplatíš hned kartou a místo je tvoje." },
+            { ...o, pay: "transfer", label: `${o.label} – převodem`, detail: o.bundle ? `${o.detail} ${transfer}` : transfer, disabled: o.disabled ?? tooLate },
           ]
-        : [{ ...o, pay: "transfer", detail: transfer }]
+        : [{ ...o, pay: "transfer", detail: o.bundle ? `${o.detail} ${transfer}` : transfer }]
       : [{ ...o, pay: "" }],
   );
   const firstEnabled = options.find((o) => !o.disabled);
@@ -335,7 +335,7 @@ function BookingPanel({
       <fieldset className="mt-5 space-y-2">
         <legend className="sr-only">Způsob platby</legend>
         {options.map((o) => {
-          const value = `${o.method}:${o.student ? "student" : (o.entitlementId ?? "")}:${o.pay}`;
+          const value = `${o.method}:${o.student ? "student" : o.bundle ? "bundle" : (o.entitlementId ?? "")}:${o.pay}`;
           return (
             <label
               key={value}

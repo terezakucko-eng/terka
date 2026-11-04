@@ -1,6 +1,6 @@
 import { isMember } from "./massages";
 import { sessionNameSql } from "@/lib/session-name";
-import { and, desc, eq, gt, inArray, ne } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, ne } from "drizzle-orm";
 import type { DB, Executor } from "@/db";
 import {
   bookings,
@@ -179,7 +179,14 @@ export async function creditedBack(db: DB, orderId: string) {
   return rows.reduce((sum, r) => sum + r.delta, 0);
 }
 
-type Settled = { userId: string; booking: Booking | null; outcome: "confirmed" | "paid" | "credited"; credit: number };
+type Settled = {
+  userId: string;
+  booking: Booking | null;
+  /** every place a bundle's payment confirmed (the first one is `booking`) */
+  bookings?: Booking[];
+  outcome: "confirmed" | "paid" | "credited";
+  credit: number;
+};
 
 /** Money that came for something no longer there comes back as credit, 1 Kč = 1 kredit. */
 async function creditBack(tx: Executor, order: Order, credit: number, note: string, booking: Booking | null): Promise<Settled> {
@@ -198,17 +205,47 @@ async function settleSurcharge(tx: Executor, order: Order): Promise<Settled> {
 }
 
 /**
- * A paid drop-in: its place is confirmed now. When the hold ran out meanwhile it's
- * rebooked if there's room; called off by the client / studio, deleted, or full
- * – the money comes back as credit.
+ * A paid drop-in: its place is confirmed now (a bundle's: every lesson's). When the hold ran out
+ * meanwhile it's rebooked if there's room; called off by the client / studio, deleted, or full
+ * – the money comes back as credit (a bundle's lesson: its share of the price).
  */
 async function confirmDropIn(tx: Executor, order: Order, now: Date, calledOff: boolean): Promise<Settled | null> {
-  const [b] = await tx
-    .select()
-    .from(bookings)
-    .where(eq(bookings.orderId, order.id))
-    .for("update");
-  if (!b) return creditBack(tx, order, Math.round(order.amount / 100), "Platba za lekci, která už neexistuje – vráceno jako kredit", null);
+  const held = (
+    await tx
+      .select({ b: bookings })
+      .from(bookings)
+      .innerJoin(classSessions, eq(bookings.sessionId, classSessions.id))
+      .where(eq(bookings.orderId, order.id))
+      .orderBy(asc(classSessions.startsAt))
+      .for("update", { of: bookings })
+  ).map((r) => r.b);
+  if (!held.length) return creditBack(tx, order, Math.round(order.amount / 100), "Platba za lekci, která už neexistuje – vráceno jako kredit", null);
+  const share = Math.round(order.amount / held.length);
+  const confirmed: Booking[] = [];
+  let credited: Booking | null = null;
+  let credit = 0;
+  for (const b of held) {
+    const r = await settleDropInPlace(tx, b, share, now, calledOff);
+    if (r === "confirmed") confirmed.push(b);
+    else if (r !== null) {
+      credited ??= b;
+      credit += r;
+    }
+  }
+  if (credit > 0)
+    await changeCredits(tx, {
+      userId: order.userId,
+      delta: credit,
+      reason: "refund",
+      orderId: order.id,
+      note: calledOff ? "Platba dorazila po zrušení rezervace – vráceno jako kredit" : "Platba dorazila po vypršení rezervace – vráceno jako kredit",
+    });
+  if (confirmed.length) return { userId: order.userId, booking: confirmed[0], bookings: confirmed, outcome: "confirmed", credit };
+  return credited ? { userId: order.userId, booking: credited, outcome: "credited", credit } : null;
+}
+
+/** One place a paid drop-in held: "confirmed", the credit it comes back as, or null when there's nothing to do. */
+async function settleDropInPlace(tx: Executor, b: Booking, paid: number, now: Date, calledOff: boolean): Promise<"confirmed" | number | null> {
   const [s] = await tx
     .select()
     .from(classSessions)
@@ -220,11 +257,10 @@ async function confirmDropIn(tx: Executor, order: Order, now: Date, calledOff: b
       .update(bookings)
       .set({ status: "confirmed" })
       .where(eq(bookings.id, b.id));
-    return { userId: b.userId, booking: b, outcome: "confirmed", credit: 0 };
+    return "confirmed";
   }
   if (b.status !== "cancelled") return null;
-  if (calledOff)
-    return creditBack(tx, order, dropInCredit(order.amount, s.creditCost, b.seats), "Platba dorazila po zrušení rezervace – vráceno jako kredit", b);
+  if (calledOff) return dropInCredit(paid, s.creditCost, b.seats);
 
   // Paid after the hold expired: rebook if there's still room, else credit.
   const [other] = await tx
@@ -247,9 +283,9 @@ async function confirmDropIn(tx: Executor, order: Order, now: Date, calledOff: b
       .update(bookings)
       .set({ status: "confirmed", cancelledAt: null })
       .where(eq(bookings.id, b.id));
-    return { userId: b.userId, booking: b, outcome: "confirmed", credit: 0 };
+    return "confirmed";
   }
-  return creditBack(tx, order, dropInCredit(order.amount, s.creditCost, b.seats), "Platba dorazila po vypršení rezervace – vráceno jako kredit", b);
+  return dropInCredit(paid, s.creditCost, b.seats);
 }
 
 /** Monthly membership renewal from the payment provider (e.g. Stripe invoice). */
