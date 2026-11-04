@@ -995,6 +995,13 @@
       "when": 1793804572947,
       "tag": "0141_zumba_special_16_11",
       "breakpoints": true
+    },
+    {
+      "idx": 142,
+      "version": "7",
+      "when": 1793805576028,
+      "tag": "0142_zumba_special_open",
+      "breakpoints": true
     }
   ]
 }
