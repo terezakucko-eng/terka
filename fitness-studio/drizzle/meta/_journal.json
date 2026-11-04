@@ -988,6 +988,13 @@
       "when": 1793523918934,
       "tag": "0140_barre_photo_space",
       "breakpoints": true
+    },
+    {
+      "idx": 141,
+      "version": "7",
+      "when": 1793804572947,
+      "tag": "0141_zumba_special_16_11",
+      "breakpoints": true
     }
   ]
 }
