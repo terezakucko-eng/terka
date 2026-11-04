@@ -142,14 +142,15 @@ describe("board post and the next pop-up", () => {
     expect(withButtons('<p>Viz <a href="/x">ceník</a>.</p>')).not.toContain("cta");
   });
 
-  it("the pop-up switches to the planned one on Saturday 31. 10. and leads to the post", async () => {
+  it("the pop-up switches to the planned one and leads to the post – from 17. 11., after the Zumba SPECIAL one (0145)", async () => {
     const rows = await h.db.select().from(content).where(sql`${content.key} like 'popupNext.%'`);
     const next = Object.fromEntries(rows.map((r) => [r.key.slice("popupNext.".length), r.value]));
     expect(next.buttonUrl).toBe("/nastenka#ec9596c8-12e0-4cf2-97ff-d54610740a2d");
     expect(next.text).toContain("dvakrát ročně si můžeš zmrazit členství na týden");
-    expect(popupSlot({ title: next.title, from: next.from }, "2026-10-30")).toBe("popup");
-    expect(popupSlot({ title: next.title, from: next.from }, "2026-10-31")).toBe("popupNext");
-    expect(popupSlot({ title: "", from: next.from }, "2026-11-01")).toBe("popup");
+    expect(next.from).toBe("2026-11-17");
+    expect(popupSlot({ title: next.title, from: next.from }, "2026-11-16")).toBe("popup");
+    expect(popupSlot({ title: next.title, from: next.from }, "2026-11-17")).toBe("popupNext");
+    expect(popupSlot({ title: "", from: next.from }, "2026-11-18")).toBe("popup");
     expect(popupOver(next.until, "2026-12-31")).toBe(false);
     expect(popupOver(next.until, "2027-01-01")).toBe(true);
   });
@@ -204,7 +205,9 @@ describe("price list cards", () => {
 
 describe("Barre Brunch pop-up", () => {
   it("migration 0122: ends tonight – the membership 2027 one follows from Saturday", async () => {
-    await h.db.insert(content).values([{ key: "popup.title", value: "🥐 Barre + Brunch už tuto sobotu 31. 10." }, { key: "popup.until", value: "2026-10-31" }]).onConflictDoNothing();
+    // the pop-up as it was then (later migrations have replaced it since)
+    for (const [key, value] of [["popup.title", "🥐 Barre + Brunch už tuto sobotu 31. 10."], ["popup.until", "2026-10-31"]])
+      await h.db.insert(content).values({ key, value }).onConflictDoUpdate({ target: content.key, set: { value } });
     await h.db.execute(sql.raw(readFileSync("drizzle/0122_brunch_popup_ends_tonight.sql", "utf8")));
     const until = (await h.db.select().from(content).where(eq(content.key, "popup.until")))[0].value;
     expect(until).toBe("2026-10-30");

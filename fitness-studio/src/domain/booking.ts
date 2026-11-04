@@ -863,9 +863,9 @@ async function duoDropInPriceFor(tx: Executor, userId: string, s: ClassSession, 
   return rules.duoPrice ?? single.price + s.dropInPrice;
 }
 
-/** Drop-in price for this client – the intro price if they've never had this class (or, newcomers only, any class). */
+/** Drop-in price for this client – the intro price if they've never had this class (or, newcomers only, any class); a special class has none. */
 async function dropInPriceFor(tx: Executor, userId: string, s: ClassSession, rules: ClassRules) {
-  if (rules.firstVisitPrice !== null) {
+  if (rules.firstVisitPrice !== null && !s.noFreeEntry) {
     const [before] = await tx
       .select({ id: bookings.id })
       .from(bookings)
@@ -899,6 +899,8 @@ async function entitlementProblem(
   if (e.classTypeId && e.classTypeId !== s.classTypeId) return "Platí jen na jinou lekci.";
   if (e.beforeHour !== null && pragueHour(s.startsAt) >= e.beforeHour) return `Platí jen na lekce začínající do ${e.beforeHour}:00.`;
   if (e.sameDayOnly && dateKey(s.startsAt) !== dateKey(now)) return "Platí jen v den lekce, když zbývá volné místo.";
+  // a special class (guests, an event) is always paid for – no welcome lesson, card lesson or other free entry
+  if (e.kind === "free" && s.noFreeEntry) return "Na tuhle speciální lekci vstup zdarma použít nejde.";
   // a free entry given for this very class counts even where intro entries don't; so does a Pošli to dál card's lesson where the class lets it
   if (e.kind === "free" && !e.classTypeId) {
     const rules = await classRules(tx, s);

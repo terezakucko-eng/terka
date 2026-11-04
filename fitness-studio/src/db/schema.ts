@@ -287,6 +287,8 @@ export const classSessions = pgTable(
     dropInPrice: integer("drop_in_price"),
     /** Lekce zdarma pro všechny přihlášené (open class, den otevřených dveří…) */
     isFree: boolean("is_free").notNull().default(false),
+    /** Speciální termín (hosté, akce): vždy placený – neplatí vstupy zdarma (úvodní lekce, kartička, dárky) ani úvodní cena */
+    noFreeEntry: boolean("no_free_entry").notNull().default(false),
     room: text("room"),
     /** Vlastní název termínu (např. „Dýňový brunch“); null = název lekce */
     title: text("title"),
