@@ -1030,6 +1030,13 @@
       "when": 1793818961463,
       "tag": "0146_session_bundles",
       "breakpoints": true
+    },
+    {
+      "idx": 147,
+      "version": "7",
+      "when": 1793819497020,
+      "tag": "0147_members_free_texts",
+      "breakpoints": true
     }
   ]
 }

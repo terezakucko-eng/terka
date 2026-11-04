@@ -1211,8 +1211,10 @@ export async function bookingOptions(
       });
     return opts;
   }
-  // all lessons of the bundle (an event with more of them) for one price – before the single drop-in, it's the better deal
-  const bundle = await bundleOption(tx, userId, s, now);
+  // all lessons of the bundle (an event with more of them) for one price – before the single drop-in, it's the better deal;
+  // members have them in the membership, nothing to pay
+  const member = opts.some((o) => o.method === "membership" && !o.disabled);
+  const bundle = member ? null : await bundleOption(tx, userId, s, now);
   if (bundle) opts.push(bundle);
   const dropIn = await dropInPriceFor(tx, userId, s, rules);
   if (dropIn) {

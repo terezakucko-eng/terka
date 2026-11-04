@@ -13,6 +13,7 @@ import {
   unpaidBookings,
 } from "@/domain/booking";
 import { fulfillOrder } from "@/domain/orders";
+import { grantEntitlement } from "@/domain/users";
 import { NOW, hours, makeSession, makeUser, testDb } from "./helpers";
 
 let h: Awaited<ReturnType<typeof testDb>>;
@@ -50,6 +51,16 @@ describe("a bundle: both lessons of an event by one payment", () => {
     }
     // a friend coming along pays per lesson – no bundle for two
     expect(await bundleOpt(u.id, toning, 2)).toBeUndefined();
+  });
+
+  it("isn't offered to members – they have the lessons in the membership, nothing to pay", async () => {
+    const { toning } = await event();
+    const m = await makeUser(h.db);
+    await grantEntitlement(h.db, { userId: m.id, kind: "membership", name: "Členství", entries: null, validityDays: 30 }, NOW);
+    const opts = await bookingOptions(h.db, m.id, toning, 1, NOW);
+    expect(opts[0]).toMatchObject({ method: "membership", label: "Členství" });
+    expect(opts[0].disabled).toBeUndefined();
+    expect(opts.find((o) => o.bundle)).toBeUndefined();
   });
 
   it("books both places at once and one payment of 300 Kč confirms them", async () => {
@@ -142,12 +153,14 @@ describe("a bundle: both lessons of an event by one payment", () => {
   });
 });
 
-describe("migration 0146: the Zumba SPECIAL bundle", () => {
+describe("migrations 0146–0147: the Zumba SPECIAL bundle, members free", () => {
   it("is 300 Kč for both lessons and the board post says so", async () => {
     const [b] = await h.db.select().from(sessionBundles).where(eq(sessionBundles.id, "3ba8adce-7a55-4a8c-a417-8cc60cc88cea"));
     expect(b).toMatchObject({ name: "Zumba SPECIAL – obě lekce", price: 30000 });
     const [post] = await h.db.select().from(announcements).where(eq(announcements.id, "146aa9e2-80ab-437c-b082-47ecb7403616"));
     expect(post.body).toContain("<li>jednorázově 250 Kč či 220 kreditů</li><li>balíček na obě za <strong>300 Kč</strong> – zaplatíš kartou nebo převodem</li>");
     expect(post.body.match(/300 Kč/g)).toHaveLength(1);
+    // 0147: members don't pay – said first
+    expect(post.body).toContain("<li>členové nic neplatí – obě lekce mají v ceně členství</li>");
   });
 });
