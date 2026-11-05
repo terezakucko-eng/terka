@@ -7,7 +7,7 @@ import { getDb } from "@/db";
 import { announcements } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
-import { clampLines, storyLines } from "@/lib/story-text";
+import { STORY_BODY, storyLayout, storyLines } from "@/lib/story-text";
 
 const assets = Promise.all([
   readFile(join(process.cwd(), "assets/fonts/DMSans-Regular.ttf")),
@@ -28,8 +28,8 @@ export async function GET(_: Request, { params }: RouteContext<"/api/story/[id]"
   if (!a || (!a.isPublished && (await getCurrentUser())?.role !== "admin")) return new Response("Not found", { status: 404 });
 
   const [[regular, semibold, allura, symbol, wordmark], c] = await Promise.all([assets, getContent()]);
-  const titleSize = a.title.length > 60 ? 76 : a.title.length > 30 ? 92 : 110;
-  const { lines, cut } = clampLines(storyLines(a.body), a.title.length > 60 ? 420 : 560);
+  // sized to fit – what doesn't fit would be squeezed by the renderer and overlap
+  const { titleSize, lines, cut } = storyLayout(a.title, storyLines(a.body));
 
   return new ImageResponse(
     (
@@ -55,14 +55,14 @@ export async function GET(_: Request, { params }: RouteContext<"/api/story/[id]"
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
-          <div style={{ fontSize: titleSize, fontWeight: 600, lineHeight: 1.08, letterSpacing: -1 }}>{a.title}</div>
-          <div style={{ width: 120, height: 4, background: "#d2a772", margin: "56px 0 48px" }} />
-          <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+          <div style={{ fontSize: titleSize, fontWeight: 600, lineHeight: 1.08, letterSpacing: -1, flexShrink: 0 }}>{a.title}</div>
+          <div style={{ width: 120, height: 4, background: "#d2a772", margin: "56px 0 48px", flexShrink: 0 }} />
+          <div style={{ display: "flex", flexDirection: "column", gap: STORY_BODY.gap, flexShrink: 0 }}>
             {lines.map((l, i) => (
-              <div key={i} style={{ fontSize: 42, lineHeight: 1.38, color: "rgba(243,235,222,.85)" }}>{l}</div>
+              <div key={i} style={{ fontSize: STORY_BODY.size, lineHeight: `${STORY_BODY.lineHeight}px`, color: "rgba(243,235,222,.85)", flexShrink: 0 }}>{l}</div>
             ))}
           </div>
-          {cut && <div style={{ fontSize: 36, color: "#f7dbb4", marginTop: 30 }}>Celé čti na nástěnce →</div>}
+          {cut && <div style={{ fontSize: 36, color: "#f7dbb4", marginTop: 30, flexShrink: 0 }}>Celé čti na nástěnce →</div>}
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 18 }}>

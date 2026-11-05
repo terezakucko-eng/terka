@@ -12,7 +12,7 @@ import { formatPrice } from "@/lib/money";
 import { dateKey, formatDate } from "@/lib/dates";
 import { site } from "@/config/site";
 
-function ProductForm({ p, services, types }: { p?: Product; services: MassageService[]; types: { id: string; name: string }[] }) {
+function ProductForm({ p, services, types, limited }: { p?: Product; services: MassageService[]; types: { id: string; name: string }[]; limited: Product[] }) {
   return (
     <ActionForm action={saveProductAction} className="space-y-4">
       {p && <input type="hidden" name="id" value={p.id} />}
@@ -44,6 +44,22 @@ function ProductForm({ p, services, types }: { p?: Product; services: MassageSer
         </Field>
         <Field label="…kolik měsíčně" hint="Za kalendářní měsíc, nevyčerpané se nepřevádí"><Input name="includedPerMonth" type="number" min={0} defaultValue={p?.includedPerMonth ?? 0} /></Field>
         <Field label="Omezený počet členství" hint="Jen u členství · nejvýš tolik platných členství najednou · prázdné = bez limitu"><Input name="maxActive" type="number" min={1} defaultValue={p?.maxActive ?? ""} /></Field>
+        <Field label="Jen na lekci" hint="Jen u permanentky · 1 vstup = 1 lekce, přednostní rezervace jako s členstvím (např. Permanentka Reformer)">
+          <Select name="classTypeId" defaultValue={p?.classTypeId ?? ""}>
+            <option value="">Na kteroukoli lekci</option>
+            {types.map((t) => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Bere místo z" hint="Jen u permanentky · každá platná permanentka ubere 1 místo z omezeného členství, vyčerpaná ho vrátí">
+          <Select name="sharesPlacesWith" defaultValue={p?.sharesPlacesWith ?? ""}>
+            <option value="">Nebere</option>
+            {limited.map((m) => (
+              <option key={m.id} value={m.id}>{m.name} (max. {m.maxActive})</option>
+            ))}
+          </Select>
+        </Field>
         <Field label="V prodeji od" hint="Ceník na další rok (např. 1. 1. 2027) · prázdné = hned"><Input name="saleFrom" type="date" defaultValue={p?.saleFrom ? dateKey(p.saleFrom) : ""} /></Field>
         <Field label="Předprodej od" hint="Koupit jde už od tohoto dne, platit začne až od „V prodeji od“ · prázdné = bez předprodeje"><Input name="presaleFrom" type="date" defaultValue={p?.presaleFrom ? dateKey(p.presaleFrom) : ""} /></Field>
         <Field label="V prodeji do" hint="Den, kdy se prodej ukončí (např. 1. 1. 2027) · prázdné = bez konce"><Input name="saleUntil" type="date" defaultValue={p?.saleUntil ? dateKey(p.saleUntil) : ""} /></Field>
@@ -83,16 +99,17 @@ export default async function AdminPricing() {
     db.select().from(massageServices).where(isNull(massageServices.archivedAt)).orderBy(asc(massageServices.sortOrder)),
     db.select({ id: classTypes.id, name: classTypes.name }).from(classTypes).orderBy(asc(classTypes.sortOrder), asc(classTypes.name)),
   ]);
+  const limited = list.filter((p) => p.kind === "membership" && p.maxActive !== null);
   return (
     <>
       <AdminTitle title="Ceník – kredit, permanentky, členství" />
       <p className="-mt-4 mb-6 max-w-2xl text-sm text-les/60">Ceny jednorázových vstupů se nastavují u typů lekcí (a lze je přepsat u konkrétního termínu). Vstupy zdarma přidělíš v detailu klienta, úvodní vstup zdarma v Nastavení.</p>
       <div className="space-y-3">
-        <Panel title="+ Nový produkt"><ProductForm services={services} types={types} /></Panel>
+        <Panel title="+ Nový produkt"><ProductForm services={services} types={types} limited={limited} /></Panel>
         {list.map((p) => (
           <Panel key={p.id} title={`${p.name} · ${formatPrice(p.price)} · ${productKindLabel[p.kind]}${p.isActive ? (p.linkOnly ? " · jen přes odkaz" : "") : " · skryto"}${p.saleFrom ? ` · v prodeji od ${formatDate(p.saleFrom)}` : ""}${p.presaleFrom && p.saleFrom ? ` (předprodej od ${formatDate(p.presaleFrom)})` : ""}${p.saleUntil ? ` · do ${formatDate(p.saleUntil)}` : ""}`}>
             {!p.isActive && <Badge tone="red">Není v nabídce</Badge>}
-            <ProductForm p={p} services={services} types={types} />
+            <ProductForm p={p} services={services} types={types} limited={limited.filter((m) => m.id !== p.id)} />
             <ActionForm
               action={deleteProductAction}
               confirm={`Opravdu smazat „${p.name}“ z ceníku? Kdo ho už koupil, má ho dál platný.`}

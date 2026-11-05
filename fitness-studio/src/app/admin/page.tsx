@@ -3,7 +3,7 @@ import { and, count, eq, gte, isNotNull, or, sum } from "drizzle-orm";
 import { AdminTitle, Stat } from "@/components/admin";
 import { Avatar } from "@/components/avatar";
 import { SessionCard } from "@/components/session-card";
-import { Empty } from "@/components/ui";
+import { Badge, Empty } from "@/components/ui";
 import { getDb } from "@/db";
 import { entitlements, orders, users } from "@/db/schema";
 import { requireStaff } from "@/lib/auth";
@@ -12,6 +12,9 @@ import { formatPrice, pluralCs } from "@/lib/money";
 import { formatDayMonth, upcomingCelebrations } from "@/lib/profile";
 import { listSessions } from "@/lib/queries";
 import { pendingStudentProofs } from "@/domain/students";
+import { passCardActivity, passCardStatsFrom } from "@/domain/pass-cards";
+import { nextYearMemberships } from "@/domain/stats";
+import { resetPassCardStatsAction } from "@/app/admin/pass-card-actions";
 import { transfersToCheck, unpaidBookings } from "@/domain/booking";
 import { markOrderPaidAction } from "@/app/admin/actions";
 import { RemindPayment } from "@/components/remind-payment";
@@ -44,6 +47,18 @@ export default async function AdminDashboard() {
   // every unpaid lesson (surcharges too) – the full list with reminders is in Platby
   const unpaid = user.role === "admin" ? await unpaidBookings(db) : [];
   const unpaidSurcharges = unpaid.filter((b) => b.kind === "surcharge").length;
+  // Pošli to dál over the last week (or since the studio zeroed it), and who's signed up for next year
+  const statsFrom = user.role === "admin" ? await passCardStatsFrom(db) : null;
+  const zeroed = !!statsFrom && statsFrom.getTime() > now.getTime() - 7 * 86_400_000;
+  const cardsWeek = user.role === "admin" ? await passCardActivity(db, zeroed ? statsFrom : new Date(now.getTime() - 7 * 86_400_000)) : null;
+  const cardEvents = cardsWeek
+    ? [...cardsWeek.scans.map((e) => ({ ...e, signUp: false })), ...cardsWeek.signUps.map((e) => ({ ...e, signUp: true }))]
+        .sort((a, b) => b.at.getTime() - a.at.getTime())
+        .slice(0, 8)
+    : [];
+  const nextYear = Number(today.slice(0, 4)) + 1;
+  const memberships = user.role === "admin" ? await nextYearMemberships(db, nextYear, now) : [];
+  const byHow = (how: (typeof memberships)[number]["how"]) => memberships.filter((m) => m.how === how).length;
   const cfg = await getSettings(db);
 
   const capacity = weekSessions.reduce((a, s) => a + s.capacity, 0);
@@ -116,6 +131,86 @@ export default async function AdminDashboard() {
           ))}
         </div>
       </section>
+      {cardsWeek && (
+        <div className="mt-10 grid gap-5 lg:grid-cols-2">
+          <section className="rounded-2xl border border-zlato/50 bg-zlato/10 p-5">
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+              <h2 className="font-semibold">🐙 Pošli to dál · {zeroed ? `od ${formatDateTime(statsFrom!)}` : "7 dní"}</h2>
+              <span className="flex items-center gap-3">
+                <ActionForm action={resetPassCardStatsAction} confirm="Vynulovat počítadla Pošli to dál? Přehled i počty naskenování u kartiček se začnou počítat od teď. Kartičky ani registrace se nemění.">
+                  <SubmitButton variant="ghost" className="px-3 py-1.5 text-[0.65rem]">Vynulovat</SubmitButton>
+                </ActionForm>
+                <Link href="/admin/karticky" className="eyebrow text-zeme underline underline-offset-4">Kartičky</Link>
+              </span>
+            </div>
+            <p className="mt-1 text-sm text-les/60">
+              Naskenováno {cardsWeek.scans.length}× · {pluralCs(cardsWeek.signUps.length, "registrace", "registrace", "registrací")}
+            </p>
+            {cardEvents.length === 0 ? (
+              <p className="mt-3 text-sm text-les/60">{zeroed ? "Od vynulování" : "Za posledních 7 dní"} kartičku nikdo nenaskenoval.</p>
+            ) : (
+              <ul className="mt-3 divide-y divide-linka/50 text-sm">
+                {cardEvents.map((e, i) => (
+                  <li key={i} className="flex flex-wrap items-baseline justify-between gap-x-3 py-2">
+                    <span>
+                      {e.signUp ? (
+                        <>
+                          ✨ {e.userId ? <Link href={`/admin/klienti/${e.userId}`} className="font-semibold underline">{e.name}</Link> : e.name} – registrace přes {e.label}
+                        </>
+                      ) : (
+                        <>
+                          📱 {e.label} naskenovaná
+                          {e.userId && (
+                            <span className="text-les/60">
+                              {" "}
+                              (přihlášená: <Link href={`/admin/klienti/${e.userId}`} className="underline">{e.name}</Link>)
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </span>
+                    <span className="text-xs text-les/50">{formatDay(e.at)} {formatTime(e.at)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          <section className="rounded-2xl border border-linka/60 bg-white/60 p-5">
+            <h2 className="font-semibold">📅 Členství na rok {nextYear} ({memberships.length})</h2>
+            <p className="mt-1 text-sm text-les/60">
+              Předprodej a nová členství, která platí aspoň do listopadu {nextYear}
+              {memberships.length > 0 &&
+                ` · zaplaceno ${byHow("paid")} · rezervace ${byHow("presale")} · ve studiu ${byHow("studio")}${byHow("waiting") ? ` · čeká na platbu ${byHow("waiting")}` : ""}`}
+            </p>
+            {memberships.length === 0 ? (
+              <p className="mt-3 text-sm text-les/60">Na rok {nextYear} zatím nikdo.</p>
+            ) : (
+              <ul className="mt-3 max-h-[28rem] divide-y divide-linka/50 overflow-y-auto pr-1 text-sm">
+                {memberships.map((m) => (
+                  <li key={m.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2">
+                    <span>
+                      <Link href={`/admin/klienti/${m.userId}`} className="font-semibold underline">{m.name}</Link>
+                      <span className="text-les/60"> · {m.product}</span>
+                    </span>
+                    <span className="flex items-center gap-2">
+                      {m.how === "paid" ? (
+                        <Badge tone="green">Zaplaceno</Badge>
+                      ) : m.how === "waiting" ? (
+                        <Badge tone="gold">Čeká na platbu</Badge>
+                      ) : m.how === "presale" ? (
+                        <Badge tone="neutral">Rezervace – zaplatí výzvou</Badge>
+                      ) : (
+                        <Badge tone="neutral">Zadáno ve studiu</Badge>
+                      )}
+                      <span className="text-xs text-les/50">{formatDay(m.at)}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+      )}
       {proofs.length > 0 && (
         <section className="mt-10 rounded-2xl border border-zlato/50 bg-zlato/10 p-5">
           <h2 className="font-semibold">🎓 Ke kontrole: fotky ISIC ({proofs.length})</h2>

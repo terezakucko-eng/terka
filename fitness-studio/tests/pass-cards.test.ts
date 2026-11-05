@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { eq, sql } from "drizzle-orm";
 import { PDFDocument } from "pdf-lib";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { entitlements, passCardUses, passCards } from "@/db/schema";
+import { classTypes, entitlements, passCardUses, passCards } from "@/db/schema";
 import { bookSession, bookingOptions } from "@/domain/booking";
 import {
   CARD_ENTRY_DAYS,
@@ -16,8 +16,14 @@ import {
   markSignUpAnnounced,
   myPassCard,
   passCardByCode,
+  passCardActivity,
   passCardOf,
+  passCardStatsFrom,
+  passOnUnused,
+  recordPassCardScan,
   renewPassCard,
+  resetPassCard,
+  resetPassCardStats,
   setPassCardActive,
   startPassCardClock,
   unannouncedBookings,
@@ -25,7 +31,7 @@ import {
   unannouncedSignUps,
 } from "@/domain/pass-cards";
 import { registerUser } from "@/domain/users";
-import { passCardsPdf } from "@/lib/pass-card-pdf";
+import { CARDS_PER_SHEET, passCardsPdf, passCardsSheetPdf } from "@/lib/pass-card-pdf";
 import { NOW, hours, makeSession, testDb } from "./helpers";
 
 let h: Awaited<ReturnType<typeof testDb>>;
@@ -58,22 +64,22 @@ describe("Pošli to dál – a plastic card with two places that goes on right a
     expect(free.validUntil.getTime() - NOW.getTime()).toBe(CARD_ENTRY_DAYS * 86_400_000);
     expect(await card(c.id)).toMatchObject({ placesLeft: 1, holderId: jana.id });
     expect(await passCardByCode(h.db, c.code)).toMatchObject({ placesLeft: 1, people: 1 });
-    expect(await myPassCard(h.db, jana.id)).toMatchObject({ id: c.id, open: true, canComeAlone: true, placesLeft: 1 });
+    expect(await myPassCard(h.db, jana.id, NOW)).toMatchObject({ id: c.id, open: true, canComeAlone: true, placesLeft: 1 });
 
     // the friend takes the second place – the round is over, both places are back for the next one
     const petra = await signUp("Petra Malá", c.code, hours(0.5));
     expect((await mine(petra.id)).map((e) => e.name)).toEqual([CARD_ENTRY_NAME]);
     expect(await passCardOf(h.db, petra.id)).toMatchObject({ fromName: "Jana Nováková" });
     expect(await card(c.id)).toMatchObject({ placesLeft: 2, holderId: petra.id });
-    expect(await myPassCard(h.db, jana.id)).toMatchObject({ open: false, canComeAlone: false, placesLeft: 2 });
-    expect(await myPassCard(h.db, petra.id)).toMatchObject({ open: false, canComeAlone: false, placesLeft: 2 });
+    expect(await myPassCard(h.db, jana.id, NOW)).toMatchObject({ open: false, canComeAlone: false, placesLeft: 2 });
+    expect(await myPassCard(h.db, petra.id, NOW)).toMatchObject({ open: false, canComeAlone: false, placesLeft: 2 });
 
     // whoever has it passes it on – the next newcomer starts a new round
     const eva = await signUp("Eva Třetí", c.code, hours(1));
     expect((await mine(eva.id)).map((e) => e.name)).toEqual([CARD_ENTRY_NAME]);
     expect(await card(c.id)).toMatchObject({ placesLeft: 1, holderId: eva.id });
-    expect(await myPassCard(h.db, jana.id)).toBeNull();
-    expect(await myPassCard(h.db, eva.id)).toMatchObject({ open: true, canComeAlone: true });
+    expect(await myPassCard(h.db, jana.id, NOW)).toBeNull();
+    expect(await myPassCard(h.db, eva.id, NOW)).toMatchObject({ open: true, canComeAlone: true });
   });
 
   it("„Přijdu sama“: the friend's place goes to the next one, and only the holder can let it go", async () => {
@@ -83,7 +89,7 @@ describe("Pošli to dál – a plastic card with two places that goes on right a
     expect(await comeAlone(h.db, other.id)).toBe(false);
     expect(await comeAlone(h.db, alone.id, hours(1))).toBe(true);
     expect(await card(c.id)).toMatchObject({ placesLeft: 2 });
-    expect(await myPassCard(h.db, alone.id)).toMatchObject({ open: false, canComeAlone: false, placesLeft: 2 });
+    expect(await myPassCard(h.db, alone.id, NOW)).toMatchObject({ open: false, canComeAlone: false, placesLeft: 2 });
     expect(await comeAlone(h.db, alone.id)).toBe(false); // nothing left to let go
     // her free lesson stays hers
     expect((await mine(alone.id)).map((e) => [e.name, e.status])).toEqual([[CARD_ENTRY_NAME, "active"]]);
@@ -99,7 +105,7 @@ describe("Pošli to dál – a plastic card with two places that goes on right a
     for (const stmt of readFileSync("drizzle/0098_pass_cards_round_over.sql", "utf8").split("--> statement-breakpoint"))
       await h.db.execute(sql.raw(stmt));
     expect(await card(c.id)).toMatchObject({ placesLeft: 2 });
-    expect(await myPassCard(h.db, a.id)).toMatchObject({ open: false, placesLeft: 2 });
+    expect(await myPassCard(h.db, a.id, NOW)).toMatchObject({ open: false, placesLeft: 2 });
   });
 
   it("at payment only those who came with the card see it – never an existing client", async () => {
@@ -137,6 +143,25 @@ describe("Pošli to dál – a plastic card with two places that goes on right a
       ["Alena Dvořáková", true, true, true],
       ["Bára Dvořáková", true, true, true],
     ]);
+  });
+
+  it("the card's lesson counts on Reformer (a class marked for it), where the welcome lesson doesn't", async () => {
+    const c = await addPassCard(h.db);
+    const withCard = await signUp("Reformer Nováčková", c.code);
+    const welcome = await signUp("Uvítací Klientka");
+    const reformer = await makeSession(h.db, { capacity: 10, startsAt: hours(30) });
+    await h.db.update(classTypes).set({ name: "Reformer fusion", noFreeEntry: true, passCardEntry: true }).where(eq(classTypes.id, reformer.classTypeId));
+    const brunch = await makeSession(h.db, { capacity: 10, startsAt: hours(32) });
+    await h.db.update(classTypes).set({ name: "Fitness brunch", noFreeEntry: true }).where(eq(classTypes.id, brunch.classTypeId));
+    const free = async (userId: string, s: typeof reformer) =>
+      (await h.db.transaction((tx) => bookingOptions(tx, userId, s))).find((o) => o.method === "free")!;
+
+    expect((await free(withCard.id, reformer)).disabled).toBeUndefined();
+    expect((await free(welcome.id, reformer)).disabled).toMatch(/nejde/);
+    expect((await free(withCard.id, brunch)).disabled).toMatch(/nejde/); // only where the class lets the card in
+
+    await book(withCard.id, reformer.id, (await mine(withCard.id))[0].id);
+    await expect(book(welcome.id, reformer.id, (await mine(welcome.id))[0].id)).rejects.toThrow(/nejde/);
   });
 
   it("in the account it's one lesson only – no second booking, no friend (+1) on it, nobody on a card twice", async () => {
@@ -193,7 +218,77 @@ describe("Pošli to dál – a plastic card with two places that goes on right a
     const dana = await signUp("Dana Ruční", d.code);
     await chargePassCard(h.db, d.id, NOW);
     expect(await card(d.id)).toMatchObject({ placesLeft: 2 });
-    expect(await myPassCard(h.db, dana.id)).toMatchObject({ open: false, canComeAlone: false });
+    expect(await myPassCard(h.db, dana.id, NOW)).toMatchObject({ open: false, canComeAlone: false });
+  });
+
+  it("a reset brings any card back – in the game, both places, its month from the next scan – and keeps its chain", async () => {
+    const c = await addPassCard(h.db);
+    const rita = await signUp("Rita Resetová", c.code);
+    // stuck every way at once: a place still waiting for the friend, expired, the studio told, and out of the game
+    await h.db.update(passCards).set({ validUntil: hours(-24), expiredNotifiedAt: NOW }).where(eq(passCards.id, c.id));
+    await setPassCardActive(h.db, c.id, false);
+    expect(await card(c.id)).toMatchObject({ isActive: false, placesLeft: 1 });
+
+    await resetPassCard(h.db, c.id, NOW);
+    expect(await card(c.id)).toMatchObject({ isActive: true, placesLeft: 2, validUntil: null, expiredNotifiedAt: null });
+    expect(await myPassCard(h.db, rita.id, NOW)).toMatchObject({ open: false, canComeAlone: false });
+    expect((await listPassCards(h.db)).find((x) => x.id === c.id)!.chain.map((u) => u.name)).toEqual(["Rita Resetová"]);
+
+    // and it works again: the next one gets the card's lesson and takes a place
+    const bea = await signUp("Bea Poresetová", c.code);
+    expect((await mine(bea.id)).map((e) => e.name)).toEqual([CARD_ENTRY_NAME]);
+    expect(await card(c.id)).toMatchObject({ placesLeft: 1 });
+  });
+
+  it("the studio sees the scans of any card that exists, with the sign-ups, newest first – and how often each card was scanned", async () => {
+    const c = await addPassCard(h.db);
+    expect(await recordPassCardScan(h.db, "nope", null)).toBe(false);
+    expect(await recordPassCardScan(h.db, "000000", null)).toBe(false); // no such card
+    expect(await recordPassCardScan(h.db, c.code.toLowerCase(), null, hours(1))).toBe(true);
+    const eva = await signUp("Eva Skenovaná", c.code, hours(2));
+    expect(await recordPassCardScan(h.db, c.code, eva.id, hours(3))).toBe(true);
+    await setPassCardActive(h.db, c.id, false);
+    expect(await recordPassCardScan(h.db, c.code, null, hours(4))).toBe(true); // out of the game – still worth knowing
+
+    const { scans, signUps } = await passCardActivity(h.db, NOW);
+    expect(scans.filter((x) => x.label === c.label).map((x) => [x.at.getTime(), x.name])).toEqual([
+      [hours(4).getTime(), null],
+      [hours(3).getTime(), "Eva Skenovaná"],
+      [hours(1).getTime(), null],
+    ]);
+    expect(signUps.filter((x) => x.label === c.label).map((x) => x.name)).toEqual(["Eva Skenovaná"]);
+    expect((await passCardActivity(h.db, hours(5))).scans).toEqual([]);
+    expect((await listPassCards(h.db)).find((x) => x.id === c.id)!.scans).toMatchObject({ n: 3, last: hours(4) });
+
+    // „Vynulovat“: the counts start again, the history stays
+    await resetPassCardStats(h.db, hours(5));
+    expect(await passCardStatsFrom(h.db)).toEqual(hours(5));
+    expect((await listPassCards(h.db, await passCardStatsFrom(h.db))).find((x) => x.id === c.id)!.scans).toMatchObject({ n: 0, last: null });
+    await recordPassCardScan(h.db, c.code, null, hours(6));
+    expect((await listPassCards(h.db, hours(5))).find((x) => x.id === c.id)!.scans).toMatchObject({ n: 1, last: hours(6) });
+    expect((await listPassCards(h.db)).find((x) => x.id === c.id)!.scans).toMatchObject({ n: 4 });
+  });
+
+  it("„Nezajímá mě – pošlu kartičku dál“ sends the card on with both places – the place left over goes too", async () => {
+    const c = await addPassCard(h.db);
+    expect(await passOnUnused(h.db, c.code)).toBe(false); // both places there – nothing to do
+    const ivana = await signUp("Ivana První", c.code);
+    expect(await card(c.id)).toMatchObject({ placesLeft: 1 });
+    const until = (await card(c.id)).validUntil;
+
+    expect(await passOnUnused(h.db, c.code.toLowerCase(), NOW)).toBe(true);
+    expect(await card(c.id)).toMatchObject({ placesLeft: 2, validUntil: until }); // its month stays
+    expect(await myPassCard(h.db, ivana.id, NOW)).toMatchObject({ open: false, canComeAlone: false });
+    const next = await signUp("Nela Další", c.code);
+    expect((await mine(next.id)).map((e) => e.name)).toEqual([CARD_ENTRY_NAME]);
+    expect(await card(c.id)).toMatchObject({ placesLeft: 1 });
+
+    // an expired card or one out of the game stays as it is
+    await h.db.update(passCards).set({ validUntil: hours(-1) }).where(eq(passCards.id, c.id));
+    expect(await passOnUnused(h.db, c.code, NOW)).toBe(false);
+    await h.db.update(passCards).set({ validUntil: null, isActive: false }).where(eq(passCards.id, c.id));
+    expect(await passOnUnused(h.db, c.code, NOW)).toBe(false);
+    expect(await passOnUnused(h.db, "000000", NOW)).toBe(false);
   });
 
   it("prints front and back of every card in the payment-card size", async () => {
@@ -210,5 +305,17 @@ describe("Pošli to dál – a plastic card with two places that goes on right a
     const { width, height } = doc.getPage(0).getSize();
     expect(width).toBeCloseTo((91.6 * 72) / 25.4, 1);
     expect(height).toBeCloseTo((60 * 72) / 25.4, 1);
+  });
+
+  it("prints them on A4 for duplex printing: a page of fronts and a page of backs per 10 cards", async () => {
+    const cards = Array.from({ length: CARDS_PER_SHEET + 2 }, (_, i) => ({ label: `Kartička ${i + 1}`, code: `C${i}`, url: `https://www.octopush.fit/karticka/C${i}` }));
+    const doc = await PDFDocument.load(await passCardsSheetPdf(cards, "OCTOPUSH · Pospolitá 699/16, Ostrava"));
+    expect(doc.getPageCount()).toBe(4);
+    // the printer's shift made up for on the backs – the same pages
+    const shifted = await PDFDocument.load(await passCardsSheetPdf(cards, "OCTOPUSH · Pospolitá 699/16, Ostrava", { backShiftMm: 3 }));
+    expect(shifted.getPageCount()).toBe(4);
+    const { width, height } = doc.getPage(0).getSize();
+    expect(width).toBeCloseTo((210 * 72) / 25.4, 1);
+    expect(height).toBeCloseTo((297 * 72) / 25.4, 1);
   });
 });

@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { entitlements, orders } from "@/db/schema";
 import { createMonthlyFees } from "@/domain/membership-fees";
 import { createProductOrder, fulfillOrder } from "@/domain/orders";
-import { pragueLocalToDate } from "@/lib/dates";
+import { addDays, dateKey, pragueLocalToDate } from "@/lib/dates";
 import { NOW, makeProduct, makeUser, testDb } from "./helpers";
 
 let h: Awaited<ReturnType<typeof testDb>>;
@@ -47,20 +47,27 @@ describe("a membership paid once lasts 365 days", () => {
 
 describe("migrations 0086 and 0087", () => {
   it("extends the short ones bought once, leaves card subscriptions and long ones alone", async () => {
+    // the migrations only touch memberships still running by the real clock – so the rows start around today
+    const today = dateKey(new Date());
+    const [y, m] = today.split("-").map(Number);
+    const firstKey = `${m >= 11 ? y + 1 : y}-${String(((m + 1) % 12) + 1).padStart(2, "0")}-01`; // the 1st, two months on
+    const first = pragueLocalToDate(`${firstKey}T00:00`);
+    const recentKey = addDays(today, -2);
+    const yearOn = (key: string) => pragueLocalToDate(`${addDays(key, 364)}T23:59`);
     const p = await makeProduct(h.db, { kind: "membership", price: 250000, validityDays: 31, commitmentMonths: 12 });
     const flexible = await makeProduct(h.db, { kind: "membership", price: 160000, validityDays: 3650, commitmentMonths: 0 });
     const u = await makeUser(h.db);
     const [o] = await h.db.insert(orders).values({ userId: u.id, kind: "product", productId: p.id, description: "x", amount: 1, provider: "transfer", status: "paid" }).returning();
     const row = (over: Partial<typeof entitlements.$inferInsert>) =>
-      h.db.insert(entitlements).values({ userId: u.id, kind: "membership", name: "x", productId: p.id, validFrom: JAN, validUntil: new Date(JAN.getTime() + 31 * DAY), ...over }).returning().then((r) => r[0]);
+      h.db.insert(entitlements).values({ userId: u.id, kind: "membership", name: "x", productId: p.id, validFrom: first, validUntil: new Date(first.getTime() + 31 * DAY), ...over }).returning().then((r) => r[0]);
     const presale = await row({ orderId: o.id });
     const studio = await row({ note: "Nastaveno studiem – platí od 1. 1. 2027" });
     const card = await row({ orderId: o.id, subscriptionId: "sub_1" });
-    const long = await row({ orderId: o.id, validUntil: pragueLocalToDate("2027-06-30T23:59") });
-    const october = pragueLocalToDate("2026-10-03T10:15");
-    const bought = await row({ orderId: o.id, validFrom: october, validUntil: new Date(october.getTime() + 31 * DAY) });
-    const flex = await row({ orderId: o.id, productId: flexible.id, validFrom: october, validUntil: new Date(october.getTime() + 3650 * DAY) });
-    const ended = await row({ orderId: o.id, productId: flexible.id, validFrom: october, validUntil: pragueLocalToDate("2026-12-01T00:00"), renewalCancelled: true });
+    const long = await row({ orderId: o.id, validUntil: pragueLocalToDate(`${addDays(firstKey, 180)}T23:59`) });
+    const recent = pragueLocalToDate(`${recentKey}T10:15`);
+    const bought = await row({ orderId: o.id, validFrom: recent, validUntil: new Date(recent.getTime() + 31 * DAY) });
+    const flex = await row({ orderId: o.id, productId: flexible.id, validFrom: recent, validUntil: new Date(recent.getTime() + 3650 * DAY) });
+    const ended = await row({ orderId: o.id, productId: flexible.id, validFrom: recent, validUntil: new Date(recent.getTime() + 60 * DAY), renewalCancelled: true });
 
     const run = async (file: string) => {
       const update = readFileSync(file, "utf8");
@@ -70,10 +77,10 @@ describe("migrations 0086 and 0087", () => {
     await run("drizzle/0086_commitment_validity.sql");
     await run("drizzle/0087_membership_year.sql");
     const until = async (id: string) => (await h.db.select().from(entitlements).where(eq(entitlements.id, id)))[0].validUntil;
-    expect(await until(presale.id)).toEqual(pragueLocalToDate("2027-12-31T23:59"));
-    expect(await until(studio.id)).toEqual(pragueLocalToDate("2027-12-31T23:59"));
-    expect(await until(bought.id)).toEqual(pragueLocalToDate("2027-10-02T23:59"));
-    expect(await until(flex.id)).toEqual(pragueLocalToDate("2027-10-02T23:59"));
+    expect(await until(presale.id)).toEqual(yearOn(firstKey));
+    expect(await until(studio.id)).toEqual(yearOn(firstKey));
+    expect(await until(bought.id)).toEqual(yearOn(recentKey));
+    expect(await until(flex.id)).toEqual(yearOn(recentKey));
     expect(await until(card.id)).toEqual(card.validUntil);
     expect(await until(long.id)).toEqual(long.validUntil);
     expect(await until(ended.id)).toEqual(ended.validUntil);

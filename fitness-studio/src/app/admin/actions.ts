@@ -57,7 +57,7 @@ import { afterMemberStrike, clearPause, reconsiderPause } from "@/domain/strikes
 import { storeImage, uploadedFile } from "@/lib/media";
 import { credits, formatPrice } from "@/lib/money";
 import { normalizePhone } from "@/lib/phone";
-import { defaultSettings, getSettings, saveSettings, type Settings } from "@/lib/settings";
+import { defaultSettings, getSettings, saveSettings, type Settings, SIGNED_SETTINGS } from "@/lib/settings";
 import { cancelEntitlement, followMonthlyFee, isPeriod, periodLabel } from "@/domain/membership-fees";
 import { cleanBirthDate, cleanNameDay } from "@/lib/profile";
 import { videoEmbedUrl } from "@/lib/video";
@@ -132,6 +132,7 @@ export async function saveClassTypeAction(_: FormState, fd: FormData): Promise<F
       duoPrice: field.money(fd, "duoPrice"),
       studentDropInPrice: field.money(fd, "studentDropInPrice"),
       noFreeEntry: field.bool(fd, "noFreeEntry"),
+      passCardEntry: field.bool(fd, "passCardEntry"),
       noPass: field.bool(fd, "noPass"),
       passEntries: Math.max(1, field.int(fd, "passEntries") ?? 1),
       videoUrl: videoField(field.str(fd, "videoUrl")),
@@ -276,7 +277,13 @@ export async function saveProductAction(_: FormState, fd: FormData): Promise<For
       isActive: field.bool(fd, "isActive"),
       sortOrder: field.int(fd, "sortOrder") ?? 0,
       massageServiceId: kind === "massage_pass" ? field.str(fd, "massageServiceId") || null : null,
+      classTypeId: kind === "pass" ? field.str(fd, "classTypeId") || null : null,
+      sharesPlacesWith: kind === "pass" ? field.str(fd, "sharesPlacesWith") || null : null,
     };
+    if (values.sharesPlacesWith) {
+      const [m] = await db.select({ kind: products.kind, maxActive: products.maxActive }).from(products).where(eq(products.id, values.sharesPlacesWith));
+      if (m?.kind !== "membership" || m.maxActive === null) throw new UserError("Místo jde brát jen z členství s omezeným počtem.");
+    }
     if (kind === "massage_pass" && !values.entries) throw new UserError("Vyplň počet masáží na permanentce.");
     if (kind === "pass" && !values.entries) throw new UserError("Permanentka potřebuje počet vstupů.");
     if (kind === "solarium" && !values.entries) throw new UserError("Vyplň počet minut solária.");
@@ -327,7 +334,7 @@ export async function saveSettingsAction(_: FormState, fd: FormData): Promise<Fo
     const values: Partial<Settings> = {};
     for (const key of Object.keys(defaultSettings) as (keyof Settings)[]) {
       const v = field.int(fd, key);
-      if (v === null || v < 0) throw new UserError("Hodnoty musí být nezáporná čísla.");
+      if (v === null || (v < 0 && !SIGNED_SETTINGS.has(key))) throw new UserError("Hodnoty musí být nezáporná čísla.");
       values[key] = v;
     }
     if (values.pendingPaymentMinutes! < 30)
@@ -357,6 +364,7 @@ async function sessionValues(fd: FormData) {
       creditCost: field.int(fd, "creditCost") ?? ct.creditCost,
       dropInPrice: isFree ? null : (field.money(fd, "dropInPrice") ?? ct.dropInPrice),
       isFree,
+      noFreeEntry: field.bool(fd, "noFreeEntry"),
       room: field.optional(fd, "room"),
       title: field.optional(fd, "title"),
       note: field.optional(fd, "note"),
@@ -481,9 +489,15 @@ export async function cancelSessionAction(_: FormState, fd: FormData): Promise<F
     const db = await getDb();
     const r = await cancelSession(db, field.str(fd, "id"));
     await notifySessionCancelled(db, r.session.id, r.affected);
+    await fillReleased(db, r.released);
     const n = cancelledRecipients(r.affected).length;
     return done(n ? `Lekce zrušena, dali jsme vědět ${n} ${n === 1 ? "klientovi" : "klientům"} a vrátili, co zaplatili.` : "Lekce zrušena.");
   });
+}
+
+/** An unpaid bundle went with a cancelled class – the waitlists of its other lessons move up. */
+async function fillReleased(db: DB, released: { sessionId: string }[]) {
+  for (const id of new Set(released.map((r) => r.sessionId))) await notifyPromoted(db, await fillFromWaitlist(db, id)).catch(() => {});
 }
 
 /** Deletes classes; upcoming ones with clients are cancelled (refund + e-mail) first. */
@@ -497,6 +511,7 @@ async function removeSessions(ids: string[]) {
     if (s.status !== "cancelled" && s.startsAt > now && (await occupancy(db, id)) > 0) {
       const r = await cancelSession(db, id, now);
       await notifySessionCancelled(db, id, r.affected);
+      await fillReleased(db, r.released);
       notified += cancelledRecipients(r.affected).length;
     }
     await purgeSession(db, id);
@@ -683,6 +698,7 @@ export async function adminCancelBookingAction(_: FormState, fd: FormData): Prom
     if (!b.isHold && b.status !== "waitlist" && r.session.startsAt > new Date()) await notifyCancelled(db, b, r.refunded, true).catch(() => {});
     if (b.method === "membership" && b.status === "confirmed" && r.late && !r.refunded)
       await notifyStrike(db, b.userId, await afterMemberStrike(db, b.userId));
+    if (r.released.length) return done(`Zrušeno i s ${r.released.length === 1 ? "druhou lekcí" : "ostatními lekcemi"} z nezaplaceného balíčku.`);
     if (!r.refunded) return done(b.method === "membership" && b.status === "confirmed" && r.late ? "Zrušeno bez vrácení – pozdní storno se počítá do upozornění/pauzy." : "Zrušeno bez vrácení.");
     return done(b.method === "drop_in" && b.status !== "pending_payment" ? "Zrušeno – zaplacená částka se vrátila jako kredit." : "Zrušeno s vrácením.");
   });
@@ -829,26 +845,41 @@ export async function updateEntitlementAction(_: FormState, fd: FormData): Promi
     }
     let monthlyFee = e.monthlyFee;
     let monthlyFeeUntil = e.monthlyFeeUntil;
+    let monthlyFeeAfter = e.monthlyFeeAfter;
     if (e.kind === "membership") {
-      const fee = field.str(fd, "monthlyFee").replace(/\s/g, "");
-      if (fee && !/^\d+$/.test(fee)) throw new UserError("Měsíční příspěvek zadej v celých korunách.");
-      monthlyFee = fee ? Number(fee) * 100 : null;
+      const kc = (name: string) => {
+        const v = field.str(fd, name).replace(/\s/g, "");
+        if (v && !/^\d+$/.test(v)) throw new UserError("Měsíční příspěvek zadej v celých korunách.");
+        return v ? Number(v) * 100 : null;
+      };
+      monthlyFee = kc("monthlyFee");
       const feeUntil = field.str(fd, "monthlyFeeUntil");
       if (feeUntil && !isPeriod(feeUntil)) throw new UserError("Měsíc, do kdy platí příspěvek, zadej jako rok a měsíc.");
       monthlyFeeUntil = monthlyFee !== null && feeUntil ? feeUntil : null;
+      monthlyFeeAfter = monthlyFeeUntil ? kc("monthlyFeeAfter") : null;
     }
     await db
       .update(entitlements)
-      .set({ validFrom: from, validUntil: until, entriesTotal, monthlyFee, monthlyFeeUntil })
+      .set({ validFrom: from, validUntil: until, entriesTotal, monthlyFee, monthlyFeeUntil, monthlyFeeAfter })
       .where(eq(entitlements.id, e.id));
     // a new monthly fee: unpaid requests for the coming months follow it
-    let note = "";
-    if (e.kind === "membership" && monthlyFee !== e.monthlyFee) {
+    const notes: string[] = [];
+    if (e.kind === "membership") {
       const base = (await getSettings(db)).membershipMonthlyFee * 100;
-      const after = monthlyFee ?? base;
-      const followed = await followMonthlyFee(db, e.userId, e.monthlyFee ?? base, after, undefined, monthlyFeeUntil);
-      if (followed.length) note = ` Nezaplacené výzvy (${followed.map(periodLabel).join(", ")}) jsou teď na ${formatPrice(after)}.`;
+      if (monthlyFee !== e.monthlyFee) {
+        const after = monthlyFee ?? base;
+        const followed = await followMonthlyFee(db, e.userId, e.monthlyFee ?? base, after, undefined, monthlyFeeUntil);
+        if (followed.length) notes.push(`Nezaplacené výzvy (${followed.map(periodLabel).join(", ")}) jsou teď na ${formatPrice(after)}.`);
+      }
+      // …and the months after the special price
+      const later = monthlyFeeAfter ?? base;
+      const before = (e.monthlyFeeUntil ? e.monthlyFeeAfter : e.monthlyFee) ?? base;
+      if (monthlyFeeUntil && later !== before) {
+        const followed = await followMonthlyFee(db, e.userId, before, later, undefined, null, monthlyFeeUntil);
+        if (followed.length) notes.push(`Výzvy (${followed.map(periodLabel).join(", ")}) jsou teď na ${formatPrice(later)}.`);
+      }
     }
+    const note = notes.length ? ` ${notes.join(" ")}` : "";
     return done(`Uloženo – platí ${formatDate(from)} – ${formatDate(until)}.${note}`);
   });
 }

@@ -63,6 +63,50 @@
   background: linear-gradient(90deg, #d2a772, #f7dbb4 52%, #c19966);
 }
 
+/* The seek bar under a video: a thin gold line, played part in --p, a thumb big enough for a finger. */
+@utility video-seek {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  &::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 9999px;
+    background: linear-gradient(to right, #d2a772 var(--p, 0%), rgb(243 235 222 / 0.35) var(--p, 0%));
+  }
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    margin-top: -7px;
+    border-radius: 9999px;
+    background: #f7dbb4;
+    box-shadow: 0 1px 6px rgb(0 0 0 / 0.45);
+  }
+  &::-moz-range-track {
+    height: 4px;
+    border-radius: 9999px;
+    background: rgb(243 235 222 / 0.35);
+  }
+  &::-moz-range-progress {
+    height: 4px;
+    border-radius: 9999px;
+    background: #d2a772;
+  }
+  &::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border: 0;
+    border-radius: 9999px;
+    background: #f7dbb4;
+    box-shadow: 0 1px 6px rgb(0 0 0 / 0.45);
+  }
+  &:disabled {
+    cursor: default;
+    opacity: 0.5;
+  }
+}
+
 /* Admin-edited rich text (RichText component and the editor). */
 @utility rich {
   & > * + * {
@@ -109,6 +153,24 @@
   & a {
     text-decoration: underline;
     text-underline-offset: 4px;
+  }
+  /* a link alone in its paragraph (board posts: „👉 Do ceníku“) is a button */
+  & a.cta {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 9999px;
+    padding: 0.85em 1.6em;
+    background: linear-gradient(90deg, #d2a772, #f7dbb4 52%, #c19966);
+    color: var(--color-les);
+    font-size: 0.8em;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-decoration: none;
+    box-shadow: 0 10px 28px -12px rgba(103, 67, 41, 0.7);
+  }
+  & p:has(> a.cta) + p:has(> a.cta) {
+    margin-top: 0.6em;
   }
   & strong {
     font-weight: 600;

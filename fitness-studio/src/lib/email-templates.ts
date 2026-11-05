@@ -38,9 +38,22 @@ export const EMAILS = {
   },
   welcomePassCard: {
     title: "Vítej po registraci s kartičkou Pošli to dál",
-    when: "Hned po založení účtu přes kartičku Pošli to dál (místo běžného uvítání).",
+    when: "Hned po založení účtu přes kartičku Pošli to dál, když na ní zbývá místo pro kamarádku (místo běžného uvítání).",
     subject: "Vítej v OCTOPUSH! Lekce zdarma je tvoje 💛",
-    body: "Ahoj {{osloveni}},\n\ndíky za registraci – k nám tě přivedla kartička Pošli to dál 💛\nNa účtu tě čeká lekce zdarma, platí do {{platnost}}. Vyber si ji v rozvrhu a u rezervace zaplať „Kartičkou Pošli to dál“: {{odkaz}}\n\nKartičku můžeš předat dál hned – jestli na ní zbývá místo pro kamarádku, uvidíš v účtu: {{ucet}}\n\nUlož si do mobilu členskou kartu – na recepci pak stačí ukázat QR kód: {{karta}}",
+    body: "Ahoj {{osloveni}},\n\ndíky za registraci – k nám tě přivedla kartička Pošli to dál 💛\nNa účtu tě čeká lekce zdarma, platí do {{platnost}}. Vyber si ji v rozvrhu a u rezervace zaplať „Kartičkou Pošli to dál“: {{odkaz}}\n\nNa kartičce máš dva vstupy zdarma – jeden je tvůj a druhý můžeš předat kamarádce, ať jdete spolu. Stačí jí poslat odkaz ze svého účtu: {{ucet}}\nPokud druhý vstup nevyužiješ, klikni v účtu na „Přijdu sama“ a kartičku pošli hned někomu dál.\n\nUlož si do mobilu členskou kartu – na recepci pak stačí ukázat QR kód: {{karta}}",
+    vars: {
+      osloveni,
+      platnost: { label: "do kdy lekce zdarma platí", sample: "4. 11. 2026" },
+      odkaz: { label: "odkaz na rozvrh", sample: `${site.url}/rozvrh` },
+      ucet: { label: "odkaz na kartičku v účtu", sample: `${site.url}/ucet#posli-to-dal` },
+      karta: { label: "odkaz na členskou kartu", sample: `${site.url}/ucet/karta` },
+    },
+  },
+  welcomePassCardNext: {
+    title: "Vítej po registraci s kartičkou – kartička jde hned dál",
+    when: "Hned po založení účtu přes kartičku Pošli to dál, když registrace zabrala její poslední místo – kartička je zase nabitá (místo běžného uvítání).",
+    subject: "Vítej v OCTOPUSH! Lekce zdarma je tvoje 💛",
+    body: "Ahoj {{osloveni}},\n\ndíky za registraci – k nám tě přivedla kartička Pošli to dál 💛\nNa účtu tě čeká lekce zdarma, platí do {{platnost}}. Vyber si ji v rozvrhu a u rezervace zaplať „Kartičkou Pošli to dál“: {{odkaz}}\n\nKartičku můžeš poslat dál hned – předej ji někomu, kdo u nás ještě nebyl, ať si taky užije lekci zdarma. Všechno o ní najdeš v účtu: {{ucet}}\n\nUlož si do mobilu členskou kartu – na recepci pak stačí ukázat QR kód: {{karta}}",
     vars: {
       osloveni,
       platnost: { label: "do kdy lekce zdarma platí", sample: "4. 11. 2026" },

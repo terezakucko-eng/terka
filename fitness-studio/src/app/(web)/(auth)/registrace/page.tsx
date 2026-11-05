@@ -1,16 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { HealthCheckbox } from "@/components/health-checkbox";
-import { registerAction } from "@/app/actions/auth";
-import { ActionForm, SubmitButton } from "@/components/forms";
-import { Eyebrow, Field, Input } from "@/components/ui";
+import { RegisterForm } from "@/components/register-form";
+import { Eyebrow } from "@/components/ui";
 import { getDb } from "@/db";
 import { getSettings } from "@/lib/settings";
 import { getContent } from "@/content";
-import { PasswordInput } from "@/components/password-input";
-import { HONEYPOT, STAMP, formStamp } from "@/lib/bot-guard";
-import { turnstileSiteKey } from "@/lib/turnstile";
-import { TurnstileWidget } from "@/components/turnstile";
 import { referrerByCode } from "@/domain/referrals";
 import { passCardByCode } from "@/domain/pass-cards";
 
@@ -29,7 +23,6 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registr
   ]);
   // a Pošli to dál card in the game with a place left
   const card = found?.isActive && !found.expired && found.placesLeft > 0 ? found : null;
-  const turnstileKey = turnstileSiteKey();
   return (
     <>
       <Eyebrow className="text-zeme">Nový účet</Eyebrow>
@@ -48,45 +41,9 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registr
           ji zaplatíš Kartičkou Pošli to dál. Každý ji může využít jen jednou.
         </p>
       )}
-      <ActionForm action={registerAction} className="mt-8 space-y-4">
-        <input type="hidden" name="next" value={typeof next === "string" ? next : ""} />
-        {referrer && <input type="hidden" name="pozvanka" value={code} />}
-        {card && <input type="hidden" name="karta" value={card.code} />}
-        <input type="hidden" name={STAMP} value={formStamp()} />
-        {/* bots fill every field; people never see this one */}
-        <div aria-hidden className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
-          <label>Web <input name={HONEYPOT} tabIndex={-1} autoComplete="off" defaultValue="" /></label>
-        </div>
-        <Field label="Jméno a příjmení" hint="Celé jméno – bude i na potvrzení pro pojišťovnu. Později ho změní jen recepce."><Input name="name" autoComplete="name" required /></Field>
-        <Field label="E-mail"><Input name="email" type="email" autoComplete="email" required /></Field>
-        <Field label="Telefon" hint="Nepovinné – pro rychlé info o změnách lekcí."><Input name="phone" type="tel" autoComplete="tel" /></Field>
-        <Field label="Heslo" hint="Alespoň 8 znaků."><PasswordInput name="password" autoComplete="new-password" minLength={8} required /></Field>
-        <label className="flex gap-3 text-sm text-les/80">
-          <input type="checkbox" name="terms" required className="mt-1 accent-[#674329]" />
-          <span>Souhlasím s <Link href="/obchodni-podminky" className="underline" target="_blank">obchodními podmínkami</Link> a beru na vědomí <Link href="/ochrana-osobnich-udaju" className="underline" target="_blank">zpracování osobních údajů</Link>.</span>
-        </label>
-        <HealthCheckbox />
-        <label className="flex gap-3 text-sm text-les/80">
-          <input type="checkbox" name="reminders" className="mt-1 accent-[#674329]" />
-          <span>Připomeň mi e-mailem lekci nebo masáž 3 hodiny předem (nepovinné)</span>
-        </label>
-        <fieldset className="space-y-2 rounded-xl border border-linka/60 p-4 text-sm text-les/80">
-          <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-les/60">Novinky a akce (nepovinné)</legend>
-          <p className="text-xs text-les/70">
-            Doporučujeme zaškrtnout aspoň newsletter – dozvíš se o nových lekcích, workshopech a akcích jako první.
-          </p>
-          <label className="flex gap-3"><input type="checkbox" name="marketing" className="mt-1 accent-[#674329]" /> E-mailem (newsletter)</label>
-          <label className="flex gap-3"><input type="checkbox" name="sms" className="mt-1 accent-[#674329]" /> SMS</label>
-          <label className="flex gap-3"><input type="checkbox" name="whatsapp" className="mt-1 accent-[#674329]" /> WhatsApp</label>
-          <p className="text-xs text-les/50">Odhlásit se můžeš kdykoliv v profilu nebo odkazem ve zprávě.</p>
-          <p className="text-xs text-les/50">
-            Provozní e-maily a upozornění (potvrzení rezervace, zrušení nebo změna lekce, platby, obnova hesla) ti chodí vždy.
-            Potvrzení vlastních rezervací si můžeš později vypnout v profilu.
-          </p>
-        </fieldset>
-        {turnstileKey && <TurnstileWidget siteKey={turnstileKey} />}
-        <SubmitButton variant="gold" className="w-full">Vytvořit účet</SubmitButton>
-      </ActionForm>
+      <div className="mt-8">
+        <RegisterForm next={typeof next === "string" ? next : ""} referralCode={referrer ? code : undefined} cardCode={card?.code} />
+      </div>
       <p className="mt-6 text-sm">Už máš účet? <Link href="/prihlaseni" className="font-semibold text-zeme underline underline-offset-4">Přihlas se</Link></p>
     </>
   );

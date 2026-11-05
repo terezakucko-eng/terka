@@ -19,7 +19,7 @@ import {
   type Booking,
 } from "@/db/schema";
 import { UserError } from "@/lib/errors";
-import { cancelBooking } from "./booking";
+import { alreadyCancelled, cancelBooking } from "./booking";
 import { cancelMassage } from "./massages";
 import { deleteClients } from "./cleanup";
 
@@ -89,6 +89,8 @@ export async function deleteOwnAccount(db: DB, userId: string, now = new Date())
       ),
     );
   for (const b of future) {
+    // an unpaid bundle's other lesson went with the first one
+    if (await alreadyCancelled(db, b.id)) continue;
     // as the studio would: no storno limit, nothing to give back to a deleted account
     const r = await cancelBooking(db, { bookingId: b.id, actorId: userId, isAdmin: true, refund: false }, now);
     promoted.push(...r.promoted);

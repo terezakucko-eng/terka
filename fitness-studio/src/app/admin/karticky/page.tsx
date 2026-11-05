@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { addPassCardAction, chargePassCardAction, renewPassCardAction, togglePassCardAction } from "@/app/admin/pass-card-actions";
+import { addPassCardAction, chargePassCardAction, renewPassCardAction, resetPassCardAction, togglePassCardAction } from "@/app/admin/pass-card-actions";
 import { AdminTitle } from "@/components/admin";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { Badge, Card } from "@/components/ui";
 import { site } from "@/config/site";
 import { getDb } from "@/db";
-import { listPassCards } from "@/domain/pass-cards";
+import { listPassCards, passCardStatsFrom } from "@/domain/pass-cards";
 import { requireAdmin } from "@/lib/auth";
 import { formatDate, formatDay, formatTime } from "@/lib/dates";
 import { pluralCs } from "@/lib/money";
@@ -16,7 +16,7 @@ const dataUri = (svg: string) => `data:image/svg+xml;base64,${Buffer.from(svg).t
 export default async function AdminPassCards() {
   await requireAdmin();
   const db = await getDb();
-  const cards = await listPassCards(db);
+  const cards = await listPassCards(db, await passCardStatsFrom(db));
   const now = new Date();
   const qrs = await Promise.all(cards.map((c) => qrSvg(`${site.url}/karticka/${c.code}`)));
   const people = cards.reduce((n, c) => n + c.chain.length, 0);
@@ -24,8 +24,11 @@ export default async function AdminPassCards() {
   return (
     <>
       <AdminTitle title="Pošli to dál">
-        <a href="/api/karticky" className="rounded-full bg-les px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-papir">
-          Všechny k tisku (PDF)
+        <a href="/api/karticky?arch=a4" className="rounded-full bg-les px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-papir">
+          Tisk na A4 – oboustranně (PDF)
+        </a>
+        <a href="/api/karticky" className="rounded-full border border-les px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-les">
+          Pro tiskárnu karet (PDF)
         </a>
         <ActionForm action={addPassCardAction}>
           <SubmitButton variant="ghost" className="px-5 py-2.5 text-xs">Přidat kartičku</SubmitButton>
@@ -36,8 +39,8 @@ export default async function AdminPassCards() {
         (typicky kamarádky). Každý se přes ni zaregistruje, dostane místo úvodní lekce lekci zdarma na 14 dní a u rezervace ji zaplatí
         „Kartičkou Pošli to dál“ (stávající klienti tu možnost nevidí). Jakmile jsou obě místa obsazená – nebo první klikne v účtu „Přijdu
         sama“ – kartička má hned zase 2 místa a putuje dál. Kartička platí měsíc od posledního použití (nová od prvního naskenování) – když ji
-        nikdo nevyužije, propadne a tady ji můžeš obnovit. O registraci, rezervaci i propadnutí ti přijde upozornění do mobilu.
-        Zatím přes kartičky přišlo {pluralCs(people, "člověk", "lidi", "lidí")}. PDF je ve formátu platební karty 85,6 × 54 mm se spadávkou 3 mm.
+        nikdo nevyužije, propadne a tady ji můžeš obnovit. Když se s kartičkou cokoli zasekne, tlačítko „Resetovat“ ji vrátí na začátek: je ve hře, má 2 místa a měsíc se jí začne počítat od dalšího naskenování (kdo už přes ni přišel, v přehledu zůstane). O registraci, rezervaci i propadnutí ti přijde upozornění do mobilu.
+        Zatím přes kartičky přišlo {pluralCs(people, "člověk", "lidi", "lidí")}. Tisk na A4: 10 kartiček na list, tiskni oboustranně s otočením podél dlouhé hrany a v měřítku 100 % (skutečná velikost), pak stříhej podle značek. Když zadní strana na tiskárně ujíždí, nastav posun v Nastavení (Tisk). PDF pro tiskárnu karet je ve formátu platební karty 85,6 × 54 mm se spadávkou 3 mm.
       </p>
 
       <div className="grid gap-5 lg:grid-cols-2">
@@ -54,6 +57,9 @@ export default async function AdminPassCards() {
                 <p className="mt-2 flex flex-wrap gap-2">
                   {c.isActive ? <Badge tone="green">Ve hře</Badge> : <Badge tone="red">Mimo hru</Badge>}
                   <Badge tone="gold">{c.placesLeft === 1 ? "🔋 Zbývá 1 místo" : "🔋 Nabitá – 2 místa"}</Badge>
+                  <Badge tone="neutral">
+                    📱 {c.scans.n ? `Naskenovaná ${c.scans.n}×${c.scans.last ? ` · naposledy ${formatDate(c.scans.last)}` : ""}` : "Zatím nenaskenovaná"}
+                  </Badge>
                   {c.isActive &&
                     (c.validUntil && c.validUntil <= now ? (
                       <Badge tone="red">⌛ Propadla {formatDate(c.validUntil)}</Badge>
@@ -99,6 +105,13 @@ export default async function AdminPassCards() {
                   <SubmitButton variant="ghost" className="px-3 py-1.5 text-[0.65rem]">Nabít ručně</SubmitButton>
                 </ActionForm>
               )}
+              <ActionForm
+                action={resetPassCardAction}
+                confirm="Resetovat kartičku? Bude ve hře, nabitá na 2 místa a měsíc se jí začne počítat od dalšího naskenování. Když teď na volné místo čeká kamarádka, to místo propadne. Kdo už přes kartičku přišel, v přehledu zůstane."
+              >
+                <input type="hidden" name="id" value={c.id} />
+                <SubmitButton variant="ghost" className="px-3 py-1.5 text-[0.65rem]">Resetovat</SubmitButton>
+              </ActionForm>
               <ActionForm
                 action={togglePassCardAction}
                 confirm={c.isActive ? "Vyřadit kartičku ze hry? Registrace přes ni pak lekce navíc nedá." : undefined}

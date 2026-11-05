@@ -13,7 +13,7 @@ afterAll(async () => h.close());
 
 describe("places left in a limited membership", () => {
   it("says it so it moves people, in proper Czech", () => {
-    expect([1, 2, 3, 4, 5].map(placesLeftLabel)).toEqual([
+    expect([1, 2, 3, 4, 5].map((n) => placesLeftLabel(n))).toEqual([
       "Zbývá už jen 1 volné členství",
       "Zbývají už jen 2 volná členství",
       "Zbývají už jen 3 volná členství",

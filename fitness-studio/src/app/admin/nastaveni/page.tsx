@@ -12,7 +12,7 @@ import { backupNowAction, deleteBackupAction } from "@/app/admin/backup-actions"
 import { KEEP_AUTO, listBackups } from "@/domain/backup";
 import { formatDateTime } from "@/lib/dates";
 import { paymentProvider } from "@/lib/payments";
-import { getSettings, type Settings } from "@/lib/settings";
+import { getSettings, type Settings, SIGNED_SETTINGS } from "@/lib/settings";
 import { and, eq } from "drizzle-orm";
 import { products } from "@/db/schema";
 import { formatPrice } from "@/lib/money";
@@ -48,6 +48,7 @@ const fields: { key: keyof Settings; label: string; hint: string; section?: stri
   { key: "voucherValidityDays", label: "Dárkové poukazy – platnost (dní)", hint: "Od zaplacení. 365 = rok. Stejně dlouho pak platí i kredit z poukazu na částku." },
   { key: "voucherCreditsPer100Kc", label: "Poukaz na částku – kreditů za 100 Kč", hint: "100 = 1 kredit za 1 Kč. Kolik kreditů dostane obdarovaný." },
   { key: "winbackDays", label: "„Chybíš nám“ po kolika dnech bez lekce", hint: "Jen klientům se souhlasem s novinkami, kteří nic nemají rezervováno – jednou za každou pauzu. 0 = vypnuto." },
+  { key: "passCardBackShiftMm", label: "Pošli to dál – tisk na A4: posun zadní strany (mm)", hint: "Když zadní strana na tiskárně ujíždí: kladné číslo ji posune doprava, záporné doleva (při pohledu na zadní stranu). 0 = bez posunu.", section: "Tisk" },
 ];
 
 export default async function AdminSettings() {
@@ -86,7 +87,7 @@ export default async function AdminSettings() {
             <Fragment key={f.key}>
               {f.section && <h3 className="mt-4 border-t border-linka/60 pt-5 font-semibold sm:col-span-2">{f.section}</h3>}
               <Field label={f.label} hint={(f.key === "voucherCreditsPer100Kc" && packRates ? `${f.hint} Ceník: ${packRates}` : f.hint) || undefined}>
-                <Input name={f.key} type="number" min={0} defaultValue={cfg[f.key]} required />
+                <Input name={f.key} type="number" min={SIGNED_SETTINGS.has(f.key) ? -20 : 0} defaultValue={cfg[f.key]} required />
               </Field>
             </Fragment>
           ))}

@@ -17,6 +17,7 @@ const pageNames: Record<string, string> = {
   "/prihlaseni": "Přihlášení a registrace",
   "/obchodni-podminky": "Obchodní podmínky",
   "/ochrana-osobnich-udaju": "Ochrana osobních údajů",
+  "/admin/karticky": "Pošli to dál",
 };
 
 export default async function ContentOverview({ searchParams }: PageProps<"/admin/obsah">) {

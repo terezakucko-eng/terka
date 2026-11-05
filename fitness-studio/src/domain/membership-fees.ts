@@ -1,8 +1,9 @@
-import { and, asc, count, desc, eq, gt, gte, inArray, isNull, lt, lte, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, gte, inArray, isNull, lt, lte, ne, or } from "drizzle-orm";
 import type { DB, Executor } from "@/db";
-import { bookings, classSessions, entitlements, orders, products, users, type Entitlement, type Order, type Product } from "@/db/schema";
+import { bookings, classSessions, entitlements, orders, products, users, vacationDiscounts, vacations, type Entitlement, type Order, type Product } from "@/db/schema";
 import { dateKey, pragueLocalToDate } from "@/lib/dates";
 import { UserError } from "@/lib/errors";
+import { discountNote, vacationLabel } from "@/lib/vacation";
 
 /**
  * Monthly membership fee: members commit for 12 months and pay each month,
@@ -24,6 +25,19 @@ export function shiftPeriod(p: string, by: number) {
 }
 function periodRange(p: string) {
   return { start: pragueLocalToDate(`${p}-01T00:00`), end: pragueLocalToDate(`${shiftPeriod(p, 1)}-01T00:00`) };
+}
+
+type FeeTerms = Pick<Entitlement, "monthlyFee" | "monthlyFeeUntil" | "monthlyFeeAfter" | "monthlyFeeBefore" | "includedFrom">;
+
+/**
+ * The member's own fee for the month (haléře); null = the default one from Nastavení.
+ * Switched to a higher membership from a later month: the old fee until then;
+ * a special price for a few months: then the fee after it.
+ */
+export function ownFee(e: FeeTerms, period: string) {
+  if (e.includedFrom && period < e.includedFrom) return e.monthlyFeeBefore;
+  if (e.monthlyFeeUntil && period > e.monthlyFeeUntil) return e.monthlyFeeAfter;
+  return e.monthlyFee;
 }
 
 /**
@@ -65,14 +79,7 @@ export async function membersInMonth(db: Executor, period: string) {
       userId: r.e.userId,
       name: r.name,
       email: r.email,
-      // switched to a higher membership from a later month: the old fee until then;
-      // a special price for a few months: then the default one
-      monthlyFee:
-        r.e.includedFrom && period < r.e.includedFrom
-          ? r.e.monthlyFeeBefore
-          : r.e.monthlyFeeUntil && period > r.e.monthlyFeeUntil
-            ? null
-            : r.e.monthlyFee,
+      monthlyFee: ownFee(r.e, period),
       auto: !!r.e.subscriptionId,
       purchaseOrderId: bought ? r.e.orderId : null,
     });
@@ -111,6 +118,19 @@ export async function createMonthlyFees(
   );
   if (!members.length) return [];
   const existing = await feeOrders(db, input.period, members.map((m) => m.userId));
+  // Zmražení členství: discounts waiting for this month's request
+  const off = await db
+    .select({ d: vacationDiscounts, startsOn: vacations.startsOn, endsOn: vacations.endsOn })
+    .from(vacationDiscounts)
+    .innerJoin(vacations, eq(vacationDiscounts.vacationId, vacations.id))
+    .where(
+      and(
+        eq(vacationDiscounts.feePeriod, input.period),
+        isNull(vacationDiscounts.orderId),
+        isNull(vacations.cancelledAt),
+        inArray(vacationDiscounts.userId, members.map((m) => m.userId)),
+      ),
+    );
   // a fee the studio called off (waived) isn't issued again by the monthly run – only for one member on purpose
   const has = new Set(existing.filter((o) => o.status !== "cancelled" || !input.userIds).map((o) => o.userId));
   const created: Order[] = [];
@@ -118,19 +138,23 @@ export async function createMonthlyFees(
     if (has.has(m.userId)) continue;
     const base = m.monthlyFee ?? Math.round(input.amountKc * 100);
     if (base <= 0) continue;
-    const amount = Math.round((base * (100 - discount)) / 100);
+    const away = off.filter((r) => r.d.userId === m.userId);
+    const amount = Math.max(0, Math.round((base * (100 - discount)) / 100) - away.reduce((sum, r) => sum + r.d.amount, 0));
     const [o] = await db
       .insert(orders)
       .values({
         userId: m.userId,
         kind: "membership_fee",
         period: input.period,
-        description: `Členský příspěvek – ${periodLabel(input.period)}${discount ? ` (sleva ${discount} %)` : ""}`,
+        description:
+          `Členský příspěvek – ${periodLabel(input.period)}${discount ? ` (sleva ${discount} %)` : ""}` +
+          away.map((r) => discountNote(vacationLabel(r.startsOn, r.endsOn), r.d.amount)).join(""),
         amount,
         provider: "transfer",
         expiresAt: null,
       })
       .returning();
+    if (away.length) await db.update(vacationDiscounts).set({ orderId: o.id }).where(inArray(vacationDiscounts.id, away.map((r) => r.d.id)));
     created.push(o);
   }
   return created;
@@ -140,8 +164,8 @@ export type FeeRow = {
   userId: string;
   name: string;
   email: string;
-  /** purchase: the month is paid by buying the membership */
-  status: "paid" | "pending" | "none" | "auto" | "purchase";
+  /** purchase: the month is paid by buying the membership; free: her fee for the month is 0 (paid by someone else) */
+  status: "paid" | "pending" | "none" | "auto" | "purchase" | "free";
   amount: number | null;
   order: Order | null;
 };
@@ -166,10 +190,23 @@ export async function feeOverview(db: Executor, period: string) {
     const purchase = purchases.find((o) => o.id === m.purchaseOrderId);
     if (!mine.length && purchase)
       return { userId: m.userId, name: m.name, email: m.email, status: "purchase", amount: purchase.amount, order: purchase };
-    const order = mine.find((o) => o.status === "paid") ?? mine.find((o) => o.status === "pending") ?? mine[0] ?? null;
+    // a top-up (doplatek) waiting next to a paid fee: the month isn't settled yet – show what's still due
+    const paidFees = mine.filter((o) => o.status === "paid");
+    const order = mine.find((o) => o.status === "pending") ?? paidFees[0] ?? mine[0] ?? null;
     const status: FeeRow["status"] =
-      order?.status === "paid" ? "paid" : order?.status === "pending" ? "pending" : m.auto ? "auto" : order ? "pending" : "none";
-    return { userId: m.userId, name: m.name, email: m.email, status, amount: order?.amount ?? m.monthlyFee, order };
+      order?.status === "paid"
+        ? "paid"
+        : order?.status === "pending"
+          ? "pending"
+          : m.auto
+            ? "auto"
+            : order
+              ? "pending"
+              : m.monthlyFee === 0
+                ? "free"
+                : "none";
+    const amount = status === "paid" ? paidFees.reduce((s, o) => s + o.amount, 0) : order?.amount ?? m.monthlyFee;
+    return { userId: m.userId, name: m.name, email: m.email, status, amount, order };
   });
   const paid = rows.filter((r) => r.status === "paid" || r.status === "purchase");
   return {
@@ -198,6 +235,8 @@ export async function followMonthlyFee(
   now = new Date(),
   /** the new fee applies only through this month ("YYYY-MM") */
   until: string | null = null,
+  /** …and only after this month (the fee after a special price) */
+  from: string | null = null,
 ) {
   if (after <= 0 || before === after) return [];
   const rows = await db
@@ -208,7 +247,7 @@ export async function followMonthlyFee(
         eq(orders.userId, userId),
         eq(orders.kind, "membership_fee"),
         eq(orders.status, "pending"),
-        gt(orders.period, currentPeriod(now)),
+        gt(orders.period, from && from > currentPeriod(now) ? from : currentPeriod(now)),
         until ? lte(orders.period, until) : undefined,
         eq(orders.amount, before),
       ),
@@ -322,31 +361,70 @@ export async function endFlexibleMembership(db: DB, userId: string, entitlementI
 }
 
 /**
- * Places taken in memberships with a limited number (Členství Reformer):
- * valid memberships of the product (switches from next month included) and
- * orders still waiting for payment, by product id.
+ * Places taken in products with a limited number (Členství Reformer), by product id: valid
+ * memberships of the product (switches from next month included), valid passes taking a place
+ * from it (Permanentka Reformer) until they're used up, and orders still waiting for payment.
+ * A product that takes places from another one reports the whole shared count.
  */
 export async function membershipPlacesTaken(db: Executor, productIds: string[], now = new Date()) {
   const out = new Map<string, number>(productIds.map((id) => [id, 0]));
   if (!productIds.length) return out;
+  const asked = await db.select({ id: products.id, shares: products.sharesPlacesWith }).from(products).where(inArray(products.id, productIds));
+  const rootOf = new Map(asked.map((p) => [p.id, p.shares ?? p.id]));
+  const roots = [...new Set(productIds.map((id) => rootOf.get(id) ?? id))];
+  const pool = await db
+    .select({ id: products.id, shares: products.sharesPlacesWith })
+    .from(products)
+    .where(or(inArray(products.id, roots), inArray(products.sharesPlacesWith, roots)));
+  const poolOf = new Map(pool.map((p) => [p.id, p.shares && roots.includes(p.shares) ? p.shares : p.id]));
+  const ids = [...new Set([...roots, ...pool.map((p) => p.id)])];
   const [ents, pending] = await Promise.all([
     db
       .select({ productId: entitlements.productId })
       .from(entitlements)
-      .where(and(inArray(entitlements.productId, productIds), eq(entitlements.status, "active"), gt(entitlements.validUntil, now))),
+      .where(
+        and(
+          inArray(entitlements.productId, ids),
+          eq(entitlements.status, "active"),
+          gt(entitlements.validUntil, now),
+          // a used-up pass gives its place back
+          or(ne(entitlements.kind, "pass"), isNull(entitlements.entriesTotal), lt(entitlements.entriesUsed, entitlements.entriesTotal)),
+        ),
+      ),
     db
       .select({ productId: orders.productId })
       .from(orders)
-      .where(and(inArray(orders.productId, productIds), eq(orders.status, "pending"), or(isNull(orders.expiresAt), gt(orders.expiresAt, now)))),
+      .where(and(inArray(orders.productId, ids), eq(orders.status, "pending"), or(isNull(orders.expiresAt), gt(orders.expiresAt, now)))),
   ]);
-  for (const r of [...ents, ...pending]) if (r.productId) out.set(r.productId, (out.get(r.productId) ?? 0) + 1);
+  const byRoot = new Map<string, number>();
+  for (const r of [...ents, ...pending]) {
+    if (!r.productId) continue;
+    const root = poolOf.get(r.productId) ?? r.productId;
+    byRoot.set(root, (byRoot.get(root) ?? 0) + 1);
+  }
+  for (const id of productIds) out.set(id, byRoot.get(rootOf.get(id) ?? id) ?? 0);
   return out;
 }
 
-/** A limited membership has no place left. */
-export async function membershipFull(db: Executor, p: Pick<Product, "id" | "maxActive">, now = new Date()) {
-  if (p.maxActive === null) return false;
-  return ((await membershipPlacesTaken(db, [p.id], now)).get(p.id) ?? 0) >= p.maxActive;
+type Limited = Pick<Product, "id" | "maxActive" | "sharesPlacesWith">;
+
+/** Places left in products with a limited number – their own, or the ones they take from; null = unlimited. */
+export async function placesLeft(db: Executor, list: Limited[], now = new Date()) {
+  const rootIds = [...new Set(list.flatMap((p) => (p.sharesPlacesWith ? [p.sharesPlacesWith] : [])))];
+  const roots = rootIds.length ? await db.select({ id: products.id, maxActive: products.maxActive }).from(products).where(inArray(products.id, rootIds)) : [];
+  const limitOf = (p: Limited) => (p.sharesPlacesWith ? (roots.find((r) => r.id === p.sharesPlacesWith)?.maxActive ?? null) : p.maxActive);
+  const limited = list.filter((p) => limitOf(p) !== null);
+  const taken = await membershipPlacesTaken(db, limited.map((p) => p.id), now);
+  return new Map<string, number | null>(list.map((p) => {
+    const limit = limitOf(p);
+    return [p.id, limit === null ? null : Math.max(0, limit - (taken.get(p.id) ?? 0))];
+  }));
+}
+
+/** A product with a limited number (or taking places from one) has no place left. */
+export async function membershipFull(db: Executor, p: Limited, now = new Date()) {
+  if (p.maxActive === null && !p.sharesPlacesWith) return false;
+  return (await placesLeft(db, [p], now)).get(p.id) === 0;
 }
 
 /**

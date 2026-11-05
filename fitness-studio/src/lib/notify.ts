@@ -18,7 +18,7 @@ import { markAnnounced, unannouncedRewards } from "@/domain/referrals";
 import { markBookingAnnounced, markExpiryAnnounced, markSignUpAnnounced, unannouncedBookings, unannouncedExpiries, unannouncedSignUps } from "@/domain/pass-cards";
 import { formatVoucherCode, markVoucherNotified, unnotifiedVouchers } from "@/domain/vouchers";
 import { displayName } from "./profile";
-import { expireStalePending, fillFromWaitlist, markLapseAnnounced, markPaymentReminded, markTransferNotice, paymentDue, releasedHoldsWithWaitlist, surchargeCredits, transferPayBy, transfersToCheck, unannouncedLapses, usableCredit } from "@/domain/booking";
+import { expireStalePending, fillFromWaitlist, markLapseAnnounced, markPaymentReminded, markTransferNotice, orderLessons, paymentDue, releasedHoldsWithWaitlist, surchargeCredits, transferPayBy, transfersToCheck, unannouncedLapses, usableCredit } from "@/domain/booking";
 import { createSurchargeOrder, type fulfillOrder } from "@/domain/orders";
 import { getSettings } from "./settings";
 import { unsubscribeUrl } from "./links";
@@ -32,6 +32,16 @@ async function describe(db: DB, sessionId: string) {
   // a class deleted from the schedule meanwhile (lapsed payment, late notice)
   if (!row) return "lekce, která už není v rozvrhu";
   return `${sessionName(row.s, row.ct)} – ${formatDay(row.s.startsAt)} v ${formatTime(row.s.startsAt)}`;
+}
+
+/** What a drop-in order paid for – a bundle's lessons all together („Zumba Toning v 17:00 a Zumba fitness v 18:00 – pondělí 16. listopadu“). */
+async function describeOrder(db: DB, orderId: string, sessionId: string) {
+  const all = (await orderLessons(db, [orderId])).get(orderId) ?? [];
+  if (all.length < 2) return describe(db, sessionId);
+  const days = new Set(all.map((l) => formatDay(l.startsAt)));
+  return days.size === 1
+    ? `${all.map((l) => `${l.name} v ${formatTime(l.startsAt)}`).join(" a ")} – ${[...days][0]}`
+    : all.map((l) => `${l.name} – ${formatDay(l.startsAt)} v ${formatTime(l.startsAt)}`).join(" a ");
 }
 
 async function emails(db: DB, ids: string[]) {
@@ -139,7 +149,7 @@ export async function notifyAwaitingPayment(db: DB, o: Pick<Order, "id" | "userI
   const payBy = transferPayBy(await getSettings(db), o);
   await sendEmail(u.email, "bookedPending", {
     osloveni: greetName(u.name),
-    lekce: await describe(db, o.sessionId),
+    lekce: await describeOrder(db, o.id, o.sessionId),
     platnost: when(payBy),
     castka: formatPrice(o.amount),
     ucet: (await getContent()).raw("massages.bankAccount").trim() || "viz odkaz",
@@ -170,14 +180,16 @@ export async function notifyPaid(db: DB, r: Awaited<ReturnType<typeof fulfillOrd
   if (!settled) return;
   const b = settled.booking;
   if (settled.outcome === "confirmed" && b) {
-    const lekce = await describe(db, b.sessionId);
-    await notifyBooked(db, b, true);
-    await pushQuietly(db, [b.userId], { title: "Platba dorazila – místo je tvoje", body: lekce, url: link(b.sessionId) });
+    const all = settled.bookings ?? [b];
+    const lekce = all.length > 1 ? await describeOrder(db, r.order.id, b.sessionId) : await describe(db, b.sessionId);
+    // a confirmation (with its calendar link) for each lesson of a bundle
+    for (const x of all) await notifyBooked(db, x, true);
+    await pushQuietly(db, [b.userId], { title: all.length > 1 ? "Platba dorazila – místa jsou tvoje" : "Platba dorazila – místo je tvoje", body: lekce, url: link(b.sessionId) });
     return;
   }
   if (settled.outcome !== "credited" || settled.credit <= 0) return;
   // paid for something no longer there (cancelled, lapsed, full, deleted) – it's credit now
-  const lekce = b ? await describe(db, b.sessionId).catch(() => r.order.description) : r.order.description;
+  const lekce = b ? await describeOrder(db, r.order.id, b.sessionId).catch(() => r.order.description) : r.order.description;
   const u = (await emails(db, [settled.userId])).get(settled.userId);
   if (u)
     await sendEmail(u.email, "dropInLate", {
@@ -200,7 +212,7 @@ export async function releaseUnpaidDropIns(db: DB, now = new Date()) {
   const map = await emails(db, lapses.map((l) => l.userId));
   for (const l of lapses) {
     try {
-      const lekce = await describe(db, l.sessionId!);
+      const lekce = await describeOrder(db, l.orderId, l.sessionId!);
       const u = map.get(l.userId);
       const [o] = await db.select({ createdAt: orders.createdAt, expiresAt: orders.expiresAt, amount: orders.amount, number: orders.number }).from(orders).where(eq(orders.id, l.orderId));
       if (u) await sendEmail(u.email, "dropInLapsed", { osloveni: greetName(u.name), lekce, platnost: when(transferPayBy(cfg, o)), odkaz: `${site.url}/rozvrh` });
@@ -212,7 +224,9 @@ export async function releaseUnpaidDropIns(db: DB, now = new Date()) {
         url: `${site.url}/admin/rozvrh/${l.sessionId}`,
       });
       await markLapseAnnounced(db, l.orderId, now);
-      await notifyPromoted(db, await fillFromWaitlist(db, l.sessionId!, now));
+      // a bundle let go of a place on each of its lessons
+      const freed = (await orderLessons(db, [l.orderId])).get(l.orderId)?.map((x) => x.sessionId) ?? [l.sessionId!];
+      for (const id of new Set([l.sessionId!, ...freed])) await notifyPromoted(db, await fillFromWaitlist(db, id, now));
     } catch {
       // the next run tries again
     }
@@ -251,15 +265,17 @@ export async function sendTransferChecks(db: DB, now = new Date()) {
 }
 
 /** The client's own cancellation – skipped when they turned booking e-mails off. */
-export async function notifyCancelled(db: DB, b: Pick<Booking, "userId" | "sessionId"> & Partial<Pick<Booking, "status" | "surcharge" | "surchargePaidAt" | "method">>, refunded: boolean, byStudio = false) {
+export async function notifyCancelled(db: DB, b: Pick<Booking, "userId" | "sessionId"> & Partial<Pick<Booking, "status" | "surcharge" | "surchargePaidAt" | "method" | "orderId">>, refunded: boolean, byStudio = false) {
+  // an unpaid bundle is called off as a whole – all its lessons
+  const lekce = b.status === "pending_payment" && b.orderId ? await describeOrder(db, b.orderId, b.sessionId) : await describe(db, b.sessionId);
   // the studio cancelling a client's booking is always told – by e-mail and push
-  if (byStudio) await pushQuietly(db, [b.userId], { title: "Rezervace zrušena studiem", body: await describe(db, b.sessionId), url: `${site.url}/ucet` });
+  if (byStudio) await pushQuietly(db, [b.userId], { title: "Rezervace zrušena studiem", body: lekce, url: `${site.url}/ucet` });
   const u = (await emails(db, [b.userId])).get(b.userId);
   if (!u || (!byStudio && !u.bookingEmails)) return;
   const surcharge = (b.surcharge ?? 0) > 0 && b.surchargePaidAt;
   await sendEmail(u.email, "cancelled", {
     osloveni: greetName(u.name),
-    lekce: await describe(db, b.sessionId),
+    lekce,
     vraceni:
       b.status === "pending_payment"
         ? "Rezervace nebyla zaplacená, takže nic neplatíš."
@@ -310,7 +326,7 @@ export async function notifyPromoted(db: DB, promoted: (Pick<Booking, "userId" |
 export async function remindPayment(db: DB, bookingId: string, now = new Date()) {
   const due = await paymentDue(db, bookingId, now);
   const b = due.booking;
-  const lekce = await describe(db, b.sessionId);
+  const lekce = due.kind === "drop_in" && due.orderId ? await describeOrder(db, due.orderId, b.sessionId) : await describe(db, b.sessionId);
   const co = due.kind === "drop_in" ? "platba za lekci" : "doplatek k lekci";
   const termin = due.past
     ? ` Lekce už proběhla – ${due.kind === "drop_in" ? "platbu" : "doplatek"} prosím pošli, jakmile to půjde.`

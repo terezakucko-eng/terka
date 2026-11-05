@@ -249,6 +249,8 @@ export const classTypes = pgTable("class_types", {
   passSurcharge: integer("pass_surcharge"),
   /** Úvodní vstup zdarma na tuto lekci nejde použít */
   noFreeEntry: boolean("no_free_entry").notNull().default(false),
+  /** Lekce zdarma z kartičky Pošli to dál sem platí, i když úvodní vstup zdarma ne (Reformer) */
+  passCardEntry: boolean("pass_card_entry").notNull().default(false),
   /** Cena první lekce tohoto typu pro klienta, který na ní ještě nebyl (haléře) */
   firstVisitPrice: integer("first_visit_price"),
   /** Cena první lekce jen pro nováčky – kdo u nás ještě nebyl na žádné lekci */
@@ -285,18 +287,36 @@ export const classSessions = pgTable(
     dropInPrice: integer("drop_in_price"),
     /** Lekce zdarma pro všechny přihlášené (open class, den otevřených dveří…) */
     isFree: boolean("is_free").notNull().default(false),
+    /** Speciální termín (hosté, akce): vždy placený – neplatí vstupy zdarma (úvodní lekce, kartička, dárky) ani úvodní cena */
+    noFreeEntry: boolean("no_free_entry").notNull().default(false),
     room: text("room"),
     /** Vlastní název termínu (např. „Dýňový brunch“); null = název lekce */
     title: text("title"),
     note: text("note"),
     /** Rezervace otevřít už od (akce, brunch…); null = podle běžného rezervačního okna */
     bookingOpensAt: timestamp("booking_opens_at", { withTimezone: true }),
+    /** Balíček lekcí (např. obě lekce Zumba SPECIAL jednou platbou za zvýhodněnou cenu) */
+    bundleId: uuid("bundle_id").references((): AnyPgColumn => sessionBundles.id, { onDelete: "set null" }),
     status: sessionStatus("status").notNull().default("scheduled"),
     seriesId: uuid("series_id"),
     createdAt: createdAt(),
   },
   (t) => [index("class_sessions_starts_at_idx").on(t.startsAt)],
 );
+
+/**
+ * Několik termínů najednou za jednu cenu (akce s víc lekcemi za sebou): jednorázově
+ * jednou platbou kartou nebo převodem za všechny. Kredity, permanentky a členství
+ * se strhávají za každou lekci zvlášť jako obvykle.
+ */
+export const sessionBundles = pgTable("session_bundles", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  /** Název do objednávky a platby (např. „Zumba SPECIAL – obě lekce“) */
+  name: text("name").notNull(),
+  /** Cena za všechny lekce balíčku dohromady v haléřích */
+  price: integer("price").notNull(),
+  createdAt: createdAt(),
+});
 
 export const products = pgTable("products", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -335,6 +355,12 @@ export const products = pgTable("products", {
   presaleFrom: timestamp("presale_from", { withTimezone: true }),
   /** membership: nejvýš tolik platných členství najednou (omezený počet členství); null = bez limitu */
   maxActive: integer("max_active"),
+  /** pass: platí jen na tento typ lekce (Permanentka Reformer) – 1 vstup = 1 lekce a rezervace se otevírá
+   *  stejně brzy jako u členství s touto lekcí v ceně; null = na kteroukoli */
+  classTypeId: uuid("class_type_id").references((): AnyPgColumn => classTypes.id, { onDelete: "set null" }),
+  /** Bere místo z omezeného počtu jiného produktu (Permanentka Reformer z Členství Reformer): platná a nevyčerpaná
+   *  se počítá do jeho limitu; null = vlastní limit (maxActive) */
+  sharesPlacesWith: uuid("shares_places_with").references((): AnyPgColumn => products.id, { onDelete: "set null" }),
   /** massage_pass: na kterou masáž; null = na kteroukoli */
   massageServiceId: uuid("massage_service_id").references((): AnyPgColumn => massageServices.id),
   sortOrder: integer("sort_order").notNull().default(0),
@@ -383,6 +409,78 @@ export const orders = pgTable(
     index("orders_period_idx").on(t.kind, t.period),
   ],
 );
+
+/** Zmražení členství: a week a member freezes (holiday, illness…) – no classes then, that month's fee is lower. */
+export const vacations = pgTable(
+  "vacations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** first and last day, Prague ("YYYY-MM-DD") */
+    startsOn: text("starts_on").notNull(),
+    endsOn: text("ends_on").notNull(),
+    /** planned by the studio (no notice or yearly limit) */
+    byStudio: boolean("by_studio").notNull().default(false),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("vacations_user_idx").on(t.userId)],
+);
+
+/**
+ * A vacation's discount for the days in one month. It lowers that month's fee, or the next
+ * one when that was paid already; without an order yet, the monthly run takes it off.
+ */
+export const vacationDiscounts = pgTable(
+  "vacation_discounts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    vacationId: uuid("vacation_id")
+      .notNull()
+      .references(() => vacations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** the month the days are in */
+    period: text("period").notNull(),
+    days: integer("days").notNull(),
+    /** the month whose fee it lowers */
+    feePeriod: text("fee_period").notNull(),
+    amount: integer("amount").notNull(),
+    /** the fee order it lowered (null = not issued yet) */
+    orderId: uuid("order_id").references(() => orders.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("vacation_discounts_fee_idx").on(t.feePeriod, t.userId)],
+);
+
+/**
+ * Dárek za včasnou rezervaci 2027: who signed up for a new membership in time, and when –
+ * by 30. 11. Fitness Ježíšek brings a gift in December (the studio ticks it off here).
+ */
+export const earlyBookings = pgTable("early_bookings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .unique()
+    .references(() => users.id, { onDelete: "cascade" }),
+  /** the membership they signed up with */
+  membershipId: uuid("membership_id").references((): AnyPgColumn => entitlements.id, { onDelete: "set null" }),
+  /** when they signed up: ordered, or the studio set the membership up */
+  signedUpAt: timestamp("signed_up_at", { withTimezone: true }).notNull(),
+  /** the 4 Reformer lessons without the surcharge */
+  giftId: uuid("gift_id").references((): AnyPgColumn => entitlements.id, { onDelete: "set null" }),
+  /** Fitness Ježíšek's gift handed over */
+  santaGivenAt: timestamp("santa_given_at", { withTimezone: true }),
+  createdAt: createdAt(),
+});
+
+export type EarlyBooking = typeof earlyBookings.$inferSelect;
+
+export type Vacation = typeof vacations.$inferSelect;
+export type VacationDiscount = typeof vacationDiscounts.$inferSelect;
 
 /**
  * Vydaná potvrzení pro zdravotní pojišťovnu. Kód z dokladu ověří kdokoli na
@@ -435,8 +533,10 @@ export const entitlements = pgTable(
     renewalCancelled: boolean("renewal_cancelled").notNull().default(false),
     /** membership: vlastní měsíční příspěvek v haléřích; null = výchozí z Nastavení */
     monthlyFee: integer("monthly_fee"),
-    /** …do kterého měsíce ("YYYY-MM") vlastní příspěvek platí, pak výchozí z Nastavení (speciální cena na pár měsíců); null = bez konce */
+    /** …do kterého měsíce ("YYYY-MM") vlastní příspěvek platí, pak monthlyFeeAfter (speciální cena na pár měsíců); null = bez konce */
     monthlyFeeUntil: text("monthly_fee_until"),
+    /** …příspěvek po monthlyFeeUntil v haléřích (např. 2 000 Kč do prosince, pak 1 000 Kč); null = výchozí z Nastavení */
+    monthlyFeeAfter: integer("monthly_fee_after"),
     /** membership přepnutá na vyšší od pozdějšího měsíce (includedFrom): příspěvek za měsíce před přechodem; null = výchozí z Nastavení */
     monthlyFeeBefore: integer("monthly_fee_before"),
     /** membership: lekce v ceně bez doplatku (např. 4× Reformer měsíčně) – typ lekce a počet za kalendářní měsíc */
@@ -624,6 +724,21 @@ export const passCardUses = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("pass_card_uses_card_idx").on(t.cardId)],
+);
+
+/** Kdy někdo otevřel stránku kartičky – naskenoval QR kód, nebo přišel přes odkaz z ní (přehled v adminu). */
+export const passCardScans = pgTable(
+  "pass_card_scans",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    cardId: uuid("card_id")
+      .notNull()
+      .references(() => passCards.id, { onDelete: "cascade" }),
+    /** přihlášený klient, který ji otevřel; jinak null */
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("pass_card_scans_card_idx").on(t.cardId), index("pass_card_scans_created_idx").on(t.createdAt)],
 );
 
 export const announcements = pgTable("announcements", {

@@ -7,6 +7,7 @@ import { freeEntriesExpiring, markFreeEntryReminded } from "@/domain/free-entrie
 import { dateKey, formatDate } from "@/lib/dates";
 import { pluralCs } from "@/lib/money";
 import { getSettings } from "@/lib/settings";
+import { EARLY_BIRD, grantEarlyBirdGift } from "@/domain/early-bird";
 import { createMonthlyFees, currentPeriod, shiftPeriod } from "@/domain/membership-fees";
 import { notifyFee } from "@/lib/notify";
 import { sendEmail } from "@/lib/email-templates";
@@ -70,6 +71,9 @@ export async function GET(req: Request) {
     feeNotices = await notifyFee(db, created);
   }
 
+  // the early-booking gift for memberships the studio set up itself (bought ones get it right away)
+  const earlyBird = now < EARLY_BIRD.until ? await grantEarlyBirdGift(db) : 0;
+
   // weekly data backup (kept in the database, downloadable in Nastavení)
   await pruneAttempts(db, now);
   const backup = (await weeklyBackupDue(db, now)) ? (await createBackup(db, "auto")).size : 0;
@@ -84,5 +88,5 @@ export async function GET(req: Request) {
       sent += r.sent;
     }
   }
-  return Response.json({ expired, sent, creditsExpired, creditWarnings, freeEntryReminders, feeNotices, backup });
+  return Response.json({ expired, sent, creditsExpired, creditWarnings, freeEntryReminders, feeNotices, earlyBird, backup });
 }

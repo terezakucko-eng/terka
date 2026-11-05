@@ -53,6 +53,9 @@ export function giftableProducts(db: Executor) {
         eq(products.membersOnly, false),
         eq(products.studentsOnly, false),
         inArray(products.kind, [...GIFT_KINDS]),
+        // not one with a limited number of places (Permanentka Reformer) – a voucher would skip the limit
+        isNull(products.sharesPlacesWith),
+        isNull(products.maxActive),
         gt(products.price, 0),
         onSaleNow(),
       ),

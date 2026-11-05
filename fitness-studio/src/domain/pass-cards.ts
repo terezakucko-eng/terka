@@ -1,8 +1,8 @@
 import { randomBytes } from "node:crypto";
-import { and, asc, count, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, isNull, max, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { Executor } from "@/db";
-import { bookings, classSessions, classTypes, entitlements, passCardUses, passCards, users } from "@/db/schema";
+import { bookings, classSessions, classTypes, entitlements, passCardScans, passCardUses, passCards, settings, users } from "@/db/schema";
 import { sessionNameSql } from "@/lib/session-name";
 
 /**
@@ -98,6 +98,22 @@ export async function comeAlone(db: Executor, userId: string, now = new Date()) 
   return true;
 }
 
+/**
+ * „Nezajímá mě – pošlu kartičku dál“: whoever scanned the card won't use it. A place left over from an
+ * open round goes too – the card is charged again, so the next one gets both places. Its month stays.
+ * False when there was nothing to charge (both places there, out of the game, expired, no such card).
+ */
+export async function passOnUnused(db: Executor, code: string, now = new Date()) {
+  if (!isCardCode(code)) return false;
+  const [card] = await db
+    .select()
+    .from(passCards)
+    .where(and(eq(passCards.code, norm(code)), eq(passCards.isActive, true)));
+  if (!card || expired(card, now) || card.placesLeft >= CARD_PLACES) return false;
+  await chargePassCard(db, card.id, now);
+  return true;
+}
+
 /** The free lesson she got with the card (paid for at booking with „Kartička Pošli to dál“). */
 export const linkPassEntitlement = (tx: Executor, useId: string, entitlementId: string) =>
   tx.update(passCardUses).set({ entitlementId }).where(eq(passCardUses.id, useId));
@@ -165,8 +181,8 @@ async function cardBookings(db: Executor, entitlementIds: string[]) {
     .orderBy(asc(classSessions.startsAt));
 }
 
-/** Admin overview: every card, its places and the whole chain with what each one did. */
-export async function listPassCards(db: Executor) {
+/** Admin overview: every card, its places, its scans (since the last „Vynulovat“) and the whole chain with what each one did. */
+export async function listPassCards(db: Executor, scansFrom?: Date | null) {
   const cards = await db.select().from(passCards).orderBy(asc(passCards.createdAt), asc(passCards.label));
   const from = alias(users, "from_user");
   const uses = await db
@@ -187,8 +203,14 @@ export async function listPassCards(db: Executor) {
     .leftJoin(entitlements, eq(passCardUses.entitlementId, entitlements.id))
     .orderBy(asc(passCardUses.createdAt));
   const lessons = await cardBookings(db, uses.flatMap((u) => (u.entitlementId ? [u.entitlementId] : [])));
+  const scans = await db
+    .select({ cardId: passCardScans.cardId, n: count(), last: max(passCardScans.createdAt) })
+    .from(passCardScans)
+    .where(scansFrom ? gte(passCardScans.createdAt, scansFrom) : undefined)
+    .groupBy(passCardScans.cardId);
   return cards.map((card) => ({
     ...card,
+    scans: scans.find((x) => x.cardId === card.id) ?? { n: 0, last: null },
     chain: uses
       .filter((u) => u.cardId === card.id)
       .map((u) => ({ ...u, lesson: lessons.find((l) => l.entitlementId === u.entitlementId) ?? null })),
@@ -224,6 +246,63 @@ export const renewPassCard = (db: Executor, id: string) =>
 export async function chargePassCard(db: Executor, id: string, now = new Date()) {
   await db.update(passCardUses).set({ rechargedAt: now }).where(and(eq(passCardUses.cardId, id), isNull(passCardUses.rechargedAt)));
   await db.update(passCards).set({ placesLeft: CARD_PLACES }).where(eq(passCards.id, id));
+}
+
+/**
+ * Reset by hand – whatever state it got into, the card works again: in the game,
+ * charged with both places (an open round is closed) and its month starting at
+ * the next scan. Whoever came on it stays in its chain.
+ */
+export async function resetPassCard(db: Executor, id: string, now = new Date()) {
+  await chargePassCard(db, id, now);
+  await db.update(passCards).set({ isActive: true, validUntil: null, expiredNotifiedAt: null }).where(eq(passCards.id, id));
+}
+
+/**
+ * Someone opened the card's page – scanned its QR code, or followed a link to it. Any card that exists
+ * counts, even one out of the game or expired (the studio may want to bring it back).
+ */
+export async function recordPassCardScan(db: Executor, code: string, userId: string | null, now = new Date()) {
+  if (!isCardCode(code)) return false;
+  const [card] = await db.select({ id: passCards.id }).from(passCards).where(eq(passCards.code, norm(code)));
+  if (!card) return false;
+  await db.insert(passCardScans).values({ cardId: card.id, userId, createdAt: now });
+  return true;
+}
+
+const STATS_FROM = "passCardStatsFrom";
+
+/** When the studio last zeroed the Pošli to dál numbers in the overview (null = never). */
+export async function passCardStatsFrom(db: Executor) {
+  const [row] = await db.select().from(settings).where(eq(settings.key, STATS_FROM));
+  return typeof row?.value === "string" ? new Date(row.value) : null;
+}
+
+/** „Vynulovat“: the overview and the cards' scan counts start again from now (the history stays). */
+export async function resetPassCardStats(db: Executor, now = new Date()) {
+  const value = now.toISOString();
+  await db.insert(settings).values({ key: STATS_FROM, value }).onConflictDoUpdate({ target: settings.key, set: { value } });
+}
+
+/** Admin overview: the cards' scans and the sign-ups with them since then, newest first. */
+export async function passCardActivity(db: Executor, since: Date) {
+  const [scans, signUps] = await Promise.all([
+    db
+      .select({ at: passCardScans.createdAt, label: passCards.label, userId: users.id, name: users.name })
+      .from(passCardScans)
+      .innerJoin(passCards, eq(passCardScans.cardId, passCards.id))
+      .leftJoin(users, eq(passCardScans.userId, users.id))
+      .where(gte(passCardScans.createdAt, since))
+      .orderBy(desc(passCardScans.createdAt)),
+    db
+      .select({ at: passCardUses.createdAt, label: passCards.label, userId: users.id, name: users.name })
+      .from(passCardUses)
+      .innerJoin(passCards, eq(passCardUses.cardId, passCards.id))
+      .innerJoin(users, eq(passCardUses.userId, users.id))
+      .where(gte(passCardUses.createdAt, since))
+      .orderBy(desc(passCardUses.createdAt)),
+  ]);
+  return { scans, signUps };
 }
 
 /* ---------------------------------------------------- notices for the studio */

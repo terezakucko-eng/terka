@@ -9,7 +9,7 @@ import { Badge, ButtonLink, Card, Empty, Eyebrow, Input } from "@/components/ui"
 import { getDb } from "@/db";
 import { userBookings, userEntitlements } from "@/lib/account";
 import { requireUser } from "@/lib/auth";
-import { formatDate, formatDateTime, formatDay, formatRange, formatTime } from "@/lib/dates";
+import { dateKey, formatDate, formatDateTime, formatDay, formatRange, formatTime } from "@/lib/dates";
 import { credits, formatPrice, pluralCs } from "@/lib/money";
 import { SurchargePay } from "@/components/surcharge-pay";
 import { flexibleMemberships, membershipPlacesTaken, membershipSwitches, openFees, periodStartLabel } from "@/domain/membership-fees";
@@ -29,12 +29,15 @@ import { feedLinks } from "@/lib/ics";
 import { CopyButton, ShareButton } from "@/components/copy-button";
 import { myReferrals } from "@/domain/referrals";
 import { myPassCard } from "@/domain/pass-cards";
+import { PassCardSteps } from "@/components/pass-card-steps";
 import { VOUCHER_STATUS, boughtVouchers, formatVoucherCode, voucherStatus } from "@/domain/vouchers";
 import { redeemVoucherAction } from "@/app/actions/vouchers";
 import { getSettings } from "@/lib/settings";
 import { site } from "@/config/site";
 import { resetCalendarAction } from "@/app/actions/calendar";
 import { comeAloneAction } from "@/app/actions/pass-card";
+import { VacationCard } from "@/components/vacation-card";
+import { vacationEligible, vacationsOf } from "@/domain/vacations";
 
 export default async function AccountPage({ searchParams }: PageProps<"/ucet">) {
   const { vitej, clenstvi } = await searchParams;
@@ -43,7 +46,8 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
   const fees = await openFees(db, user.id);
   const [upcoming, ents, massages, unpaid, visits, review, content, insuranceYrs] = await Promise.all([
     userBookings(db, user.id, "upcoming", new Date(), 50, true),
-    userEntitlements(db, user.id, true),
+    // a gift starting later (4× Reformer bez doplatku from 1. 1. 2027) shows once it starts
+    userEntitlements(db, user.id, true).then((list) => list.filter((e) => e.kind !== "free" || e.validFrom <= new Date())),
     db
       .select()
       .from(massageBookings)
@@ -69,7 +73,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
     getContent(),
     insuranceYears(db, user.id),
   ]);
-  const [cfg, invited, gifts, flexible, switches, included, passCard, dropIns] = await Promise.all([
+  const [cfg, invited, gifts, flexible, switches, included, passCard, dropIns, canPlanVacation, myVacations] = await Promise.all([
     getSettings(db),
     myReferrals(db, user.id),
     boughtVouchers(db, user.id),
@@ -79,6 +83,8 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
     includedSummary(db, ents),
     myPassCard(db, user.id),
     dropInNotices(db, user.id, new Date()),
+    vacationEligible(db, user.id),
+    vacationsOf(db, user.id),
   ]);
   // drop-ins waiting for their transfer have their own banner at the top
   const waitingIds = new Set(dropIns.waiting.map((w) => w.orderId));
@@ -140,7 +146,8 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
           </ActionForm>
         </div>
       ))}
-      {!user.onboardedAt && user.role === "client" && (
+      {/* came with a Pošli to dál card: the lesson first – the tour waits for the next visit */}
+      {!user.onboardedAt && user.role === "client" && !(vitej && passCard) && (
         <WelcomeTour
           firstName={vocative(splitName(user.name).first || user.name)}
           publicKey={(await vapidKeys(db)).publicKey}
@@ -157,21 +164,58 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
           <strong>{formatDate(user.bookingPausedUntil)}</strong>. Na lekce, na které už jsi přihlášený/á, chodit můžeš.
         </p>
       )}
-      {vitej && (
-        <p className="rounded-2xl bg-forest p-6 text-papir">
-          <span className="text-gold text-xl font-semibold">Vítej v OCTOPUSH!</span>
-          <br />
-          {passCard?.open ? (
-            <>
-              Díky kartičce Pošli to dál máš na účtu lekci zdarma. Vyber si lekci a u rezervace zaplať <strong>Kartičkou Pošli to dál</strong>.{" "}
-              <Link href="/rozvrh" className="underline">Vybrat lekci v rozvrhu →</Link>
-            </>
+      {vitej && passCard && (
+        // came with a Pošli to dál card: nothing to read – the lesson, then (while there's one) the friend's place
+        <div className="rounded-2xl bg-forest p-6 text-papir">
+          <p className="text-gold mb-5 text-xl font-semibold">Vítej v OCTOPUSH! Lekci zdarma máš na účtu 💛</p>
+          {passCard.open ? (
+            <PassCardSteps code={passCard.code} friendPlace={passCard.canComeAlone} />
           ) : (
-            <>
-              Na účtu máš připravenou úvodní lekci zdarma. <Link href="/rozvrh" className="underline">Vyber si ji v rozvrhu →</Link>
-            </>
+            <ButtonLink href="/rozvrh" variant="gold">Vybrat lekci →</ButtonLink>
           )}
+        </div>
+      )}
+      {vitej && !passCard && (
+        <p className="rounded-2xl bg-forest p-6 text-papir">
+          <span className="text-gold text-xl font-semibold">Vítej v OCTOPUSH!</span>
+          <br />
+          Na účtu máš připravenou úvodní lekci zdarma. <Link href="/rozvrh" className="underline">Vyber si ji v rozvrhu →</Link>
         </p>
+      )}
+
+      {/* the card she came with goes first – passing it on is the point (on the welcome visit with a friend's place, the banner above has it) */}
+      {passCard && !(vitej && passCard.open) && (
+        <section id="posli-to-dal" className="rounded-2xl border border-zlato/50 bg-zlato/10 p-5">
+          <p className="font-semibold">
+            💛 Kartička Pošli to dál · {passCard.expired ? "⌛ propadla" : passCard.canComeAlone ? "zbývá na ní 1 místo" : "🔋 nabitá"}
+          </p>
+          <p className="mt-1 max-w-2xl text-sm text-les/70">
+            {passCard.expired
+              ? "Měsíc ji nikdo nevyužil, tak propadla. Díky, že pomáháš posílat pohyb dál 💛"
+              : passCard.canComeAlone
+                ? "Druhé místo je pro kamarádku: ať naskenuje kartičku, nebo jí pošli odkaz. Po registraci má lekci zdarma i ona – přijďte spolu. Jdeš sama? Klikni na Přijdu sama a kartičku předej dál – další ji dostane i s oběma místy."
+                : "Kartička je nabitá – předej ji někomu, kdo u nás ještě nebyl. Naskenuje QR kód, zaregistruje se a lekci má zdarma, klidně i s kamarádkou."}
+            {!passCard.expired && passCard.validUntil && ` Platí do ${formatDate(passCard.validUntil)}, pak propadne.`}
+          </p>
+          {!passCard.expired && (
+            <span className="mt-3 flex flex-wrap gap-2">
+              <ShareButton
+                url={`${site.url}/karticka/${passCard.code}`}
+                text="Pojď se mnou do OCTOPUSH – s kartičkou Pošli to dál máš lekci zdarma 🐙"
+                className="px-5 py-2.5"
+              />
+              <CopyButton text={`${site.url}/karticka/${passCard.code}`} className="px-5 py-2.5" />
+              {passCard.canComeAlone && (
+                <ActionForm action={comeAloneAction}>
+                  <SubmitButton variant="outline" className="px-5 py-2.5">Přijdu sama</SubmitButton>
+                </ActionForm>
+              )}
+            </span>
+          )}
+          <p className="mt-2 text-xs text-les/60">
+            {passCard.label} už rozhýbala {pluralCs(passCard.people, "chobotničku", "chobotničky", "chobotniček")} 🐙
+          </p>
+        </section>
       )}
 
       <div className="grid gap-5 md:grid-cols-3">
@@ -276,6 +320,10 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
           )}
         </Card>
       </div>
+
+      {(canPlanVacation || myVacations.some((v) => v.endsOn >= dateKey(new Date()))) && (
+        <VacationCard list={myVacations} canPlan={canPlanVacation} />
+      )}
 
       {otherUnpaid.length > 0 && (
         <section>
@@ -433,40 +481,6 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
           </ActionForm>
         </details>
       </section>
-
-      {passCard && (
-        <section id="posli-to-dal" className="rounded-2xl border border-zlato/50 bg-zlato/10 p-5">
-          <p className="font-semibold">
-            💛 Kartička Pošli to dál · {passCard.expired ? "⌛ propadla" : passCard.canComeAlone ? "zbývá na ní 1 místo" : "🔋 nabitá"}
-          </p>
-          <p className="mt-1 max-w-2xl text-sm text-les/70">
-            {passCard.expired
-              ? "Měsíc ji nikdo nevyužil, tak propadla. Díky, že pomáháš posílat pohyb dál 💛"
-              : passCard.canComeAlone
-                ? "Druhé místo je pro kamarádku: ať naskenuje kartičku, nebo jí pošli odkaz. Po registraci má lekci zdarma i ona – přijďte spolu. Jdeš sama? Klikni na Přijdu sama a kartičku předej dál – další ji dostane i s oběma místy."
-                : "Kartička je nabitá – předej ji někomu, kdo u nás ještě nebyl. Naskenuje QR kód, zaregistruje se a lekci má zdarma, klidně i s kamarádkou."}
-            {!passCard.expired && passCard.validUntil && ` Platí do ${formatDate(passCard.validUntil)}, pak propadne.`}
-          </p>
-          {!passCard.expired && (
-            <span className="mt-3 flex flex-wrap gap-2">
-              <ShareButton
-                url={`${site.url}/karticka/${passCard.code}`}
-                text="Pojď se mnou do OCTOPUSH – s kartičkou Pošli to dál máš lekci zdarma 🐙"
-                className="px-5 py-2.5"
-              />
-              <CopyButton text={`${site.url}/karticka/${passCard.code}`} className="px-5 py-2.5" />
-              {passCard.canComeAlone && (
-                <ActionForm action={comeAloneAction}>
-                  <SubmitButton variant="outline" className="px-5 py-2.5">Přijdu sama</SubmitButton>
-                </ActionForm>
-              )}
-            </span>
-          )}
-          <p className="mt-2 text-xs text-les/60">
-            {passCard.label} už rozhýbala {pluralCs(passCard.people, "chobotničku", "chobotničky", "chobotniček")} 🐙
-          </p>
-        </section>
-      )}
 
       {cfg.referralGiftEntries > 0 && user.role === "client" && (
         <section id="pozvi" className="rounded-2xl border border-zlato/50 bg-zlato/10 p-5">

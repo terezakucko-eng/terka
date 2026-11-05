@@ -1,6 +1,7 @@
-import { and, eq, gte, inArray, lt, min } from "drizzle-orm";
+import { and, eq, gt, gte, inArray, isNull, lt, min, or, sql } from "drizzle-orm";
 import type { Executor } from "@/db";
-import { bookings, classSessions, classTypes, orders, products, users } from "@/db/schema";
+import { bookings, classSessions, classTypes, entitlements, orders, products, users } from "@/db/schema";
+import { PRESALE_RESERVED } from "./grant";
 import { addDays, dateKey, pragueHour, pragueLocalToDate, weekdayOf } from "@/lib/dates";
 import { currentPeriod, shiftPeriod } from "./membership-fees";
 
@@ -269,3 +270,41 @@ export async function dailyStats(db: Executor, period: string, now = new Date())
 }
 
 export type DailyStats = Awaited<ReturnType<typeof dailyStats>>;
+
+/**
+ * Admin overview: memberships for next year – every one valid at least until 1 November of it (next year's
+ * price list bought or reserved in presale, new memberships from this November, ones the studio set up for
+ * the year), and next year's memberships ordered but still waiting for the payment. Newest sign-up first.
+ */
+export async function nextYearMemberships(db: Executor, year: number, now = new Date()) {
+  const through = pragueLocalToDate(`${year}-11-01T00:00`);
+  const signedUp = sql<Date>`coalesce(${orders.createdAt}, ${entitlements.createdAt})`.mapWith(entitlements.createdAt);
+  const [held, ordered] = await Promise.all([
+    db
+      .select({ id: entitlements.id, at: signedUp, userId: users.id, name: users.name, product: entitlements.name, productId: entitlements.productId, orderId: entitlements.orderId, note: entitlements.note })
+      .from(entitlements)
+      .innerJoin(users, eq(entitlements.userId, users.id))
+      .leftJoin(orders, eq(entitlements.orderId, orders.id))
+      .where(and(eq(entitlements.kind, "membership"), eq(entitlements.status, "active"), gte(entitlements.validUntil, through), isNull(users.deletedAt))),
+    db
+      .select({ id: orders.id, at: orders.createdAt, userId: users.id, name: users.name, product: products.name, productId: products.id })
+      .from(orders)
+      .innerJoin(products, eq(orders.productId, products.id))
+      .innerJoin(users, eq(orders.userId, users.id))
+      .where(
+        and(
+          eq(orders.kind, "product"),
+          eq(orders.status, "pending"),
+          eq(products.kind, "membership"),
+          gte(products.saleFrom, pragueLocalToDate(`${year}-01-01T00:00`)),
+          or(isNull(orders.expiresAt), gt(orders.expiresAt, now)),
+          isNull(users.deletedAt),
+        ),
+      ),
+  ]);
+  const has = new Set(held.map((e) => `${e.userId}:${e.productId}`));
+  return [
+    ...held.map(({ orderId, note, ...e }) => ({ ...e, how: orderId ? ("paid" as const) : note === PRESALE_RESERVED ? ("presale" as const) : ("studio" as const) })),
+    ...ordered.filter((o) => !has.has(`${o.userId}:${o.productId}`)).map((o) => ({ ...o, how: "waiting" as const })),
+  ].sort((a, b) => b.at.getTime() - a.at.getTime());
+}

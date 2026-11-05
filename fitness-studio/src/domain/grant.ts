@@ -3,6 +3,7 @@ import type { Executor } from "@/db";
 import { entitlements, type Product } from "@/db/schema";
 import { addDays, dateKey, pragueLocalToDate } from "@/lib/dates";
 import { startsAt } from "@/lib/price-list";
+import { grantEarlyBirdGift } from "./early-bird";
 import { changeCredits, extendCreditValidity } from "./wallet";
 
 const DAY = 86_400_000;
@@ -65,6 +66,8 @@ export async function grantProduct(
         entriesTotal: p.entries,
         weeklyLimit: p.kind === "membership" ? p.weeklyLimit : null,
         massageServiceId: p.kind === "massage_pass" ? p.massageServiceId : null,
+        // a pass just for one class (Permanentka Reformer)
+        classTypeId: p.kind === "pass" ? p.classTypeId : null,
         validFrom: from,
         validUntil: periodEnd ?? yearEnd ?? new Date(from.getTime() + (p.validityDays ?? 30) * DAY),
         subscriptionId: to.subscriptionId ?? null,
@@ -74,6 +77,8 @@ export async function grantProduct(
         includedPerMonth: p.kind === "membership" ? p.includedPerMonth : 0,
         note: to.note ?? null,
       });
+      // a member for 2027 signed up in time: the early-booking gift (4× Reformer without the surcharge)
+      if (p.kind === "membership") await grantEarlyBirdGift(tx, [to.userId]);
       return;
     }
   }

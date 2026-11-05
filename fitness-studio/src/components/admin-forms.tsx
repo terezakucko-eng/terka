@@ -46,6 +46,13 @@ export function SessionFields({
         <input type="checkbox" name="isFree" defaultChecked={s?.isFree} className="size-4 accent-[#674329]" />
         Lekce zdarma pro všechny
       </label>
+      <label className="flex items-start gap-3 self-end pb-3 text-sm font-semibold sm:col-span-2">
+        <input type="checkbox" name="noFreeEntry" defaultChecked={s?.noFreeEntry} className="mt-0.5 size-4 accent-[#674329]" />
+        <span>
+          Speciální lekce – vždy placená
+          <span className="block font-normal text-les/60">Neplatí na ni úvodní lekce zdarma, lekce z kartičky ani jiné vstupy zdarma, ani úvodní cena.</span>
+        </span>
+      </label>
       <div className="sm:col-span-2">
         <Field label="Rezervace otevřít od" hint="Prázdné = jako obvykle podle rezervačního okna. Vyplň, když chceš akci (brunch…) otevřít dřív.">
           <Input name="bookingOpensAt" type="datetime-local" defaultValue={s?.bookingOpensAt ? toLocalInput(s.bookingOpensAt) : ""} />

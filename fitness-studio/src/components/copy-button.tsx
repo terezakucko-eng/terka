@@ -26,12 +26,18 @@ export function CopyButton({ text, label = "Kopírovat odkaz", className }: { te
 }
 
 /** Shares a link through the phone's share sheet (WhatsApp, Messenger…), or copies it on a computer. */
-export function ShareButton({ url, text, label = "Poslat kamarádce", className }: { url: string; text: string; label?: string; className?: string }) {
+export function ShareButton({
+  url,
+  text,
+  label = "Poslat kamarádce",
+  className,
+  variant = "dark",
+}: { url: string; text: string; label?: string; className?: string; variant?: Parameters<typeof buttonClass>[0] }) {
   const [done, setDone] = useState(false);
   return (
     <button
       type="button"
-      className={buttonClass("dark", className)}
+      className={buttonClass(variant, className)}
       onClick={async () => {
         if (navigator.share) {
           await navigator.share({ text, url }).catch(() => {});
