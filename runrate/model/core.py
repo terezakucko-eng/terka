@@ -20,10 +20,24 @@ def shape_rows(trh, until):
     X['ly_prof']=ly_profile(trh,x.index)
     age=(pd.Timestamp(until)-x.index).days.values
     return X,y.clip(y.quantile(0.01),y.quantile(0.99)),0.5**(age/270)
+def clean_ly(trh, s):
+    # loňské mimořádné dny (config loni_mimoradne_dny): pondělí -> blok so-ne-po = minulý týden ×1,05; jiný den -> stejný den před týdnem
+    from feats import CFG
+    s=s.copy()
+    for d,info in CFG.get('loni_mimoradne_dny',{}).items():
+        d=pd.Timestamp(d)
+        if d not in s.index or trh not in info.get('trhy',[trh]): continue
+        w=pd.Timedelta(days=7)
+        if d.dayofweek==0:
+            prev=s.reindex([d-w-pd.Timedelta(days=2),d-w-pd.Timedelta(days=1),d-w]).sum()
+            s[d]=max(prev*1.05-s.get(d-pd.Timedelta(days=2),0)-s.get(d-pd.Timedelta(days=1),0),0)
+        else:
+            s[d]=s.get(d-w,s[d])
+    return s
 def ly_profile(trh, dates):
     # loňský průběh uvnitř měsíce: 7denní průměr loňského zarovnaného dne / průměr loňských zarovnaných dnů celého měsíce
     if trh not in MK: return np.zeros(len(dates))
-    x=series(trh).sales.clip(lower=0)
+    x=clean_ly(trh,series(trh).sales.clip(lower=0))
     s7=x.rolling(7,center=True,min_periods=5).mean()
     dates=pd.DatetimeIndex(dates); ly=dates-pd.Timedelta(days=364)
     v=s7.reindex(ly).values
