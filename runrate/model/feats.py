@@ -22,6 +22,8 @@ def calendar(dates):
         f[f'dom{DOMB[i]+1}_{DOMB[i+1]}']=((dom>DOMB[i])&(dom<=DOMB[i+1])).astype(float)
     hol=np.array([d in HOL for d in f.index])
     f['svatek']=hol.astype(float)
+    # svátek, kdy sklad expeduje jako o víkendu (config sklad_jede_o_svatku)
+    f['svatek_s_expedici']=np.array([d in _HOL and d not in HOL for d in f.index],float)
     # první pracovní den po svátku (dohánění fakturace)
     prev_hol=[]
     for d in f.index:
