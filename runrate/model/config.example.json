@@ -1,0 +1,5 @@
+{
+  "sobotni_expedice": [["RRRR-MM-DD","RRRR-MM-DD"]],
+  "plan_spendu": {"RS CZ": 0, "RS SK": 0},
+  "podily_so_ne_po": {"RS CZ":[0.0,0.0,0.0],"RS SK":[0.0,0.0,0.0],"SE HU":[0.0,0.0,0.0],"KS CZ":[0.0,0.0,0.0],"KS SK":[0.0,0.0,0.0]}
+}
