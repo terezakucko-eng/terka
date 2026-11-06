@@ -1,0 +1,56 @@
+{
+ "sobotni_expedice": [
+  [
+   "RRRR-MM-DD",
+   "RRRR-MM-DD"
+  ]
+ ],
+ "plan_spendu": {
+  "RS CZ": 0,
+  "RS SK": 0
+ },
+ "podily_so_ne_po": {
+  "RS CZ": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "RS SK": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "SE HU": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "KS CZ": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "KS SK": [
+   0.0,
+   0.0,
+   0.0
+  ]
+ },
+ "sklad_jede_o_svatku": [
+  "RRRR-MM-DD"
+ ],
+ "loni_mimoradne_dny": {
+  "RRRR-MM-DD": {
+   "trhy": [
+    "RS CZ"
+   ],
+   "popis": "popis"
+  }
+ },
+ "podily_so_ne_po_ut": [
+  0.0,
+  0.0,
+  0.0,
+  0.0
+ ]
+}

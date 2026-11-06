@@ -2,3 +2,9 @@
 CLAUDE.md
 milos-zadani.md
 runrate-*.csv
+# model: data a interní parametry jen lokálně
+model/config.json
+model/*.pkl
+model/*_out.json
+model/targets_month.json
+model/data/
