@@ -15,7 +15,11 @@ def calendar(dates):
     f=pd.DataFrame(index=pd.DatetimeIndex(dates))
     reg=np.array([sat_regime(d) for d in f.index])
     for k in range(7):
-        f[f'dow{k}']=(f.index.dayofweek==k).astype(float)
+        # dvě oddělené sady dnů v týdnu: bez víkendové expedice a s ní. Ridge stahuje každou sadu
+        # k rovnoměrnému týdnu, ne ke druhému režimu. Dřív byla víkendová expedice jen přirážka ke
+        # starému vzoru (po +60 %, so -61 %) a s málem dat ji ridge stáhl jen napůl: model dál
+        # čekal pondělí s nedělními tržbami (+38 %) a slabou sobotu (-29 %).
+        f[f'dow{k}']=((f.index.dayofweek==k)&~reg).astype(float)
         f[f'dow{k}_sobexp']=((f.index.dayofweek==k)&reg).astype(float)
     dom=f.index.day
     for i in range(len(DOMB)-1):

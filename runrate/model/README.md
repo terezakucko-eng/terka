@@ -5,7 +5,7 @@ Model rozpočítá zbytek měsíce do dnů a odhadne konec měsíce. Do listu �
 ## Jak to funguje
 
 1. **Tvar měsíce** (`core.py`, `feats.py`). Ridge regrese na denní historii. Vysvětluje, jakou část měsíční tržby udělá který den. Bere v úvahu:
-   - den v týdnu, zvlášť podle toho, jestli sklad expeduje v sobotu (tržba je podle DUZP);
+   - den v týdnu, dvě oddělené sady podle toho, jestli sklad expeduje i o víkendu (tržba je podle DUZP; s víkendovou expedicí se nedělní tržby už nepřelévají do pondělí);
    - den v měsíci (výplaty);
    - státní svátky a dohánění fakturace po nich;
    - Black Friday a Cyber Monday, Vánoce, Valentýn;
