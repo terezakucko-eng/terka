@@ -24,6 +24,11 @@ def calendar(dates):
     dom=f.index.day
     for i in range(len(DOMB)-1):
         f[f'dom{DOMB[i]+1}_{DOMB[i+1]}']=((dom>DOMB[i])&(dom<=DOMB[i+1])).astype(float)
+    # výplata o víkendu: když 15. padne na so/ne, víkend 14.–15. výplatní špičku nemá (v datech −13 až −16 %)
+    # a část se přesune na čt–pá před ním
+    w15=np.array([pd.Timestamp(d.year,d.month,15).dayofweek>=5 for d in f.index])
+    f['vyp_vikend_pred']=(w15&(dom>=12)&(dom<=13)).astype(float)
+    f['vyp_vikend']=(w15&(dom>=14)&(dom<=15)).astype(float)
     hol=np.array([d in HOL for d in f.index])
     f['svatek']=hol.astype(float)
     # svátek, kdy sklad expeduje jako o víkendu (config sklad_jede_o_svatku)
