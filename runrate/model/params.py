@@ -17,10 +17,18 @@ R=pd.read_pickle('bt.pkl')
 anch={1:0.3,3:0.4,7:0.5,14:0.5,17:0.6,21:0.8,24:1.0,31:1.0}
 alpha=np.interp(range(1,32),list(anch),list(anch.values()))
 big=R[R.trh.isin(BIG)&R.Y.notna()].copy()
-def blend(g):
-    a=np.interp(g.d,list(anch),list(anch.values())); return a*g.S+(1-a)*g.Y
-big['eC']=blend(big)/big.act-1
-sdb=big.groupby('d').eC.apply(lambda e: np.sqrt(np.mean(np.log1p(e)**2)))
+# σ mimo vzorek: váha tvaru pro každý měsíc vyladěná jen na ostatních měsících
+# (na stejných datech, na kterých se váhy ladily, vychází σ o 10–25 % menší, tedy optimisticky)
+def oos_errors(b):
+    out=[]
+    for M in b.M.unique():
+        tr=b[b.M!=M]
+        for d,g in b[b.M==M].groupby('d'):
+            gt=tr[tr.d==d]
+            a=min(np.arange(0,1.01,0.1),key=lambda x:np.abs((x*gt.S+(1-x)*gt.Y)/gt.act-1).mean())
+            out.append(pd.DataFrame({'d':d,'e':(a*g.S+(1-a)*g.Y)/g.act-1}))
+    return pd.concat(out)
+sdb=oos_errors(big).groupby('d').e.apply(lambda e: np.sqrt(np.mean(np.log1p(e)**2)))
 sm=R[R.trh.isin(['SE HU','KS CZ','KS SK'])]
 sds=sm.groupby('d').eS.apply(lambda e: np.sqrt(np.median(np.log1p(e.clip(-0.9))**2))*1.25)
 ds=list(sdb.index)

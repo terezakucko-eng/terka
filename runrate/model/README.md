@@ -14,11 +14,12 @@ Model rozpočítá zbytek měsíce do dnů a odhadne konec měsíce. Do listu �
 
    Novější data mají větší váhu. Malé trhy berou tvar z RS CZ + RS SK.
 2. **Konec měsíce** se počítá v tabulce. Je to mix dvou odhadů:
-   - tvar × MTD, tedy dosavadní tržby vydělené podílem uplynulých dnů;
+   - tvar × MTD, tedy dosavadní tržby vydělené podílem uplynulých dnů. Dny s jednorázovou akcí (SMS, flash sale) se do tempa nepočítají, jinak by se jedna špička násobila do konce měsíce;
    - loni × růst, tedy loňské stejné dny v týdnu krát meziroční růst za 28 dní (jen RS CZ a RS SK).
 
    Váha tvaru roste s dnem v měsíci podle zpětného testu. K tomu se přičte úprava plánem spendu přes elasticitu.
-3. **Zpětný test** (`backtest.py`, `combo.py`). Odhad konce měsíce ve 3., 7., …, 24. dni proti metodám A (MTD × křivka) a B (tempo 7 dní) na měsících od 7/2025.
+   Nejistota σ je měřená mimo vzorek: váha tvaru se pro každý testovaný měsíc ladí jen na ostatních měsících.
+3. **Zpětný test** (`backtest.py`, `combo.py`). Odhad konce měsíce ve 3., 7., …, 24. dni proti metodám A (MTD × křivka) a B (tempo 7 dní) na měsících od 7/2025. Mix s loňskem jde testovat až od 2/2026, kdy existuje loňsko po dnech; listopad s Black Friday ani období víkendové expedice v testu mixu zatím nejsou.
 
 ## Měsíční přepočet (při založení nového měsíce)
 
