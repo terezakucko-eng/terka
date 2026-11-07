@@ -19,6 +19,7 @@ Projdi nové faktury ve schvalovacím portálu a zapiš je do mého seznamu fakt
 - List „Schválené FA_TEREZA“, jedna faktura (nebo její část) = jeden řádek, nové řádky na konec.
 - Sloupce: A BGT ID | B BGT popis | C Číslo dokladu | D Firma | E Zaúčtováno | F Popis | G Plnění | H Splatnost | I BezDPH | J Celkem | K Měsíc | L Rok
 - Data piš ve tvaru 03.11.2026, částky jako čísla s desetinnou čárkou (bez „Kč“), stejně jako předchozí řádky.
+- Číslo dokladu (sloupec C) vždy prolinkuj na detail faktury v portálu: otevři fakturu a zkopíruj adresu ve tvaru https://ruzovyslon.schvalovani.online/TNxReceivedInvoice/default/form/XXXXXXXXXX (kód XXXX nejde odvodit z čísla dokladu, musí se vzít z portálu). Vlož jako odkaz na text čísla dokladu, stejně jako u předchozích řádků.
 - Než přidáš řádek, ověř podle čísla dokladu (sloupec C), že tam faktura už není. Duplicity nezapisuj.
 - Měsíc a Rok = období, ke kterému se náklad vztahuje (datum plnění / období v popisu), ne datum zaúčtování. Příklad: „Reklama na rádiu CZ 10/2026“ zaúčtovaná 3. 11. → Měsíc 10.
 
