@@ -41,10 +41,18 @@ Projdi nové faktury ve schvalovacím portálu a zapiš je do mého seznamu fakt
 
 4) PRAVIDLA
 - Nejdřív mi ukaž návrh jako tabulku: číslo dokladu | firma | popis | bez DPH | měsíc | BGT ID | BGT popis | jistota (stejně jako dřív / odhad / K ROZHODNUTÍ). Zapisuj až po mém „ok“.
-- V listu „Náklady_MKT_2026_TERKA“ nic neměň – slouží jen jako číselník řádků.
+- V listu „Náklady_MKT_2026_TERKA“ měň jen sloupce Skutečnost podle bodu 4b.
 - Nepoužívej barvy v buňkách, nuly nepiš.
 - Nikdy nepiš slovo „gin“; značka je „Slon (džin)“.
 - Když si nejsi jistá, zeptej se.
+
+4b) PŘIČTENÍ DO SKUTEČNOSTI (list „Náklady_MKT_2026_TERKA“, gid=2141485398)
+- Po zapsání do seznamu přičti částku BEZ DPH do sloupce „Skutečnost 2026“ toho měsíce, kdy je faktura ZAÚČTOVANÁ (sloupec E Zaúčtováno), na řádek se shodným Účtem (E), Popisem (F) a Zemí (C).
+- Sloupce Skutečnost: leden L, únor P, březen T, duben X, květen AB, červen AF, červenec AJ, srpen AN, září AR, říjen AV, listopad AZ, prosinec BD.
+- Přičítej tak, aby bylo vidět jednotlivé faktury: prázdná buňka → =11000; buňka s 21000 → =21000+11000; buňka se vzorcem =12043+10920 → =12043+10920+11000. Desetinná čárka (=8562,75+8519).
+- Nikdy nepřepisuj součtové řádky (Σ, SUM/SUBTOTAL) ani sloupce YOY / FP plán / MKT plán.
+- KONTROLA DUPLICIT: před přičtením projdi celý sloupec Skutečnost daného měsíce (všechny řádky, i jednotlivé sčítance ve vzorcích). Pokud tam už je STEJNÁ částka, NEPŘIČÍTEJ a zeptej se mě, zda ji účtovat (uveď řádek a buňku, kde je).
+- Návrh přičtení mi vždy ukaž jako tabulku (doklad | částka | řádek / popis | buňka | teď | po přičtení | shoda částky ano/ne) a zapiš až po mém „ok“.
 
 5) SOUHRN NA KONCI
 - kolik faktur bylo nových, kolik zapsáno, kolik je k rozhodnutí, kolik mimo MKT;
