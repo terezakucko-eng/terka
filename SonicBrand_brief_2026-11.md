@@ -56,10 +56,7 @@ Prosíme o nabídku členěnou na **must have** a **nice to have**, s cenou po f
 2. **Zvukové logo** (do cca 5 s) včetně variant pro různé délky a kanály.
 3. **Earcon / krátké zvukové prvky** pro digitál a sociální sítě (notifikace, přechody, UX).
 4. **Hudební motiv(y) značky** (1–3 motivy) a jejich aranže pro TV, rádio a online.
-5. **Hlas značky:**
-
-    - doporučení, zda pokračovat s Martinem Stránským, nebo zvolit nový hlas,
-    - způsob, jak hlas škálovat do SK, HU a dalších jazyků (reálný hlas, klon, nebo syntetický hlas – výhody, rizika a náklady).
+5. **Hlas značky:** doporučení, zda pokračovat s Martinem Stránským, nebo zvolit nový hlas, a způsob, jak hlas škálovat do SK, HU a dalších jazyků (reálný hlas, klon, nebo syntetický hlas – výhody, rizika a náklady).
 6. **Zvukový manuál** (pravidla použití pro naše produkce a agentury) a předání všech zdrojových souborů.
 7. **Licence:** neomezené užití ve všech kanálech a na všech trzích, bez časového omezení a bez ročních poplatků za práva.
 
@@ -90,10 +87,7 @@ Prosíme o nabídku členěnou na **must have** a **nice to have**, s cenou po f
 | Smlouva | 4. 12. 2026 |
 | Zvukové logo a earcon hotové | do 31. 3. 2027 |
 
-### 7. Rozpočet
-[DOPLNÍ TEREZA – uvést orientační rozpětí, nebo nechat na nabídce studia?]
-
-### 8. Kdo rozhoduje
+### 7. Kdo rozhoduje
 Za Růžového slona: Tereza Kucková (Head of Marketing, kontaktní osoba), Karel Novotný (brand konzultant). V hodnotící komisi dále Adam Durčák (majitel) a Gabriel Kopeć.
 
 Kontakt: Tereza Kucková, tereza.kuckova@ruzovyslon.cz
