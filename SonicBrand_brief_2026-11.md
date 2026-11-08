@@ -3,7 +3,6 @@
 
 Obě studia dostávají stejné zadání a stejný seznam požadovaných výstupů, abychom mohli nabídky férově porovnat.
 
----
 
 ### 1. Kdo jsme
 Růžový slon je největší český a slovenský e-shop a síť prodejen s erotickými pomůckami (ČR, SK, HU a další trhy střední a jihovýchodní Evropy). Značku stavíme přes 15 let na **detabuizaci**: o sexu mluvíme s nadhledem, vkusně a bez studu.
@@ -53,13 +52,14 @@ Prosíme o nabídku členěnou na **must have** a **nice to have**, s cenou po f
 
 **Must have**
 
-1. Úvodní fáze: workshop / discovery s klíčovými lidmi z naší strany, analýza značky, konkurence a zvukového prostředí kategorie. Výstupem je zvuková DNA značky.
+1. Úvodní fáze: **online workshop s naším týmem v rozsahu max. 2 hodiny** (ne celodenní), analýza značky, konkurence a zvukového prostředí kategorie. Výstupem je zvuková DNA značky.
 2. **Zvukové logo** (do cca 5 s) včetně variant pro různé délky a kanály.
 3. **Earcon / krátké zvukové prvky** pro digitál a sociální sítě (notifikace, přechody, UX).
 4. **Hudební motiv(y) značky** (1–3 motivy) a jejich aranže pro TV, rádio a online.
 5. **Hlas značky:**
-   - doporučení, zda pokračovat s Martinem Stránským, nebo zvolit nový hlas,
-   - způsob, jak hlas škálovat do SK, HU a dalších jazyků (reálný hlas, klon, nebo syntetický hlas – výhody, rizika a náklady).
+
+    - doporučení, zda pokračovat s Martinem Stránským, nebo zvolit nový hlas,
+    - způsob, jak hlas škálovat do SK, HU a dalších jazyků (reálný hlas, klon, nebo syntetický hlas – výhody, rizika a náklady).
 6. **Zvukový manuál** (pravidla použití pro naše produkce a agentury) a předání všech zdrojových souborů.
 7. **Licence:** neomezené užití ve všech kanálech a na všech trzích, bez časového omezení a bez ročních poplatků za práva.
 
