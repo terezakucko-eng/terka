@@ -29,7 +29,7 @@ import { Avatar } from "@/components/avatar";
 import { upcomingCelebrations } from "@/lib/profile";
 import { dateKey, mondayOf } from "@/lib/dates";
 import { AdminAddBooking } from "@/components/admin-add-booking";
-import { guestAllowed, recomputeSurcharges, surchargeVsSql, usableCredit } from "@/domain/booking";
+import { guestAllowed, recomputeSurcharges, surchargeOrderIdSql, surchargeVsSql, usableCredit } from "@/domain/booking";
 import { splitName } from "@/lib/client-list";
 
 export default async function AdminSessionPage({ params }: PageProps<"/admin/rozvrh/[id]">) {
@@ -53,7 +53,7 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
     .sort((a, b) => collator.compare(a.label, b.label));
   const [list, types, instructorList] = await Promise.all([
     db
-      .select({ b: bookings, u: users, payUntil: orders.expiresAt, vs: orders.number, orderStatus: orders.status, surchargeVs: surchargeVsSql })
+      .select({ b: bookings, u: users, payUntil: orders.expiresAt, vs: orders.number, orderStatus: orders.status, surchargeVs: surchargeVsSql, surchargeOrderId: surchargeOrderIdSql })
       .from(bookings)
       .innerJoin(users, eq(bookings.userId, users.id))
       .leftJoin(orders, eq(bookings.orderId, orders.id))
@@ -89,7 +89,7 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
       <br /><span className="break-all text-xs text-les/50">{u.phone ?? u.email}</span>
     </>
   );
-  const pay = ({ b, u, payUntil, vs, orderStatus, surchargeVs }: Pick<Row, "b" | "u" | "payUntil" | "vs" | "orderStatus" | "surchargeVs">) => {
+  const pay = ({ b, u, payUntil, vs, orderStatus, surchargeVs, surchargeOrderId }: Pick<Row, "b" | "u" | "payUntil" | "vs" | "orderStatus" | "surchargeVs" | "surchargeOrderId">) => {
     // a drop-in still waiting for its money – also an older one that got the place before paying
     const unpaidDropIn = b.method === "drop_in" && !!b.orderId && orderStatus === "pending";
     const unpaidSurcharge = b.status !== "pending_payment" && b.surcharge > 0 && !b.surchargePaidAt;
@@ -123,11 +123,25 @@ export default async function AdminSessionPage({ params }: PageProps<"/admin/roz
         <RemindPayment bookingId={b.id} remindedAt={b.paymentRemindedAt} />
       )}
       {unpaidSurcharge && isAdmin && b.status !== "waitlist" && <PayFromCredit bookingId={b.id} amount={b.surcharge} credit={usableCredit(u)} />}
+      {/* the client chose a transfer: when it arrives, confirm that payment – it stays paired with the lesson (by its VS) */}
+      {unpaidSurcharge && isAdmin && b.status !== "waitlist" && surchargeOrderId && (
+        <ActionForm action={markOrderPaidAction} confirm={`Převod s VS ${surchargeVs} dorazil? Doplatek ${formatPrice(b.surcharge)} bude zaplacený tímhle převodem.`} className="mt-1">
+          <input type="hidden" name="orderId" value={surchargeOrderId} />
+          <button className="text-xs font-semibold text-zeme underline">Převod VS {surchargeVs} dorazil</button>
+        </ActionForm>
+      )}
       {b.surcharge > 0 && (
         <ActionForm
           action={setSurchargePaidAction}
-          // un-marking a paid surcharge is rare – a tap on the green badge by mistake mustn't do it
-          confirm={b.surchargePaidAt ? `Opravdu vrátit doplatek ${formatPrice(b.surcharge)} na nezaplacený?` : undefined}
+          // un-marking a paid surcharge is rare – a tap on the green badge by mistake mustn't do it;
+          // marking it paid at the desk calls off a transfer still waiting – a transfer that comes anyway is credit then
+          confirm={
+            b.surchargePaidAt
+              ? `Opravdu vrátit doplatek ${formatPrice(b.surcharge)} na nezaplacený?`
+              : surchargeVs
+                ? `Doplatek ${formatPrice(b.surcharge)} zaplacený na místě? Čekající převod s VS ${surchargeVs} se tím zruší – kdyby přesto dorazil, připíše se klientce jako kredit. Když dorazil převod, potvrď radši „Převod VS ${surchargeVs} dorazil“.`
+                : undefined
+          }
           className="mt-1"
         >
           <input type="hidden" name="bookingId" value={b.id} />

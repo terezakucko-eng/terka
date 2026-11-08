@@ -545,6 +545,9 @@ export async function paymentDue(db: Executor, bookingId: string, now = new Date
 /** The VS of a surcharge the client started to pay (its order still waits) – null when not started. */
 export const surchargeVsSql = sql<number | null>`(select max(o2.number) from orders o2 where o2.booking_id = ${bookings.id} and o2.kind = 'surcharge' and o2.status = 'pending')`;
 
+/** …and that waiting payment itself, so reception can confirm the transfer by it (and it's paired with the lesson). */
+export const surchargeOrderIdSql = sql<string | null>`(select o2.id from orders o2 where o2.booking_id = ${bookings.id} and o2.kind = 'surcharge' and o2.status = 'pending' order by o2.number desc limit 1)`;
+
 /** A surcharge whose payment came (card / transfer) – paid, whatever the booking's own mark says. */
 const surchargeOrderPaidSql = sql<boolean>`exists (select 1 from orders o3 where o3.booking_id = ${bookings.id} and o3.kind = 'surcharge' and o3.status = 'paid')`;
 
