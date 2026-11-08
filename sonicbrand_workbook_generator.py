@@ -5,12 +5,12 @@ start=src.index('### 1. Kdo jsme'); end=src.index('### 6. Harmonogram')
 core=src[start:end]
 core=core.replace('Brief pro studia Trebledu a Brainz','')
 agencies={
- 'Trebledu':dict(call='pátek 13. 11. 2026 od 10:30 (online), nebo jiný termín podle vás – kdykoli do 20. 11.',
+ 'Trebledu':dict(call='do 20. 11. 2026',
    theirs=[('Ukázky projektů a případové studie','https://drive.google.com/drive/folders/1SjFq_yIbqB7ENZ1Mz2whCeXcR_8Z6sVh','zasláno 29. 9. 2026')]),
- 'Brainz':dict(call='domluvíme podle vás – kdykoli do 20. 11. 2026',
+ 'Brainz':dict(call='do 20. 11. 2026',
    theirs=[('Prezentace s ukázkami (úvodní call 1. 10.)','https://www.figma.com/deck/3KioC6IkVc3wNcvzBFh62o','zasláno 1. 10. 2026')]),
 }
-css='<style>body{font-family:Arial;font-size:11pt} table{border-collapse:collapse;width:100%} td,th{border:1px solid #999;padding:5px 8px;vertical-align:top} th{background:#FBE5ED} h1{color:#DC004E} h2{color:#240A49} .note{background:#FCEAEA;padding:6px}</style>'
+css='<style>body{font-family:Arial;font-size:11pt} table{border-collapse:collapse;width:100%} td,th{border:1px solid #999;padding:5px 8px;vertical-align:top} th{background:#FBE5ED} h1{color:#DC004E} h2{color:#240A49} .note{background:#FCEAEA;padding:8px} blockquote{background:#FBE5ED;border-left:4px solid #DC004E;margin:8px 0;padding:6px 10px} h4{color:#7E3386;margin-bottom:2px}</style>'
 def table(headers,rows):
     h='<table><tr>'+''.join(f'<th>{x}</th>' for x in headers)+'</tr>'
     for r in rows: h+='<tr>'+''.join(f'<td>{x}</td>' for x in r)+'</tr>'
@@ -36,7 +36,7 @@ for name,cfg in agencies.items():
     html+='<h2>Workbook</h2>'
     html+='<h3>A. Podklady od nás</h3>'+table(['Podklad','Odkaz','Poznámka'],[
         ['Brand manuál Slon 4.0 (Visualbook)',a('https://ruzovyslon.visualbook.pro/'),
-         'Náš nový brand manuál, hotový zhruba z 99 %. Grafik do něj právě doplňuje podrobnosti, mimo jiné upřesnění kódů značky. Jakmile bude aktualizovaný, dáme vám vědět tady v dokumentu.'],
+         'Náš nový brand manuál, hotový zhruba z 99 %. <b>Co do něj právě doplňujeme:</b><br>• kompletní kódy značky (13 kódů, 4 povinné vždy, max. 7 na jednom materiálu – přehled je v bodě 3 tohoto briefu),<br>• pravidlo „jeden Slon na materiálu nejvýš jednou“,<br>• aktualizované a očíslované podklady ke stažení ve veřejné části.<br>Jakmile bude hotovo, dáme vám vědět tady v dokumentu.'],
         ['Dosavadní TV spoty (Vimeo)',a('https://vimeo.com/user119290805?fl=pp&fe=sh'),'Naše dosavadní spoty se starou podobou Slona a hlasem Martina Stránského. Novou podobu Slona představíme v lednu 2027.'],
         ['Dřívější pokusy o jingle (2021–22)','na vyžádání','Rádi pošleme na ukázku toho, čemu se chceme vyhnout.'],
         ['','','']])
