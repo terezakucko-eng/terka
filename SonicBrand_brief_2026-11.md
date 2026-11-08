@@ -33,9 +33,17 @@ Podle brand trackingu Behavio (7/2026) nás zná 90 % lidí v cílové skupině 
 
 **Kódy značky, ke kterým musí zvuk sedět** (podle brand manuálu): Název, Barva (růžová), Náboj (erotika), Diskrétnost. Dále volitelně: Maskot (Slon), Symbol (pusinka), Hlas, Recenze, Detabuizace, Původ (Havířov).
 
-**Kde se bude zvuk používat:** TV, rádio, online video, sociální sítě, web a aplikace (UX zvuky), prodejny, eventy, interní a firemní komunikace. Do budoucna případně podcasty a vlastní produktové řady (např. vibrační rytmus).
+**Kde se bude zvuk používat (8+ kanálů):** TV (sponzoring a spoty), rádio, kino, online video (ONEPLAY, VOYO, YouTube), sociální sítě, web a aplikace (UX zvuky), prodejny, eventy (Erofest, Colours of Ostrava), interní a firemní komunikace. Do budoucna případně podcasty a vlastní produktové řady (např. vibrační rytmus u privátní značky).
 
-**Trhy a jazyky:** ČR a SK (hlavní), HU, RO, HR, SI, BG.
+**Trhy a jazyky:** ČR a SK (hlavní), HU, RO, HR, SI, BG – celkem 7 trhů. Maskot má umět „mluvit“ ve všech jazycích s co nejnižšími produkčními náklady.
+
+**Hlas značky – otázky, které chceme v nabídce zodpovědět:**
+- Sedí k nové podobě Slona dosavadní hlas Martina Stránského (CZ), nebo hledat nový? Efekt jeho hlasu jsme nikdy neměřili.
+- Jeden hlas, nebo více hlasů pro různé situace a cílové skupiny?
+- Reálný hlas, klon reálného hlasu, nebo syntetický hlas – výhody, rizika, práva a náklady na další roky a trhy.
+- Jak lokalizovat spoty do dalších jazyků, aby nepůsobily „dabovaně“.
+
+**Čemu se chceme vyhnout:** vzdechy, vrzání, zvuky vibrátorů a další doslovné „erotické“ zvuky; laciný jingle. Dřívější pokusy (2021–22) skončily právě tady.
 
 ### 4. Požadované výstupy
 Prosíme o nabídku členěnou na **must have** a **nice to have**, s cenou po fázích.
@@ -55,7 +63,8 @@ Prosíme o nabídku členěnou na **must have** a **nice to have**, s cenou po f
 - testování zvukových směrů na cílové skupině nebo interně,
 - konzultace u prvních kampaní po spuštění (např. TV spot 2027),
 - zvukový koncept pro prodejny a eventy (playlisty, ambient),
-- platforma nebo úložiště pro správu zvukových assetů,
+- platforma nebo úložiště pro správu zvukových assetů (pro naše produkce a agentury),
+- zvuková složka vlastních produktů (privátní značka),
 - školení našeho týmu.
 
 ### 5. Co do nabídky prosíme uvést
@@ -69,7 +78,7 @@ Prosíme o nabídku členěnou na **must have** a **nice to have**, s cenou po f
 | Krok | Termín |
 |---|---|
 | Brief studiím | 9. 11. 2026 |
-| Online call s každým studiem (doplňující otázky) | 9.–13. 11. 2026 |
+| Online call s každým studiem (doplňující otázky) | 10.–13. 11. 2026 |
 | Odevzdání nabídek | **20. 11. 2026** |
 | Rozhodnutí | 27. 11. 2026 |
 | Smlouva | 4. 12. 2026 |
