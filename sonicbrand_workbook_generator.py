@@ -37,7 +37,7 @@ for name,cfg in agencies.items():
     html+='<h3>A. Podklady od nás</h3>'+table(['Podklad','Odkaz','Poznámka'],[
         ['Brand manuál Slon 4.0 (Visualbook)',a('https://ruzovyslon.visualbook.pro/'),
          'Náš nový brand manuál, hotový zhruba z 99 %. Grafik do něj právě doplňuje podrobnosti, mimo jiné upřesnění kódů značky. Jakmile bude aktualizovaný, dáme vám vědět tady v dokumentu.'],
-        ['Dosavadní TV spoty (Vimeo)',a('https://vimeo.com/user119290805'),'Naše dosavadní spoty se starou podobou Slona a hlasem Martina Stránského. Novou podobu Slona představíme v lednu 2027.'],
+        ['Dosavadní TV spoty (Vimeo)',a('https://vimeo.com/user119290805?fl=pp&fe=sh'),'Naše dosavadní spoty se starou podobou Slona a hlasem Martina Stránského. Novou podobu Slona představíme v lednu 2027.'],
         ['Dřívější pokusy o jingle (2021–22)','na vyžádání','Rádi pošleme na ukázku toho, čemu se chceme vyhnout.'],
         ['','','']])
     html+='<h3>B. Podklady a odkazy od vás</h3>'+table(['Co','Odkaz','Poznámka'],[[t,a(u),n] for t,u,n in cfg['theirs']]+[['','',''],['','','']])
