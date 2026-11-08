@@ -21,24 +21,24 @@ for name,cfg in agencies.items():
     html='<html><head><meta charset="utf-8">'+css+'</head><body>'
     html+=markdown.markdown(md)
     html+=('<p class="note"><b>Jak s dokumentem pracovat:</b> tento dokument je náš společný workbook. Najdete v něm zadání, podklady od nás a místo pro vaše odkazy, otázky a poznámky. '
-           'Do tabulek můžete rovnou psát a vkládat odkazy, k libovolnému textu přidávejte komentáře (vložit komentář: označit text → Ctrl+Alt+M). '
-           'Na komentáře budeme odpovídat přímo v dokumentu. Zadání dostávají všechna studia ve výběru ve stejné podobě.</p>')
+           'Do tabulek klidně rovnou pište a vkládejte odkazy, k čemukoli můžete přidat komentář (označte text a stiskněte Ctrl+Alt+M). '
+           'Odpovídat budeme přímo tady. Zadání dostávají všechna studia ve výběru ve stejné podobě, ať je to fér.</p>')
     html+=markdown.markdown(core,extensions=['tables','sane_lists'])
     html+='<h3>6. Harmonogram</h3>'+table(['Krok','Termín'],[
-        ['Brief a workbook','9. 11. 2026'],
+        ['Brief','9. 11. 2026'],
         ['Online call (doplňující otázky k zadání)',cfg['call']],
-        ['Odevzdání nabídky','<b>pátek 20. 11. 2026</b>'],
+        ['Nabídka','<b>pátek 20. 11. 2026</b>'],
         ['Rozhodnutí','27. 11. 2026'],
         ['Smlouva','4. 12. 2026'],
         ['Zvukové logo a earcon hotové','do 31. 3. 2027']])
-    html+=('<h3>7. Kdo rozhoduje</h3><p>Za Růžového slona: Tereza Kucková (Head of Marketing, kontaktní osoba), Karel Novotný (brand konzultant). '
-           'V hodnotící komisi dále Adam Durčák (majitel) a Gabriel Kopeć.</p><p>Kontakt: Tereza Kucková, tereza.kuckova@ruzovyslon.cz</p>')
+    html+=('<h3>7. Kdo u toho bude</h3><p>Za Růžového slona projekt vede Tereza Kucková (Head of Marketing, kontaktní osoba) spolu s Karlem Novotným (brand konzultant). '
+           'O výběru rozhodujeme společně s majitelem Adamem Durčákem a Gabrielem Kopećem.</p><p>Kontakt: Tereza Kucková, tereza.kuckova@ruzovyslon.cz</p>')
     html+='<h2>Workbook</h2>'
     html+='<h3>A. Podklady od nás</h3>'+table(['Podklad','Odkaz','Poznámka'],[
         ['Brand manuál Slon 4.0 (Visualbook)',a('https://ruzovyslon.visualbook.pro/'),
-         'Nový brand manuál, hotový zhruba z 99 %. Náš grafik do něj právě doplňuje podrobnosti, mimo jiné upřesnění kódů značky. Aktualizaci vám dáme vědět zde v dokumentu.'],
-        ['Dosavadní TV spoty (Vimeo)',a('https://vimeo.com/user119290805'),'Historické spoty se starou podobou maskota a současným hlasem (Martin Stránský). Novou podobu Slona představíme v lednu 2027.'],
-        ['Dřívější pokusy o jingle (2021–22)','na vyžádání','Ukázky toho, čemu se chceme vyhnout.'],
+         'Náš nový brand manuál, hotový zhruba z 99 %. Grafik do něj právě doplňuje podrobnosti, mimo jiné upřesnění kódů značky. Jakmile bude aktualizovaný, dáme vám vědět tady v dokumentu.'],
+        ['Dosavadní TV spoty (Vimeo)',a('https://vimeo.com/user119290805'),'Naše dosavadní spoty se starou podobou Slona a hlasem Martina Stránského. Novou podobu Slona představíme v lednu 2027.'],
+        ['Dřívější pokusy o jingle (2021–22)','na vyžádání','Rádi pošleme na ukázku toho, čemu se chceme vyhnout.'],
         ['','','']])
     html+='<h3>B. Podklady a odkazy od vás</h3>'+table(['Co','Odkaz','Poznámka'],[[t,a(u),n] for t,u,n in cfg['theirs']]+[['','',''],['','','']])
     html+='<h3>C. Otázky a odpovědi</h3>'+table(['#','Otázka','Kdo se ptá','Odpověď'],[['1','','',''],['2','','',''],['3','','','']])
