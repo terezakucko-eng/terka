@@ -44,6 +44,10 @@ for name,cfg in agencies.items():
     html+='<h3>C. Otázky a odpovědi</h3>'+table(['#','Otázka','Kdo se ptá','Odpověď'],[['1','','',''],['2','','',''],['3','','','']])
     html+='<h3>D. Poznámky z online callu</h3>'+table(['Datum','Účastníci','Hlavní body a domluvené kroky'],[['','','']])
     html+='<h3>E. Nabídka</h3>'+table(['Verze','Odkaz na nabídku','Datum','Poznámka'],[['1','','','']])
+    # PAGEBREAK: každá numerovaná sekce a workbook na nové stránce
+    import re as _re
+    html=_re.sub(r'<h3>(?=[2-7]\. )','<h3 style="page-break-before:always">',html)
+    html=html.replace('<h2>Workbook</h2>','<h2 style="page-break-before:always">Workbook</h2>')
     html+='</body></html>'
     open(f'wb_{name}.html','w').write(html)
 print('ok')
