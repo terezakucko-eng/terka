@@ -39,6 +39,7 @@ import { Badge, Button, Card, Field, Input, Select, Textarea } from "@/component
 import { getDb } from "@/db";
 import { massageBookings, pushSubscriptions, users } from "@/db/schema";
 import { userBookings, userEntitlements, userLedger, userOrders } from "@/lib/account";
+import { bookingPayments, ledgerTrail, orderTrail, paymentLine, type Lesson } from "@/lib/payment-trail";
 import { requireAdmin } from "@/lib/auth";
 import { dateKey, formatDate, formatDateTime } from "@/lib/dates";
 import { formatPrice } from "@/lib/money";
@@ -91,7 +92,13 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
     referralInfo(db, u.id),
     passCardOf(db, u.id),
   ]);
-  const vacationList = await vacationsOf(db, u.id);
+  const [vacationList, pays, trail, ledgerCtx] = await Promise.all([
+    vacationsOf(db, u.id),
+    // where every crown went: how each lesson was paid, which lesson a payment / credit movement is for
+    bookingPayments(db, [...upcoming, ...past].map(({ b }) => b.id)),
+    orderTrail(db, orderList.map((o) => o.id)),
+    ledgerTrail(db, ledger),
+  ]);
   const sunLeft = sunPasses.reduce((s, p) => s + p.left, 0);
   const now = new Date();
   const attended = past.filter(({ b }) => b.status === "attended").length;
@@ -199,9 +206,7 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
                 </Td>
                 <Td>
                   {b.method ? methodLabel[b.method] : "—"}
-                  {b.surcharge > 0 && b.status !== "waitlist" && (
-                    <span className="block text-xs text-les/60">doplatek {formatPrice(b.surcharge)} {b.surchargePaidAt ? "✓" : "– nezaplaceno"}</span>
-                  )}
+                  <PaymentNote line={paymentLine(b, pays.get(b.id))} confirmable={s.status !== "cancelled"} />
                   {s.status !== "cancelled" && ((b.status === "pending_payment" && b.orderId) || (b.status === "confirmed" && b.surcharge > 0 && !b.surchargePaidAt)) && (
                     <RemindPayment bookingId={b.id} remindedAt={b.paymentRemindedAt} />
                   )}
@@ -494,7 +499,10 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
               <tr key={b.id}>
                 <Td><Link href={`/admin/rozvrh/${s.id}`} className="underline-offset-4 hover:underline">{ct.name}</Link></Td>
                 <Td className="whitespace-nowrap">{formatDateTime(s.startsAt)}</Td>
-                <Td>{b.method ? methodLabel[b.method] : "—"}</Td>
+                <Td>
+                  {b.method ? methodLabel[b.method] : "—"}
+                  <PaymentNote line={paymentLine(b, pays.get(b.id))} confirmable />
+                </Td>
                 <Td>
                   {bookingStatusLabel[b.status]}{b.lateCancel && " (pozdě)"}
                   {b.status === "cancelled" && b.cancelledAt && (
@@ -515,8 +523,8 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
                   <Td>{o.number}</Td>
                   <Td>
                     {o.description}
-                    <br />
-                    <span className="text-xs text-les/50">
+                    <LessonLink lesson={trail.lessons.get(o.id)} label="k lekci" />
+                    <span className="block text-xs text-les/50">
                       {formatDateTime(o.createdAt)} · {providerLabel[o.provider] ?? o.provider}
                       {o.provider === "transfer" && ` · VS ${o.number}`}
                     </span>
@@ -524,6 +532,10 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
                   <Td className="whitespace-nowrap">{formatPrice(o.amount)}</Td>
                   <Td>
                     {orderStatusLabel[o.status]}
+                    {/* the money came, but what it was for was gone or paid already – so it went to credit */}
+                    {trail.credited.has(o.id) && (
+                      <span className="block text-xs text-les/60">→ vráceno jako kredit ({trail.credited.get(o.id)})</span>
+                    )}
                     {/* a transfer arrived (or it was paid at the desk): confirm and the credit, pass or membership is added */}
                     {o.status === "pending" && o.kind !== "renewal" && (
                       <div className="mt-1 flex flex-wrap gap-3">
@@ -561,7 +573,16 @@ export default async function ClientDetail({ params, searchParams }: PageProps<"
               rows={ledger.map((t) => (
                 <tr key={t.id}>
                   <Td className="whitespace-nowrap">{formatDateTime(t.createdAt)}</Td>
-                  <Td>{creditReasonLabel[t.reason]}{t.note && ` · ${t.note}`}</Td>
+                  <Td>
+                    {creditReasonLabel[t.reason]}{t.note && ` · ${t.note}`}
+                    {(ledgerCtx.get(t.id)?.vs || ledgerCtx.get(t.id)?.lesson) && (
+                      <span className="block text-xs text-les/60">
+                        {ledgerCtx.get(t.id)?.vs && `VS ${ledgerCtx.get(t.id)?.vs}`}
+                        {ledgerCtx.get(t.id)?.vs && ledgerCtx.get(t.id)?.lesson && " · "}
+                        <LessonLink lesson={ledgerCtx.get(t.id)?.lesson ?? undefined} inline />
+                      </span>
+                    )}
+                  </Td>
                   <Td className={t.delta > 0 ? "text-ok" : ""}>{t.delta > 0 ? "+" : ""}{t.delta}</Td>
                   <Td>{t.balanceAfter}</Td>
                 </tr>
@@ -672,5 +693,32 @@ function WhatsAppCard({ phone, name, consent }: { phone: string | null; name: st
         <p className="mt-2 text-sm text-les/60">Klient nemá vyplněný platný telefon.</p>
       )}
     </Card>
+  );
+}
+
+/** "Reformer fusion · ne 8. 11. 17:00" – a link to the lesson a payment or credit movement is for. */
+function LessonLink({ lesson, label, inline }: { lesson: Lesson | undefined; label?: string; inline?: boolean }) {
+  if (!lesson) return null;
+  const link = (
+    <Link href={`/admin/rozvrh/${lesson.id}`} className="underline-offset-4 hover:underline">
+      {lesson.name} · {formatDateTime(lesson.startsAt)}
+    </Link>
+  );
+  return inline ? link : <span className="block text-xs text-les/70">{label} {link}</span>;
+}
+
+/** How the booking's money stands – and a transfer still waiting can be confirmed right here, by its VS. */
+function PaymentNote({ line, confirmable }: { line: ReturnType<typeof paymentLine>; confirmable: boolean }) {
+  if (!line) return null;
+  return (
+    <>
+      <span className={`block text-xs ${line.paid ? "text-ok" : "text-chyba"}`}>{line.paid ? "✓ " : ""}{line.text}</span>
+      {confirmable && line.pendingOrderId && (
+        <ActionForm action={markOrderPaidAction} confirm={`Převod${line.pendingVs ? ` s VS ${line.pendingVs}` : ""} dorazil? Platba se spáruje s touhle lekcí.`}>
+          <input type="hidden" name="orderId" value={line.pendingOrderId} />
+          <button className="text-xs font-semibold text-zeme underline">Převod{line.pendingVs ? ` VS ${line.pendingVs}` : ""} dorazil</button>
+        </ActionForm>
+      )}
+    </>
   );
 }

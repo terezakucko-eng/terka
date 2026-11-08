@@ -26,7 +26,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/obj
   const db = await getDb();
   const [list, unpaid] = await Promise.all([
     db
-      .select({ o: orders, u: users, lesson: { id: classSessions.id, startsAt: classSessions.startsAt, name: sessionNameSql } })
+      .select({ o: orders, u: users, lesson: { id: classSessions.id, startsAt: classSessions.startsAt, name: sessionNameSql }, surchargeSettled: surchargeBooking.surchargePaidAt })
       .from(orders)
       .innerJoin(users, eq(orders.userId, users.id))
       // which class a drop-in / surcharge is for
@@ -126,7 +126,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/obj
       )}
 
       <Table head={["VS", "Datum", "Klient", "Položka", "Částka", "Způsob", "Stav", ""]}>
-        {list.map(({ o, u, lesson }) => (
+        {list.map(({ o, u, lesson, surchargeSettled }) => (
           <tr key={o.id}>
             <Td className="font-semibold tabular-nums">{o.number}</Td>
             <Td className="whitespace-nowrap">{formatDateTime(o.createdAt)}</Td>
@@ -153,7 +153,12 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/obj
               {paidLateOk(o) && (
                 <ActionForm
                   action={markOrderPaidAction}
-                  confirm={`Platba č. ${o.number} (${formatPrice(o.amount)}) přesto dorazila? Když je na lekci ještě místo a rezervace jen propadla, místo se vrátí – jinak se částka připíše jako kredit.`}
+                  confirm={
+                    // the surcharge was settled another way (at the desk, from credit) – this money would be a second payment
+                    o.kind === "surcharge" && surchargeSettled
+                      ? `Doplatek k té lekci už je zaplacený (na místě nebo z kreditu). Potvrzením se ${formatPrice(o.amount)} připíše klientce navíc jako kredit – jen když opravdu zaplatila dvakrát.`
+                      : `Platba č. ${o.number} (${formatPrice(o.amount)}) přesto dorazila? Když je na lekci ještě místo a rezervace jen propadla, místo se vrátí – jinak se částka připíše jako kredit.`
+                  }
                 >
                   <input type="hidden" name="orderId" value={o.id} />
                   <button className="text-xs font-semibold text-zeme underline">Platba přesto dorazila</button>
