@@ -87,6 +87,6 @@ describe("client card: where every crown went", () => {
     expect(paymentLine(atDesk, pays.get(atDesk.id))?.text).toBe(nbsp("Doplatek 150 Kč zaplacen na místě"));
     expect(paymentLine(plain, pays.get(plain.id))).toBeNull();
     expect(paymentLine(waiting, pays.get(waiting.id))).toBeNull();
-    expect(paymentLine({ ...dropIn, orderId: card.id }, pays.get(dropIn.id))).toEqual({ text: "Zaplaceno kartou", paid: true });
+    expect(paymentLine(dropIn, pays.get(dropIn.id))).toEqual({ text: "Zaplaceno kartou", paid: true });
   });
 });
