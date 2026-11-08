@@ -79,11 +79,11 @@ Nabídku prosíme rozdělit na **must have** (bez toho to nepůjde) a **nice to 
 | Krok | Termín |
 |---|---|
 | Brief | 9. 11. 2026 |
-| Online call (doplňující otázky k zadání) | 10.–13. 11. 2026 |
-| Nabídka | pátek 20. 11. 2026 |
-| Rozhodnutí | 27. 11. 2026 |
-| Smlouva | 4. 12. 2026 |
-| Zvukové logo a earcon hotové | do 31. 3. 2027 |
+| Online call (doplňující otázky k zadání) | kdykoli do 20. 11. 2026 |
+| Nabídka | pátek 27. 11. 2026 |
+| Rozhodnutí | 4. 12. 2026 |
+| Smlouva | 11. 12. 2026 |
+| Zvukové logo a earcon hotové | do 7. 4. 2027 |
 
 ### 7. Kdo u toho bude
 

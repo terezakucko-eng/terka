@@ -5,9 +5,9 @@ start=src.index('### 1. Kdo jsme'); end=src.index('### 6. Harmonogram')
 core=src[start:end]
 core=core.replace('Brief pro studia Trebledu a Brainz','')
 agencies={
- 'Trebledu':dict(call='pátek 13. 11. 2026 od 10:30 (online) – případně jiný termín podle vás',
+ 'Trebledu':dict(call='pátek 13. 11. 2026 od 10:30 (online), nebo jiný termín podle vás – kdykoli do 20. 11.',
    theirs=[('Ukázky projektů a případové studie','https://drive.google.com/drive/folders/1SjFq_yIbqB7ENZ1Mz2whCeXcR_8Z6sVh','zasláno 29. 9. 2026')]),
- 'Brainz':dict(call='doplníme po domluvě (navrhli jste po 10. 11. 15:00, út 11. 11. 13:00 nebo st 12. 11. 9:00)',
+ 'Brainz':dict(call='domluvíme podle vás – kdykoli do 20. 11. 2026',
    theirs=[('Prezentace s ukázkami (úvodní call 1. 10.)','https://www.figma.com/deck/3KioC6IkVc3wNcvzBFh62o','zasláno 1. 10. 2026')]),
 }
 css='<style>body{font-family:Arial;font-size:11pt} table{border-collapse:collapse;width:100%} td,th{border:1px solid #999;padding:5px 8px;vertical-align:top} th{background:#FBE5ED} h1{color:#DC004E} h2{color:#240A49} .note{background:#FCEAEA;padding:6px}</style>'
@@ -27,10 +27,10 @@ for name,cfg in agencies.items():
     html+='<h3>6. Harmonogram</h3>'+table(['Krok','Termín'],[
         ['Brief','9. 11. 2026'],
         ['Online call (doplňující otázky k zadání)',cfg['call']],
-        ['Nabídka','<b>pátek 20. 11. 2026</b>'],
-        ['Rozhodnutí','27. 11. 2026'],
-        ['Smlouva','4. 12. 2026'],
-        ['Zvukové logo a earcon hotové','do 31. 3. 2027']])
+        ['Nabídka','<b>pátek 27. 11. 2026</b>'],
+        ['Rozhodnutí','4. 12. 2026'],
+        ['Smlouva','11. 12. 2026'],
+        ['Zvukové logo a earcon hotové','do 7. 4. 2027']])
     html+=('<h3>7. Kdo u toho bude</h3><p>Za Růžového slona projekt vede Tereza Kucková (Head of Marketing, kontaktní osoba) spolu s Karlem Novotným (brand konzultant). '
            'O výběru rozhodujeme společně s majitelem Adamem Durčákem a Gabrielem Kopećem.</p><p>Kontakt: Tereza Kucková, tereza.kuckova@ruzovyslon.cz</p>')
     html+='<h2>Workbook</h2>'
