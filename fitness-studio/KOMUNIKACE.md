@@ -22,6 +22,10 @@ Inspirace, ke které se studio hlásí – Beto Perez, zakladatel Zumby:
 - Bez opakování slov a bez nepřesných nebo trapných formulací.
 - Píšeme hlavně ženám (ženský rod); systémové texty pro všechny („přihlášená/ý“).
 
+## Jak mluvíme o lekcích
+
+- **Barre není balet.** Je to posilování inspirované baletní technikou, pilates a zdravotním cvičením s prvky DNS (dynamické neuromuskulární stabilizace). Baletní průprava ani tutu nejsou potřeba – nepíšeme, že se „tančí balet“.
+
 ## Příklady, které sedí
 
 - „Martin přijíždí na bílém koni, ty přijeď za námi na lekci.“
