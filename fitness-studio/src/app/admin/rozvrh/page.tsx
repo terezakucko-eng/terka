@@ -8,6 +8,7 @@ import { TypeDefaults } from "@/components/type-defaults";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { spotsLabel } from "@/components/session-card";
 import { Badge, Field, Input, Select, cx } from "@/components/ui";
+import { CharityBadge, Ribbon } from "@/components/ribbon";
 import { getDb } from "@/db";
 import { bookings, users } from "@/db/schema";
 import { splitName } from "@/lib/client-list";
@@ -99,12 +100,14 @@ export default async function AdminSchedule({ searchParams }: PageProps<"/admin/
                   <Link href={`/admin/rozvrh/${s.id}`} className="flex items-baseline justify-between gap-2">
                     <span className="font-semibold">
                       <span className="mr-1.5 inline-block size-2 rounded-full align-middle" style={{ background: s.classType.color }} />
+                      {s.ribbon && <Ribbon className="mr-1 size-4 align-[-3px]" />}
                       {s.classType.name}
                     </span>
                     <span className="shrink-0 tabular-nums text-les/60">{formatRange(s.startsAt, s.durationMin)}</span>
                   </Link>
                   <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-les/70">
                     {s.isFree && <Badge tone="gold">Zdarma</Badge>}
+                    {s.ribbon && <CharityBadge />}
                     {s.status === "cancelled" && <Badge tone="red">Zrušeno</Badge>}
                     <span>{s.instructor?.name ?? "Bez lektora"}</span>
                   </div>
@@ -132,7 +135,8 @@ export default async function AdminSchedule({ searchParams }: PageProps<"/admin/
             <Td className="whitespace-nowrap tabular-nums">{formatRange(s.startsAt, s.durationMin)}</Td>
             <Td>
               <span className="mr-2 inline-block size-2 rounded-full" style={{ background: s.classType.color }} />
-              <strong>{s.classType.name}</strong> {s.isFree && <Badge tone="gold">Zdarma</Badge>}
+              {s.ribbon && <Ribbon className="mr-1 size-4 align-[-3px]" />}
+              <strong>{s.classType.name}</strong> {s.isFree && <Badge tone="gold">Zdarma</Badge>} {s.ribbon && <CharityBadge />}
             </Td>
             <Td>{s.instructor?.name ?? "—"}</Td>
             <Td>

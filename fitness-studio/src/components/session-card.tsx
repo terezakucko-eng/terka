@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ScheduleItem } from "@/lib/queries";
 import { formatOpens, formatRange } from "@/lib/dates";
 import { Badge, cx } from "./ui";
-import { Ribbon } from "./ribbon";
+import { CharityBadge, Ribbon } from "./ribbon";
 
 /**
  * Clients see only how busy a class is, never the exact numbers. "Last spots"
@@ -83,6 +83,7 @@ export function SessionCard({
           <Badge tone={spots.tone}>{spots.text}</Badge>
         )}
         {s.isFree && s.status !== "cancelled" && <Badge tone="gold">Zdarma</Badge>}
+        {s.ribbon && s.status !== "cancelled" && <CharityBadge />}
       </div>
     </Link>
   );
