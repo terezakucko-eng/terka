@@ -1058,6 +1058,13 @@
       "when": 1794141427617,
       "tag": "0150_vs1121_fix_and_15_11",
       "breakpoints": true
+    },
+    {
+      "idx": 151,
+      "version": "7",
+      "when": 1794411016676,
+      "tag": "0151_barre_description",
+      "breakpoints": true
     }
   ]
 }
