@@ -94,4 +94,33 @@ describe("migration 0152: Zumba pro Soničku", () => {
     await h.db.execute(sql.raw(update()));
     expect(await row()).toMatchObject({ title: "Zumba pro Soňu", dropInPrice: 20000 });
   });
+
+  it("0153 rewrites the note in the studio's words, only while it's the one 0152 wrote", async () => {
+    const note = () => readFileSync("drizzle/0153_sonicka_note.sql", "utf8");
+    const first = readFileSync("drizzle/0152_session_drop_in_only.sql", "utf8").match(/"note" = '([^']+)'/)![1];
+    await h.db.update(classSessions).set({ note: first }).where(eq(classSessions.id, ID));
+    await h.db.execute(sql.raw(note()));
+    expect((await row()).note).toMatch(/^Benefiční lekce pro Soničku – krásnou slovenskou instruktorku Zumby, která vždycky inspirovala/);
+    expect((await row()).note).toContain("Teď jí chceme udělat radost my");
+
+    await h.db.update(classSessions).set({ note: "Vlastní poznámka" }).where(eq(classSessions.id, ID));
+    await h.db.execute(sql.raw(note()));
+    expect((await row()).note).toBe("Vlastní poznámka");
+  });
+
+  it("0154 opens booking to everyone – only on the card-or-transfer class, unless set by hand", async () => {
+    const open = () => h.db.execute(sql.raw(readFileSync("drizzle/0154_sonicka_open.sql", "utf8")));
+    await h.db.update(classSessions).set({ dropInOnly: false }).where(eq(classSessions.id, ID));
+    await open();
+    expect((await row()).bookingOpensAt).toBeNull();
+
+    await h.db.update(classSessions).set({ dropInOnly: true }).where(eq(classSessions.id, ID));
+    await open();
+    expect((await row()).bookingOpensAt).toEqual(new Date("2026-11-11T22:15:00Z"));
+
+    const byHand = new Date("2026-11-20T08:00:00Z");
+    await h.db.update(classSessions).set({ bookingOpensAt: byHand }).where(eq(classSessions.id, ID));
+    await open();
+    expect((await row()).bookingOpensAt).toEqual(byHand);
+  });
 });
