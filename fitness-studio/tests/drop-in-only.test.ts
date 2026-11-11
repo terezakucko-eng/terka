@@ -94,4 +94,17 @@ describe("migration 0152: Zumba pro Soničku", () => {
     await h.db.execute(sql.raw(update()));
     expect(await row()).toMatchObject({ title: "Zumba pro Soňu", dropInPrice: 20000 });
   });
+
+  it("0153 rewrites the note in the studio's words, only while it's the one 0152 wrote", async () => {
+    const note = () => readFileSync("drizzle/0153_sonicka_note.sql", "utf8");
+    const first = readFileSync("drizzle/0152_session_drop_in_only.sql", "utf8").match(/"note" = '([^']+)'/)![1];
+    await h.db.update(classSessions).set({ note: first }).where(eq(classSessions.id, ID));
+    await h.db.execute(sql.raw(note()));
+    expect((await row()).note).toMatch(/^Benefiční lekce pro Soničku – krásnou slovenskou instruktorku Zumby, která vždycky inspirovala/);
+    expect((await row()).note).toContain("Teď jí chceme udělat radost my");
+
+    await h.db.update(classSessions).set({ note: "Vlastní poznámka" }).where(eq(classSessions.id, ID));
+    await h.db.execute(sql.raw(note()));
+    expect((await row()).note).toBe("Vlastní poznámka");
+  });
 });

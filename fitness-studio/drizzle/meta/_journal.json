@@ -1072,6 +1072,13 @@
       "when": 1794435015307,
       "tag": "0152_session_drop_in_only",
       "breakpoints": true
+    },
+    {
+      "idx": 153,
+      "version": "7",
+      "when": 1794435520386,
+      "tag": "0153_sonicka_note",
+      "breakpoints": true
     }
   ]
 }
