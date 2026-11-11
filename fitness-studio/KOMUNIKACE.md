@@ -8,7 +8,7 @@ Inspirace, ke které se studio hlásí – Beto Perez, zakladatel Zumby:
 
 ## Zásady
 
-1. **Hvězdou je klientka.** Píšeme o tom, co zažije, jak se bude cítit a co si odnese – ne o nás, o lektorkách ani o studiu. Lektorka je hostitelka, která se těší, ne hvězda na pódiu.
+1. **Hvězdou je každý, kdo přijde.** Už to, že dorazí, je super krok – a my to oceníme. Píšeme o tom, co zažije, jak se bude cítit a co si odnese – ne o nás, o lektorkách ani o studiu. Lektorka je hostitelka, která se těší, ne hvězda na pódiu.
 2. **Pocit na prvním místě.** Před odesláním každého textu: jak se po přečtení bude cítit? Vítaná, vtažená, s chutí přijít. Nikdy zahanbená, pod tlakem nebo s pocitem „na tohle nemám“.
 3. **Všichni jsou si rovni.** Každá úroveň, každé tělo, každý věk. Nováček je stejně vítaný jako ta, co chodí roky. Žádné „jen pro zdatné“.
 4. **Uznání pro každou, aspoň na chvilku.** Malé výhry, první lekce, návrat po pauze, poděkování celé skupině za energii. Ne žebříčky nejlepších ani nejvěrnějších.
