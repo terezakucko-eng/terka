@@ -13,3 +13,13 @@ export function Ribbon({ className }: { className?: string }) {
     </svg>
   );
 }
+
+/** "Benefiční" in pink with the ribbon – next to the class's other badges. */
+export function CharityBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-[#fde3ec] px-2.5 py-0.5 text-[0.68rem] font-semibold uppercase tracking-wider text-[#c2185b]">
+      <Ribbon className="size-3.5" />
+      Benefiční
+    </span>
+  );
+}
