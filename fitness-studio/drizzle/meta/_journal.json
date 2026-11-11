@@ -1079,6 +1079,13 @@
       "when": 1794435520386,
       "tag": "0153_sonicka_note",
       "breakpoints": true
+    },
+    {
+      "idx": 154,
+      "version": "7",
+      "when": 1794435780851,
+      "tag": "0154_sonicka_open",
+      "breakpoints": true
     }
   ]
 }

@@ -107,4 +107,20 @@ describe("migration 0152: Zumba pro Soničku", () => {
     await h.db.execute(sql.raw(note()));
     expect((await row()).note).toBe("Vlastní poznámka");
   });
+
+  it("0154 opens booking to everyone – only on the card-or-transfer class, unless set by hand", async () => {
+    const open = () => h.db.execute(sql.raw(readFileSync("drizzle/0154_sonicka_open.sql", "utf8")));
+    await h.db.update(classSessions).set({ dropInOnly: false }).where(eq(classSessions.id, ID));
+    await open();
+    expect((await row()).bookingOpensAt).toBeNull();
+
+    await h.db.update(classSessions).set({ dropInOnly: true }).where(eq(classSessions.id, ID));
+    await open();
+    expect((await row()).bookingOpensAt).toEqual(new Date("2026-11-11T22:15:00Z"));
+
+    const byHand = new Date("2026-11-20T08:00:00Z");
+    await h.db.update(classSessions).set({ bookingOpensAt: byHand }).where(eq(classSessions.id, ID));
+    await open();
+    expect((await row()).bookingOpensAt).toEqual(byHand);
+  });
 });
