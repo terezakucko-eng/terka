@@ -11,7 +11,7 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 - **Žádné speciální barvičky v buňkách** (výjimka: šedé řádky = rolling limit); **nuly nezobrazovat** – v Náklady_MKT_2027_TERKA formát `#,##0" Kč";[RED]-#,##0" Kč";` (nula = prázdná buňka i u vzorců), I3:BH232 kromě ř. 221 (%) (Tereza 14. 10.: „vynechej v buňkách speciální barvičky“) – změněné buňky už neoznačovat žlutě; v Náklady_MKT_2027_TERKA vyčištěno (zůstává jen pruhování řádků, součty sekcí a záhlaví).
 - **Nikdy nepsat „gin/ginem“ – vždy „Slon (džin)“** (Tereza 30. 10.); navenek slovo „džin“ vůbec nepoužívat.
 - Hesla/tokeny nikdy do Environment variables CCR (vidí je všichni).
-- **Lenčin list „2027 BGT“ (gid 1109185739) v tabulce Náklady MKT: NIKDY NIC NEMĚNIT – ani opravy chyb** (Tereza 11. 11.). Pracovat jen v kopii „2027 BGT – MKT plán“ (gid 2027000003).
+- **Lenčin list „2027 BGT“ (gid 1109185739) v tabulce Náklady MKT: NIKDY NIC NEMĚNIT – ani opravy chyb** (Tereza 11. 11.). Pracovat jen v kopii „2027 BGT – MKT plán“ (gid 2027000003). **„2027 BGT – MKT plán“ = ZRCADLO listu Náklady_MKT_2027 (gid 2027000001)** – nic do něj nezapisovat ručně, vše se mění jen v Náklady_MKT_2027; součet MARKETING (S18) musí na korunu sedět s MKT TOTAL (BG215), po měsících i po účtech.
 - Tereza nepracuje v terminálu – vše vysvětlovat klikacími kroky.
 
 ## Nástroje
