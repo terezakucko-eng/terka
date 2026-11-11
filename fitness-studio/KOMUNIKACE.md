@@ -24,7 +24,7 @@ Inspirace, ke které se studio hlásí – Beto Perez, zakladatel Zumby:
 
 ## Jak mluvíme o lekcích
 
-- **Barre není balet.** Je to posilování inspirované baletní technikou, pilates a zdravotním cvičením s prvky DNS (dynamické neuromuskulární stabilizace). Baletní průprava ani tutu nejsou potřeba – nepíšeme, že se „tančí balet“.
+- **Barre není balet.** Je to komplexní posilování inspirované baletní technikou, pilates a zdravotním cvičením s prvky DNS (dynamické neuromuskulární stabilizace). Cvičí se u tyče, se zátěžovými míčky, gumičkou i jógovými bločky. Baletní průprava ani tutu nejsou potřeba – nepíšeme, že se „tančí balet“.
 
 ## Příklady, které sedí
 
