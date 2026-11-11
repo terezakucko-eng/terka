@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ScheduleItem } from "@/lib/queries";
 import { formatOpens, formatRange } from "@/lib/dates";
 import { Badge, cx } from "./ui";
+import { Ribbon } from "./ribbon";
 
 /**
  * Clients see only how busy a class is, never the exact numbers. "Last spots"
@@ -62,6 +63,7 @@ export function SessionCard({
         {formatRange(s.startsAt, s.durationMin)}
       </p>
       <p className={cx("mt-1 font-semibold leading-tight", !compact && "text-lg")}>
+        {s.ribbon && <Ribbon className="mr-1 size-[1.05em] align-[-0.15em]" />}
         {s.classType.name}
       </p>
       <div className="mt-3 flex flex-wrap gap-1.5">

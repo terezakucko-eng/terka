@@ -10,7 +10,8 @@ import { HealthCheckbox } from "@/components/health-checkbox";
 import { cardPayments } from "@/lib/payments";
 import { VideoEmbed } from "@/components/video-embed";
 import { Badge, ButtonLink, Card, Container, Eyebrow, cx } from "@/components/ui";
-import { memberSurchargeFor, membershipIncluding, passSurchargeFor, sessionForUser, stateMessage, usableCredit } from "@/domain/booking";
+import { Ribbon } from "@/components/ribbon";
+import { DROP_IN_ONLY, WAITLIST_DROP_IN_ONLY, memberSurchargeFor, membershipIncluding, passSurchargeFor, sessionForUser, stateMessage, usableCredit } from "@/domain/booking";
 import { getCurrentUser } from "@/lib/auth";
 import { dateKey, formatDateTime, formatDay, formatOpens, formatRange, formatTime } from "@/lib/dates";
 import { priceNoteOn } from "@/lib/price-list";
@@ -48,8 +49,10 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
   const view = (await sessionForUser(db, id, user?.id ?? null, undefined, plus1 === "1" ? 2 : 1))!;
   const { s, ct } = detail;
   const left = Math.max(0, s.capacity - view.occupied);
-  const surcharge = s.isFree ? 0 : memberSurchargeFor(ct, s);
-  const passSurcharge = s.isFree || ct.noPass ? 0 : passSurchargeFor(ct);
+  // a charity class has only its entry fee – nothing about memberships, passes or credits
+  const entitled = !s.isFree && !s.dropInOnly;
+  const surcharge = entitled ? memberSurchargeFor(ct, s) : 0;
+  const passSurcharge = !entitled || ct.noPass ? 0 : passSurchargeFor(ct);
   const tier = surcharge > 0 ? await membershipIncluding(db, ct.id, s.startsAt) : null;
   // "S Členstvím Reformer máš 4 měsíčně bez doplatku."
   const tierNote = tier && <> {tier.name} má {tier.perMonth}× měsíčně v ceně bez doplatku.</>;
@@ -63,12 +66,18 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
         <div className="mt-8 grid gap-10 lg:grid-cols-[1.2fr_1fr]">
           <div>
             <Eyebrow className="text-zlato">{formatDay(s.startsAt)}</Eyebrow>
-            <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-6xl">{ct.name}</h1>
+            <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-6xl">
+              {s.ribbon && <Ribbon className="mr-2 size-[0.9em] align-[-0.1em]" />}
+              {ct.name}
+            </h1>
             <ul className="mt-8 space-y-3 text-papir/80">
               <li className="flex items-center gap-3"><Clock className="size-5 text-zlato" /> {formatRange(s.startsAt, s.durationMin)} ({s.durationMin} min)</li>
               <li className="flex items-center gap-3"><MapPin className="size-5 text-zlato" /> {s.room ? `${s.room}, ` : ""}{address}</li>
             </ul>
-            {!s.isFree && ct.noPass && (
+            {s.dropInOnly && !s.isFree && (
+              <p className="mt-6 rounded-xl border border-zlato/40 bg-zlato/10 p-4 text-zlato-light">{DROP_IN_ONLY}</p>
+            )}
+            {entitled && ct.noPass && (
               <p className="mt-6 rounded-xl border border-zlato/40 bg-zlato/10 p-4 text-zlato-light">
                 {surcharge > 0 ? (
                   <>
@@ -80,7 +89,7 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
                 )}
               </p>
             )}
-            {!s.isFree && !ct.noPass && (ct.passEntries > 1 || surcharge > 0 || passSurcharge > 0) && (
+            {entitled && !ct.noPass && (ct.passEntries > 1 || surcharge > 0 || passSurcharge > 0) && (
               <p className="mt-6 rounded-xl border border-zlato/40 bg-zlato/10 p-4 text-zlato-light">
                 {surcharge > 0 && (
                   <>
@@ -102,7 +111,7 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
             <VideoEmbed url={ct.videoUrl} title={ct.name} className="mt-6 max-w-xl [&_summary]:text-zlato" />
             <p className="eyebrow mt-6 text-papir/50">Úroveň: {ct.level}</p>
             <dl className="mt-8 grid max-w-md grid-cols-3 gap-6 border-t border-zlato/20 pt-6 text-sm">
-              <div><dt className="eyebrow text-papir/50">Cena</dt><dd className="mt-1 font-semibold">{s.isFree ? "Zdarma" : credits(s.creditCost)}</dd></div>
+              <div><dt className="eyebrow text-papir/50">Cena</dt><dd className="mt-1 font-semibold">{s.isFree ? "Zdarma" : s.dropInOnly ? "—" : credits(s.creditCost)}</dd></div>
               <div><dt className="eyebrow text-papir/50">Vstup</dt><dd className="mt-1 font-semibold">{s.isFree ? "—" : s.dropInPrice !== null ? formatPrice(s.dropInPrice) : "—"}</dd></div>
               <div><dt className="eyebrow text-papir/50">Místa</dt><dd className="mt-1 font-semibold">{s.status === "cancelled" ? "—" : availabilityText(left, s.capacity)}</dd></div>
             </dl>
@@ -124,7 +133,8 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
               credit={user ? usableCredit(user) : 0}
               card={cardPayments()}
               sessionId={s.id}
-              freeIntro={!s.noFreeEntry && !ct.noFreeEntry}
+              freeIntro={!s.noFreeEntry && !ct.noFreeEntry && !s.dropInOnly}
+              dropInOnly={s.dropInOnly}
               preferBundle={balicek === "1"}
               gcal={googleCalendarLink(lessonEvent(s, ct, `${c.raw("site.street")}, ${c.raw("site.city")}`))}
             />
@@ -149,7 +159,10 @@ function BookingPanel({
   freeIntro,
   preferBundle,
   gcal,
+  dropInOnly,
 }: {
+  /** a charity class: only by card or transfer, no waitlist */
+  dropInOnly: boolean;
   /** "Student do" still valid – no need to confirm the student drop-in */
   studentVerified: boolean;
   /** usable credit – a surcharge can be paid from it */
@@ -292,7 +305,9 @@ function BookingPanel({
             Když ho do té doby nikdo nezabere, dostane ho první z pořadníku.
           </p>
         )}
-        {b?.status === "waitlist" ? (
+        {dropInOnly && b?.status !== "waitlist" ? (
+          <p className="mt-3 text-les/70">{WAITLIST_DROP_IN_ONLY}</p>
+        ) : b?.status === "waitlist" ? (
           <ActionForm action={cancelBookingAction} className="mt-4">
             <input type="hidden" name="bookingId" value={b.id} />
             <p className="text-les/70">Jsi v pořadníku na <strong>{view.waitlistPosition}. místě</strong>. Když se uvolní místo, automaticky tě přihlásíme a strhneme vstup z tvé permanentky/kreditu.</p>

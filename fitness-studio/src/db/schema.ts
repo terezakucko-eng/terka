@@ -289,6 +289,10 @@ export const classSessions = pgTable(
     isFree: boolean("is_free").notNull().default(false),
     /** Speciální termín (hosté, akce): vždy placený – neplatí vstupy zdarma (úvodní lekce, kartička, dárky) ani úvodní cena */
     noFreeEntry: boolean("no_free_entry").notNull().default(false),
+    /** Jen jednorázově kartou nebo převodem (benefiční lekce): neplatí členství, permanentky, kredity, vstupy zdarma ani úvodní či studentská cena */
+    dropInOnly: boolean("drop_in_only").notNull().default(false),
+    /** Růžová stužka u termínu v rozvrhu (benefiční lekce) */
+    ribbon: boolean("ribbon").notNull().default(false),
     room: text("room"),
     /** Vlastní název termínu (např. „Dýňový brunch“); null = název lekce */
     title: text("title"),
