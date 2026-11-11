@@ -1,7 +1,7 @@
 "use server";
 
 import { htmlToText, toSafeHtml } from "@/lib/rich-html";
-import { and, eq, gte, inArray, isNull, lt } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, lt, notInArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getDb, type DB } from "@/db";
@@ -29,6 +29,7 @@ import {
   cancelSession,
   fillFromWaitlist,
   holdSeats,
+  OCCUPYING,
   occupancy,
   paySurchargeWithCredits,
   recomputeSurcharges,
@@ -365,6 +366,9 @@ async function sessionValues(fd: FormData) {
       dropInPrice: isFree ? null : (field.money(fd, "dropInPrice") ?? ct.dropInPrice),
       isFree,
       noFreeEntry: field.bool(fd, "noFreeEntry"),
+      // a free class can't be paid only by card – free wins
+      dropInOnly: !isFree && field.bool(fd, "dropInOnly"),
+      ribbon: field.bool(fd, "ribbon"),
       room: field.optional(fd, "room"),
       title: field.optional(fd, "title"),
       note: field.optional(fd, "note"),
@@ -434,7 +438,7 @@ export async function updateSessionAction(_: FormState, fd: FormData): Promise<F
     const id = field.str(fd, "id");
     if (field.str(fd, "scope") !== "series") {
       checkOpensBefore(values.bookingOpensAt, [pragueLocalToDate(local)]);
-      const before = await sessionsBefore(db, [id], values.isFree);
+      const before = await sessionsBefore(db, [id], values.isFree, values.dropInOnly);
       await db.update(classSessions).set({ ...values, startsAt: pragueLocalToDate(local) }).where(eq(classSessions.id, id));
       return done(`Termín uložen.${await afterSessionEdit(db, before)}`);
     }
@@ -447,7 +451,7 @@ export async function updateSessionAction(_: FormState, fd: FormData): Promise<F
     const shift = Math.round((Date.parse(newDay) - Date.parse(dateKey(me.startsAt))) / 86_400_000);
     const moved = list.map((s) => ({ id: s.id, startsAt: pragueLocalToDate(`${addDays(dateKey(s.startsAt), shift)}T${newTime}`) }));
     checkOpensBefore(values.bookingOpensAt, moved.map((s) => s.startsAt));
-    const before = await sessionsBefore(db, moved.map((s) => s.id), values.isFree);
+    const before = await sessionsBefore(db, moved.map((s) => s.id), values.isFree, values.dropInOnly);
     await db.transaction(async (tx) => {
       for (const s of moved)
         await tx.update(classSessions).set({ ...values, startsAt: s.startsAt }).where(eq(classSessions.id, s.id));
@@ -458,15 +462,28 @@ export async function updateSessionAction(_: FormState, fd: FormData): Promise<F
 
 /**
  * Before editing classes: how they were. Switching a class with bookings between
- * free and paid would leave them charged wrong – that's refused.
+ * free and paid would leave them charged wrong – that's refused; so is making it
+ * card-or-transfer only while someone is in on a membership, pass, credit or free entry.
  */
-async function sessionsBefore(db: DB, ids: string[], isFree: boolean) {
+async function sessionsBefore(db: DB, ids: string[], isFree: boolean, dropInOnly = false) {
   const list = ids.length ? await db.select().from(classSessions).where(inArray(classSessions.id, ids)) : [];
-  for (const s of list)
+  for (const s of list) {
     if (s.isFree !== isFree && (await occupancy(db, s.id)) > 0)
       throw new UserError(
         `Na lekci ${formatDay(s.startsAt)} už jsou přihlášení – mezi placenou a zdarma ji přepnout nejde. Odhlas je, nebo vytvoř novou lekci.`,
       );
+    if (dropInOnly && !s.dropInOnly) {
+      const [other] = await db
+        .select({ id: bookings.id })
+        .from(bookings)
+        .where(and(eq(bookings.sessionId, s.id), eq(bookings.isHold, false), inArray(bookings.status, [...OCCUPYING]), notInArray(bookings.method, ["drop_in", "admin"])))
+        .limit(1);
+      if (other)
+        throw new UserError(
+          `Na lekci ${formatDay(s.startsAt)} už je někdo přihlášený členstvím, permanentkou, kreditem nebo vstupem zdarma – nejdřív mu změň platbu, pak lekci přepni na „Jen kartou nebo převodem“.`,
+        );
+    }
+  }
   return list;
 }
 

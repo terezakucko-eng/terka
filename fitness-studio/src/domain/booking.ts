@@ -1041,12 +1041,12 @@ export async function orderShare(tx: Executor, o: Pick<Order, "id" | "amount">) 
 async function duoDropInPriceFor(tx: Executor, userId: string, s: ClassSession, rules: ClassRules) {
   const single = await dropInPriceFor(tx, userId, s, rules);
   if (!single || s.dropInPrice === null) return null;
-  return rules.duoPrice ?? single.price + s.dropInPrice;
+  return (s.dropInOnly ? null : rules.duoPrice) ?? single.price + s.dropInPrice;
 }
 
-/** Drop-in price for this client – the intro price if they've never had this class (or, newcomers only, any class); a special class has none. */
+/** Drop-in price for this client – the intro price if they've never had this class (or, newcomers only, any class); a special or charity class has none. */
 async function dropInPriceFor(tx: Executor, userId: string, s: ClassSession, rules: ClassRules) {
-  if (rules.firstVisitPrice !== null && !s.noFreeEntry) {
+  if (rules.firstVisitPrice !== null && !s.noFreeEntry && !s.dropInOnly) {
     const [before] = await tx
       .select({ id: bookings.id })
       .from(bookings)
@@ -1134,7 +1134,8 @@ export async function bookingOptions(
   }
 
   const opts: BookingOption[] = [];
-  const ents = await tx
+  // a class paid only by card or transfer (a charity class): no membership, pass, free entry or credit
+  const ents = s.dropInOnly ? [] : await tx
     .select()
     .from(entitlements)
     .where(
@@ -1193,7 +1194,7 @@ export async function bookingOptions(
   const balance = u?.balance ?? 0;
   const expired = !!u && creditExpired(u);
   const cost = s.creditCost * seats;
-  opts.push({
+  if (!s.dropInOnly) opts.push({
     method: "credits",
     label: `Zaplatit kreditem (${creditsLabel(cost)}${seats > 1 ? " za obě místa" : ""})`,
     detail: `Na účtu máš ${creditsLabel(balance)}.`,
@@ -1229,7 +1230,7 @@ export async function bookingOptions(
     });
   }
   // cheaper than the regular drop-in only – a student's first lesson may already cost less
-  if (rules.studentDropInPrice !== null && (!dropIn || rules.studentDropInPrice < dropIn.price)) {
+  if (rules.studentDropInPrice !== null && !s.dropInOnly && (!dropIn || rules.studentDropInPrice < dropIn.price)) {
     opts.push({
       method: "drop_in",
       student: true,
@@ -1247,6 +1248,8 @@ function autoOption(opts: BookingOption[]) {
 
 /* -------------------------------------------------------------- charge */
 
+export const DROP_IN_ONLY = "Tuhle lekci jde zaplatit jen kartou nebo převodem – členství, permanentky, kredity ani vstupy zdarma na ni neplatí.";
+
 async function charge(
   tx: Executor,
   booking: Booking,
@@ -1259,6 +1262,7 @@ async function charge(
   let entriesCharged = 0;
   let entId: string | null = null;
   let ent: Entitlement | null = null;
+  if (s.dropInOnly && method !== "admin") throw new UserError(DROP_IN_ONLY);
 
   switch (method) {
     case "free_class":
@@ -1596,7 +1600,7 @@ export async function bookSession(db: DB, input: BookInput, now = new Date()) {
       const rules = await classRules(tx, s);
       const student = !!input.student && !guestName;
       if (student) {
-        if (rules.studentDropInPrice === null) throw new UserError("Na tuhle lekci studentský vstup není.");
+        if (rules.studentDropInPrice === null || s.dropInOnly) throw new UserError("Na tuhle lekci studentský vstup není.");
         const [u] = await tx.select({ studentUntil: users.studentUntil }).from(users).where(eq(users.id, input.userId));
         if (input.studentConfirmed === false && !isStudent(u, now))
           throw new UserError("Studentský vstup: potvrď prosím, že studuješ. ISIC nebo potvrzení o studiu pak ukážeš ve studiu.");
@@ -1669,6 +1673,9 @@ export const stateMessage: Record<SessionState, string> = {
   closed: "Rezervace na tuto lekci jsou už uzavřené.",
 };
 
+/** A class paid only by card or transfer has no waitlist: a freed place can't be paid for automatically. */
+export const WAITLIST_DROP_IN_ONLY = "Na tuhle lekci pořadník není – platí se jen kartou nebo převodem. Když někdo zruší, místo se v rozvrhu zase objeví a můžeš si ho hned zarezervovat.";
+
 export async function joinWaitlist(
   db: DB,
   input: { userId: string; sessionId: string },
@@ -1685,6 +1692,7 @@ export async function joinWaitlist(
     if (state === "bookable")
       throw new UserError("Na lekci je volné místo – rezervuj rovnou.");
     if (state !== "full") throw new UserError(stateMessage[state]);
+    if (s.dropInOnly) throw new UserError(WAITLIST_DROP_IN_ONLY);
     if (await activeBooking(tx, input.userId, s.id))
       throw new UserError("Na tuhle lekci už jsi přihlášená/ý.");
     const [b] = await tx
@@ -1989,7 +1997,9 @@ export async function adminAddBooking(
       const opt = autoOption(await bookingOptions(tx, input.userId, s, seats));
       if (!opt)
         throw new UserError(
-          guestName
+          s.dropInOnly
+            ? "Tahle lekce se platí jen kartou nebo převodem – klient si ji zarezervuje sám/sama, nebo ho přidej bez platby."
+            : guestName
             ? "Klient nemá čím zaplatit za dva (permanentka, vstupy zdarma nebo kredit)."
             : "Klient nemá čím zaplatit (kredit, permanentku ani členství).",
         );
