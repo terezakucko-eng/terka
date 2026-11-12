@@ -1,0 +1,250 @@
+{
+  "nazev": "Reformer Strength – 55 min",
+  "podtitul": "Podle videa Neve McKee Pilates, přepsáno na TRINFIT Light pro skupinu 6 lidí",
+  "video": {
+    "url": "https://www.youtube.com/watch?v=evZSmhx7iT4",
+    "titulek": "REFORMER STRENGTH | 55 minutes",
+    "autor": "Neve McKee Pilates",
+    "nahled_krok_s": 9.967
+  },
+  "vybaveni": [
+    "reformer TRINFIT Light, popruhy, pilates box",
+    "lehké jednoručky 2 kg v páru (ve videu 5 lb ≈ 2,3 kg) – stačí i toning bally 2 kg",
+    "jedna těžká váha: kettlebell 8 kg nebo 7 kg (ve videu jednoručka 15 lb ≈ 6,8 kg)"
+  ],
+  "pruziny": [
+    ["modrá / lehká", "1 pružina"],
+    ["červená / střední", "2 pružiny"],
+    ["červená + modrá", "3 pružiny (4 tam, kde vozík nesmí jet)"],
+    ["mezistupeň", "místo pružiny přidat gumičku"]
+  ],
+  "poznamky": [
+    "Ve stoje a v kleku na vozíku je víc pružin snazší – vozík hůř ujede. Kdo se klepe, přidá pružinu, neubírá.",
+    "Cviky 1–4, 8–10, 14 a 15 se ve videu opírají o stupačku (pevnou plošinku nad pružinami). Na TRINFIT Light ověřit, jestli ji stroj má.",
+    "U 6 lidí počítej s 5–8 minutami navíc na přestavby boxu a pružin.",
+    "Časy u snímků odpovídají videu – dají se rovnou dohledat."
+  ],
+  "bloky": [
+    {"id": 1, "nazev": "Rozcvička ve stoje bokem", "cas": "0–9 min", "pruziny": "1", "nastaveni": "hrazda dole, box nakrátko před opěrkami ramen, jednoručky 2 kg; celý blok na jednu stranu, pak na druhou", "barva": "#E39B6B"},
+    {"id": 2, "nazev": "Předklon u boxu", "cas": "9–12 min", "pruziny": "2", "nastaveni": "box nadél na vozíku, stoj na zemi u hrazdy", "barva": "#B9789A"},
+    {"id": 3, "nazev": "Hýždě a střed v kleku na boxu", "cas": "12–18 min", "pruziny": "1", "nastaveni": "box nakrátko na vozíku, popruh kolem chodidla", "barva": "#3FA597"},
+    {"id": 4, "nazev": "Výpad a přítah", "cas": "18–23 min", "pruziny": "1", "nastaveni": "box nakrátko na vozíku, kettlebell 8 kg", "barva": "#D9694F"},
+    {"id": 5, "nazev": "Dřep bokem s váhou", "cas": "23–26 min", "pruziny": "1", "nastaveni": "box nakrátko na vozíku, kettlebell u hrudníku", "barva": "#C9A227"},
+    {"id": 6, "nazev": "Záda a paže na boxu", "cas": "26–33 min", "pruziny": "3–4, pak 1", "nastaveni": "cvik 11: hrazda nahoře, box nadél přes hrazdu, 3–4 pružiny; cviky 12–13: box nadél na vozíku, hrazda dole, 1 pružina", "barva": "#5B7FB8"},
+    {"id": 7, "nazev": "Prkna a pike", "cas": "33–37 min", "pruziny": "1", "nastaveni": "box nakrátko na vozíku, špičky na stupačce", "barva": "#7A9A4A"},
+    {"id": 8, "nazev": "Polovičný klek s popruhy", "cas": "37–42 min", "pruziny": "1", "nastaveni": "bez boxu, popruhy v rukou, obličej k hrazdě", "barva": "#8C6BB1"},
+    {"id": 9, "nazev": "Leh – most a nohy v popruzích", "cas": "42–49 min", "pruziny": "3", "nastaveni": "hrazda nahoře, kettlebell na bocích (18–19), pak popruhy na nohy", "barva": "#2E8BB0"},
+    {"id": 10, "nazev": "Závěr u hrazdy", "cas": "49–55 min", "pruziny": "2, pak 3", "nastaveni": "hrazda nahoře; cvik 26 se 3 pružinami; na konec roll up ve stoje", "barva": "#C0506A"}
+  ],
+  "cviky": [
+    {
+      "c": 1, "blok": 1, "nazev": "Roll down ve stoje bokem", "pruziny": "1", "opakovani": "3×", "strany": true,
+      "nohy": "jedno chodidlo celou plochou na stupačce, druhé celou plochou na vozíku, vnější hranou opřené o box; kolena měkká",
+      "jak": "Brada k hrudi, obratel po obratli dolů, činky klesají podél stehen k vozíku. Nahoru z břicha. Vozík stojí.",
+      "vychozi": "0:59", "provedeni": "1:19",
+      "vyrez": [0.45, 0.5, 0.95],
+      "sipky": [[[0.36, 0.12], [0.21, 0.16], [0.21, 0.46]]]
+    },
+    {
+      "c": 2, "blok": 1, "nazev": "Stoj bokem – otevření vozíku a upažení", "pruziny": "1", "opakovani": "4×", "strany": true,
+      "nohy": "jako u cviku 1; obě chodidla tlačí dolů a od sebe – vozík jede ven, přitažením k sobě se vrací",
+      "jak": "Vozík ven a paže do upažení, pak vozík zavřít a paže dolů. Hlava, ramena a hýždě jako o zeď.",
+      "vychozi": "2:49", "provedeni": "2:59",
+      "vyrez": [0.45, 0.5, 0.95],
+      "sipky": [[[0.57, 0.88], [0.72, 0.88]], [[0.6, 0.54], [0.7, 0.46], [0.67, 0.31]]]
+    },
+    {
+      "c": 3, "blok": 1, "nazev": "Dřep bokem – pulzy", "pruziny": "1", "opakovani": "2 × 5 pulzů", "strany": true,
+      "nohy": "vozík otevřený na šířku ramen a stojí; váha v patách, kolena tlačí do stran ve směru špiček",
+      "jak": "Činky u hrudníku, malé pulzy nahoru a dolů. Trup v předklonu, hýždě vzad, sedací kosti od sebe a k sobě.",
+      "vychozi": "3:59", "provedeni": "3:39",
+      "vyrez": [0.45, 0.5, 0.95],
+      "sipky": [[[0.2, 0.4], [0.2, 0.6]]]
+    },
+    {
+      "c": 4, "blok": 1, "nazev": "Dřep bokem – rotace a úder", "pruziny": "1", "opakovani": "4× na stranu", "strany": true,
+      "nohy": "jako u cviku 3 – vozík ani nohy se nehýbou, kolena míří do stran",
+      "jak": "Ve dřepu rotace a úder opačnou rukou, střídavě. Rotace jen z hrudní páteře, boky stojí.",
+      "vychozi": "4:19", "provedeni": "4:39",
+      "vyrez": [0.45, 0.5, 0.95],
+      "sipky": [[[0.43, 0.3], [0.34, 0.21], [0.24, 0.33]]]
+    },
+    {
+      "c": 5, "blok": 2, "nazev": "Předklon u boxu – kliky v předklonu", "pruziny": "2", "opakovani": "2 × 5", "strany": false,
+      "nohy": "stoj na zemi čelem ke stroji, chodidla celou plochou na šířku pánve, boky nad patami; dlaně na rozích boxu",
+      "jak": "Vozík odtlačit, záda dlouhá. Lokty do stran, box pod čelo, a zpět propnout. Tělo se neposouvá.",
+      "vychozi": "9:28", "provedeni": "9:38",
+      "vyrez": [0.37, 0.6, 0.75],
+      "sipky": [[[0.3, 0.36], [0.3, 0.54]]]
+    },
+    {
+      "c": 6, "blok": 3, "nazev": "Klek na boxu – propnutí nohy v popruhu", "pruziny": "1", "opakovani": "4×", "strany": true,
+      "nohy": "dlaně a stojné koleno s holení na boxu; pracovní chodidlo v popruhu, při pokrčení se koleno vznáší nad boxem, špička dolů",
+      "jak": "Popruh vede po vnitřní straně ruky i kolena. S výdechem propnout nohu vzad v linii s kyčlí, pomalu pokrčit.",
+      "vychozi": "13:17", "provedeni": "13:27",
+      "vyrez": [0.5, 0.6, 0.7],
+      "sipky": [[[0.47, 0.45], [0.29, 0.45]]]
+    },
+    {
+      "c": 7, "blok": 3, "nazev": "Předloktí na boxu – zvedání propnuté nohy", "pruziny": "1", "opakovani": "5×", "strany": true,
+      "nohy": "předloktí a stojné koleno na boxu; pracovní noha propnutá vzad v popruhu – špička kousek dolů, pak pata vzhůru",
+      "jak": "Ruce sepnuté nad popruhem. Zatnout hýždi a zvednout patu. Nepadat do strany stojné nohy.",
+      "vychozi": "14:37", "provedeni": "14:57",
+      "vyrez": [0.5, 0.6, 0.7],
+      "sipky": [[[0.25, 0.66], [0.25, 0.46]]]
+    },
+    {
+      "c": 8, "blok": 4, "nazev": "Výpad s předklonem a váhou", "pruziny": "1", "opakovani": "5×", "strany": true,
+      "nohy": "přední chodidlo celou plochou na stupačce (nejede), zadní na vozíku s patou opřenou o box (jede); přední koleno nad kotníkem",
+      "jak": "Váha v ruce na straně zadní nohy. Přední koleno se ohne, zadní noha odtlačí vozík, předklon z kyčlí. Nahoru tlakem přední paty.",
+      "vychozi": "18:06", "provedeni": "18:26",
+      "vyrez": [0.45, 0.5, 0.95],
+      "sipky": [[[0.55, 0.84], [0.71, 0.84]], [[0.31, 0.22], [0.2, 0.25], [0.18, 0.4]]]
+    },
+    {
+      "c": 9, "blok": 4, "nazev": "Výpad – přítah (row)", "pruziny": "1", "opakovani": "3 kola × 3 přítahy", "strany": true,
+      "nohy": "jako u cviku 8; v dolní poloze výpadu vozík stojí, přední pata tlačí do stupačky",
+      "jak": "Dole zastavit, dlaň k přední noze, loket táhne vzhůru podél těla. Pak tlakem z paty nahoru.",
+      "vychozi": "19:46", "provedeni": "20:05",
+      "vyrez": [0.45, 0.5, 0.95],
+      "sipky": [[[0.27, 0.64], [0.27, 0.43]]]
+    },
+    {
+      "c": 10, "blok": 5, "nazev": "Dřep bokem s váhou – otevření vozíku", "pruziny": "1", "opakovani": "6× + 10 pulzů", "strany": true,
+      "nohy": "stoj bokem: jedno chodidlo na stupačce, druhé na vozíku vnější hranou o box; paty tlačí od sebe, kolena ve směru špiček",
+      "jak": "Váha u hrudníku. Ze dřepu propnout nohy a otevřít vozík, pomalu zpět do dřepu. Na konci 10 pulzů dole.",
+      "vychozi": "23:15", "provedeni": "23:45",
+      "vyrez": [0.45, 0.5, 0.95],
+      "sipky": [[[0.52, 0.85], [0.67, 0.85]], [[0.33, 0.56], [0.33, 0.36]]]
+    },
+    {
+      "c": 11, "blok": 6, "nazev": "Leh na boxu přes hrazdu – třepetání paží a prsa", "pruziny": "3–4", "opakovani": "5× třepetání + 5× prsa", "strany": false,
+      "nohy": "box nadél, přední konec na zvednuté hrazdě; kyčelní kosti na hraně boxu, chodidla vzadu opřená o opěrky ramen, prsty podvrtnuté",
+      "jak": "Hýždě a zadní stehna zapnuté, páteř rovná. Prsa: paže kruhem k bokům, hrudník nahoru, lokty pokrčit a paže zpět vpřed.",
+      "vychozi": "28:04", "provedeni": "28:34",
+      "vyrez": [0.38, 0.55, 0.9],
+      "sipky": [[[0.08, 0.14], [0.05, 0.4], [0.24, 0.45]]]
+    },
+    {
+      "c": 12, "blok": 6, "nazev": "Leh na břiše – přítah popruhů a kroužení paží", "pruziny": "1", "opakovani": "5×", "strany": false,
+      "nohy": "box nadél na vozíku, hrazda dole; stehna na boxu, nohy natažené na šířku pánve, špičky propnuté",
+      "jak": "Čelem k popruhům, hrudník u hrany boxu. Propnuté paže k bokům, hrudník nahoru, kruhem vpřed se zvednutými pažemi.",
+      "vychozi": "30:33", "provedeni": "30:53",
+      "vyrez": [0.44, 0.62, 0.73],
+      "sipky": [[[0.63, 0.86], [0.6, 0.66], [0.45, 0.62]]]
+    },
+    {
+      "c": 13, "blok": 6, "nazev": "Leh na břiše – triceps v popruzích", "pruziny": "1", "opakovani": "3 kola × 3", "strany": false,
+      "nohy": "jako u cviku 12 – kyčle tlačí do boxu, dlouhá linie od hlavy k patám, hýždě zatnuté",
+      "jak": "Paže u těla, lokty se pomalu ohnou a propnou s tlakem vzhůru. Mezi koly spustit a povolit.",
+      "vychozi": "31:23", "provedeni": "31:43",
+      "vyrez": [0.44, 0.62, 0.73],
+      "sipky": [[[0.5, 0.71], [0.43, 0.74], [0.36, 0.64]]]
+    },
+    {
+      "c": 14, "blok": 7, "nazev": "Prkno na předloktích → pike", "pruziny": "1", "opakovani": "6×", "strany": false,
+      "nohy": "prsty podvrtnuté na stupačce (nejede), předloktí na boxu na vozíku, lokty pod rameny; v pike jsou paty co nejvýš",
+      "jak": "Pike: boky vzhůru, pohled k patám, vozík se zavře. Zpět do prkna a lokty dál tlačí box vpřed.",
+      "vychozi": "32:53", "provedeni": "33:13",
+      "vyrez": [0.42, 0.6, 0.75],
+      "sipky": [[[0.62, 0.87], [0.48, 0.87]], [[0.3, 0.52], [0.35, 0.35]]]
+    },
+    {
+      "c": 15, "blok": 7, "nazev": "Boční prkno → provlečení (thread the needle)", "pruziny": "1", "opakovani": "5× na stranu", "strany": true,
+      "nohy": "na stupačce: spodní chodidlo na vnější hraně, horní celou plochou před ním; při provlečení vzhůru na špičky",
+      "jak": "Předloktí na boxu, druhá ruka vzhůru. Boky nahoru, ruka se provleče pod tělem, vozík se zavře. Zpět do bočního prkna.",
+      "vychozi": "34:53", "provedeni": "35:12",
+      "vyrez": [0.42, 0.58, 0.8],
+      "sipky": [[[0.62, 0.87], [0.48, 0.87]], [[0.3, 0.55], [0.35, 0.38]]]
+    },
+    {
+      "c": 16, "blok": 8, "nazev": "Polovičný klek – tlak paží vpřed", "pruziny": "1", "opakovani": "3 kola × 3", "strany": true,
+      "nohy": "zadní koleno na vozíku pod kyčlí, chodidlo zadní nohy mezi opěrkami ramen; přední chodidlo celou plochou na vozíku, pata pod kolenem",
+      "jak": "Trup přímo nad zadním stehnem. Dlaně vzhůru, lokty se ohnou k bokům a paže znovu vpřed.",
+      "vychozi": "37:52", "provedeni": "37:42",
+      "vyrez": [0.45, 0.55, 0.9],
+      "sipky": [[[0.47, 0.38], [0.34, 0.38]]]
+    },
+    {
+      "c": 17, "blok": 8, "nazev": "Polovičný klek – upažení a sbalení", "pruziny": "1", "opakovani": "4×", "strany": true,
+      "nohy": "jako u cviku 16 – zadní hýždě zapnutá, trup stojí nad zadním stehnem",
+      "jak": "Z upažení paže vpřed, prsty se dotknou, kulatá záda a pohled do břicha. Zpět napřímit a upažit.",
+      "vychozi": "38:52", "provedeni": "39:22",
+      "vyrez": [0.45, 0.55, 0.9],
+      "sipky": [[[0.46, 0.28], [0.4, 0.42], [0.31, 0.43]]]
+    },
+    {
+      "c": 18, "blok": 9, "nazev": "Most s váhou – půl dolů a nahoru", "pruziny": "3", "opakovani": "8×", "strany": false,
+      "nohy": "paty na hrazdě na šířku pánve, lopatky a hlava na vozíku; vozík zůstává zavřený",
+      "jak": "Váha na bocích. Boky vzhůru, spustit do půlky a znovu nahoru. Kolena míří nad kotníky.",
+      "vychozi": "42:01", "provedeni": "42:31",
+      "vyrez": [0.43, 0.58, 0.8],
+      "sipky": [[[0.46, 0.69], [0.44, 0.52]]]
+    },
+    {
+      "c": 19, "blok": 9, "nazev": "Most – propnutí nohou a zpět vzhůru", "pruziny": "3", "opakovani": "5×", "strany": false,
+      "nohy": "paty na hrazdě; vozík jede – nohy se propnou a boky se vznáší, pokrčením kolen se vozík zavře",
+      "jak": "Nahoře propnout nohy, boky klesnou nad vozík. Pokrčit kolena, přitáhnout paty k hýždím a boky co nejvýš.",
+      "vychozi": "43:41", "provedeni": "43:51",
+      "vyrez": [0.43, 0.58, 0.8],
+      "sipky": [[[0.57, 0.87], [0.44, 0.87]], [[0.46, 0.7], [0.44, 0.53]]]
+    },
+    {
+      "c": 20, "blok": 9, "nazev": "Nohy v popruzích – žabka", "pruziny": "3", "opakovani": "6×", "strany": false,
+      "nohy": "popruhy kolem chodidel, paty u sebe, špičky od sebe; pánev a kostrč na vozíku, malé prohnutí v bedrech zůstává",
+      "jak": "Ruce na bocích. Kolena se ohnou a jdou nad kyčle, pak propnout – zip od pat ke stydké kosti.",
+      "vychozi": "45:20", "provedeni": "45:30",
+      "vyrez": [0.43, 0.58, 0.8],
+      "sipky": [[[0.41, 0.52], [0.26, 0.47]]]
+    },
+    {
+      "c": 21, "blok": 9, "nazev": "Nohy v popruzích – hinge z kyčlí", "pruziny": "3", "opakovani": "5×", "strany": false,
+      "nohy": "jako u cviku 20 – paty u sebe, tvar nohou se nemění, pánev se neodlepí",
+      "jak": "Nohy nahoru jen tak vysoko, aby hýždě zůstaly dole. Stejný tvar tlačit dolů. Žebra těžká.",
+      "vychozi": "46:40", "provedeni": "47:00",
+      "vyrez": [0.43, 0.55, 0.85],
+      "sipky": [[[0.34, 0.26], [0.24, 0.3], [0.2, 0.55]]]
+    },
+    {
+      "c": 22, "blok": 9, "nazev": "Nohy v popruzích – kroužení", "pruziny": "3", "opakovani": "4× každým směrem", "strany": false,
+      "nohy": "nohy paralelně v popruzích, pánev stabilní; kruh: nahoru → roznožit → dolů → spojit",
+      "jak": "Nohy se dole spojí, než jdou znovu nahoru. Popruhy napnuté stejně, pánev se nekolébá.",
+      "vychozi": "48:10", "provedeni": "47:50",
+      "vyrez": [0.43, 0.55, 0.85],
+      "sipky": [],
+      "schema": "kruh"
+    },
+    {
+      "c": 23, "blok": 10, "nazev": "Prkno na hrazdě – koleno k lokti", "pruziny": "2", "opakovani": "5×", "strany": false,
+      "nohy": "dlaně na hrazdě, bříška chodidel na vozíku s podvrtnutými prsty, paty opřené o opěrky ramen",
+      "jak": "Pažemi odtlačit vozík, přitáhnout zpět, zastavit: pravé koleno k pravému lokti, levé k levému. Vozík stojí.",
+      "vychozi": "49:40", "provedeni": "50:00",
+      "vyrez": [0.42, 0.55, 0.85],
+      "sipky": [[[0.53, 0.66], [0.37, 0.6]]]
+    },
+    {
+      "c": 24, "blok": 10, "nazev": "Výpad na hrazdě – split", "pruziny": "2", "opakovani": "4×", "strany": true,
+      "nohy": "přední chodidlo celou plochou na hrazdě, zadní bříškem na vozíku s patou o opěrku ramen, zadní koleno zvednuté",
+      "jak": "Přední noha se propne do splitu a vrací se pokrčením. Přední kyčel vtahovat do jamky, páteř rovná.",
+      "vychozi": "50:49", "provedeni": "51:09",
+      "vyrez": [0.42, 0.55, 0.85],
+      "sipky": [[[0.52, 0.84], [0.67, 0.84]]]
+    },
+    {
+      "c": 25, "blok": 10, "nazev": "Výpad na hrazdě – rotace s paží vzhůru", "pruziny": "2", "opakovani": "3× + výdrž", "strany": true,
+      "nohy": "jako u cviku 24 – přední koleno pokrčené nad chodidlem, nohy ani vozík se nehýbou",
+      "jak": "Ve výpadu paže na straně přední nohy vzhůru a rotace, zpět dotknout hrazdy. Na konci výdrž s oběma pažemi nahoře.",
+      "vychozi": "51:29", "provedeni": "51:39",
+      "vyrez": [0.42, 0.5, 1.0],
+      "sipky": [[[0.22, 0.5], [0.17, 0.25], [0.28, 0.08]]]
+    },
+    {
+      "c": 26, "blok": 10, "nazev": "Stoj na vozíku – tlak patami a protažení lýtek", "pruziny": "3", "opakovani": "6×",  "strany": false,
+      "nohy": "celá chodidla na vozíku, paty opřené o opěrky ramen, váha v patách; dlaně na hrazdě",
+      "jak": "Patami odtlačit vozík do protažení lýtek, paže dál tlačí vzad. Nohy zpět pod boky. Na závěr roll up ve stoje.",
+      "vychozi": "53:49", "provedeni": "53:39",
+      "vyrez": [0.42, 0.6, 0.75],
+      "sipky": [[[0.5, 0.85], [0.65, 0.85]]]
+    }
+  ]
+}
