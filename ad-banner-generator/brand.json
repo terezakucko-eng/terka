@@ -1,0 +1,46 @@
+{
+  "name": "Růžový Slon",
+  "source": "Google Drive → Design_manual → ruzovy_slon_design_manual (V1.0, 9. 9. 2022)",
+  "colors": {
+    "primary": "#DC004E",
+    "secondary": "#1F0F36",
+    "accent": "#985FA3",
+    "background": "#FFFFFF",
+    "surface": "#FCEAEA",
+    "text": "#1F0F36",
+    "textMuted": "#6E647A",
+    "ctaBackground": "#DC004E",
+    "ctaText": "#FFFFFF"
+  },
+  "fonts": {
+    "heading": {
+      "family": "Montserrat, 'Segoe UI', Arial, sans-serif",
+      "weight": 800,
+      "url": "fonts/fonts.css"
+    },
+    "body": {
+      "family": "Roboto, 'Segoe UI', Arial, sans-serif",
+      "weight": 400,
+      "url": "fonts/fonts.css"
+    }
+  },
+  "logoText": "Růžový Slon",
+  "logoByLang": {
+    "CZ": "Růžový Slon",
+    "SK": "Ružový slon",
+    "default": "Sexy Elephant"
+  },
+  "palette": {
+    "primaryPink": "#DC004E",
+    "darkViolet": "#1F0F36",
+    "lightPink": "#F8C7C8",
+    "lightestPink": "#FCEAEA",
+    "pink": "#F29BA8",
+    "white": "#FFFFFF",
+    "teal": "#11AAAA",
+    "yellow": "#F4B945",
+    "violet": "#985FA3",
+    "blue": "#114CAA",
+    "green": "#2FB773"
+  }
+}

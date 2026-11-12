@@ -1,0 +1,10 @@
+# Logs
+*.log
+
+# OS / editor
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# Nic k buildu — čistě statická aplikace
