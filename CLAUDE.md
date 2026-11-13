@@ -227,6 +227,8 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 
 - **13. 11.: Tahák – jednání o médiích 2027 (Markíza, Nova, NeoMedia)** – Google Doc 1ZkftK8oRqE1BBjS1aJzNiXgypIGJD_nOZOa2Ob-EHZ8 ve složce 03 RS – Média / Výzkumy a audity (z workshopu WPP + naše čísla: CPP srovnání, postbuy, termíny rezervací, Markíza do 20. 11., Nova 100 % za neumístěné, NeoMedia fee zvlášť).
 
+- **13. 11.: Inzerce Styl pro ženy (Právo) – „Vánoce od A do Z“, 1/1 tiskové PDF, co nejméně produktů; Právu do st 18. 11. (inzerce@pravo.cz).** BC todo 45674654/todos/10506808438 (seznam [MKT] - Požadavky na MKT 9467150314; Mirek Mito 37653309 + Lenka Skolkova 49995043 – firemní účet, NE „Rudišová Lenka“ 37786596; termín 17. 11.; Lenka text do 16. 11.). Tereza chce texty do BC psát mile/přátelsky. Pozn. CLI: `basecamp api post … --data -` (JSON ze stdin; `@soubor` nefunguje).
+
 ## Targito – rozúčtování (platí, odsouhlaseno 14. 10. 2026)
 Detail v `targito-rozuctovani.md`. Shrnutí: faktura 84 952 Kč/měs. (dodatek, limit 6 mil.) → **Slon + Kondomshop 62 992 (74,2 %), Flagranti 21 960 (25,8 %)**; uvnitř Slona dle objemu z faktury (KS ~4,6 %); nadlimit uvnitř faktury se nepřeúčtovává; služby dle řádků (Růžový slon / Safety First). Měsíční kontrola – kalendář 3. pracovní den v měsíci.
 
