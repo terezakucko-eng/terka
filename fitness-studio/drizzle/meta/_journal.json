@@ -1086,6 +1086,13 @@
       "when": 1794435780851,
       "tag": "0154_sonicka_open",
       "breakpoints": true
+    },
+    {
+      "idx": 155,
+      "version": "7",
+      "when": 1794768270770,
+      "tag": "0155_special_only_fitness",
+      "breakpoints": true
     }
   ]
 }
