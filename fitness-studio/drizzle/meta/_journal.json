@@ -1100,6 +1100,27 @@
       "when": 1794768846236,
       "tag": "0156_silovy_16_11_back",
       "breakpoints": true
+    },
+    {
+      "idx": 157,
+      "version": "7",
+      "when": 1794827277129,
+      "tag": "0157_weekend_closed_21_22",
+      "breakpoints": true
+    },
+    {
+      "idx": 158,
+      "version": "7",
+      "when": 1794830209808,
+      "tag": "0158_lesson_next_price_counts_as",
+      "breakpoints": true
+    },
+    {
+      "idx": 159,
+      "version": "7",
+      "when": 1794830434702,
+      "tag": "0159_reformer_prices_2027",
+      "breakpoints": true
     }
   ]
 }

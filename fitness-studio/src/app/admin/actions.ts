@@ -51,6 +51,7 @@ import { greetName } from "@/lib/vocative";
 import { changeCredits } from "@/domain/wallet";
 import { requireAdmin, requireStaff } from "@/lib/auth";
 import { addDays, dateKey, formatDate, formatDay, mondayOf, pragueLocalToDate, weekdayOf, isDateKey } from "@/lib/dates";
+import { priceOn, sessionPriceOn } from "@/lib/price-list";
 import { UserError } from "@/lib/errors";
 import { attempt, field, type FormState } from "@/lib/form";
 import { cancelledRecipients, notifyBooked, notifyCancelled, notifyPaid, notifyPromoted, notifySessionCancelled, notifySessionMoved, notifyStrike, remindPayment } from "@/lib/notify";
@@ -121,6 +122,15 @@ export async function saveClassTypeAction(_: FormState, fd: FormData): Promise<F
       // a new price from a date (next year's price list); empty date = no change planned
       memberSurchargeNext: isDateKey(field.str(fd, "memberSurchargeNextFrom")) ? (field.money(fd, "memberSurchargeNext") ?? 0) : null,
       memberSurchargeNextFrom: isDateKey(field.str(fd, "memberSurchargeNextFrom")) ? field.str(fd, "memberSurchargeNextFrom") : null,
+      // the new price list's drop-in price and credit cost – only with its date; empty = no change
+      dropInPriceNext: isDateKey(field.str(fd, "memberSurchargeNextFrom")) ? field.money(fd, "dropInPriceNext") : null,
+      creditCostNext: isDateKey(field.str(fd, "memberSurchargeNextFrom")) ? field.int(fd, "creditCostNext") : null,
+      passEntriesNext: isDateKey(field.str(fd, "memberSurchargeNextFrom")) && field.int(fd, "passEntriesNext") ? Math.max(1, field.int(fd, "passEntriesNext")!) : null,
+      // "0" = no surcharge from then on, empty = no change
+      passSurchargeNext: isDateKey(field.str(fd, "memberSurchargeNextFrom")) ? field.money(fd, "passSurchargeNext") : null,
+      // counts as another lesson (Reformer ve dvou → Reformer fusion) – never as itself
+      countsAsTypeId: field.str(fd, "countsAsTypeId") && field.str(fd, "countsAsTypeId") !== field.str(fd, "id") ? field.str(fd, "countsAsTypeId") : null,
+      countsAsLessons: field.str(fd, "countsAsTypeId") ? Math.max(1, field.int(fd, "countsAsLessons") ?? 1) : 1,
       nonMemberSeats: Math.max(0, field.int(fd, "nonMemberSeats") ?? 0),
       nonMemberReleaseHours: Math.max(0, field.int(fd, "nonMemberReleaseHours") ?? 168),
       // empty = the default from Nastavení
@@ -146,7 +156,7 @@ export async function saveClassTypeAction(_: FormState, fd: FormData): Promise<F
     if (id) await db.update(classTypes).set(values).where(eq(classTypes.id, id));
     else await db.insert(classTypes).values(values);
     // a surcharge set or changed applies to the upcoming unpaid bookings of this class too
-    const surchargeKeys = ["memberSurcharge", "memberSurchargeFrom", "memberSurchargeNext", "memberSurchargeNextFrom", "passSurcharge"] as const;
+    const surchargeKeys = ["memberSurcharge", "memberSurchargeFrom", "memberSurchargeNext", "memberSurchargeNextFrom", "passSurcharge", "passSurchargeNext"] as const;
     const changed = before && surchargeKeys.some((k) => before[k] !== values[k]) ? await recomputeSurcharges(db, { classTypeId: id }) : [];
     if (changed.length)
       return done(`Lekce uložena. Doplatek upraven u ${changed.length} ${changed.length === 1 ? "nadcházející rezervace" : "nadcházejících rezervací"} – najdeš je v Platby → Nezaplacené lekce.`);
@@ -362,8 +372,8 @@ async function sessionValues(fd: FormData) {
       instructorId: field.optional(fd, "instructorId"),
       durationMin: field.int(fd, "durationMin") ?? ct.durationMin,
       capacity: field.int(fd, "capacity") ?? ct.capacity,
-      creditCost: field.int(fd, "creditCost") ?? ct.creditCost,
-      dropInPrice: isFree ? null : (field.money(fd, "dropInPrice") ?? ct.dropInPrice),
+      creditCost: field.int(fd, "creditCost") ?? priceOn(ct, dateKey(new Date())).creditCost,
+      dropInPrice: isFree ? null : (field.money(fd, "dropInPrice") ?? priceOn(ct, dateKey(new Date())).dropInPrice),
       isFree,
       noFreeEntry: field.bool(fd, "noFreeEntry"),
       // a free class can't be paid only by card – free wins
@@ -394,7 +404,7 @@ function checkOpensBefore(opensAt: Date | null, starts: Date[]) {
 export async function createSessionsAction(_: FormState, fd: FormData): Promise<FormState> {
   await requireAdmin();
   return attempt(async () => {
-    const { values } = await sessionValues(fd);
+    const { ct, values } = await sessionValues(fd);
     const from = field.str(fd, "dateFrom");
     const time = field.str(fd, "time");
     if (!isDateKey(from) || !/^\d{2}:\d{2}$/.test(time)) throw new UserError("Vyplň datum a čas.");
@@ -421,10 +431,13 @@ export async function createSessionsAction(_: FormState, fd: FormData): Promise<
       const own = field.str(fd, `time_${weekdayOf(d)}`);
       return until && /^\d{2}:\d{2}$/.test(own) ? own : time;
     };
-    const rows = dates.map((d) => ({ ...values, seriesId, startsAt: pragueLocalToDate(`${d}T${timeFor(d)}`) }));
+    // a price left as the lesson has it today follows the price list of the session's day (a new one from 1. 1.)
+    const today = dateKey(new Date());
+    const rows = dates.map((d) => ({ ...values, ...sessionPriceOn(ct, values, d, today), seriesId, startsAt: pragueLocalToDate(`${d}T${timeFor(d)}`) }));
     checkOpensBefore(values.bookingOpensAt, rows.map((r) => r.startsAt));
     await (await getDb()).insert(classSessions).values(rows);
-    return done(`Vytvořeno termínů: ${dates.length}.`);
+    const repriced = rows.filter((r) => r.creditCost !== values.creditCost || r.dropInPrice !== values.dropInPrice).length;
+    return done(`Vytvořeno termínů: ${dates.length}.${repriced ? ` U ${repriced} z nich platí cena z nového ceníku lekce.` : ""}`);
   });
 }
 

@@ -23,7 +23,7 @@ import { credits as creditsLabel, formatPrice } from "@/lib/money";
 import { getSettings, type Settings } from "@/lib/settings";
 import { changeCredits, creditExpired, dropInCredit } from "./wallet";
 import { periodLabel, shiftPeriod } from "./membership-fees";
-import { surchargeOn } from "@/lib/price-list";
+import { passOn, surchargeOn } from "@/lib/price-list";
 import { sessionNameSql } from "@/lib/session-name";
 import { vacationLabel } from "@/lib/vacation";
 
@@ -160,7 +160,7 @@ async function includedMemberships(tx: Executor, userIds: string[], s: SessionKe
         inArray(entitlements.userId, userIds),
         eq(entitlements.kind, "membership"),
         eq(entitlements.status, "active"),
-        eq(entitlements.includedClassTypeId, s.classTypeId),
+        eq(entitlements.includedClassTypeId, await lessonOf(tx, s.classTypeId)),
         gt(entitlements.includedPerMonth, 0),
         lte(entitlements.validFrom, s.startsAt),
         gt(entitlements.validUntil, s.startsAt),
@@ -209,13 +209,17 @@ export async function viewerWindows(tx: Executor, cfg: Settings, userId: string 
   const tiers = [...included, ...passes.map((p) => ({ ...p, from: null }))];
   if (!tiers.length) return none;
   const prio = priorityWindow(cfg);
+  // a class counting as another one (Reformer ve dvou) opens as early as that one
+  const countsAs = new Map(
+    (await tx.select({ id: classTypes.id, base: classTypes.countsAsTypeId }).from(classTypes).where(isNotNull(classTypes.countsAsTypeId))).map((c) => [c.id, c.base!]),
+  );
   return {
     base,
     widest: prio,
     forSession: (s: SessionKey) =>
       tiers.some(
         (t) =>
-          t.classTypeId === s.classTypeId &&
+          t.classTypeId === (countsAs.get(s.classTypeId) ?? s.classTypeId) &&
           t.validFrom <= s.startsAt &&
           t.validUntil > s.startsAt &&
           (!t.from || t.from <= dateKey(s.startsAt).slice(0, 7)),
@@ -586,11 +590,13 @@ export async function recomputeSurcharges(
     const changed: Booking[] = [];
     for (const { b, s, e } of rows) {
       const month = dateKey(s.startsAt).slice(0, 7);
+      const key = `${s.classTypeId}|${dateKey(s.startsAt)}`;
+      if (!rulesOf.has(key)) rulesOf.set(key, await classRules(tx, s));
+      const rules = rulesOf.get(key)!;
       const included =
-        b.method === "membership" && !!e && e.includedClassTypeId === s.classTypeId && e.includedPerMonth > 0 && !(e.includedFrom && month < e.includedFrom);
+        b.method === "membership" && !!e && e.includedClassTypeId === lessonIn(rules, s) && e.includedPerMonth > 0 && !(e.includedFrom && month < e.includedFrom);
       if (included) continue;
-      if (!rulesOf.has(s.classTypeId)) rulesOf.set(s.classTypeId, await classRules(tx, s));
-      const want = surchargeFor(b.method!, rulesOf.get(s.classTypeId)!, s, b.seats, e);
+      const want = surchargeFor(b.method!, rules, s, b.seats, e);
       if (want === b.surcharge) continue;
       changed.push({ ...b, surcharge: want });
       if (opts.dryRun) continue;
@@ -772,9 +778,9 @@ async function isPassCardEntry(tx: Executor, entitlementId: string) {
 }
 
 /** Why an entitlement can't pay for this session, or null if it can. */
-/** Per-class-type pricing rules (member / pass surcharge, first visit, free entry). */
-async function classRules(tx: Executor, s: Pick<ClassSession, "classTypeId">) {
-  const [ct] = await tx
+/** Per-class-type pricing rules (member / pass surcharge, first visit, free entry) – with the session's day, the pass terms of its price list. */
+async function classRules(tx: Executor, s: Pick<ClassSession, "classTypeId"> & { startsAt?: Date }) {
+  const [row] = await tx
     .select({
       memberSurcharge: classTypes.memberSurcharge,
       memberSurchargeFrom: classTypes.memberSurchargeFrom,
@@ -787,14 +793,36 @@ async function classRules(tx: Executor, s: Pick<ClassSession, "classTypeId">) {
       firstVisitPrice: classTypes.firstVisitPrice,
       firstVisitNewOnly: classTypes.firstVisitNewOnly,
       passEntries: classTypes.passEntries,
+      passEntriesNext: classTypes.passEntriesNext,
+      passSurchargeNext: classTypes.passSurchargeNext,
       duoPrice: classTypes.duoPrice,
       studentDropInPrice: classTypes.studentDropInPrice,
+      countsAsTypeId: classTypes.countsAsTypeId,
+      countsAsLessons: classTypes.countsAsLessons,
     })
     .from(classTypes)
     .where(eq(classTypes.id, s.classTypeId));
-  return ct ?? { memberSurcharge: null, memberSurchargeFrom: null, memberSurchargeNext: null, memberSurchargeNextFrom: null, passSurcharge: null, noFreeEntry: false, passCardEntry: false, noPass: false, firstVisitPrice: null, firstVisitNewOnly: false, passEntries: 1, duoPrice: null, studentDropInPrice: null };
+  const ct = row ?? { memberSurcharge: null, memberSurchargeFrom: null, memberSurchargeNext: null, memberSurchargeNextFrom: null, passSurcharge: null, noFreeEntry: false, passCardEntry: false, noPass: false, firstVisitPrice: null, firstVisitNewOnly: false, passEntries: 1, passEntriesNext: null, passSurchargeNext: null, duoPrice: null, studentDropInPrice: null, countsAsTypeId: null, countsAsLessons: 1 };
+  return s.startsAt ? { ...ct, ...passOn(ct, dateKey(s.startsAt)) } : ct;
 }
 type ClassRules = Awaited<ReturnType<typeof classRules>>;
+
+/**
+ * The lesson a class counts as for memberships with lessons included, gifts and passes
+ * made for one class (Reformer ve dvou → Reformer fusion); a class on its own is itself.
+ */
+const lessonIn = (rules: Pick<ClassRules, "countsAsTypeId">, s: Pick<ClassSession, "classTypeId">) => rules.countsAsTypeId ?? s.classTypeId;
+/** How many of that lesson's included or gifted lessons a booking of this class takes (Reformer ve dvou = 2). */
+const weightOf = (rules: Pick<ClassRules, "countsAsLessons">) => Math.max(1, rules.countsAsLessons);
+async function lessonOf(tx: Executor, classTypeId: string) {
+  const [ct] = await tx.select({ base: classTypes.countsAsTypeId }).from(classTypes).where(eq(classTypes.id, classTypeId));
+  return ct?.base ?? classTypeId;
+}
+/** That lesson and every class counting as it – their bookings share one allowance. */
+async function classesOfLesson(tx: Executor, lesson: string) {
+  const rows = await tx.select({ id: classTypes.id }).from(classTypes).where(eq(classTypes.countsAsTypeId, lesson));
+  return [lesson, ...rows.map((r) => r.id)];
+}
 
 /** Member surcharge that applies to this session (0 = none) – by the price list of its day. */
 export function memberSurchargeFor(rules: Parameters<typeof surchargeOn>[0], s: Pick<ClassSession, "startsAt">) {
@@ -810,19 +838,20 @@ type Included = Pick<Entitlement, "id" | "includedClassTypeId" | "includedPerMon
  * are the ones without a surcharge; a late cancellation uses one up too.
  */
 export async function includedLeft(tx: Executor, e: Included, s: Pick<ClassSession, "startsAt" | "classTypeId">, rules: ClassRules, exceptBookingId?: string) {
-  if (!e.includedClassTypeId || e.includedPerMonth <= 0 || e.includedClassTypeId !== s.classTypeId) return null;
+  if (!e.includedClassTypeId || e.includedPerMonth <= 0 || e.includedClassTypeId !== lessonIn(rules, s)) return null;
   const month = dateKey(s.startsAt).slice(0, 7);
   if (e.includedFrom && month < e.includedFrom) return null;
-  // only lessons that would otherwise cost a surcharge count
+  // only lessons that would otherwise cost a surcharge count – a lesson for two as two
   const from = [`${month}-01`, rules.memberSurchargeFrom ?? ""].sort().at(-1)!;
   const [r] = await tx
-    .select({ n: count() })
+    .select({ n: sql<number>`coalesce(sum(${classTypes.countsAsLessons}), 0)`.mapWith(Number) })
     .from(bookings)
     .innerJoin(classSessions, eq(bookings.sessionId, classSessions.id))
+    .innerJoin(classTypes, eq(classSessions.classTypeId, classTypes.id))
     .where(
       and(
         eq(bookings.entitlementId, e.id),
-        eq(classSessions.classTypeId, s.classTypeId),
+        inArray(classSessions.classTypeId, await classesOfLesson(tx, e.includedClassTypeId)),
         gte(classSessions.startsAt, pragueLocalToDate(`${from}T00:00`)),
         lt(classSessions.startsAt, pragueLocalToDate(`${shiftPeriod(month, 1)}-01T00:00`)),
         eq(bookings.surcharge, 0),
@@ -865,7 +894,7 @@ export async function membershipIncluding(tx: Executor, classTypeId: string, at 
         eq(products.isActive, true),
         eq(products.linkOnly, false),
         isNull(products.archivedAt),
-        eq(products.includedClassTypeId, classTypeId),
+        eq(products.includedClassTypeId, await lessonOf(tx, classTypeId)),
         gt(products.includedPerMonth, 0),
         or(isNull(products.saleFrom), lte(products.saleFrom, at)),
         or(isNull(products.saleUntil), gt(products.saleUntil, at)),
@@ -893,11 +922,12 @@ function surchargeFor(method: Method, rules: ClassRules, s: Pick<ClassSession, "
 }
 
 /**
- * Entries a booking takes from this entitlement: passes may cost more (Reformer = 2), a friend doubles it (free entries too).
- * A pass just for this class (Permanentka Reformer) is one entry a lesson.
+ * Entries a booking takes from this entitlement: passes may cost more (Reformer ve dvou = 2), a friend doubles it (free entries too).
+ * A pass or entries just for one lesson (Permanentka Reformer, a Reformer gift) take one a lesson – two for a lesson for two.
  */
-function entriesFor(e: Pick<Entitlement, "kind" | "classTypeId">, rules: Pick<ClassRules, "passEntries">, seats = 1) {
-  return (e.kind === "pass" && !e.classTypeId ? Math.max(1, rules.passEntries) : 1) * seats;
+function entriesFor(e: Pick<Entitlement, "kind" | "classTypeId">, rules: Pick<ClassRules, "passEntries" | "countsAsLessons">, seats = 1) {
+  if (e.classTypeId) return weightOf(rules) * seats;
+  return (e.kind === "pass" ? Math.max(1, rules.passEntries) : 1) * seats;
 }
 
 /** A friend (+1) can come along only to group classes, not to individual ones. */
@@ -1037,11 +1067,13 @@ export async function orderShare(tx: Executor, o: Pick<Order, "id" | "amount">) 
   return Math.round(o.amount / Math.max(1, r?.n ?? 1));
 }
 
-/** Drop-in price for the client and a friend: the class type's price for two, else both single prices. */
+/** Drop-in price for the client and a friend: the class type's price for two when it saves them money, else both single prices. */
 async function duoDropInPriceFor(tx: Executor, userId: string, s: ClassSession, rules: ClassRules) {
   const single = await dropInPriceFor(tx, userId, s, rules);
   if (!single || s.dropInPrice === null) return null;
-  return (s.dropInOnly ? null : rules.duoPrice) ?? single.price + s.dropInPrice;
+  const both = single.price + s.dropInPrice;
+  const duo = s.dropInOnly ? null : rules.duoPrice;
+  return duo !== null && duo < both ? duo : both;
 }
 
 /** Drop-in price for this client – the intro price if they've never had this class (or, newcomers only, any class); a special or charity class has none. */
@@ -1077,7 +1109,7 @@ async function entitlementProblem(
   // a pass just for this class (Permanentka Reformer) is made for it
   if (e.kind === "pass" && !e.classTypeId && (await classRules(tx, s)).noPass)
     return "Permanentka na tuhle lekci neplatí.";
-  if (e.classTypeId && e.classTypeId !== s.classTypeId) return "Platí jen na jinou lekci.";
+  if (e.classTypeId && e.classTypeId !== (await lessonOf(tx, s.classTypeId))) return "Platí jen na jinou lekci.";
   if (e.beforeHour !== null && pragueHour(s.startsAt) >= e.beforeHour) return `Platí jen na lekce začínající do ${e.beforeHour}:00.`;
   if (e.sameDayOnly && dateKey(s.startsAt) !== dateKey(now)) return "Platí jen v den lekce, když zbývá volné místo.";
   // a special class (guests, an event) is always paid for – no welcome lesson, card lesson or other free entry
@@ -1153,7 +1185,7 @@ export async function bookingOptions(
   const rank: Record<ClassKind, number> = { membership: 0, pass: 1, free: 2 };
   // entries tied to another class (e.g. a free Reformer entry) aren't offered here at all
   const classEnts = ents.flatMap((e) =>
-    isClassKind(e.kind) && (!e.classTypeId || e.classTypeId === s.classTypeId) ? [{ ...e, kind: e.kind }] : [],
+    isClassKind(e.kind) && (!e.classTypeId || e.classTypeId === lessonIn(rules, s)) ? [{ ...e, kind: e.kind }] : [],
   );
   // one just for this class (a Reformer gift or pass) goes first – it costs no surcharge
   const order = (e: (typeof classEnts)[number]) => (e.classTypeId ? -1 : rank[e.kind]);
@@ -1171,10 +1203,12 @@ export async function bookingOptions(
     let included = "";
     if (e.kind === "membership" && extra > 0) {
       const n = await includedLeft(tx, e, s, rules);
-      if (n) {
+      const weight = weightOf(rules);
+      if (n !== null && n >= weight) {
         extra = 0;
-        included = ` · v ceně členství, ${includedNote(n, s)}`;
+        included = ` · v ceně členství${weight > 1 ? ` (počítá se za ${weight} lekce)` : ""}, ${includedNote(n, s)}`;
       } else if (n === 0) included = ", lekce v ceně na tento měsíc jsou vyčerpané";
+      else if (n !== null) included = `, tahle lekce se počítá za ${weight} lekce v ceně a ${includedNote(n, s)}`;
     }
     opts.push({
       method: methodForKind[e.kind],
@@ -1310,7 +1344,7 @@ async function charge(
   const rules = await classRules(tx, s);
   let surcharge = surchargeFor(method, rules, s, booking.seats, ent);
   // lessons included in the membership (e.g. 4× Reformer a month) need no surcharge
-  if (surcharge > 0 && method === "membership" && ent && (await includedLeft(tx, ent, s, rules, booking.id))) surcharge = 0;
+  if (surcharge > 0 && method === "membership" && ent && ((await includedLeft(tx, ent, s, rules, booking.id)) ?? 0) >= weightOf(rules)) surcharge = 0;
   // credit on the account (bought for surcharges) pays it right away – no transfer, no VS; 1 Kč = 1 kredit
   let surchargePaidAt: Date | null = null;
   if (surcharge > 0) {
@@ -1346,20 +1380,26 @@ async function charge(
 async function passIncludedOn(tx: Executor, b: Booking, s: ClassSession) {
   if (b.method !== "membership" || b.surcharge !== 0 || !b.entitlementId) return;
   const [e] = await tx.select().from(entitlements).where(eq(entitlements.id, b.entitlementId));
-  if (!e || e.includedClassTypeId !== s.classTypeId) return;
+  if (!e?.includedClassTypeId) return;
   const rules = await classRules(tx, s);
-  if (!memberSurchargeFor(rules, s) || !(await includedLeft(tx, e, s, rules))) return;
+  if (e.includedClassTypeId !== lessonIn(rules, s)) return;
+  if (!memberSurchargeFor(rules, s)) return;
+  const left = await includedLeft(tx, e, s, rules);
+  if (!left) return;
   const month = dateKey(s.startsAt).slice(0, 7);
   const [next] = await tx
     .select({ id: bookings.id, userId: bookings.userId, surcharge: bookings.surcharge, surchargePaidAt: bookings.surchargePaidAt })
     .from(bookings)
     .innerJoin(classSessions, eq(bookings.sessionId, classSessions.id))
+    .innerJoin(classTypes, eq(classSessions.classTypeId, classTypes.id))
     .where(
       and(
         eq(bookings.entitlementId, e.id),
         eq(bookings.status, "confirmed"),
         gt(bookings.surcharge, 0),
-        eq(classSessions.classTypeId, s.classTypeId),
+        inArray(classSessions.classTypeId, await classesOfLesson(tx, e.includedClassTypeId)),
+        // a lesson for two needs two of them
+        lte(classTypes.countsAsLessons, left),
         ne(classSessions.status, "cancelled"),
         gte(classSessions.startsAt, pragueLocalToDate(`${month}-01T00:00`)),
         lt(classSessions.startsAt, pragueLocalToDate(`${shiftPeriod(month, 1)}-01T00:00`)),

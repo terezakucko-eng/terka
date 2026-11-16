@@ -17,7 +17,7 @@ import { activeClassTypes, listSessions } from "@/lib/queries";
 import { jsonLd } from "@/lib/seo";
 import { splitKeywords } from "@/lib/keywords";
 import { dateKey, formatShortDay } from "@/lib/dates";
-import { priceNoteOn } from "@/lib/price-list";
+import { priceNoteOn, typeOn } from "@/lib/price-list";
 import { getSettings } from "@/lib/settings";
 import { nbsp } from "@/lib/typography";
 
@@ -48,12 +48,14 @@ export async function generateMetadata({ params }: PageProps<"/lekce/[slug]">): 
 }
 
 export default async function LessonPage({ params }: PageProps<"/lekce/[slug]">) {
-  const t = await load((await params).slug);
+  const loaded = await load((await params).slug);
   const user = await getCurrentUser();
-  if (!t || (!t.isActive && user?.role !== "admin")) notFound();
+  if (!loaded || (!loaded.isActive && user?.role !== "admin")) notFound();
 
   const db = await getDb();
   const now = new Date();
+  // today's prices (a new price list may have started)
+  const t = typeOn(loaded, dateKey(now));
   const [sessions, others, settings] = await Promise.all([
     listSessions(db, now, new Date(now.getTime() + 21 * 86_400_000), { classTypeId: t.id, includeCancelled: false }),
     activeClassTypes(db),

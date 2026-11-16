@@ -14,6 +14,7 @@ import { bookings, users } from "@/db/schema";
 import { splitName } from "@/lib/client-list";
 import { requireStaff } from "@/lib/auth";
 import { WEEKDAYS, addDays, dateKey, formatRange, formatShortDay, isDateKey, mondayOf, pragueLocalToDate } from "@/lib/dates";
+import { priceOn } from "@/lib/price-list";
 import { activeClassTypes, activeInstructors, listSessions } from "@/lib/queries";
 
 export default async function AdminSchedule({ searchParams }: PageProps<"/admin/rozvrh">) {
@@ -165,7 +166,7 @@ export default async function AdminSchedule({ searchParams }: PageProps<"/admin/
           <Panel title="+ Přidat lekce (jednorázově nebo opakovaně)">
             <ActionForm action={createSessionsAction} className="space-y-5">
               <SessionFields types={types} instructorList={instructorList} />
-              <TypeDefaults types={types.map((t) => ({ id: t.id, capacity: t.capacity, durationMin: t.durationMin, creditCost: t.creditCost, dropInPrice: t.dropInPrice }))} />
+              <TypeDefaults types={types.map((t) => ({ id: t.id, capacity: t.capacity, durationMin: t.durationMin, ...priceOn(t, today) }))} />
               <div className="grid gap-4 sm:grid-cols-3">
                 <Field label="Datum (od)"><Input name="dateFrom" type="date" defaultValue={today} required /></Field>
                 <Field label="Čas začátku"><Input name="time" type="time" defaultValue="18:00" required /></Field>

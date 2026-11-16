@@ -14,7 +14,7 @@ import { Ribbon } from "@/components/ribbon";
 import { DROP_IN_ONLY, WAITLIST_DROP_IN_ONLY, memberSurchargeFor, membershipIncluding, passSurchargeFor, sessionForUser, stateMessage, usableCredit } from "@/domain/booking";
 import { getCurrentUser } from "@/lib/auth";
 import { dateKey, formatDateTime, formatDay, formatOpens, formatRange, formatTime } from "@/lib/dates";
-import { priceNoteOn } from "@/lib/price-list";
+import { priceNoteOn, typeOn } from "@/lib/price-list";
 
 /** "5. 10." already ends the sentence, "5. 10. v 18:00" needs its full stop */
 const endSentence = (s: string) => (s.endsWith(".") ? s : `${s}.`);
@@ -47,7 +47,9 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
   const [user, c] = await Promise.all([getCurrentUser(), getContent()]);
   const address = `${c("site.street")}, ${c("site.city")}`;
   const view = (await sessionForUser(db, id, user?.id ?? null, undefined, plus1 === "1" ? 2 : 1))!;
-  const { s, ct } = detail;
+  const { s } = detail;
+  // the pass terms of the session's price list (from 1. 1. 2027 one entry and a surcharge on Reformer)
+  const ct = typeOn(detail.ct, dateKey(s.startsAt));
   const left = Math.max(0, s.capacity - view.occupied);
   // a charity class has only its entry fee – nothing about memberships, passes or credits
   const entitled = !s.isFree && !s.dropInOnly;
@@ -55,7 +57,12 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
   const passSurcharge = !entitled || ct.noPass ? 0 : passSurchargeFor(ct);
   const tier = surcharge > 0 ? await membershipIncluding(db, ct.id, s.startsAt) : null;
   // "S Členstvím Reformer máš 4 měsíčně bez doplatku."
-  const tierNote = tier && <> {tier.name} má {tier.perMonth}× měsíčně v ceně bez doplatku.</>;
+  const tierNote = tier && (
+    <>
+      {" "}
+      {tier.name} má {tier.perMonth}× měsíčně v ceně bez doplatku{ct.countsAsLessons > 1 && `, tahle lekce se počítá za ${ct.countsAsLessons}`}.
+    </>
+  );
 
   return (
     <section className="bg-forest text-papir">

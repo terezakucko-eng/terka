@@ -234,6 +234,12 @@ export const classTypes = pgTable("class_types", {
   /** Další výše doplatku pro členy (haléře) – platí od `memberSurchargeNextFrom` (nový ceník, např. 2027) */
   memberSurchargeNext: integer("member_surcharge_next"),
   memberSurchargeNextFrom: text("member_surcharge_next_from"),
+  /** Nový ceník lekce od `memberSurchargeNextFrom`: jednorázový vstup (haléře), cena v kreditech, vstupů z permanentky
+   *  a doplatek k permanentce (haléře; 0 = bez doplatku); null = beze změny */
+  dropInPriceNext: integer("drop_in_price_next"),
+  creditCostNext: integer("credit_cost_next"),
+  passEntriesNext: integer("pass_entries_next"),
+  passSurchargeNext: integer("pass_surcharge_next"),
   /** Místa držená pro klienty bez členství (např. 1 na Reformeru) – členové je obsadit nemůžou… */
   nonMemberSeats: integer("non_member_seats").notNull().default(0),
   /** …do tolika hodin před lekcí (168 = týden), pak je může vzít kdokoli */
@@ -261,6 +267,11 @@ export const classTypes = pgTable("class_types", {
   noPass: boolean("no_pass").notNull().default(false),
   /** Jednorázová cena pro dva (klient + kamarádka, haléře); null = 2× jednorázová cena */
   duoPrice: integer("duo_price"),
+  /** Počítá se jako tato lekce (Reformer ve dvou → Reformer fusion): platí na ni lekce v ceně členství, dárkové vstupy
+   *  a permanentky určené pro ni a rezervace se otevírá stejně brzy; null = samostatná lekce */
+  countsAsTypeId: uuid("counts_as_type_id").references((): AnyPgColumn => classTypes.id, { onDelete: "set null" }),
+  /** …a za kolik lekcí té lekce se počítá (Reformer ve dvou = 2 z lekcí v ceně členství i z dárkových vstupů) */
+  countsAsLessons: integer("counts_as_lessons").notNull().default(1),
   /** Hledané výrazy (čárkou), např. „zumba fitness, taneční lekce“ – na stránce lekce a pro vyhledávače */
   keywords: text("keywords").notNull().default(""),
   isActive: boolean("is_active").notNull().default(true),

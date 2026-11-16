@@ -10,7 +10,7 @@ import Link from "next/link";
 import { placesLeft as placesLeftFor, switchableTo } from "@/domain/membership-fees";
 import { memberRewardNotes } from "@/domain/member-rewards";
 import { dateKey } from "@/lib/dates";
-import { dayLabel, inPresale, onSale, priceListStart, priceListYears, priceNoteOn, productsForYear, saleStartsLater, surchargeSteps, yearStart } from "@/lib/price-list";
+import { dayLabel, duoSaves, inPresale, onSale, priceListStart, priceListYears, priceNoteOn, productsForYear, saleStartsLater, surchargeSteps, typeOn, yearStart } from "@/lib/price-list";
 import { getSettings } from "@/lib/settings";
 import { getContent, type Content } from "@/content";
 import { nbsp } from "@/lib/typography";
@@ -35,7 +35,7 @@ export default async function PricingPage({ searchParams }: PageProps<"/cenik">)
   const { rok } = await searchParams;
   const db = await getDb();
   const now = new Date();
-  const [all, types, user, cfg, c] = await Promise.all([
+  const [all, activeTypes, user, cfg, c] = await Promise.all([
     priceListProducts(db),
     activeClassTypes(db),
     getCurrentUser(),
@@ -43,12 +43,14 @@ export default async function PricingPage({ searchParams }: PageProps<"/cenik">)
     getContent(),
   ]);
   // this year's price list, and next year's once it's set (a tab; it applies from 1 January)
-  const years = priceListYears(all, types, now);
+  const years = priceListYears(all, activeTypes, now);
   const year = years.find((y) => String(y) === rok) ?? years[0];
   const later = year !== years[0];
   const list = productsForYear(all, year, now);
   const from = priceListStart(year, now);
   const day = dateKey(from);
+  // classes as that year's price list has them (a new drop-in price or credit cost from its start)
+  const types = activeTypes.map((t) => typeOn(t, day));
   // next year's list: what can be bought already (presale) and from when the rest
   const presale = list.filter((p) => inPresale(p, now)).map((p) => p.name);
   const onSaleFrom = presale.length
@@ -231,8 +233,8 @@ export default async function PricingPage({ searchParams }: PageProps<"/cenik">)
                     <span className="block text-xs">první lekce{t.firstVisitNewOnly && " pro nováčky"} {formatPrice(t.firstVisitPrice)}</span>
                   )}
                   {t.studentDropInPrice !== null && <span className="block text-xs">studenti {formatPrice(t.studentDropInPrice)}</span>}
-                  {t.duoPrice !== null && t.capacity > 2 && (
-                    <span className="block text-xs">s kamarádkou {formatPrice(t.duoPrice)} za obě</span>
+                  {duoSaves(t) && t.capacity > 2 && (
+                    <span className="block text-xs">s kamarádkou {formatPrice(t.duoPrice!)} za obě</span>
                   )}
                   {surchargeSteps(t, from, yearStart(year + 1)).map((step) => (
                     <span key={step.from ?? "now"} className="block text-xs">
@@ -242,11 +244,11 @@ export default async function PricingPage({ searchParams }: PageProps<"/cenik">)
                   ))}
                   {priceNoteOn(t, day) && <span className="block text-xs font-semibold text-zeme">{priceNoteOn(t, day)}</span>}
                   {list
-                    .filter((p) => p.kind === "membership" && p.includedClassTypeId === t.id && p.includedPerMonth > 0 && p.commitmentMonths > 0)
+                    .filter((p) => p.kind === "membership" && p.includedClassTypeId === (t.countsAsTypeId ?? t.id) && p.includedPerMonth > 0 && p.commitmentMonths > 0)
                     .slice(0, 1)
                     .map((p) => (
                       <span key={p.id} className="block text-xs">
-                        {p.name}: {p.includedPerMonth}× měsíčně v ceně
+                        {p.name}: {p.includedPerMonth}× měsíčně v ceně{t.countsAsLessons > 1 && `, tahle se počítá za ${t.countsAsLessons}`}
                       </span>
                     ))}
                 </span>
