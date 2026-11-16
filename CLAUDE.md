@@ -256,6 +256,8 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 
 - **16. 11.: Připomínka Nejdůvěryhodnější značka (trig_01FR3QCFGXABhoUmBd4LXqWW) – stav: BC todo pro Lenku 10408426829 už NEEXISTUJE (smazané, v hledání není); v mailu poslední zpráva Lenky 19. 10. „zjišťuji, dám obratem vědět“ (cena za logo CZ+SK) – nabídka od Petry Fajfrové v mailu není. Plán 2027 beze změny (leden 180 000 = odhad CZ 120 + SK 60). Připomínka přesunuta na po 30. 11. 2026 8:31 (poslední pracovní den v listopadu; trig_01Wcd66JvhiGLRfuxPCR13K6) – zkontrolovat a případně navrhnout připomínku Lence.**
 
+- **16. 11.: euroAWK (Lukáš Barnet) – Valentýn 2027: plochy jen po celých měsících → ÚNOR 1.–26. 2. 2027; přelep po Valentýnovi NEBRAT (BB 1 200 + tisk 790, CLV 700 + tisk 590) – vizuál na celý únor. Billboardy všech 10 volné; CLV Brno 450553 obsazené → 50803 (Úzká × Dornych, OD Tesco); Ostrava místo 60086 → 60083 (Výškovická, Luna, samostatná u křižovatky). Finální rezervace: BB 810403, 810322, 804301, 809490, 805165, 809399, 825149, 825466, 826238, 826001 + CLV 50803, 451542, 60083. Odpověď ODESLÁNA 16. 11. – čeká se na kalkulaci vč. tisku a termín podkladů. Pozn.: kalendář st 18. 11. 10:00 Alžběta Motlová – ukončení smlouvy (odpovědět Lucii Pilařové, BC 9467161974#__recording_10512287019).**
+
 ## Targito – rozúčtování (platí, odsouhlaseno 14. 10. 2026)
 Detail v `targito-rozuctovani.md`. Shrnutí: faktura 84 952 Kč/měs. (dodatek, limit 6 mil.) → **Slon + Kondomshop 62 992 (74,2 %), Flagranti 21 960 (25,8 %)**; uvnitř Slona dle objemu z faktury (KS ~4,6 %); nadlimit uvnitř faktury se nepřeúčtovává; služby dle řádků (Růžový slon / Safety First). Měsíční kontrola – kalendář 3. pracovní den v měsíci.
 
