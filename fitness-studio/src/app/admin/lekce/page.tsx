@@ -17,7 +17,7 @@ import { classTypes, type ClassType } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
 import { ImageInput } from "@/components/image-input";
 
-function ClassTypeForm({ t }: { t?: ClassType }) {
+function ClassTypeForm({ t, others }: { t?: ClassType; others: ClassType[] }) {
   return (
     <ActionForm action={saveClassTypeAction} className="space-y-4">
       {t && <input type="hidden" name="id" value={t.id} />}
@@ -50,8 +50,20 @@ function ClassTypeForm({ t }: { t?: ClassType }) {
           <Field label="Nový doplatek pro členy (Kč)" hint="Ceník na další rok – platí od data vedle, i pro dřív koupená členství">
             <Input name="memberSurchargeNext" inputMode="decimal" defaultValue={kc(t?.memberSurchargeNext)} />
           </Field>
-          <Field label="Nový doplatek platí od" hint="Např. 1. 1. 2027. Prázdné = žádná změna">
+          <Field label="Nový ceník lekce platí od" hint="Např. 1. 1. 2027 – od toho dne platí nový doplatek i nové ceny vedle. Prázdné = žádná změna">
             <Input name="memberSurchargeNextFrom" type="date" defaultValue={t?.memberSurchargeNextFrom ?? ""} />
+          </Field>
+          <Field label="Nový jednorázový vstup (Kč)" hint="Ceník na další rok – pro termíny od data nového ceníku. Prázdné = beze změny">
+            <Input name="dropInPriceNext" inputMode="decimal" defaultValue={kc(t?.dropInPriceNext)} />
+          </Field>
+          <Field label="Nová cena v kreditech" hint="Pro termíny od data nového ceníku. Prázdné = beze změny">
+            <Input name="creditCostNext" type="number" min={0} defaultValue={t?.creditCostNext ?? ""} />
+          </Field>
+          <Field label="Nově vstupů z permanentky" hint="Pro termíny od data nového ceníku. Prázdné = beze změny">
+            <Input name="passEntriesNext" type="number" min={1} defaultValue={t?.passEntriesNext ?? ""} />
+          </Field>
+          <Field label="Nový doplatek k permanentce (Kč / místo)" hint="Pro termíny od data nového ceníku. 0 = bez doplatku, prázdné = beze změny">
+            <Input name="passSurchargeNext" inputMode="decimal" defaultValue={kc(t?.passSurchargeNext)} />
           </Field>
           <Field label="Míst pro klienty bez členství" hint="Např. 1 na Reformeru – členové je nezaberou, dokud se neuvolní. 0 = nic se nedrží">
             <Input name="nonMemberSeats" type="number" min={0} defaultValue={t?.nonMemberSeats ?? 0} />
@@ -79,6 +91,20 @@ function ClassTypeForm({ t }: { t?: ClassType }) {
           </Field>
           <Field label="Jednorázově pro dva (Kč)" hint="Klient + kamarádka. Prázdné = 2× jednorázová cena">
             <Input name="duoPrice" inputMode="decimal" defaultValue={kc(t?.duoPrice)} />
+          </Field>
+        </div>
+        <div className="mt-4 grid max-w-2xl gap-4 sm:grid-cols-2">
+          <Field
+            label="Počítá se jako lekce"
+            hint="Např. Reformer ve dvou → Reformer fusion: platí na ni lekce v ceně členství, dárkové vstupy a permanentky určené pro vybranou lekci a rezervace se otevírá stejně brzy. Prázdné = samostatná lekce"
+          >
+            <Select name="countsAsTypeId" defaultValue={t?.countsAsTypeId ?? ""}>
+              <option value="">—</option>
+              {others.filter((o) => o.id !== t?.id && !o.countsAsTypeId).map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+            </Select>
+          </Field>
+          <Field label="…za kolik lekcí" hint="Kolik lekcí v ceně členství nebo dárkových vstupů si vezme (Reformer ve dvou = 2)">
+            <Input name="countsAsLessons" type="number" min={1} defaultValue={t?.countsAsLessons ?? 1} />
           </Field>
         </div>
         <label className="mt-3 flex items-center gap-2 text-sm">
@@ -135,7 +161,7 @@ export default async function AdminClassTypes() {
     <>
       <AdminTitle title="Typy lekcí" />
       <div className="space-y-3">
-        <Panel title="+ Nový typ lekce"><ClassTypeForm /></Panel>
+        <Panel title="+ Nový typ lekce"><ClassTypeForm others={list} /></Panel>
         {(ready.length > 0 || hiddenList.length > 0) && (
           <Panel title="+ Připravené návrhy lekcí">
             <p className="mb-4 text-sm text-les/60">
@@ -203,7 +229,7 @@ export default async function AdminClassTypes() {
               </Field>
               <SubmitButton variant="outline" className="px-4 py-2 text-[0.7rem]">Doplnit</SubmitButton>
             </ActionForm>
-            <ClassTypeForm t={t} />
+            <ClassTypeForm t={t} others={list} />
             <ActionForm
               action={deleteClassTypeAction}
               confirm={`Opravdu smazat typ lekce „${t.name}“? Zmizí z webu i z rozvrhu (nerezervované termíny se smažou).`}

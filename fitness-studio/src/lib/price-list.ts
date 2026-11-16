@@ -63,6 +63,49 @@ export function surchargeOn(t: SurchargeRules, day: string) {
   return t.memberSurcharge;
 }
 
+type PriceRules = Pick<ClassType, "dropInPrice" | "creditCost" | "dropInPriceNext" | "creditCostNext" | "memberSurchargeNextFrom">;
+
+/** A class's drop-in price and credit cost on a day ("YYYY-MM-DD"): the next price list's once it starts. */
+export function priceOn(t: PriceRules, day: string) {
+  const next = !!t.memberSurchargeNextFrom && day >= t.memberSurchargeNextFrom;
+  return {
+    dropInPrice: next && t.dropInPriceNext !== null ? t.dropInPriceNext : t.dropInPrice,
+    creditCost: next && t.creditCostNext !== null ? t.creditCostNext : t.creditCost,
+  };
+}
+
+/**
+ * A new session's price: one left as the class has it today follows the price list of
+ * the session's day (Reformer added in December for January costs the January price);
+ * a price typed in by hand stays.
+ */
+export function sessionPriceOn(t: PriceRules, entered: { creditCost: number; dropInPrice: number | null }, day: string, today: string) {
+  const now = priceOn(t, today);
+  const then = priceOn(t, day);
+  return {
+    creditCost: entered.creditCost === now.creditCost ? then.creditCost : entered.creditCost,
+    dropInPrice: entered.dropInPrice !== null && entered.dropInPrice === now.dropInPrice ? then.dropInPrice : entered.dropInPrice,
+  };
+}
+
+type PassRules = Pick<ClassType, "passEntries" | "passSurcharge" | "passEntriesNext" | "passSurchargeNext" | "memberSurchargeNextFrom">;
+
+/** What a pass takes for a class on a day: entries and the surcharge on top (null = none) – the next price list's once it starts. */
+export function passOn(t: PassRules, day: string) {
+  const next = !!t.memberSurchargeNextFrom && day >= t.memberSurchargeNextFrom;
+  return {
+    passEntries: next && t.passEntriesNext !== null ? t.passEntriesNext : t.passEntries,
+    passSurcharge: next && t.passSurchargeNext !== null ? t.passSurchargeNext || null : t.passSurcharge,
+  };
+}
+
+/** The class as it is priced on that day – for pages that show a price list or today's prices. */
+export const typeOn = <T extends PriceRules & PassRules>(t: T, day: string): T => ({ ...t, ...priceOn(t, day), ...passOn(t, day) });
+
+/** The price for two is a discount – shown and charged only when cheaper than two entries on their own. */
+export const duoSaves = (t: Pick<ClassType, "duoPrice" | "dropInPrice">) =>
+  t.duoPrice !== null && t.dropInPrice !== null && t.duoPrice < 2 * t.dropInPrice;
+
 /** Members' surcharge within a price list period: the one at its start and changes later in it ("od 1. 11. 2026"). */
 export function surchargeSteps(t: SurchargeRules, from: Date, to: Date) {
   const start = dateKey(from);

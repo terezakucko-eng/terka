@@ -3,8 +3,9 @@ import Link from "next/link";
 import { getDb } from "@/db";
 import { Container, PageHeader } from "@/components/ui";
 import { credits, entriesLabel, formatPrice } from "@/lib/money";
-import { formatDate, pragueLocalToDate } from "@/lib/dates";
+import { dateKey, formatDate, pragueLocalToDate } from "@/lib/dates";
 import { activeClassTypes, activeProducts } from "@/lib/queries";
+import { typeOn } from "@/lib/price-list";
 import { getContent } from "@/content";
 import { ContentImage } from "@/components/content-image";
 import { nbsp } from "@/lib/typography";
@@ -23,7 +24,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function ClassesPage() {
   const db = await getDb();
-  const [types, packs, c] = await Promise.all([activeClassTypes(db), activeProducts(db), getContent()]);
+  const [activeTypes, packs, c] = await Promise.all([activeClassTypes(db), activeProducts(db), getContent()]);
+  const types = activeTypes.map((t) => typeOn(t, dateKey(new Date())));
   const hasPass = packs.some((p) => p.kind === "pass");
   return (
     <>
