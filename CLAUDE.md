@@ -254,6 +254,8 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 
 - **16. 11.: Kalendář – všechny schůzky s dalšími lidmi (16. 11.–31. 12. 2026: 15 opakovaných sérií + 5 jednorázových) obarveny barvou Šalvěj (colorId 2; Avokádo jako barva události v Google Kalendáři není), bez upozornění účastníkům. Nové schůzky se samy nebarví.**
 
+- **16. 11.: Připomínka Nejdůvěryhodnější značka (trig_01FR3QCFGXABhoUmBd4LXqWW) – stav: BC todo pro Lenku 10408426829 už NEEXISTUJE (smazané, v hledání není); v mailu poslední zpráva Lenky 19. 10. „zjišťuji, dám obratem vědět“ (cena za logo CZ+SK) – nabídka od Petry Fajfrové v mailu není. Plán 2027 beze změny (leden 180 000 = odhad CZ 120 + SK 60). Navrženo Tereze připomenout Lence.**
+
 ## Targito – rozúčtování (platí, odsouhlaseno 14. 10. 2026)
 Detail v `targito-rozuctovani.md`. Shrnutí: faktura 84 952 Kč/měs. (dodatek, limit 6 mil.) → **Slon + Kondomshop 62 992 (74,2 %), Flagranti 21 960 (25,8 %)**; uvnitř Slona dle objemu z faktury (KS ~4,6 %); nadlimit uvnitř faktury se nepřeúčtovává; služby dle řádků (Růžový slon / Safety First). Měsíční kontrola – kalendář 3. pracovní den v měsíci.
 
