@@ -35,8 +35,9 @@ describe("migration 0155: the Zumba SPECIAL evening with the fitness at 18:00 on
   it("nor while the Toning still takes place", async () => {
     await makeSession(h.db, { id: FITNESS, startsAt: hours(60), title: "Zumba fitness SPECIAL", note: NOTE, noFreeEntry: true });
     await makeSession(h.db, { id: TONING, startsAt: hours(59), title: "Zumba Toning SPECIAL", note: NOTE, noFreeEntry: true });
-    // the bar and the pop-up as the studio has them
+    // the bar and the pop-up as the studio had them (before 0161 put membership back in the bar)
     await setText("promoBar.text", "💃 Pondělí 16. 11.2026 - Zumba a Toning SPECIAL s Márou, Marťou a Terkou!");
+    await setText("promoBar.linkUrl", `/nastenka#${POST}`);
     await setText("popup.title", "💃 Zumba a Toning SPECIAL s Márou, Marťou a Terkou – pondělí 16. 11.");
     await setText("popup.buttonLabel2", "Rezervovat Zumbu 18:00");
     const before = [await texts(), await post(), await note()];

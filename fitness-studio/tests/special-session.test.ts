@@ -51,14 +51,14 @@ describe("a special class (guest instructors) is always paid for", () => {
 });
 
 describe("migration 0145: the Zumba SPECIAL pop-up", () => {
-  it("shows through Monday 16. 11. with both lessons, the membership one comes back on 17. 11.", async () => {
+  it("shows the Zumba SPECIAL with both lessons, the membership one comes back after it (0161: already on 16. 11.)", async () => {
     const c = Object.fromEntries((await h.db.select().from(content)).map((r) => [r.key, r.value]));
     expect(c["popup.title"]).toContain("Zumba SPECIAL");
     expect([c["popup.buttonUrl"], c["popup.buttonUrl2"]]).toEqual(["/rozvrh/5ea2983c-b146-45ae-b4b6-f86c43acc4c4", "/rozvrh/00d2c63c-54d6-4248-a5a0-842b458b2e96"]);
     expect(c["popup.image"]).toMatch(/^\/media\/.+\.webp$/);
     const next = { title: c["popupNext.title"], from: c["popupNext.from"] };
-    expect(popupSlot(next, "2026-11-16")).toBe("popup");
+    expect(popupSlot(next, "2026-11-15")).toBe("popup");
     expect(popupOver(c["popup.until"], "2026-11-16")).toBe(false);
-    expect(popupSlot(next, "2026-11-17")).toBe("popupNext");
+    expect(popupSlot(next, "2026-11-16")).toBe("popupNext");
   });
 });

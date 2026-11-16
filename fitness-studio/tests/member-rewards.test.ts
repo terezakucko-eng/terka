@@ -142,14 +142,14 @@ describe("board post and the next pop-up", () => {
     expect(withButtons('<p>Viz <a href="/x">ceník</a>.</p>')).not.toContain("cta");
   });
 
-  it("the pop-up switches to the planned one and leads to the post – from 17. 11., after the Zumba SPECIAL one (0145)", async () => {
+  it("the pop-up switches to the planned one and leads to the post – from 16. 11. (0145 set 17. 11., 0161 a day earlier)", async () => {
     const rows = await h.db.select().from(content).where(sql`${content.key} like 'popupNext.%'`);
     const next = Object.fromEntries(rows.map((r) => [r.key.slice("popupNext.".length), r.value]));
     expect(next.buttonUrl).toBe("/nastenka#ec9596c8-12e0-4cf2-97ff-d54610740a2d");
     expect(next.text).toContain("dvakrát ročně si můžeš zmrazit členství na týden");
-    expect(next.from).toBe("2026-11-17");
-    expect(popupSlot({ title: next.title, from: next.from }, "2026-11-16")).toBe("popup");
-    expect(popupSlot({ title: next.title, from: next.from }, "2026-11-17")).toBe("popupNext");
+    expect(next.from).toBe("2026-11-16");
+    expect(popupSlot({ title: next.title, from: next.from }, "2026-11-15")).toBe("popup");
+    expect(popupSlot({ title: next.title, from: next.from }, "2026-11-16")).toBe("popupNext");
     expect(popupSlot({ title: "", from: next.from }, "2026-11-18")).toBe("popup");
     expect(popupOver(next.until, "2026-12-31")).toBe(false);
     expect(popupOver(next.until, "2027-01-01")).toBe(true);
