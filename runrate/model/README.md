@@ -20,6 +20,7 @@ Model rozpočítá zbytek měsíce do dnů a odhadne konec měsíce. Do listu �
    Váha tvaru roste s dnem v měsíci podle zpětného testu. K tomu se přičte úprava plánem spendu přes elasticitu.
    Nejistota σ je měřená mimo vzorek: váha tvaru se pro každý testovaný měsíc ladí jen na ostatních měsících.
 3. **Zpětný test** (`backtest.py`, `combo.py`). Odhad konce měsíce ve 3., 7., …, 24. dni proti metodám A (MTD × křivka) a B (tempo 7 dní) na měsících od 7/2025. Mix s loňskem jde testovat až od 2/2026, kdy existuje loňsko po dnech; listopad s Black Friday ani období víkendové expedice v testu mixu zatím nejsou.
+4. **Přepínač AUTO** (`bt_auto.py`). Všechny metody (A, B, C a model Z) změřené stejně jako ve vzorcích tabulky, pro každý den v měsíci, za celou firmu. Malé trhy berou u A a B referenční faktor velkých trhů. Výsledek (průměrná absolutní chyba) jde do tabulky „Přesnost podle dne“ v listu Křivky targetu; AUTO pak každý den bere metodu s nejmenší chybou.
 
 ## Měsíční přepočet (při založení nového měsíce)
 
@@ -31,6 +32,7 @@ Model rozpočítá zbytek měsíce do dnů a odhadne konec měsíce. Do listu �
    - období sobotní expedice.
 5. Spustit `python3 backtest.py` a pak `python3 params.py RRRR-MM RRRR-MM-DD`.
 6. Obsah `params_out.json` přepsat do listu „Model váhy“: váhy B4:J34, mix a nejistota L4:O34, spend S4:T12.
+6a. Spustit `python3 bt_auto.py` a obsah `auto_tab_out.json` přepsat do listu Křivky targetu nového měsíce (B59:E89).
 7. Pro prosinec srovnat Vánoce v listu „Loni po dnech“ (`loni.py`).
 
 Repo je veřejné: data, čísla a odkazy na tabulku sem nepatří, jen kód.

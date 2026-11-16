@@ -46,6 +46,7 @@ def ly_profile(trh, dates):
     for p in np.unique(per):
         m=(per==p); vv=v[m]
         if np.isnan(vv).any() or np.nanmean(vv)<=0: continue
+        if vv.min()<0.2*vv.mean(): continue   # loni výpadek dat -> loňský průběh nebrat (jinak rozbije váhy dnů)
         out[m]=np.log(np.clip(vv,1e-9,None)/vv.mean())
     return out
 def fit_shape(trh, until):
