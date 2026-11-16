@@ -1128,6 +1128,13 @@
       "when": 1794833728214,
       "tag": "0160_reformer_duo_from_december",
       "breakpoints": true
+    },
+    {
+      "idx": 161,
+      "version": "7",
+      "when": 1794834679285,
+      "tag": "0161_membership_bar_popup_now",
+      "breakpoints": true
     }
   ]
 }
