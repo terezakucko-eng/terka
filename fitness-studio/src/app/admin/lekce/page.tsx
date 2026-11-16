@@ -96,14 +96,14 @@ function ClassTypeForm({ t, others }: { t?: ClassType; others: ClassType[] }) {
         <div className="mt-4 grid max-w-2xl gap-4 sm:grid-cols-2">
           <Field
             label="Počítá se jako lekce"
-            hint="Např. Reformer ve dvou → Reformer fusion: platí na ni lekce v ceně členství, dárkové vstupy a permanentky určené pro vybranou lekci a rezervace se otevírá stejně brzy. Prázdné = samostatná lekce"
+            hint="Např. Reformer Duo → Reformer fusion: platí na ni lekce v ceně členství, dárkové vstupy a permanentky určené pro vybranou lekci a rezervace se otevírá stejně brzy. Prázdné = samostatná lekce"
           >
             <Select name="countsAsTypeId" defaultValue={t?.countsAsTypeId ?? ""}>
               <option value="">—</option>
               {others.filter((o) => o.id !== t?.id && !o.countsAsTypeId).map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
             </Select>
           </Field>
-          <Field label="…za kolik lekcí" hint="Kolik lekcí v ceně členství nebo dárkových vstupů si vezme (Reformer ve dvou = 2)">
+          <Field label="…za kolik lekcí" hint="Kolik lekcí v ceně členství nebo dárkových vstupů si vezme (Reformer Duo = 2)">
             <Input name="countsAsLessons" type="number" min={1} defaultValue={t?.countsAsLessons ?? 1} />
           </Field>
         </div>

@@ -1121,6 +1121,13 @@
       "when": 1794830434702,
       "tag": "0159_reformer_prices_2027",
       "breakpoints": true
+    },
+    {
+      "idx": 160,
+      "version": "7",
+      "when": 1794833728214,
+      "tag": "0160_reformer_duo_from_december",
+      "breakpoints": true
     }
   ]
 }
