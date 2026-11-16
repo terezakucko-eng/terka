@@ -252,6 +252,8 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 
 - **14. 11.: Česká asociace ergoterapeutů (ČAE; Mgr. Pavlína Gašparová, 2. viceprezidentka, viceprezident2@ergoterapie.cz) – BC todo 45674654/todos/10502686675 (Spolupráce, od Anety, Tereza, 19. 11.). Schváleno: slevový kód pro členy −20 % celoročně jen na privátní značku (Sexy Elephant, Adore, Eazi-Oh), online webinář zdarma (max. 60 min, 1–2/2027) o pomůckách pro omezenou motoriku – vyjádřit se má Lucie Slováčková (BC 36602801, Koordinátor testování / Brand Product Manager), na oplátku zmínka v newsletteru/webu ČAE. Komentář 10510034576 (@Aneta + @Lucie; Anetu oslovovat „Anet“). Navazuje na Paraple.**
 
+- **16. 11.: Kalendář – všechny schůzky s dalšími lidmi (16. 11.–31. 12. 2026: 15 opakovaných sérií + 5 jednorázových) obarveny barvou Šalvěj (colorId 2; Avokádo jako barva události v Google Kalendáři není), bez upozornění účastníkům. Nové schůzky se samy nebarví.**
+
 ## Targito – rozúčtování (platí, odsouhlaseno 14. 10. 2026)
 Detail v `targito-rozuctovani.md`. Shrnutí: faktura 84 952 Kč/měs. (dodatek, limit 6 mil.) → **Slon + Kondomshop 62 992 (74,2 %), Flagranti 21 960 (25,8 %)**; uvnitř Slona dle objemu z faktury (KS ~4,6 %); nadlimit uvnitř faktury se nepřeúčtovává; služby dle řádků (Růžový slon / Safety First). Měsíční kontrola – kalendář 3. pracovní den v měsíci.
 
