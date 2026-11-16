@@ -209,7 +209,7 @@ export async function viewerWindows(tx: Executor, cfg: Settings, userId: string 
   const tiers = [...included, ...passes.map((p) => ({ ...p, from: null }))];
   if (!tiers.length) return none;
   const prio = priorityWindow(cfg);
-  // a class counting as another one (Reformer ve dvou) opens as early as that one
+  // a class counting as another one (Reformer Duo) opens as early as that one
   const countsAs = new Map(
     (await tx.select({ id: classTypes.id, base: classTypes.countsAsTypeId }).from(classTypes).where(isNotNull(classTypes.countsAsTypeId))).map((c) => [c.id, c.base!]),
   );
@@ -809,10 +809,10 @@ type ClassRules = Awaited<ReturnType<typeof classRules>>;
 
 /**
  * The lesson a class counts as for memberships with lessons included, gifts and passes
- * made for one class (Reformer ve dvou → Reformer fusion); a class on its own is itself.
+ * made for one class (Reformer Duo → Reformer fusion); a class on its own is itself.
  */
 const lessonIn = (rules: Pick<ClassRules, "countsAsTypeId">, s: Pick<ClassSession, "classTypeId">) => rules.countsAsTypeId ?? s.classTypeId;
-/** How many of that lesson's included or gifted lessons a booking of this class takes (Reformer ve dvou = 2). */
+/** How many of that lesson's included or gifted lessons a booking of this class takes (Reformer Duo = 2). */
 const weightOf = (rules: Pick<ClassRules, "countsAsLessons">) => Math.max(1, rules.countsAsLessons);
 async function lessonOf(tx: Executor, classTypeId: string) {
   const [ct] = await tx.select({ base: classTypes.countsAsTypeId }).from(classTypes).where(eq(classTypes.id, classTypeId));
@@ -922,7 +922,7 @@ function surchargeFor(method: Method, rules: ClassRules, s: Pick<ClassSession, "
 }
 
 /**
- * Entries a booking takes from this entitlement: passes may cost more (Reformer ve dvou = 2), a friend doubles it (free entries too).
+ * Entries a booking takes from this entitlement: passes may cost more (Reformer Duo = 2), a friend doubles it (free entries too).
  * A pass or entries just for one lesson (Permanentka Reformer, a Reformer gift) take one a lesson – two for a lesson for two.
  */
 function entriesFor(e: Pick<Entitlement, "kind" | "classTypeId">, rules: Pick<ClassRules, "passEntries" | "countsAsLessons">, seats = 1) {

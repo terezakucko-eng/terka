@@ -267,10 +267,10 @@ export const classTypes = pgTable("class_types", {
   noPass: boolean("no_pass").notNull().default(false),
   /** Jednorázová cena pro dva (klient + kamarádka, haléře); null = 2× jednorázová cena */
   duoPrice: integer("duo_price"),
-  /** Počítá se jako tato lekce (Reformer ve dvou → Reformer fusion): platí na ni lekce v ceně členství, dárkové vstupy
+  /** Počítá se jako tato lekce (Reformer Duo → Reformer fusion): platí na ni lekce v ceně členství, dárkové vstupy
    *  a permanentky určené pro ni a rezervace se otevírá stejně brzy; null = samostatná lekce */
   countsAsTypeId: uuid("counts_as_type_id").references((): AnyPgColumn => classTypes.id, { onDelete: "set null" }),
-  /** …a za kolik lekcí té lekce se počítá (Reformer ve dvou = 2 z lekcí v ceně členství i z dárkových vstupů) */
+  /** …a za kolik lekcí té lekce se počítá (Reformer Duo = 2 z lekcí v ceně členství i z dárkových vstupů) */
   countsAsLessons: integer("counts_as_lessons").notNull().default(1),
   /** Hledané výrazy (čárkou), např. „zumba fitness, taneční lekce“ – na stránce lekce a pro vyhledávače */
   keywords: text("keywords").notNull().default(""),

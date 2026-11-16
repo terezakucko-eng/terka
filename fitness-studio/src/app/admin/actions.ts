@@ -128,7 +128,7 @@ export async function saveClassTypeAction(_: FormState, fd: FormData): Promise<F
       passEntriesNext: isDateKey(field.str(fd, "memberSurchargeNextFrom")) && field.int(fd, "passEntriesNext") ? Math.max(1, field.int(fd, "passEntriesNext")!) : null,
       // "0" = no surcharge from then on, empty = no change
       passSurchargeNext: isDateKey(field.str(fd, "memberSurchargeNextFrom")) ? field.money(fd, "passSurchargeNext") : null,
-      // counts as another lesson (Reformer ve dvou → Reformer fusion) – never as itself
+      // counts as another lesson (Reformer Duo → Reformer fusion) – never as itself
       countsAsTypeId: field.str(fd, "countsAsTypeId") && field.str(fd, "countsAsTypeId") !== field.str(fd, "id") ? field.str(fd, "countsAsTypeId") : null,
       countsAsLessons: field.str(fd, "countsAsTypeId") ? Math.max(1, field.int(fd, "countsAsLessons") ?? 1) : 1,
       nonMemberSeats: Math.max(0, field.int(fd, "nonMemberSeats") ?? 0),

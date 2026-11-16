@@ -33,7 +33,11 @@ const nextConfig: NextConfig = {
   },
   // studio is run by one instructor – the old team page lives on as "O mně"
   async redirects() {
-    return [{ source: "/lektori", destination: "/o-mne", permanent: true }];
+    return [
+      { source: "/lektori", destination: "/o-mne", permanent: true },
+      // the lesson for two was renamed to Reformer Duo
+      { source: "/lekce/reformer-fusion-ve-dvou", destination: "/lekce/reformer-duo", permanent: true },
+    ];
   },
   experimental: {
     // photo uploads in the admin (resized on the server)
