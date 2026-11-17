@@ -1149,6 +1149,13 @@
       "when": 1794912566538,
       "tag": "0163_reformer_duo_photo",
       "breakpoints": true
+    },
+    {
+      "idx": 164,
+      "version": "7",
+      "when": 1794913651145,
+      "tag": "0164_zumba_fitness_photo",
+      "breakpoints": true
     }
   ]
 }
