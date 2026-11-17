@@ -10,6 +10,7 @@ import {
   users,
   vouchers,
 } from "@/db/schema";
+import { dateKey, weekdayOf } from "@/lib/dates";
 import { UserError } from "@/lib/errors";
 import { changeCredits } from "./wallet";
 
@@ -162,13 +163,19 @@ export async function purgeSession(db: DB, sessionId: string) {
   });
 }
 
-/** This class and the later ones of the same weekly series. */
+/**
+ * This class and the later ones of the same weekly series on the same weekday. A series
+ * made for several days at once (Tue + Sat) used to share one id – changing the Saturday
+ * class must not change the Tuesday ones.
+ */
 export async function seriesFrom(db: Executor, sessionId: string) {
   const [s] = await db.select().from(classSessions).where(eq(classSessions.id, sessionId));
   if (!s) return [];
   if (!s.seriesId) return [s];
-  return db
+  const day = weekdayOf(dateKey(s.startsAt));
+  const list = await db
     .select()
     .from(classSessions)
     .where(and(eq(classSessions.seriesId, s.seriesId), gte(classSessions.startsAt, s.startsAt)));
+  return list.filter((x) => weekdayOf(dateKey(x.startsAt)) === day);
 }

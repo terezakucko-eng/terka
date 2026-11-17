@@ -1163,6 +1163,13 @@
       "when": 1794914710024,
       "tag": "0165_zumba_party_photo",
       "breakpoints": true
+    },
+    {
+      "idx": 166,
+      "version": "7",
+      "when": 1794921850868,
+      "tag": "0166_tuesday_toning_back",
+      "breakpoints": true
     }
   ]
 }

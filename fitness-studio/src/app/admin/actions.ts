@@ -425,7 +425,14 @@ export async function createSessionsAction(_: FormState, fd: FormData): Promise<
       }
     }
     if (!dates.length) throw new UserError("V daném rozsahu nevychází žádný termín.");
-    const seriesId = dates.length > 1 ? crypto.randomUUID() : null;
+    // one series per weekday: "this and the following" then changes only that day (Sat, not Tue too)
+    const seriesIds = new Map<number, string>();
+    const seriesOf = (d: string) => {
+      if (dates.length < 2) return null;
+      const day = weekdayOf(d);
+      if (!seriesIds.has(day)) seriesIds.set(day, crypto.randomUUID());
+      return seriesIds.get(day)!;
+    };
     // a weekday can have its own start time (Mon 18:00, Wed 7:30…)
     const timeFor = (d: string) => {
       const own = field.str(fd, `time_${weekdayOf(d)}`);
@@ -433,7 +440,7 @@ export async function createSessionsAction(_: FormState, fd: FormData): Promise<
     };
     // a price left as the lesson has it today follows the price list of the session's day (a new one from 1. 1.)
     const today = dateKey(new Date());
-    const rows = dates.map((d) => ({ ...values, ...sessionPriceOn(ct, values, d, today), seriesId, startsAt: pragueLocalToDate(`${d}T${timeFor(d)}`) }));
+    const rows = dates.map((d) => ({ ...values, ...sessionPriceOn(ct, values, d, today), seriesId: seriesOf(d), startsAt: pragueLocalToDate(`${d}T${timeFor(d)}`) }));
     checkOpensBefore(values.bookingOpensAt, rows.map((r) => r.startsAt));
     await (await getDb()).insert(classSessions).values(rows);
     const repriced = rows.filter((r) => r.creditCost !== values.creditCost || r.dropInPrice !== values.dropInPrice).length;
