@@ -1156,6 +1156,13 @@
       "when": 1794913651145,
       "tag": "0164_zumba_fitness_photo",
       "breakpoints": true
+    },
+    {
+      "idx": 165,
+      "version": "7",
+      "when": 1794914710024,
+      "tag": "0165_zumba_party_photo",
+      "breakpoints": true
     }
   ]
 }
