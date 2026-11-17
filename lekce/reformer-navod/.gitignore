@@ -1,0 +1,8 @@
+# snímky z cizího videa a PDF s nimi do veřejného repa nepatří
+snimky-z-videa/
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.mp4
+*.webm
