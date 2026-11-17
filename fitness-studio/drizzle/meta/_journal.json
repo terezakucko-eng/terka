@@ -1135,6 +1135,13 @@
       "when": 1794834679285,
       "tag": "0161_membership_bar_popup_now",
       "breakpoints": true
+    },
+    {
+      "idx": 162,
+      "version": "7",
+      "when": 1794911814813,
+      "tag": "0162_closed_today_17_11",
+      "breakpoints": true
     }
   ]
 }
