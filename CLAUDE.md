@@ -266,6 +266,11 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 - **18. 11.: Inreta LM 12/2026** (Nikol Odstrčilová, inreta@inreta.cz): poptáno 8 BB (Ostrava 363, 460, 360, 329, 349, 459; Havířov 421, 422), 2 900 + tisk 650 Kč/ks → ~28,4 tis.; prosinec 518503: plán 214 000 − CLV Heureka 155 300 − kino 40 000 − navigace 6 000 → zbývá ~13–19 tis.; listopad nevyčerpáno ~40 tis. (přesun možný). BC todo 45674654/todos/10521518047 (OOH, Tereza, 25. 11., karty ploch v přílohách). Čeká se na kalkulaci.
 - 17. 11.: Targito (Romana „Romi“ Kristenová) přijede 1. 12. ~14:30 s dárky – za nás Honza Tříska (odpověď odeslána, Honza má potvrdit); Gabrielovi napsat do chatu, zda se připojí (Tereza ručně).
 
+- **18. 11.: Inreta LM 12/2026 potvrzeno:** 8 BB v rezervaci, 28 400 Kč bez DPH vč. výroby, grafika do po 23. 11.; BC komentář 10521518047#__recording_10521552546 + podúkol Mirkovi 10521552567 (vánoční vizuál 510 × 240, do 23. 11.); kalendář pá 20. 11. 13:30. Targito 1. 12. 14:30–15:30 Zasedačka PROVOZ (Romana, Plšek, Fořtová, Tříska; Gabriel nepovinně).
+- **18. 11.: Affil | CZ | poplatky = AffilBox (ne Targito)** – Zuzana Bischofová chce konečné daňové doklady k proformám zaplaceným 3/2026 (známé 25020363, 25020539, 25020596, 26020019 + 3 další); Tereze dán prompt pro Clauda v Chromu (stáhnout z AffilBoxu, nic neodesílat).
+- **18. 11.: Brainz workbook – odpovědi na 12 otázek zapsány do části C** (Behavio další vlna až po Valentýnu 2027; motivy 6/15/30 s BEZ hlasu; jazyky jen CZ a SK; workshop online, osobní ideálně Havířov; rozpočet neuvádíme).
+- **18. 11.: Nejdůvěryhodnější značka 2026 – nabídka licencí: CZ 120 000 Kč, SK 2 400 € (−20 %, běžně 3 000 €) ≈ 180 tis.** V rozpočtu 2026 (518511, ř. 145) NENÍ; v plánu 2027 leden 180 000 (ř. 143) sedí. Lence odepsáno (čekáme na vedení, zjistit fakturaci v 1/2027); zpráva pro Gabriela + Adama (obě země?) připravena – Tereza posílá sama.
+
 ## Targito – rozúčtování (platí, odsouhlaseno 14. 10. 2026)
 Detail v `targito-rozuctovani.md`. Shrnutí: faktura 84 952 Kč/měs. (dodatek, limit 6 mil.) → **Slon + Kondomshop 62 992 (74,2 %), Flagranti 21 960 (25,8 %)**; uvnitř Slona dle objemu z faktury (KS ~4,6 %); nadlimit uvnitř faktury se nepřeúčtovává; služby dle řádků (Růžový slon / Safety First). Měsíční kontrola – kalendář 3. pracovní den v měsíci.
 
