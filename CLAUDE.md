@@ -271,6 +271,8 @@ Aktualizuj ho vždy, když se něco rozhodne. Poslední velká aktualizace: 14. 
 - **18. 11.: Brainz workbook – odpovědi na 12 otázek zapsány do části C** (Behavio další vlna až po Valentýnu 2027; motivy 6/15/30 s BEZ hlasu; jazyky jen CZ a SK; workshop online, osobní ideálně Havířov; rozpočet neuvádíme).
 - **18. 11.: Nejdůvěryhodnější značka 2026 – nabídka licencí: CZ 120 000 Kč, SK 2 400 € (−20 %, běžně 3 000 €) ≈ 180 tis.** V rozpočtu 2026 (518511, ř. 145) NENÍ; v plánu 2027 leden 180 000 (ř. 143) sedí. Lence odepsáno (čekáme na vedení, zjistit fakturaci v 1/2027); zpráva pro Gabriela + Adama (obě země?) připravena – Tereza posílá sama.
 
+- **18. 11.: Žádost o navýšení budgetu – test ChatGPT Ads (Slon CZ + SK, 1 000 + 1 000 Kč/den, 19. 11.–31. 12. 2026: listopad 24 000, prosinec 62 000 = 86 000 Kč bez DPH; nejisté, zda reklamy projdou schválením).** BC todo pro Lenku Starou 36422922/todos/10521761291 (FINANCE, MKG Požadavky na změnu budgetu), FYI Gabriel komentářem 10521761302. W&P Euronova (Boháčová) poslala DIGI CLV Praha (Galerie Butovice 10, Hornoměcholupská 2) + Ostrava (NC Karolina 2) bez ceny → odpověď: ozveme se při plánování 2027, ať pošle ceník, min. délku a náhledy.
+
 ## Targito – rozúčtování (platí, odsouhlaseno 14. 10. 2026)
 Detail v `targito-rozuctovani.md`. Shrnutí: faktura 84 952 Kč/měs. (dodatek, limit 6 mil.) → **Slon + Kondomshop 62 992 (74,2 %), Flagranti 21 960 (25,8 %)**; uvnitř Slona dle objemu z faktury (KS ~4,6 %); nadlimit uvnitř faktury se nepřeúčtovává; služby dle řádků (Růžový slon / Safety First). Měsíční kontrola – kalendář 3. pracovní den v měsíci.
 
