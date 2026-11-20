@@ -1,0 +1,4 @@
+[build]
+  # Čistě statická aplikace — bez build kroku.
+  publish = "."
+  command = ""
