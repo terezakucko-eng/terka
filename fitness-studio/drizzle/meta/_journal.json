@@ -1184,6 +1184,13 @@
       "when": 1795350791562,
       "tag": "0168_reformer_basic",
       "breakpoints": true
+    },
+    {
+      "idx": 169,
+      "version": "7",
+      "when": 1795352051212,
+      "tag": "0169_reformer_six_places",
+      "breakpoints": true
     }
   ]
 }
