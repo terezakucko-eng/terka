@@ -82,6 +82,7 @@ export function SessionCard({
         ) : (
           <Badge tone={spots.tone}>{spots.text}</Badge>
         )}
+        {s.classType.level && s.classType.level !== "Pro všechny" && s.status !== "cancelled" && <Badge>{s.classType.level}</Badge>}
         {s.isFree && s.status !== "cancelled" && <Badge tone="gold">Zdarma</Badge>}
         {s.ribbon && s.status !== "cancelled" && <CharityBadge />}
       </div>
