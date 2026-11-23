@@ -1,10 +1,11 @@
 import { readFileSync } from "node:fs";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { classSessions, classTypes, instructors } from "@/db/schema";
+import { bookings, classSessions, classTypes, instructors } from "@/db/schema";
+import { bookingOptions } from "@/domain/booking";
 import { seriesFrom } from "@/domain/cleanup";
 import { pragueLocalToDate } from "@/lib/dates";
-import { testDb } from "./helpers";
+import { makeUser, testDb } from "./helpers";
 
 let h: Awaited<ReturnType<typeof testDb>>;
 beforeAll(async () => {
@@ -46,7 +47,29 @@ describe("migration 0176: group Reformer on Tuesday 24 Nov 2026 at 18:00", () =>
     expect(await h.db.select().from(classSessions).where(eq(classSessions.startsAt, pragueLocalToDate("2026-11-24T18:00")))).toHaveLength(1);
   });
 
+  it("makes it free for everyone (0177) – not once someone has booked it", async () => {
+    const free = async () => {
+      for (const statement of readFileSync("drizzle/0177_tuesday_reformer_24_11_free.sql", "utf8").split("--> statement-breakpoint")) await h.db.execute(sql.raw(statement));
+    };
+    const user = await makeUser(h.db);
+    const [b] = await h.db.insert(bookings).values({ userId: user.id, sessionId: ID, status: "confirmed", method: "credits" }).returning();
+    await free();
+    expect((await added())[0]).toMatchObject({ isFree: false, note: null });
+
+    await h.db.update(bookings).set({ status: "cancelled" }).where(eq(bookings.id, b.id));
+    await free();
+    const [s] = await added();
+    expect(s.isFree).toBe(true);
+    expect(s.note).toContain("Ochutnávka zdarma pro všechny");
+    const options = await h.db.transaction((tx) => bookingOptions(tx, user.id, s, 1, new Date("2026-11-23T10:00:00Z")));
+    expect(options.map((o) => o.method)).toEqual(["free_class"]);
+
+    await free();
+    expect((await added())[0].note).toBe(s.note);
+  });
+
   it("leaves the slot alone when the machines are taken", async () => {
+    await h.db.delete(bookings).where(eq(bookings.sessionId, ID));
     await h.db.delete(classSessions).where(eq(classSessions.id, ID));
     const [hadDuo] = await h.db.select().from(classTypes).where(eq(classTypes.id, DUO));
     if (!hadDuo) await h.db.insert(classTypes).values({ id: DUO, name: "Reformer Duo", slug: "reformer-duo-24-11", capacity: 2, creditCost: 430, dropInPrice: 49000 });
