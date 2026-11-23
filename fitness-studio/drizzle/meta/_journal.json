@@ -1233,6 +1233,13 @@
       "when": 1795422687465,
       "tag": "0175_reformer_special_29_1",
       "breakpoints": true
+    },
+    {
+      "idx": 176,
+      "version": "7",
+      "when": 1795424471829,
+      "tag": "0176_tuesday_reformer_24_11",
+      "breakpoints": true
     }
   ]
 }
