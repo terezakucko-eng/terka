@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { bookings, classSessions, classTypes, instructors } from "@/db/schema";
+import { bookings, campaigns, classSessions, classTypes, instructors } from "@/db/schema";
 import { bookingOptions } from "@/domain/booking";
 import { seriesFrom } from "@/domain/cleanup";
 import { pragueLocalToDate } from "@/lib/dates";
@@ -16,6 +16,7 @@ afterAll(async () => h.close());
 const ID = "295a46a8-a154-4d21-b739-f2c4beb5598c";
 const SERIES = "00435959-5343-479d-a531-53f841063962";
 const DUO = "d2f6a8c4-3b17-4e59-9a0d-7c1e5b8f2a46";
+const DRAFT16 = "fd8992e4-2861-4081-a4d3-cdb7ba240a83";
 const migrate = async () => {
   for (const statement of readFileSync("drizzle/0176_tuesday_reformer_24_11.sql", "utf8").split("--> statement-breakpoint")) await h.db.execute(sql.raw(statement));
 };
@@ -66,6 +67,39 @@ describe("migration 0176: group Reformer on Tuesday 24 Nov 2026 at 18:00", () =>
 
     await free();
     expect((await added())[0].note).toBe(s.note);
+  });
+
+  it("moves it to 16:00 and out of the series (0178), drafting a note for who's booked", async () => {
+    const at16 = async () => {
+      for (const statement of readFileSync("drizzle/0178_tuesday_reformer_24_11_at_16.sql", "utf8").split("--> statement-breakpoint")) await h.db.execute(sql.raw(statement));
+    };
+    const user = await makeUser(h.db);
+    await h.db.insert(bookings).values({ userId: user.id, sessionId: ID, status: "confirmed", method: "free_class" });
+    await at16();
+    const [s] = await added();
+    expect(s.startsAt).toEqual(pragueLocalToDate("2026-11-24T16:00"));
+    expect(s.seriesId).toBeNull();
+    expect(s.isFree).toBe(true);
+    const [draft] = await h.db.select().from(campaigns).where(eq(campaigns.id, DRAFT16));
+    expect(draft).toMatchObject({ status: "draft", purpose: "service", subject: "Reformer zdarma v úterý nově v 16:00", audience: { segment: "people", userIds: [user.id] } });
+
+    await at16();
+    expect((await added())[0].startsAt).toEqual(pragueLocalToDate("2026-11-24T16:00"));
+    expect(await h.db.select().from(campaigns).where(eq(campaigns.id, DRAFT16))).toHaveLength(1);
+  });
+
+  it("stays at 18:00 when the machines are taken at 16:00", async () => {
+    const at16 = async () => {
+      for (const statement of readFileSync("drizzle/0178_tuesday_reformer_24_11_at_16.sql", "utf8").split("--> statement-breakpoint")) await h.db.execute(sql.raw(statement));
+    };
+    await h.db.delete(campaigns).where(eq(campaigns.id, DRAFT16));
+    await h.db.update(classSessions).set({ startsAt: pragueLocalToDate("2026-11-24T18:00"), seriesId: SERIES }).where(eq(classSessions.id, ID));
+    const [reformer] = await h.db.select().from(classTypes).where(eq(classTypes.slug, "reformer-fusion"));
+    const [busy] = await h.db.insert(classSessions).values({ classTypeId: reformer.id, startsAt: pragueLocalToDate("2026-11-24T15:30"), durationMin: 60, capacity: 6, creditCost: 400 }).returning();
+    await at16();
+    expect((await added())[0]).toMatchObject({ startsAt: pragueLocalToDate("2026-11-24T18:00"), seriesId: SERIES });
+    expect(await h.db.select().from(campaigns).where(eq(campaigns.id, DRAFT16))).toHaveLength(0);
+    await h.db.delete(classSessions).where(eq(classSessions.id, busy.id));
   });
 
   it("leaves the slot alone when the machines are taken", async () => {
