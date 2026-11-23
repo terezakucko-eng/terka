@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
 import type { Executor } from "@/db";
 import { bookings, classSessions, classTypes, massageBookings, users } from "@/db/schema";
 import { site } from "@/config/site";
@@ -66,11 +66,35 @@ export async function calendarEvents(db: Executor, userId: string, address: stri
   ].sort((a, b) => +a.start - +b.start);
 }
 
+/**
+ * The studio's whole schedule for the admin's own calendar: every lesson that takes place,
+ * from two months back on, with how many are booked (as of the calendar's last refresh).
+ */
+export async function studioEvents(db: Executor, address: string, now = new Date()): Promise<CalendarEvent[]> {
+  const since = new Date(now.getTime() - 60 * DAY);
+  const taken = sql<number>`coalesce((select sum(${bookings.seats}) from ${bookings} where ${bookings.sessionId} = ${classSessions.id} and ${bookings.status} in ('confirmed', 'pending_payment', 'attended', 'no_show')), 0)::int`;
+  const rows = await db
+    .select({ s: classSessions, ct: classTypes, taken })
+    .from(classSessions)
+    .innerJoin(classTypes, eq(classSessions.classTypeId, classTypes.id))
+    .where(and(eq(classSessions.status, "scheduled"), gte(classSessions.startsAt, since)))
+    .orderBy(asc(classSessions.startsAt));
+  return rows.map(({ s, ct, taken }) => {
+    const e = lessonEvent(s, ct, address, `rozvrh-${s.id}@${host}`);
+    return {
+      ...e,
+      title: `${sessionName(s, ct)} · ${taken}/${s.capacity}`,
+      description: `Přihlášeno: ${taken} z ${s.capacity}\nV administraci: ${site.url}/admin/rozvrh/${s.id}`,
+      url: `${site.url}/admin/rozvrh/${s.id}`,
+    };
+  });
+}
+
 /** Owner of a calendar feed address (deleted accounts have none). */
 export async function calendarOwner(db: Executor, token: string) {
   if (!/^[0-9a-f]{32}$/.test(token)) return null;
   const [u] = await db
-    .select({ id: users.id })
+    .select({ id: users.id, role: users.role })
     .from(users)
     .where(and(eq(users.calendarToken, token), isNull(users.deletedAt)));
   return u ?? null;

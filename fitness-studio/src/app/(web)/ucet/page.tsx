@@ -462,10 +462,12 @@ export default async function AccountPage({ searchParams }: PageProps<"/ucet">) 
       )}
 
       <section id="kalendar" className="rounded-2xl border border-linka/60 bg-krem/40 p-5">
-        <p className="font-semibold">📅 Lekce v kalendáři v mobilu</p>
+        <p className="font-semibold">📅 {user.role === "admin" ? "Rozvrh studia v kalendáři" : "Lekce v kalendáři v mobilu"}</p>
         <p className="mt-1 max-w-2xl text-sm text-les/70">
-          Přidej si svoje lekce a masáže do kalendáře. Nové rezervace se v něm objeví samy a zrušené zmizí – iPhone kalendář obnovuje zhruba
-          každou hodinu, Google kalendář párkrát denně. U Google kalendáře otevři odkaz raději na počítači, v mobilu se pak ukáže sám.
+          {user.role === "admin"
+            ? "Jako správkyně máš v kalendáři celý rozvrh studia – všechny lekce, které se konají, a u každé počet přihlášených. Nové a přesunuté lekce se v něm objeví samy, zrušené zmizí –"
+            : "Přidej si svoje lekce a masáže do kalendáře. Nové rezervace se v něm objeví samy a zrušené zmizí –"}{" "}
+          iPhone kalendář obnovuje zhruba každou hodinu, Google kalendář párkrát denně. U Google kalendáře otevři odkaz raději na počítači, v mobilu se pak ukáže sám.
         </p>
         <span className="mt-4 flex flex-wrap gap-2">
           <a href={cal.webcal} className="rounded-full bg-les px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-papir">iPhone a Mac</a>

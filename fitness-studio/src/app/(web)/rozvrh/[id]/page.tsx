@@ -89,10 +89,10 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
                 {surcharge > 0 ? (
                   <>
                     Permanentka na tuhle lekci neplatí. Členové mají lekci v ceně členství a doplácí jen{" "}
-                    <strong>{formatPrice(surcharge)}</strong>, ostatní zaplatí kreditem nebo jednorázově.{tierNote}
+                    <strong>{formatPrice(surcharge)}</strong>, ostatní zaplatí {ct.noCredits ? "jednorázově" : "kreditem nebo jednorázově"}.{tierNote}
                   </>
                 ) : (
-                  "Permanentka na tuhle lekci neplatí – zaplatíš kreditem nebo jednorázově."
+                  `Permanentka na tuhle lekci neplatí – zaplatíš ${ct.noCredits ? "jednorázově" : "kreditem nebo jednorázově"}.`
                 )}
               </p>
             )}
@@ -118,7 +118,7 @@ export default async function SessionPage({ params, searchParams }: PageProps<"/
             <VideoEmbed url={ct.videoUrl} title={ct.name} className="mt-6 max-w-xl [&_summary]:text-zlato" />
             <p className="eyebrow mt-6 text-papir/50">Úroveň: {ct.level}</p>
             <dl className="mt-8 grid max-w-md grid-cols-3 gap-6 border-t border-zlato/20 pt-6 text-sm">
-              <div><dt className="eyebrow text-papir/50">Cena</dt><dd className="mt-1 font-semibold">{s.isFree ? "Zdarma" : s.dropInOnly ? "—" : credits(s.creditCost)}</dd></div>
+              <div><dt className="eyebrow text-papir/50">Cena</dt><dd className="mt-1 font-semibold">{s.isFree ? "Zdarma" : s.dropInOnly || ct.noCredits ? "—" : credits(s.creditCost)}</dd></div>
               <div><dt className="eyebrow text-papir/50">Vstup</dt><dd className="mt-1 font-semibold">{s.isFree ? "—" : s.dropInPrice !== null ? formatPrice(s.dropInPrice) : "—"}</dd></div>
               <div><dt className="eyebrow text-papir/50">Místa</dt><dd className="mt-1 font-semibold">{s.status === "cancelled" ? "—" : availabilityText(left, s.capacity)}</dd></div>
             </dl>

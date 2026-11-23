@@ -1,0 +1,1 @@
+ALTER TABLE "class_types" ADD COLUMN "no_credits" boolean DEFAULT false NOT NULL;
