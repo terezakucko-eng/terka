@@ -17,6 +17,7 @@ const ID = "295a46a8-a154-4d21-b739-f2c4beb5598c";
 const SERIES = "00435959-5343-479d-a531-53f841063962";
 const DUO = "d2f6a8c4-3b17-4e59-9a0d-7c1e5b8f2a46";
 const DRAFT16 = "fd8992e4-2861-4081-a4d3-cdb7ba240a83";
+const DRAFT18 = "a045476b-5764-4598-a117-e11d3aed18dc";
 const migrate = async () => {
   for (const statement of readFileSync("drizzle/0176_tuesday_reformer_24_11.sql", "utf8").split("--> statement-breakpoint")) await h.db.execute(sql.raw(statement));
 };
@@ -86,6 +87,28 @@ describe("migration 0176: group Reformer on Tuesday 24 Nov 2026 at 18:00", () =>
     await at16();
     expect((await added())[0].startsAt).toEqual(pragueLocalToDate("2026-11-24T16:00"));
     expect(await h.db.select().from(campaigns).where(eq(campaigns.id, DRAFT16))).toHaveLength(1);
+  });
+
+  it("goes back to 18:00 and into the series (0179), dropping the unsent 16:00 note", async () => {
+    const at18 = async () => {
+      for (const statement of readFileSync("drizzle/0179_tuesday_reformer_24_11_back_at_18.sql", "utf8").split("--> statement-breakpoint")) await h.db.execute(sql.raw(statement));
+    };
+    expect((await added())[0].startsAt).toEqual(pragueLocalToDate("2026-11-24T16:00"));
+    expect(await h.db.select().from(campaigns).where(eq(campaigns.id, DRAFT16))).toHaveLength(1);
+    const booked = (await h.db.select().from(bookings).where(eq(bookings.sessionId, ID))).filter((b) => b.status !== "cancelled").map((b) => b.userId);
+
+    await at18();
+
+    const [s] = await added();
+    expect(s).toMatchObject({ startsAt: pragueLocalToDate("2026-11-24T18:00"), seriesId: SERIES, isFree: true, status: "scheduled" });
+    expect(await h.db.select().from(campaigns).where(eq(campaigns.id, DRAFT16))).toHaveLength(0);
+    const [draft] = await h.db.select().from(campaigns).where(eq(campaigns.id, DRAFT18));
+    expect(draft).toMatchObject({ status: "draft", purpose: "service", subject: "Reformer zdarma je zítra v 18:00", audience: { segment: "people", userIds: booked } });
+
+    await at18();
+    expect((await added())[0].startsAt).toEqual(pragueLocalToDate("2026-11-24T18:00"));
+    expect(await h.db.select().from(campaigns).where(eq(campaigns.id, DRAFT18))).toHaveLength(1);
+    await h.db.delete(campaigns).where(eq(campaigns.id, DRAFT18));
   });
 
   it("stays at 18:00 when the machines are taken at 16:00", async () => {
