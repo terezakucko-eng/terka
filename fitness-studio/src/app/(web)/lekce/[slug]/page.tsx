@@ -118,7 +118,7 @@ export default async function LessonPage({ params }: PageProps<"/lekce/[slug]">)
             </h1>
             <p className="mt-6 max-w-xl text-lg text-les/75">{nbsp(t.description)}</p>
             <p className="mt-6 text-sm text-les/60">
-              {t.level} · {t.durationMin} min · {credits(t.creditCost)}
+              {t.level} · {t.durationMin} min{!t.noCredits && ` · ${credits(t.creditCost)}`}
               {t.dropInPrice !== null && ` · jednorázově ${formatPrice(t.dropInPrice)}`}
               {t.firstVisitPrice !== null && ` · první lekce${t.firstVisitNewOnly ? " pro nováčky" : ""} ${formatPrice(t.firstVisitPrice)}`}
               {priceNoteOn(t, dateKey(now)) && <span className="mt-1 block font-semibold text-zeme">{priceNoteOn(t, dateKey(now))}</span>}

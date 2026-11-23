@@ -790,6 +790,7 @@ async function classRules(tx: Executor, s: Pick<ClassSession, "classTypeId"> & {
       noFreeEntry: classTypes.noFreeEntry,
       passCardEntry: classTypes.passCardEntry,
       noPass: classTypes.noPass,
+      noCredits: classTypes.noCredits,
       firstVisitPrice: classTypes.firstVisitPrice,
       firstVisitNewOnly: classTypes.firstVisitNewOnly,
       passEntries: classTypes.passEntries,
@@ -802,7 +803,7 @@ async function classRules(tx: Executor, s: Pick<ClassSession, "classTypeId"> & {
     })
     .from(classTypes)
     .where(eq(classTypes.id, s.classTypeId));
-  const ct = row ?? { memberSurcharge: null, memberSurchargeFrom: null, memberSurchargeNext: null, memberSurchargeNextFrom: null, passSurcharge: null, noFreeEntry: false, passCardEntry: false, noPass: false, firstVisitPrice: null, firstVisitNewOnly: false, passEntries: 1, passEntriesNext: null, passSurchargeNext: null, duoPrice: null, studentDropInPrice: null, countsAsTypeId: null, countsAsLessons: 1 };
+  const ct = row ?? { memberSurcharge: null, memberSurchargeFrom: null, memberSurchargeNext: null, memberSurchargeNextFrom: null, passSurcharge: null, noFreeEntry: false, passCardEntry: false, noPass: false, noCredits: false, firstVisitPrice: null, firstVisitNewOnly: false, passEntries: 1, passEntriesNext: null, passSurchargeNext: null, duoPrice: null, studentDropInPrice: null, countsAsTypeId: null, countsAsLessons: 1 };
   return s.startsAt ? { ...ct, ...passOn(ct, dateKey(s.startsAt)) } : ct;
 }
 type ClassRules = Awaited<ReturnType<typeof classRules>>;
@@ -1228,7 +1229,8 @@ export async function bookingOptions(
   const balance = u?.balance ?? 0;
   const expired = !!u && creditExpired(u);
   const cost = s.creditCost * seats;
-  if (!s.dropInOnly) opts.push({
+  // a class credits don't pay for (Reformer special): members with the surcharge, the others pay by card or transfer
+  if (!s.dropInOnly && !rules.noCredits) opts.push({
     method: "credits",
     label: `Zaplatit kreditem (${creditsLabel(cost)}${seats > 1 ? " za obě místa" : ""})`,
     detail: `Na účtu máš ${creditsLabel(balance)}.`,
@@ -1283,6 +1285,7 @@ function autoOption(opts: BookingOption[]) {
 /* -------------------------------------------------------------- charge */
 
 export const DROP_IN_ONLY = "Tuhle lekci jde zaplatit jen kartou nebo převodem – členství, permanentky, kredity ani vstupy zdarma na ni neplatí.";
+export const NO_CREDITS = "Kredity na tuhle lekci neplatí – zaplať kartou nebo převodem.";
 
 async function charge(
   tx: Executor,
@@ -1297,6 +1300,7 @@ async function charge(
   let entId: string | null = null;
   let ent: Entitlement | null = null;
   if (s.dropInOnly && method !== "admin") throw new UserError(DROP_IN_ONLY);
+  if (method === "credits" && (await classRules(tx, s)).noCredits) throw new UserError(NO_CREDITS);
 
   switch (method) {
     case "free_class":

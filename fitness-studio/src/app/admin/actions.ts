@@ -145,6 +145,7 @@ export async function saveClassTypeAction(_: FormState, fd: FormData): Promise<F
       noFreeEntry: field.bool(fd, "noFreeEntry"),
       passCardEntry: field.bool(fd, "passCardEntry"),
       noPass: field.bool(fd, "noPass"),
+      noCredits: field.bool(fd, "noCredits"),
       passEntries: Math.max(1, field.int(fd, "passEntries") ?? 1),
       videoUrl: videoField(field.str(fd, "videoUrl")),
       sortOrder: field.int(fd, "sortOrder") ?? 0,

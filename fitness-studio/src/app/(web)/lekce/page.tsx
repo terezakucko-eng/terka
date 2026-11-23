@@ -50,7 +50,7 @@ export default async function ClassesPage() {
               <p className="mt-4 flex-1 text-les/70">{nbsp(t.description)}</p>
               <VideoEmbed url={t.videoUrl} title={t.name} className="mt-5" />
               <p className="mt-6 text-sm text-les/60">
-                {t.durationMin} min · {credits(t.creditCost)}
+                {t.durationMin} min{!t.noCredits && ` · ${credits(t.creditCost)}`}
                 {t.dropInPrice !== null && ` · jednorázově ${formatPrice(t.dropInPrice)}`}
                 {t.firstVisitPrice !== null && ` · první lekce${t.firstVisitNewOnly ? " pro nováčky" : ""} ${formatPrice(t.firstVisitPrice)}`}
                 {t.noPass

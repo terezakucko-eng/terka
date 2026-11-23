@@ -265,6 +265,8 @@ export const classTypes = pgTable("class_types", {
   passEntries: integer("pass_entries").notNull().default(1),
   /** Permanentka na tuto lekci neplatí (např. individuální trénink) */
   noPass: boolean("no_pass").notNull().default(false),
+  /** Kredity na tuto lekci neplatí – jen členství (s doplatkem) nebo jednorázová platba (např. Reformer special) */
+  noCredits: boolean("no_credits").notNull().default(false),
   /** Jednorázová cena pro dva (klient + kamarádka, haléře); null = 2× jednorázová cena */
   duoPrice: integer("duo_price"),
   /** Počítá se jako tato lekce (Reformer Duo → Reformer fusion): platí na ni lekce v ceně členství, dárkové vstupy

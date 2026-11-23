@@ -74,14 +74,15 @@ export default async function PricingPage({ searchParams }: PageProps<"/cenik">)
   ];
   const passExclusions = noPass.length ? [`Neplatí na: ${noPass.map((t) => t.name).join(", ")}`] : [];
   // How many credits a class takes: the usual price once, the exceptions by name.
-  const costs = types.filter((t) => t.creditCost > 0).map((t) => t.creditCost);
+  const costs = types.filter((t) => t.creditCost > 0 && !t.noCredits).map((t) => t.creditCost);
   const usual = costs.sort((a, b) => costs.filter((c) => c === b).length - costs.filter((c) => c === a).length)[0];
   const creditNotes =
     usual === undefined
       ? []
       : [
           `${types.some((t) => t.creditCost !== usual) ? "Běžná lekce" : "Lekce"}: ${credits(usual)}`,
-          ...types.filter((t) => t.creditCost !== usual && t.creditCost > 0).map((t) => `${t.name}: ${credits(t.creditCost)}`),
+          ...types.filter((t) => t.creditCost !== usual && t.creditCost > 0 && !t.noCredits).map((t) => `${t.name}: ${credits(t.creditCost)}`),
+          ...(types.some((t) => t.noCredits) ? [`Neplatí na: ${types.filter((t) => t.noCredits).map((t) => t.name).join(", ")}`] : []),
         ];
   // Which classes the welcome free entry can be used for – the exceptions with their intro price.
   const noFree = types.filter((t) => t.noFreeEntry);
@@ -221,7 +222,7 @@ export default async function PricingPage({ searchParams }: PageProps<"/cenik">)
                   <span className="size-2.5 rounded-full" style={{ background: t.color }} /> {t.name}
                 </span>
                 <span className="text-right text-sm tabular-nums text-les/70">
-                  {t.dropInPrice !== null ? formatPrice(t.dropInPrice) : "jen s permanentkou"} · {credits(t.creditCost)}
+                  {t.dropInPrice !== null ? formatPrice(t.dropInPrice) : "jen s permanentkou"}{!t.noCredits && ` · ${credits(t.creditCost)}`}
                   {t.noPass
                     ? hasPass && <span className="block text-xs">permanentka neplatí</span>
                     : (hasPass || t.passEntries > 1) && (

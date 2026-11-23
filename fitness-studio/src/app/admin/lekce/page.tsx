@@ -116,6 +116,9 @@ function ClassTypeForm({ t, others }: { t?: ClassType; others: ClassType[] }) {
         <label className="mt-2 flex items-center gap-2 text-sm">
           <input type="checkbox" name="noPass" defaultChecked={t?.noPass ?? false} /> Permanentka na tuhle lekci neplatí
         </label>
+        <label className="mt-2 flex items-center gap-2 text-sm">
+          <input type="checkbox" name="noCredits" defaultChecked={t?.noCredits ?? false} /> Kredity na tuhle lekci neplatí (členové s doplatkem, ostatní kartou nebo převodem)
+        </label>
       </fieldset>
       <Field label="Popis" hint="Zobrazí se na stránce Lekce i na vlastní stránce lekce – pár vět o tom, co se na lekci dělá a pro koho je.">
         <Textarea name="description" rows={3} defaultValue={t?.description} />
