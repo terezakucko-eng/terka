@@ -6,7 +6,9 @@ import { dateKey } from "@/lib/dates";
 import { popupOver, popupSlot, weekdayIndex } from "@/lib/popup-seen";
 import { nbsp } from "@/lib/typography";
 import { isYes, sessionOf, spotsHint } from "@/lib/spots";
+import { upcomingDeadlines } from "@/lib/countdown";
 import { ContentImage } from "./content-image";
+import { Countdown } from "./countdown";
 import { PopupShell } from "./popup-shell";
 
 
@@ -22,6 +24,10 @@ export async function Popup() {
   const until = c(`${s}.until`).trim();
   if (!title || popupOver(until, today)) return null;
   const text = c(`${s}.text`).trim();
+  // a live countdown to the end of the offer (seconds ticking); after one end the next one takes over
+  const countdownText = c(`${s}.countdown`).trim();
+  const deadlines = upcomingDeadlines(countdownText);
+  const countdown = deadlines.length > 0 && <Countdown deadlines={deadlines} variant="tiles" />;
   const image = c(`${s}.image`).trim();
   // a poster's text is too small on a phone – a portrait version shows there instead
   const imageMobile = image ? c(`${s}.imageMobile`).trim() : "";
@@ -108,7 +114,7 @@ export async function Popup() {
   );
   return (
     <PopupShell
-      id={`${title}|${text}|${image}|${until}|${[featured, ...buttons].flatMap((b) => (b ? [b.label] : [])).join("|")}`}
+      id={`${title}|${text}|${image}|${until}|${[featured, ...buttons].flatMap((b) => (b ? [b.label] : [])).join("|")}${countdownText ? `|${countdownText}` : ""}`}
       wide={imageOnly}
       repeatDay={weekdayIndex(c(`${s}.repeatDay`))}
     >
@@ -124,6 +130,7 @@ export async function Popup() {
       {imageOnly ? (
         <>
           <h2 className="sr-only">{title}</h2>
+          {countdown && <div className="px-4 pt-4 sm:px-5 sm:pt-5">{countdown}</div>}
           {buttonRow}
         </>
       ) : (
@@ -132,6 +139,7 @@ export async function Popup() {
           {first !== undefined && first <= 4 && (
             <p className="mb-3 inline-flex rounded-full bg-chyba/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-chyba">🔥 {spotsHint(first)}</p>
           )}
+          {countdown && <div className="mb-5 pr-8">{countdown}</div>}
           <h2 className="pr-8 text-2xl font-semibold tracking-tight">{title}</h2>
           {text && <p className="mt-3 whitespace-pre-line text-les/75">{nbsp(text)}</p>}
           {buttonRow}
