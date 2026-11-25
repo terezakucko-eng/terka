@@ -22,6 +22,19 @@ export async function lastEarlyOpenStart(db: DB, from: Date, now = new Date()) {
   return r?.last ?? null;
 }
 
+/**
+ * A lesson's own page: its classes in the next `days` days, plus later ones whose booking is open already
+ * (an event such as Reformer special) – so they can be booked straight from the page.
+ */
+export async function upcomingForType(db: DB, classTypeId: string, now = new Date(), days = 21) {
+  const soon = new Date(now.getTime() + days * 86_400_000);
+  const early = await lastEarlyOpenStart(db, soon, now);
+  const to = early && early >= soon ? new Date(early.getTime() + 1) : soon;
+  return (await listSessions(db, now, to, { classTypeId, includeCancelled: false })).filter(
+    (s) => s.startsAt < soon || (s.bookingOpensAt !== null && s.bookingOpensAt <= now),
+  );
+}
+
 /** Sessions in [from, to) with class, instructor, occupancy and my booking. */
 export async function listSessions(
   db: DB,

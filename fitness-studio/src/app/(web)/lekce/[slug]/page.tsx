@@ -13,7 +13,7 @@ import { classTypes } from "@/db/schema";
 import { opensFor, viewerWindows } from "@/domain/booking";
 import { getCurrentUser } from "@/lib/auth";
 import { credits, formatPrice } from "@/lib/money";
-import { activeClassTypes, listSessions } from "@/lib/queries";
+import { activeClassTypes, upcomingForType } from "@/lib/queries";
 import { jsonLd } from "@/lib/seo";
 import { splitKeywords } from "@/lib/keywords";
 import { dateKey, formatShortDay } from "@/lib/dates";
@@ -57,7 +57,7 @@ export default async function LessonPage({ params }: PageProps<"/lekce/[slug]">)
   // today's prices (a new price list may have started)
   const t = typeOn(loaded, dateKey(now));
   const [sessions, others, settings] = await Promise.all([
-    listSessions(db, now, new Date(now.getTime() + 21 * 86_400_000), { classTypeId: t.id, includeCancelled: false }),
+    upcomingForType(db, t.id, now),
     activeClassTypes(db),
     getSettings(db),
   ]);
