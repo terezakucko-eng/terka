@@ -19,7 +19,10 @@ const values = async (keys: string[]) =>
 
 describe("migration 0161: Membership 2027 in the bar and the pop-up from today", () => {
   it("shows the membership pop-up from 16 Nov and puts membership back in the bar instead of the Zumba SPECIAL", async () => {
-    // all migrations ran: the Zumba SPECIAL bar and the pop-up planned for 17 Nov were switched
+    // as it was on 16 Nov (later migrations change the bar again, e.g. 0181 adds a countdown)
+    await h.db.update(content).set({ value: "💃 Pondělí 16. 11.: Zumba SPECIAL s hosty z Olomouce" }).where(eq(content.key, "promoBar.text"));
+    await h.db.update(content).set({ value: "2026-11-17" }).where(eq(content.key, "popupNext.from"));
+    await migrate();
     const next = await values(["popupNext.from", "popupNext.title"]);
     expect(next["popupNext.from"]).toBe("2026-11-16");
     expect(popupSlot({ title: next["popupNext.title"], from: next["popupNext.from"] }, "2026-11-16")).toBe("popupNext");

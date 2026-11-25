@@ -7,6 +7,8 @@ import { PromoBarShell } from "./promo-bar-shell";
 import { getDb } from "@/db";
 import { seatsLeft } from "@/domain/booking";
 import { isYes, sessionOf, spotsHint } from "@/lib/spots";
+import { upcomingDeadlines } from "@/lib/countdown";
+import { Countdown } from "./countdown";
 
 /** Thin announcement bar above the menu, edited in Obsah webu → Akční lišta. */
 export async function PromoBar() {
@@ -22,10 +24,13 @@ export async function PromoBar() {
   // a link to one class can say how many places are left – counted on every view, so it stays true
   const session = isYes(c("promoBar.showSpots")) ? sessionOf(url) : undefined;
   const left = session ? (await seatsLeft(await getDb(), [session]).catch(() => new Map<string, number>())).get(session) : undefined;
+  // a live countdown to the end of the offer (seconds ticking) – only the ends still ahead go to the browser
+  const deadlines = upcomingDeadlines(c("promoBar.countdown"));
   return (
     <PromoBarShell id={id}>
       <span className="inline-flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5">
         <span className="font-semibold">{text}</span>
+        {deadlines.length > 0 && <Countdown deadlines={deadlines} variant="bar" />}
         {left !== undefined && (
           <span className={left <= 4 ? "rounded-full bg-chyba px-2.5 py-0.5 text-xs font-bold text-white" : "text-xs font-semibold"}>
             {left <= 4 && left > 0 ? "🔥 " : ""}{spotsHint(left)}

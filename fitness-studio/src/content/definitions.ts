@@ -111,6 +111,13 @@ const POPUP_FIELDS = {
     optional: true,
     hint: "Datum ve tvaru 2026-10-31. Po něm okno samo zmizí. Prázdné = pořád.",
   },
+  countdown: {
+    label: "Odpočet (nepovinné)",
+    type: "textarea",
+    default: "",
+    optional: true,
+    hint: "Konec akce a za svislou čarou text nad odpočtem, např. „2026-11-30 | Přihlášky končí za“ (do konce dne) nebo „2026-11-30 18:00 | …“. Další termín na nový řádek – po skončení prvního naskočí sám. Po posledním odpočet zmizí. Prázdné = bez odpočtu.",
+  },
 } satisfies Record<string, FieldDef>;
 
 export const SECTIONS = {
@@ -172,6 +179,13 @@ export const SECTIONS = {
         default: "",
         optional: true,
         hint: "Napiš „ano“ a když odkaz vede na lekci (/rozvrh/…), lišta ukáže, kolik zbývá míst („Zbývají už jen 3 místa!“) – počítá se pokaždé znovu. Prázdné = neukazovat.",
+      },
+      countdown: {
+        label: "Odpočet v liště (nepovinné)",
+        type: "textarea",
+        default: "",
+        optional: true,
+        hint: "Konec akce a za svislou čarou slovo před odpočtem, např. „2026-11-30 | zbývá“ (do konce dne) nebo „2026-11-30 18:00 | zbývá“. Další termín na nový řádek – naskočí po prvním. Po posledním odpočet zmizí. Prázdné = bez odpočtu.",
       },
     },
   },
