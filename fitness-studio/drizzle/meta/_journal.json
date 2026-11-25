@@ -1289,6 +1289,13 @@
       "when": 1795619886122,
       "tag": "0183_reformer_special_web",
       "breakpoints": true
+    },
+    {
+      "idx": 184,
+      "version": "7",
+      "when": 1795630394829,
+      "tag": "0184_zdrave_telo_cardio_off",
+      "breakpoints": true
     }
   ]
 }
