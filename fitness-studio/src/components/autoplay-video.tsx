@@ -11,9 +11,22 @@ const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60))
  * sound before a tap), so the captions are part of the picture and one tap plays it again with sound.
  * A seek bar at the bottom lets people jump back or ahead.
  * No autoplay for those who ask for less motion or save data.
+ * start="visible": for a video further down a page – it plays muted only while it is on screen
+ * (never sound out of the blue), pauses when scrolled away, and a pause by the visitor stays a pause.
  */
-export function AutoplayVideo({ src, poster, label }: { src: string; poster?: string; label: string }) {
+export function AutoplayVideo({
+  src,
+  poster,
+  label,
+  start = "load",
+}: {
+  src: string;
+  poster?: string;
+  label: string;
+  start?: "load" | "visible";
+}) {
   const ref = useRef<HTMLVideoElement>(null);
+  const pausedByVisitor = useRef(false);
   const [muted, setMuted] = useState(true);
   const [ended, setEnded] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -28,6 +41,18 @@ export function AutoplayVideo({ src, poster, label }: { src: string; poster?: st
     const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
     if (calm || saveData) return;
+    if (start === "visible") {
+      const watch = new IntersectionObserver(
+        ([e]) => {
+          if (e.isIntersecting) {
+            if (!pausedByVisitor.current && !v.ended) v.play().catch(() => {});
+          } else if (!v.paused) v.pause();
+        },
+        { threshold: 0.5 },
+      );
+      watch.observe(v);
+      return () => watch.disconnect();
+    }
     v.muted = false;
     v.play()
       .then(() => setMuted(false))
@@ -36,7 +61,7 @@ export function AutoplayVideo({ src, poster, label }: { src: string; poster?: st
         setMuted(true);
         v.play().catch(() => {});
       });
-  }, []);
+  }, [start]);
 
   // the bar follows the picture smoothly while it plays (timeupdate only comes ~4× a second)
   useEffect(() => {
@@ -53,6 +78,7 @@ export function AutoplayVideo({ src, poster, label }: { src: string; poster?: st
   const sound = () => {
     const v = ref.current;
     if (!v) return;
+    pausedByVisitor.current = false;
     v.muted = !muted;
     setMuted(!muted);
     if (v.paused) v.play().catch(() => {});
@@ -61,6 +87,7 @@ export function AutoplayVideo({ src, poster, label }: { src: string; poster?: st
   const withSound = () => {
     const v = ref.current;
     if (!v) return;
+    pausedByVisitor.current = false;
     v.currentTime = 0;
     v.muted = false;
     setMuted(false);
@@ -70,6 +97,7 @@ export function AutoplayVideo({ src, poster, label }: { src: string; poster?: st
   const again = () => {
     const v = ref.current;
     if (!v) return;
+    pausedByVisitor.current = false;
     v.currentTime = 0;
     setEnded(false);
     v.play().catch(() => {});
@@ -106,6 +134,7 @@ export function AutoplayVideo({ src, poster, label }: { src: string; poster?: st
         onClick={() => {
           const v = ref.current;
           if (!v) return;
+          pausedByVisitor.current = !v.paused;
           if (v.paused) v.play().catch(() => {});
           else v.pause();
         }}

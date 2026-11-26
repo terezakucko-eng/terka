@@ -21,6 +21,7 @@ import { opensFor, viewerWindows } from "@/domain/booking";
 import { getSettings } from "@/lib/settings";
 import { ReviewRating, Stars } from "@/components/stars";
 import { ExternalRating } from "@/components/external-rating";
+import { AutoplayVideo } from "@/components/autoplay-video";
 
 export const metadata: Metadata = { alternates: { canonical: "/" } };
 
@@ -44,6 +45,7 @@ export default async function Home() {
     title: c(`homeCharacter.v${i + 1}Title`),
     sub: c(`homeCharacter.v${i + 1}Sub`),
   })).filter((v) => v.title);
+  const tour = c.raw("homeTour.video").trim();
   const steps = [1, 2, 3].map((n) => ({
     title: c(`homeSteps.s${n}Title` as const),
     text: c(`homeSteps.s${n}Text` as const),
@@ -142,6 +144,30 @@ export default async function Home() {
           </p>
         </Container>
       </section>
+
+      {/* PROHLÍDKA STUDIA – video na výšku, spustí se samo bez zvuku, až k němu návštěvník dojede */}
+      {tour && (
+        <section className="border-y border-linka/60 bg-krem/40">
+          <Container className="grid items-center gap-10 py-16 sm:py-20 md:grid-cols-[1fr_auto] md:gap-16">
+            <div className="max-w-xl">
+              <Eyebrow className="text-zeme">{c("homeTour.eyebrow")}</Eyebrow>
+              <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{c("homeTour.title")}</h2>
+              <p className="mt-5 text-lg text-les/70 empty:hidden">{c("homeTour.text")}</p>
+              <div className="mt-8">
+                <ButtonLink href="/rozvrh" variant="gold">{c("homeTour.cta")}</ButtonLink>
+              </div>
+            </div>
+            <div className="w-full md:w-[min(360px,calc(62svh*9/16))]">
+              <AutoplayVideo
+                src={tour}
+                poster={tour.endsWith(".mp4") ? tour.replace(/\.mp4$/, ".jpg") : undefined}
+                label="Prohlídka studia OCTOPUSH"
+                start="visible"
+              />
+            </div>
+          </Container>
+        </section>
+      )}
 
       {/* JAK TO FUNGUJE */}
       <section className="bg-forest text-papir">

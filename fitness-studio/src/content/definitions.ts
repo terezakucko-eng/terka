@@ -281,6 +281,26 @@ export const SECTIONS = {
       caption4: opt("Fotka 4 – popisek", "Harmonie"),
     },
   },
+  homeTour: {
+    title: "Úvod – prohlídka studia (video)",
+    page: "/",
+    fields: {
+      eyebrow: opt("Malý nadpis", "Prohlídka studia"),
+      title: t("Nadpis", "Pojď se podívat, kam přijdeš"),
+      text: optArea(
+        "Text vedle videa",
+        "Velký sál plný světla, reformery, kettlebelly, cardio zóna i posilovna. Ať víš, kam jdeš, ještě než poprvé dorazíš.",
+      ),
+      video: {
+        label: "Video (spustí se samo bez zvuku, až k němu návštěvník dojede)",
+        type: "text", // the web's own /video/… path – a url input would refuse it
+        default: "/video/prohlidka-studia.mp4",
+        hint: "Adresa videa .mp4 na výšku. Prázdné = úvod bez prohlídky. Náhled se bere ze stejnojmenného .jpg.",
+        optional: true,
+      },
+      cta: t("Tlačítko", "Vybrat si lekci"),
+    },
+  },
   homeSteps: {
     title: "Úvod – jak to funguje",
     page: "/",
