@@ -1296,6 +1296,20 @@
       "when": 1795630394829,
       "tag": "0184_zdrave_telo_cardio_off",
       "breakpoints": true
+    },
+    {
+      "idx": 185,
+      "version": "7",
+      "when": 1795677880747,
+      "tag": "0185_lesson_photos_real_studio",
+      "breakpoints": true
+    },
+    {
+      "idx": 186,
+      "version": "7",
+      "when": 1795678940539,
+      "tag": "0186_zumba_s_kikinou",
+      "breakpoints": true
     }
   ]
 }
