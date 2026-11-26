@@ -1317,6 +1317,13 @@
       "when": 1795681336059,
       "tag": "0187_zdrave_telo_stroje_terka_kiki",
       "breakpoints": true
+    },
+    {
+      "idx": 188,
+      "version": "7",
+      "when": 1795682516994,
+      "tag": "0188_bosu_individual_deepwork_photos",
+      "breakpoints": true
     }
   ]
 }
