@@ -39,6 +39,18 @@ const optArea = (label: string, def: string): FieldDef => ({ label, type: "texta
 const img = (label: string, def: string): FieldDef => ({ label, type: "image", default: def });
 const url = (label: string, def: string): FieldDef => ({ label, type: "url", default: def });
 
+/** More photos for the home page hero – they take turns with the first one. */
+const heroSlide = (n: number) => ({
+  [`image${n}`]: {
+    label: `Fotka ${n} (nepovinná)`,
+    type: "image",
+    default: "",
+    optional: true,
+    hint: "Když vyplníš víc fotek, na úvodu se každé 3 vteřiny jemně prolnou. Na výšku, hlavní motiv doprostřed. Prázdné = fotka se nepoužije.",
+  } satisfies FieldDef,
+  [`imageAlt${n}`]: opt(`Fotka ${n} – popis (pro nevidomé)`, ""),
+});
+
 const value = (n: number, title: string, sub: string) => ({
   [`v${n}Title`]: t(`Hodnota ${n} – název`, title),
   [`v${n}Sub`]: t(`Hodnota ${n} – podtitul`, sub),
@@ -233,6 +245,9 @@ export const SECTIONS = {
       ctaSecondary: t("Druhé tlačítko (nepřihlášený)", "První lekce zdarma"),
       image: img("Fotka", "/img/priroda.webp"),
       imageAlt: t("Popis fotky (pro nevidomé)", "List s kapkami rosy"),
+      ...heroSlide(2),
+      ...heroSlide(3),
+      ...heroSlide(4),
       caption: opt("Popisek fotky", "01 / Příroda"),
     },
   },
