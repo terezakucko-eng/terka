@@ -1324,6 +1324,13 @@
       "when": 1795682516994,
       "tag": "0188_bosu_individual_deepwork_photos",
       "breakpoints": true
+    },
+    {
+      "idx": 189,
+      "version": "7",
+      "when": 1795692545432,
+      "tag": "0189_home_hero_octopus_photo",
+      "breakpoints": true
     }
   ]
 }
