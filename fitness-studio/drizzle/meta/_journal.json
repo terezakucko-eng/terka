@@ -1310,6 +1310,13 @@
       "when": 1795678940539,
       "tag": "0186_zumba_s_kikinou",
       "breakpoints": true
+    },
+    {
+      "idx": 187,
+      "version": "7",
+      "when": 1795681336059,
+      "tag": "0187_zdrave_telo_stroje_terka_kiki",
+      "breakpoints": true
     }
   ]
 }
