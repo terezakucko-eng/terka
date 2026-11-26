@@ -22,6 +22,7 @@ import { getSettings } from "@/lib/settings";
 import { ReviewRating, Stars } from "@/components/stars";
 import { ExternalRating } from "@/components/external-rating";
 import { AutoplayVideo } from "@/components/autoplay-video";
+import { HeroSlides } from "@/components/hero-slides";
 
 export const metadata: Metadata = { alternates: { canonical: "/" } };
 
@@ -46,6 +47,10 @@ export default async function Home() {
     sub: c(`homeCharacter.v${i + 1}Sub`),
   })).filter((v) => v.title);
   const tour = c.raw("homeTour.video").trim();
+  // the hero's photos – more than one take turns
+  const heroPhotos = (["", "2", "3", "4"] as const)
+    .map((n) => ({ src: c.raw(`homeHero.image${n}`).trim(), alt: c(`homeHero.imageAlt${n}`) }))
+    .filter((p, i, all) => p.src && all.findIndex((q) => q.src === p.src) === i);
   const steps = [1, 2, 3].map((n) => ({
     title: c(`homeSteps.s${n}Title` as const),
     text: c(`homeSteps.s${n}Text` as const),
@@ -58,7 +63,11 @@ export default async function Home() {
         <Container className="grid items-center gap-10 py-14 md:grid-cols-[1fr_1.1fr] md:py-8">
           <figure className="order-2 md:order-1">
             <div className="relative aspect-[4/5] overflow-hidden md:aspect-auto md:h-[calc(100svh-9rem)] md:max-h-[720px] md:min-h-[420px]">
-              <ContentImage src={c("homeHero.image")} alt={c("homeHero.imageAlt")} fill priority sizes="(min-width: 768px) 45vw, 100vw" className="object-cover" />
+              <HeroSlides>
+                {heroPhotos.map((p, i) => (
+                  <ContentImage key={p.src} src={p.src} alt={p.alt} fill priority={i === 0} sizes="(min-width: 768px) 45vw, 100vw" className="object-cover" />
+                ))}
+              </HeroSlides>
             </div>
             <figcaption className="eyebrow empty:hidden mt-4 text-papir/60">{c("homeHero.caption")}</figcaption>
           </figure>

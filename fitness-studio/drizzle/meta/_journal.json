@@ -1331,6 +1331,13 @@
       "when": 1795692545432,
       "tag": "0189_home_hero_octopus_photo",
       "breakpoints": true
+    },
+    {
+      "idx": 190,
+      "version": "7",
+      "when": 1795693578441,
+      "tag": "0190_home_hero_slides",
+      "breakpoints": true
     }
   ]
 }
