@@ -24,6 +24,10 @@
       "mcp__Gmail__get_thread",
       "mcp__Gmail__get_message",
       "mcp__Gmail__download_gmail_attachment"
+      "mcp__Gmail__list_labels",
+"mcp__Gmail__label_thread",
+"mcp__Gmail__unlabel_thread",
+"mcp__Gmail__create_label",
     ]
   }
 }
