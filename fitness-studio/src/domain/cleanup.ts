@@ -1,8 +1,9 @@
-import { and, eq, gte, inArray, isNotNull, isNull, lt } from "drizzle-orm";
+import { and, eq, gte, inArray, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import type { DB, Executor } from "@/db";
 import {
   bookings,
   classSessions,
+  classTypes,
   creditTransactions,
   entitlements,
   massageBookings,
@@ -10,7 +11,8 @@ import {
   users,
   vouchers,
 } from "@/db/schema";
-import { dateKey, weekdayOf } from "@/lib/dates";
+import { dateKey, formatDateTime, weekdayOf } from "@/lib/dates";
+import { sessionNameSql } from "@/lib/session-name";
 import { UserError } from "@/lib/errors";
 import { changeCredits } from "./wallet";
 
@@ -155,7 +157,17 @@ export async function purgeSession(db: DB, sessionId: string) {
       await tx.select({ id: bookings.id }).from(bookings).where(eq(bookings.sessionId, sessionId))
     ).map((b) => b.id);
     if (ids.length) {
-      await tx.update(creditTransactions).set({ bookingId: null }).where(inArray(creditTransactions.bookingId, ids));
+      // the bookings go – the credit history keeps which lesson a refund or a surcharge was for
+      const [s] = await tx
+        .select({ startsAt: classSessions.startsAt, name: sessionNameSql })
+        .from(classSessions)
+        .innerJoin(classTypes, eq(classSessions.classTypeId, classTypes.id))
+        .where(eq(classSessions.id, sessionId));
+      const lesson = s ? `lekce ${s.name} ${formatDateTime(s.startsAt)} (smazaná)` : null;
+      await tx
+        .update(creditTransactions)
+        .set({ bookingId: null, ...(lesson && { note: sql`concat_ws(' · ', nullif(${creditTransactions.note}, ''), ${lesson}::text)` }) })
+        .where(inArray(creditTransactions.bookingId, ids));
       await tx.delete(bookings).where(inArray(bookings.id, ids));
     }
     await tx.update(orders).set({ sessionId: null }).where(eq(orders.sessionId, sessionId));
