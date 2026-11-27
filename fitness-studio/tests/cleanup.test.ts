@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { bookings, classSessions, entitlements, orders, users } from "@/db/schema";
-import { bookSession } from "@/domain/booking";
+import { bookings, classSessions, creditTransactions, entitlements, orders, users } from "@/db/schema";
+import { bookSession, cancelSession } from "@/domain/booking";
+import { formatDateTime } from "@/lib/dates";
 import { deleteClient, deleteClients, deleteOrder, deleteOrders, purgeSession, seriesFrom } from "@/domain/cleanup";
 import { sellAtReception } from "@/domain/orders";
 import { NOW, makeProduct, makeSession, makeUser, testDb } from "./helpers";
@@ -73,6 +74,25 @@ describe("cleanup", () => {
     await purgeSession(h.db, s1.id);
     expect(await h.db.select().from(classSessions).where(eq(classSessions.id, s1.id))).toHaveLength(0);
     expect(await h.db.select().from(bookings).where(eq(bookings.sessionId, s1.id))).toHaveLength(0);
+  });
+
+  it("a deleted class stays named in the client's credit history", async () => {
+    const u = await makeUser(h.db, 5);
+    const s = await makeSession(h.db, { title: "Ranní reformer" });
+    await bookSession(h.db, { userId: u.id, sessionId: s.id, method: "credits" }, NOW);
+    await cancelSession(h.db, s.id, NOW); // the studio cancels it first – the credit comes back
+    const other = await h.db.insert(creditTransactions).values({ userId: u.id, delta: 3, balanceAfter: 8, reason: "admin" }).returning();
+
+    await purgeSession(h.db, s.id);
+
+    const rows = await h.db.select().from(creditTransactions).where(eq(creditTransactions.userId, u.id));
+    const lesson = `lekce Ranní reformer ${formatDateTime(s.startsAt)} (smazaná)`;
+    const charged = rows.find((r) => r.reason === "booking")!;
+    const refunded = rows.find((r) => r.reason === "refund")!;
+    expect(charged).toMatchObject({ bookingId: null, note: lesson });
+    expect(refunded.bookingId).toBeNull();
+    expect(refunded.note).toBe(`Lekce zrušena studiem · ${lesson}`);
+    expect(rows.find((r) => r.id === other[0].id)!.note).toBeNull(); // a row of no booking is left alone
   });
 
   it("bulk-deletes clients but never staff", async () => {
