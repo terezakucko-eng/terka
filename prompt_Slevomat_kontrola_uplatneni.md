@@ -12,6 +12,8 @@ List „Stav uplatnění“: sloupec A = kód, B = hodnota (800 / 1200 / 2000 K�
 
 **Které kódy kontrolovat:** všechny, u kterých ve sloupci E **není** „ano“, tedy „ne“, „neomezený – nejde ověřit“ a „v adminu není“ (celkem asi 185 kódů). Kódy se stavem „ano“ jsou už vyúčtované, ty přeskoč. Výjimka: zkontroluj i BR12KL a 4E2ZZU (byly použité víckrát).
 
+**Tip:** v adminu jdou kódy filtrovat podle dávky. Druhá sada (List 1, sloupce E–G) je v dávkách **636** (800 Kč), **637** (1 200 Kč) a **638** (2 000 Kč). První sadu (List 1, sloupce B–D) dohledej podle jednotlivých kódů, případně zjisti její ID dávky a napiš mi ho.
+
 **Postup:**
 1. V administraci otevři slevové kódy (promo-code/list) a u každého kódu zjisti aktuální počet použití.
 2. Hlavně u kódů s neomezeným počtem použití (∞) dohledej **objednávky**, ve kterých byl kód použitý: v seznamu objednávek vyfiltruj podle slevového kódu (nebo ho zadej do hledání). U každé objednávky si zapiš číslo, datum, stav (zaplacená, stornovaná, vrácená) a hodnotu slevy.
