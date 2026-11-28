@@ -92,6 +92,8 @@ export interface Competitor {
 export interface Lists {
   markets: Market[]
   channels: Channel[]
+  /** Colour of each channel group (hex), from the sheet; groups missing there use DEFAULT_GROUP_COLORS. */
+  groupColors: Record<string, string>
   statuses: string[]
   people: string[]
   types: string[]
@@ -384,9 +386,14 @@ export function listsFromMatrix(matrix: string[][]): Lists {
       budgetKind: get(r, 'V rozpočtu jako'), leadWeeks: parseNumber(get(r, 'Příprava (týdny)')) ?? 4, active: active(r),
     }
   })
+  const groupColors: Record<string, string> = {}
+  for (const r of blockRows(matrix, 'Skupina kanálů')) {
+    if (/^#[0-9a-f]{6}$/i.test(get(r, 'Barva'))) groupColors[get(r, 'Skupina kanálů')] = get(r, 'Barva')
+  }
   return {
     markets,
     channels,
+    groupColors,
     statuses: blockRows(matrix, 'Stav').map((r) => get(r, 'Stav')),
     people: blockRows(matrix, 'Jméno').filter((r) => active(r)).map((r) => get(r, 'Jméno')),
     types: blockRows(matrix, 'Typ').map((r) => get(r, 'Typ')),
@@ -408,6 +415,15 @@ export const brandsOf = (lists: Lists, markets: string[]): string[] => {
   }
   return out
 }
+
+/** Colours of the channel groups until the sheet says otherwise. SMS is yellow and Newsletter grey on purpose; the rest are spread around the colour wheel. */
+export const DEFAULT_GROUP_COLORS: Record<string, string> = {
+  'TV a video': '#0891b2', 'Rádio': '#ea580c', 'OOH': '#16a34a', 'Performance': '#0d9488', 'Display': '#6366f1',
+  'Newsletter': '#6b7280', 'SMS': '#eab308', 'Sociální sítě': '#ef4444', 'Web': '#84cc16', 'PR a spolupráce': '#a855f7',
+  'Eventy a prodejny': '#b45309', 'Ostatní': '#a8a29e',
+}
+
+export const groupColor = (lists: Lists, group: string): string => lists.groupColors[group] ?? DEFAULT_GROUP_COLORS[group] ?? '#8a817d'
 
 export const brandColor = (lists: Lists, brand: string): string => lists.markets.find((m) => m.brand === brand)?.color ?? '#8a817d'
 

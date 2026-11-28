@@ -12,7 +12,7 @@ import { applyFilters, filtersActive, noFilters, resultsById, type Filters } fro
 import { effectiveStatus } from '../lib/status'
 import { CalendarView, initialCalendar, type CalendarState } from './Calendar'
 import { CompetitorsView } from './Competitors'
-import { Confirm, remember, Toasts, useToasts, vivid } from './common'
+import { Confirm, GroupDot, remember, Toasts, useToasts, vivid } from './common'
 import { type Ctx, type View, VIEWS } from './ctx'
 import { EvaluationView } from './Evaluation'
 import { ActivityDrawer, BulkEvaluate, CompetitorForm, ResultDialog } from './Forms'
@@ -265,7 +265,7 @@ export function App({ api, who, demo, readOnly: connectionReadOnly, saveFile }: 
             </div>
             <div className="chipset">
               <span className="label">Kanál</span>
-              {channelGroups(data.lists).map((g) => <button key={g} type="button" className="chip" aria-pressed={filters.groups.includes(g)} onClick={() => toggleIn('groups', g)}>{g}</button>)}
+              {channelGroups(data.lists).map((g) => <button key={g} type="button" className="chip" aria-pressed={filters.groups.includes(g)} onClick={() => toggleIn('groups', g)}><GroupDot lists={data.lists} group={g} />{g}</button>)}
             </div>
             <div className="chipset">
               <span className="label">Stav</span>

@@ -4,7 +4,7 @@ import {
   addDays, daysInYear, diffDays, formatRange, iso, mondayOf, monthOf, monthTitle, MONTHS, MONTHS_SHORT, monthWeeks, WEEKDAYS, WEEKDAYS_LONG, weekday, yearOf, type ISODate,
 } from '../lib/dates'
 import { layoutLanes } from '../lib/layout'
-import { brandColor, brandsOf, channelGroups, groupOf, STATUS, type Activity, type CompetitorAction, type Lists } from '../lib/model'
+import { brandColor, brandsOf, channelGroups, groupColor, groupOf, STATUS, type Activity, type CompetitorAction, type Lists } from '../lib/model'
 import { Toggle, tint, vivid } from './common'
 import { type Ctx } from './ctx'
 
@@ -16,26 +16,31 @@ type Bar =
   | (Span & { kind: 'rival'; rival: CompetitorAction; label: string })
   | (Span & { kind: 'special'; occurrence: Occurrence; label: string })
 
-function activityStyle(lists: Lists, a: Activity): React.CSSProperties {
+export type ColorBy = 'kanal' | 'znacka'
+
+/** The bar takes the colour of its channel group or of its first brand; the brands not shown by the colour get a dot. */
+function activityStyle(lists: Lists, a: Activity, colorBy: ColorBy): React.CSSProperties {
+  if (colorBy === 'kanal') return { background: tint(groupColor(lists, groupOf(lists, a.channel)), 30) }
   const brand = brandsOf(lists, a.markets)[0]
   return { background: tint(brand ? brandColor(lists, brand) : '#8a817d', 20) }
 }
 
-function BarButton({ bar, lists, onOpen, cutStart, cutEnd, gridColumn, gridRow }: {
-  bar: Bar; lists: Lists; onOpen: () => void; cutStart: boolean; cutEnd: boolean; gridColumn: string; gridRow: number
+function BarButton({ bar, lists, colorBy, onOpen, cutStart, cutEnd, gridColumn, gridRow }: {
+  bar: Bar; lists: Lists; colorBy: ColorBy; onOpen: () => void; cutStart: boolean; cutEnd: boolean; gridColumn: string; gridRow: number
 }) {
   const cls = ['bar', cutStart ? 'cut-l' : '', cutEnd ? 'cut-r' : '']
   const style: React.CSSProperties = { gridColumn, gridRow }
   let title = bar.label
   let content: React.ReactNode = <span className="t">{bar.label}</span>
   if (bar.kind === 'activity') {
-    Object.assign(style, activityStyle(lists, bar.activity))
+    Object.assign(style, activityStyle(lists, bar.activity, colorBy))
     if (bar.status === STATUS.idea || bar.status === STATUS.prep) cls.push('idea')
     if (bar.status === STATUS.done || bar.status === STATUS.evaluated) cls.push('done')
     const brands = brandsOf(lists, bar.activity.markets)
     title = `${bar.activity.name}\n${bar.activity.channel} · ${bar.status}\n${formatRange(bar.activity.from, bar.activity.to)}`
+    const dotted = colorBy === 'kanal' ? brands : brands.slice(1)
     content = <>
-      {brands.length > 1 && <span className="dots">{brands.slice(1).map((b) => <span key={b} className="dot" style={{ background: vivid(brandColor(lists, b)) }} />)}</span>}
+      {dotted.length > 0 && <span className="dots">{dotted.map((b) => <span key={b} className="dot" style={{ background: vivid(brandColor(lists, b)) }} />)}</span>}
       <span className="t">{bar.label}</span>
     </>
   } else if (bar.kind === 'rival') {
@@ -76,7 +81,7 @@ function openBar(ctx: Ctx, bar: Bar) {
 
 /** Brand toggles and the optional layers; the filter bar above handles brands, status and channel groups. */
 export function CalendarView({ ctx, state, setState }: { ctx: Ctx; state: CalendarState; setState: (s: CalendarState) => void }) {
-  const { mode, year, month, date, rivals, special } = state
+  const { mode, year, month, date, rivals, special, colorBy } = state
   const set = (patch: Partial<CalendarState>) => setState({ ...state, ...patch })
   const step = (n: number) => {
     if (mode === 'rok') set({ year: year + n })
@@ -100,26 +105,28 @@ export function CalendarView({ ctx, state, setState }: { ctx: Ctx; state: Calend
         <h2>{title}</h2>
         <button type="button" className="btn quiet" onClick={goToday}>Dnes</button>
         <span style={{ flex: 1 }} />
+        <span className="faint" style={{ fontSize: 13, fontWeight: 600 }}>Barvy podle</span>
+        <Toggle label="Barvy podle" value={colorBy} onChange={(c) => set({ colorBy: c })} options={[['kanal', 'Kanálu'], ['znacka', 'Značky']]} />
         <label className="chip" style={{ cursor: 'pointer' }}><input type="checkbox" checked={special} onChange={(e) => set({ special: e.target.checked })} /> Významné dny</label>
         <label className="chip" style={{ cursor: 'pointer' }}><input type="checkbox" checked={rivals} onChange={(e) => set({ rivals: e.target.checked })} /> Konkurence</label>
         <Toggle label="Zobrazení" value={mode} onChange={(m) => set({ mode: m })} options={[['mesic', 'Měsíc'], ['tyden', 'Týden'], ['rok', 'Rok']]} />
       </div>
-      {mode === 'mesic' && <MonthGrid ctx={ctx} year={year} month={month} rivals={rivals} special={special} />}
-      {mode === 'tyden' && <WeekView ctx={ctx} date={date} rivals={rivals} special={special} />}
-      {mode === 'rok' && <YearStrip ctx={ctx} year={year} rivals={rivals} special={special} />}
+      {mode === 'mesic' && <MonthGrid ctx={ctx} year={year} month={month} rivals={rivals} special={special} colorBy={colorBy} />}
+      {mode === 'tyden' && <WeekView ctx={ctx} date={date} rivals={rivals} special={special} colorBy={colorBy} />}
+      {mode === 'rok' && <YearStrip ctx={ctx} year={year} rivals={rivals} special={special} colorBy={colorBy} />}
       {ctx.visible.length === 0 && <p className="muted" style={{ marginTop: 12 }}>Filtrům nic neodpovídá. Zruš některý filtr nebo přidej novou aktivitu.</p>}
     </section>
   )
 }
 
-export interface CalendarState { mode: 'mesic' | 'tyden' | 'rok'; year: number; month: number; date: ISODate; rivals: boolean; special: boolean }
+export interface CalendarState { mode: 'mesic' | 'tyden' | 'rok'; year: number; month: number; date: ISODate; rivals: boolean; special: boolean; colorBy: ColorBy }
 
 /** A month grid is too narrow to read on a phone, so there the week list is the starting view. */
 export const initialCalendar = (today: ISODate): CalendarState => ({
-  mode: typeof window !== 'undefined' && window.innerWidth < 760 ? 'tyden' : 'mesic', year: yearOf(today), month: monthOf(today), date: today, rivals: false, special: true,
+  mode: typeof window !== 'undefined' && window.innerWidth < 760 ? 'tyden' : 'mesic', year: yearOf(today), month: monthOf(today), date: today, rivals: false, special: true, colorBy: 'kanal',
 })
 
-function MonthGrid({ ctx, year, month, rivals, special }: { ctx: Ctx; year: number; month: number; rivals: boolean; special: boolean }) {
+function MonthGrid({ ctx, year, month, rivals, special, colorBy }: { ctx: Ctx; year: number; month: number; rivals: boolean; special: boolean; colorBy: ColorBy }) {
   const weeks = useMemo(() => monthWeeks(year, month), [year, month])
   const bars = useMemo(() => barsFor(ctx, rivals, special, weeks[0][0], weeks[weeks.length - 1][6]), [ctx, rivals, special, weeks])
   const [openWeek, setOpenWeek] = useState<ISODate | null>(null)
@@ -143,7 +150,7 @@ function MonthGrid({ ctx, year, month, rivals, special }: { ctx: Ctx; year: numb
             </div>
             <div className="week-fg">
               {placed.filter((p) => p.lane < limit).map((p) => (
-                <BarButton key={`${p.item.kind}-${p.item.from}-${p.lane}-${p.item.label}`} bar={p.item} lists={ctx.data.lists} cutStart={p.cutStart} cutEnd={p.cutEnd}
+                <BarButton key={`${p.item.kind}-${p.item.from}-${p.lane}-${p.item.label}`} bar={p.item} lists={ctx.data.lists} colorBy={colorBy} cutStart={p.cutStart} cutEnd={p.cutEnd}
                   gridColumn={`${p.start + 1} / ${p.end + 2}`} gridRow={p.lane + 1} onOpen={() => openBar(ctx, p.item)} />
               ))}
               {hidden.length > 0 && (
@@ -162,7 +169,7 @@ function MonthGrid({ ctx, year, month, rivals, special }: { ctx: Ctx; year: numb
   )
 }
 
-function WeekView({ ctx, date, rivals, special }: { ctx: Ctx; date: ISODate; rivals: boolean; special: boolean }) {
+function WeekView({ ctx, date, rivals, special, colorBy }: { ctx: Ctx; date: ISODate; rivals: boolean; special: boolean; colorBy: ColorBy }) {
   const start = mondayOf(date)
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i))
   const bars = barsFor(ctx, rivals, special, days[0], days[6])
@@ -175,7 +182,7 @@ function WeekView({ ctx, date, rivals, special }: { ctx: Ctx; date: ISODate; riv
             <h3><span>{WEEKDAYS_LONG[i]} {Number(d.slice(8))}. {Number(d.slice(5, 7))}.</span>{!ctx.readOnly && <button type="button" className="icon-btn" aria-label={`Nová aktivita ${d}`} onClick={() => ctx.newActivity({ from: d, to: d })}>+</button>}</h3>
             {here.length === 0 && <span className="faint">Nic</span>}
             {here.map((b, k) => (
-              <BarButton key={`${b.kind}-${k}-${b.label}`} bar={b} lists={ctx.data.lists} cutStart={false} cutEnd={false} gridColumn="auto" gridRow={0} onOpen={() => openBar(ctx, b)} />
+              <BarButton key={`${b.kind}-${k}-${b.label}`} bar={b} lists={ctx.data.lists} colorBy={colorBy} cutStart={false} cutEnd={false} gridColumn="auto" gridRow={0} onOpen={() => openBar(ctx, b)} />
             ))}
           </div>
         )
@@ -185,7 +192,7 @@ function WeekView({ ctx, date, rivals, special }: { ctx: Ctx; date: ISODate; riv
 }
 
 /** A strip of the whole year with a row for each channel group, so the load on a channel is visible at once. */
-function YearStrip({ ctx, year, rivals, special }: { ctx: Ctx; year: number; rivals: boolean; special: boolean }) {
+function YearStrip({ ctx, year, rivals, special, colorBy }: { ctx: Ctx; year: number; rivals: boolean; special: boolean; colorBy: ColorBy }) {
   const first = iso(year, 0, 1), length = daysInYear(year)
   const lists = ctx.data.lists
   const groups = [...channelGroups(lists)]
@@ -211,7 +218,7 @@ function YearStrip({ ctx, year, rivals, special }: { ctx: Ctx; year: number; riv
             const b = p.item
             const left = pct(b.from), width = Math.max(((diffDays(b.from, b.to) + 1) / length) * 100, 0.6)
             const style: React.CSSProperties = { left: `${left}%`, width: `${Math.min(width, 100 - left)}%`, top: 4 + p.lane * 22 }
-            if (b.kind === 'activity') Object.assign(style, activityStyle(lists, b.activity))
+            if (b.kind === 'activity') Object.assign(style, activityStyle(lists, b.activity, colorBy))
             else if (b.kind === 'rival') Object.assign(style, { background: 'var(--raised)', color: 'var(--muted)' })
             else Object.assign(style, { background: tint('#0284c7', 16), color: 'var(--info)' })
             return <button key={i} type="button" className="pbar" style={style} title={b.label} onClick={() => openBar(ctx, b)}>{b.label}</button>

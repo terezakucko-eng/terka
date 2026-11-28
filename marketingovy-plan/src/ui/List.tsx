@@ -5,7 +5,7 @@ import { groupOf, type Activity } from '../lib/model'
 import { count, money, signedMoney } from '../lib/parse'
 import { totals } from '../lib/stats'
 import { awaitsResult } from '../lib/status'
-import { BrandDots, Empty, StatusPill, Stars } from './common'
+import { BrandDots, Empty, GroupDot, StatusPill, Stars } from './common'
 import { type Ctx } from './ctx'
 
 type SortKey = 'from' | 'name' | 'status' | 'channel' | 'profit'
@@ -87,7 +87,7 @@ export function ListView({ ctx }: { ctx: Ctx }) {
                 <td className="num" style={{ whiteSpace: 'nowrap' }}>{formatRange(a.from, a.to, yearOf(a.from) !== yearOf(ctx.today))}</td>
                 <td style={{ minWidth: 220 }}><b>{a.name}</b>{a.theme && a.theme !== a.name && <div className="faint">{a.theme}</div>}</td>
                 <td><BrandDots lists={lists} markets={a.markets} /> <span className="muted">{a.markets.length > 3 ? `${a.markets.length} trhů` : a.markets.join(', ')}</span></td>
-                <td>{a.channel}</td>
+                <td>{a.channel && <GroupDot lists={lists} group={groupOf(lists, a.channel)} />} {a.channel}</td>
                 <td><StatusPill status={status} /></td>
                 <td>{a.owner}</td>
                 <td className="r num">{money(a.budget, false)}</td>

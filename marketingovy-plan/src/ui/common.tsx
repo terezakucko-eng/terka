@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { brandColor, brandsOf, channelGroups, STATUS, type Lists } from '../lib/model'
+import { brandColor, brandsOf, channelGroups, groupColor, STATUS, type Lists } from '../lib/model'
 import { STATUS_TONE } from '../lib/status'
 
 /** The viewer's shell can lighten brand colours in the dark theme; the tint is mixed into the surface. */
@@ -13,6 +13,11 @@ export function BrandDots({ lists, markets }: { lists: Lists; markets: string[] 
       {(brands.length ? brands : ['']).map((b) => <span key={b} className="dot" style={{ background: vivid(b ? brandColor(lists, b) : '#8a817d') }} />)}
     </span>
   )
+}
+
+/** A dot in the colour of a channel group; the group name is the tooltip. */
+export function GroupDot({ lists, group }: { lists: Lists; group: string }) {
+  return <span className="dot" title={group} style={{ background: vivid(groupColor(lists, group)) }} />
 }
 
 export function StatusPill({ status }: { status: string }) {
