@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { movingDates, occurrence, occurrencesBetween, shiftToYear } from '../src/lib/calendar'
 import { formatRange, parseDate, parseDayMonth, shiftYears } from '../src/lib/dates'
-import { activityFromRow, activityToCells, calendarFromRow, listsFromMatrix, STATUS, type Activity, type CalendarEntry, type Result, type Row } from '../src/lib/model'
+import { activityFromRow, activityToCells, calendarFromRow, DEFAULT_GROUP_COLORS, groupColor, listsFromMatrix, STATUS, type Activity, type CalendarEntry, type Result, type Row } from '../src/lib/model'
 import { colLetter, moneyShort, norm, numCell, parseNumber, safeText, splitList } from '../src/lib/parse'
 import { isHidden, suggestions } from '../src/lib/recommend'
 import { activityMargin, applyFilters, noFilters, pendingEvaluation, planVsActual, ranked, resultsById, suggestGrossProfit, totals } from '../src/lib/stats'
@@ -83,10 +83,25 @@ describe('lists and rows', () => {
   it('finds the blocks of the lists sheet', () => {
     expect(lists.markets.map((m) => m.code)).toContain('Flagranti SK')
     expect(lists.markets.find((m) => m.code === 'RS CZ')).toMatchObject({ brand: 'Růžový slon', margin: 64.4, color: '#e0077d' })
-    expect(lists.channels.find((c) => c.name === 'Newsletter')).toMatchObject({ group: 'CRM', fields: ['sent', 'openRate', 'ctr', 'cost', 'revenue', 'orders'], leadWeeks: 1 })
+    expect(lists.channels.find((c) => c.name === 'Newsletter')).toMatchObject({ group: 'Newsletter', fields: ['sent', 'openRate', 'ctr', 'cost', 'revenue', 'orders'], leadWeeks: 1 })
     expect(lists.statuses).toEqual(['Nápad', 'V přípravě', 'Schváleno', 'Běží', 'Hotovo', 'Vyhodnoceno', 'Zrušeno'])
     expect(lists.people[0]).toBe('Tereza Kucková')
     expect(lists.competitors[0]).toEqual({ name: 'eroticcity.cz', country: 'CZ', watch: true })
+  })
+  it('colours channel groups: sheet first, then the defaults, then grey', () => {
+    expect(groupColor(lists, 'SMS')).toBe(DEFAULT_GROUP_COLORS['SMS'])
+    expect(DEFAULT_GROUP_COLORS['SMS']).toBe('#eab308')
+    expect(DEFAULT_GROUP_COLORS['Newsletter']).toBe('#6b7280')
+    expect(groupColor(lists, 'Neznámá skupina')).toBe('#8a817d')
+    const matrix = exampleSeed()['Číselníky'].map((r) => r.map((c) => String(c ?? '')))
+    const col = matrix[1].indexOf('Skupina kanálů')
+    expect(col).toBeGreaterThan(0)
+    const row = matrix.findIndex((r, i) => i > 1 && r[col] === 'SMS')
+    matrix[row][col + 1] = '#112233'
+    matrix[row + 1][col + 1] = 'ne barva'
+    const changed = listsFromMatrix(matrix)
+    expect(groupColor(changed, 'SMS')).toBe('#112233')
+    expect(groupColor(changed, matrix[row + 1][col])).toBe(DEFAULT_GROUP_COLORS[matrix[row + 1][col]] ?? '#8a817d')
   })
   it('round-trips an activity', () => {
     const a = act({ name: 'SMS Black Friday', to: '2026-11-11', markets: ['RS CZ', 'RS SK'], budget: 118756, code: '0123' })
@@ -160,7 +175,7 @@ describe('evaluation', () => {
   it('splits plan and reality by brand and month', () => {
     const activities = [act({ id: 'A1', budget: 1000, markets: ['RS CZ', 'KS CZ'] }), act({ id: 'A2', from: '2026-02-01', to: '2026-02-01', budget: 300 }), act({ id: 'A3', status: 'Zrušeno', budget: 999 })]
     const byId = resultsById([res({ activityId: 'A1', cost: 800, grossProfit: 2000 }), res({ activityId: 'A2', market: 'RS CZ', cost: 100 })])
-    const series = planVsActual(activities, byId, [{ month: '2026-11', market: 'RS CZ', group: 'CRM', channel: 'SMS', planCost: 50, actualCost: 70, revenue: null, orders: null }], lists, 2026)
+    const series = planVsActual(activities, byId, [{ month: '2026-11', market: 'RS CZ', group: 'SMS', channel: 'SMS', planCost: 50, actualCost: 70, revenue: null, orders: null }], lists, 2026)
     expect(series.get('Růžový slon')!.plan[10]).toBe(500)
     expect(series.get('Kondomshop')!.plan[10]).toBe(500)
     expect(series.get('Růžový slon')!.plan[1]).toBe(300)

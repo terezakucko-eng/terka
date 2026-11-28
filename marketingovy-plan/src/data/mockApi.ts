@@ -1,5 +1,5 @@
 import { addDays, toSheetDate, todayISO, type ISODate } from '../lib/dates'
-import { CH, H, KH, MH, RH, SHEET } from '../lib/model'
+import { CH, DEFAULT_GROUP_COLORS, H, KH, MH, RH, SHEET } from '../lib/model'
 import { type Cell } from '../lib/parse'
 import { type SheetsApi } from './sheets'
 
@@ -89,7 +89,7 @@ const LISTS: Cell[][] = (() => {
     ['Rádio', 'Rádio', brand, 4], ['Billboardy', 'OOH', brand, 6], ['CLV', 'OOH', brand, 6],
     ['Google Ads', 'Performance', perf, 2], ['Sklik', 'Performance', perf, 2], ['Heureka', 'Performance', perf, 2], ['Zboží', 'Performance', perf, 2],
     ['Srovnávače', 'Performance', perf, 2], ['Affiliate', 'Performance', perf, 2], ['Heureka bannery', 'Display', brand, 3], ['Firmy.cz', 'Display', brand, 3],
-    ['Newsletter', 'CRM', crm, 1], ['SMS', 'CRM', crm, 1],
+    ['Newsletter', 'Newsletter', crm, 1], ['SMS', 'SMS', crm, 1],
     ['Instagram post', 'Sociální sítě', perf, 2], ['Instagram reels', 'Sociální sítě', perf, 2], ['Instagram stories', 'Sociální sítě', perf, 2],
     ['Influenceři', 'Sociální sítě', perf, 4], ['TikTok', 'Sociální sítě', perf, 2], ['LinkedIn', 'Sociální sítě', perf, 2],
     ['Banner na úvodní stránce', 'Web', web, 2], ['Magazín a články', 'Web', web, 2], ['A/B testy', 'Web', web, 2], ['Doprava zdarma', 'Web', web, 2],
@@ -101,18 +101,20 @@ const LISTS: Cell[][] = (() => {
   const types = ['Hlavní kampaň', 'Sekundární kampaň', 'Vendor akce', 'Kupon do objednávek', 'Běžná komunikace', 'Event', 'Spolupráce']
   const rivals: Cell[][] = [['eroticcity.cz', 'CZ', 'ano'], ['yoo.cz', 'CZ', 'ano'], ['superlove.sk', 'SK', 'ano'], ['superlove.hu', 'HU', 'ano']]
   const rows: Cell[][] = [
-    ['ZNAČKY A ZEMĚ', '', '', '', '', '', '', '', '', 'KANÁLY', '', '', '', '', '', '', '', 'STAVY', '', '', 'ODPOVĚDNÍ', '', '', 'TYPY', '', 'KONKURENTI'],
+    ['ZNAČKY A ZEMĚ', '', '', '', '', '', '', '', '', 'KANÁLY', '', '', '', '', '', '', '', 'STAVY', '', '', 'ODPOVĚDNÍ', '', '', 'TYPY', '', 'KONKURENTI', '', '', '', '', 'BARVY SKUPIN KANÁLŮ'],
     ['Kód', 'Značka', 'Země', 'Barva', 'Hrubá marže (%)', 'Trh v Avengers', 'V rozpočtu', 'Aktivní', '', 'Kanál', 'Skupina', 'Pole výsledku', 'Účty v rozpočtu',
-      'V rozpočtu jako', 'Příprava (týdny)', 'Aktivní', '', 'Stav', 'Jak se nastavuje', '', 'Jméno', 'Aktivní', '', 'Typ', '', 'Konkurent', 'Země', 'Ke značce', 'Sledovat'],
+      'V rozpočtu jako', 'Příprava (týdny)', 'Aktivní', '', 'Stav', 'Jak se nastavuje', '', 'Jméno', 'Aktivní', '', 'Typ', '', 'Konkurent', 'Země', 'Ke značce', 'Sledovat', '', 'Skupina kanálů', 'Barva'],
   ]
-  const n = Math.max(markets.length, channels.length, statuses.length, types.length, rivals.length)
+  const groups = Object.entries(DEFAULT_GROUP_COLORS)
+  const n = Math.max(markets.length, channels.length, statuses.length, types.length, rivals.length, groups.length)
   for (let i = 0; i < n; i++) {
     const m = markets[i], c = channels[i], k = rivals[i]
     rows.push([
       ...(m ? [m[0], m[1], m[2], m[3], m[4], '', '', 'ano'] : ['', '', '', '', '', '', '', '']), '',
       ...(c ? [c[0], c[1], c[2], '', '', c[3], 'ano'] : ['', '', '', '', '', '', '']), '',
       statuses[i] ?? '', '', '', people[i] ?? '', people[i] ? 'ano' : '', '', types[i] ?? '', '',
-      ...(k ? [k[0], k[1], '', k[2]] : ['', '', '', '']),
+      ...(k ? [k[0], k[1], '', k[2]] : ['', '', '', '']), '',
+      ...(groups[i] ?? ['', '']),
     ])
   }
   return rows
